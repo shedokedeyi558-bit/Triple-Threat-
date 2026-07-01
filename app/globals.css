@@ -1,0 +1,105 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --neon: #00FF66;
+  --gold: #FFD700;
+  --bg: #0A0A0A;
+  --card: #1A1A1A;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html {
+  font-size: 16px;
+}
+
+body {
+  background-color: var(--bg);
+  color: #ffffff;
+  font-family: 'Inter', system-ui, sans-serif;
+  min-height: 100dvh;
+  overscroll-behavior: none;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: #111; }
+::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+
+/* Neon glow utility */
+.neon-glow {
+  box-shadow: 0 0 8px #00FF66, 0 0 20px #00FF6633;
+}
+.neon-text-glow {
+  text-shadow: 0 0 10px #00FF6688;
+}
+.gold-glow {
+  box-shadow: 0 0 8px #FFD700, 0 0 20px #FFD70033;
+}
+
+/* Timer bar animation */
+@keyframes timerProgress {
+  from { width: 100%; }
+  to { width: 0%; }
+}
+
+/* Marquee */
+.marquee-container {
+  overflow: hidden;
+  white-space: nowrap;
+}
+.marquee-content {
+  display: inline-block;
+  animation: marquee 30s linear infinite;
+}
+
+/* Option button */
+.option-btn {
+  @apply w-full text-left px-4 py-3 rounded-xl border border-[#2A2A2A] bg-[#1A1A1A] text-white font-medium transition-all duration-150 active:scale-98 min-h-[52px];
+}
+.option-btn:hover, .option-btn:focus {
+  @apply border-[#00FF66] bg-[#00FF6611];
+}
+.option-btn.selected {
+  @apply border-[#00FF66] bg-[#00FF6622] text-[#00FF66];
+}
+.option-btn.correct {
+  @apply border-green-400 bg-green-900/30 text-green-400;
+}
+.option-btn.wrong {
+  @apply border-red-400 bg-red-900/30 text-red-400;
+}
+
+/* Door card */
+.door-card {
+  @apply relative flex flex-col items-center justify-between p-4 rounded-2xl border border-[#2A2A2A] bg-[#1A1A1A] cursor-pointer transition-all duration-200 active:scale-95;
+}
+.door-card:hover {
+  @apply border-[#00FF66] shadow-[0_0_16px_#00FF6633];
+}
+
+/* Admin sidebar */
+.sidebar-link {
+  @apply flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-gray-400 hover:text-white hover:bg-[#242424] transition-colors;
+}
+.sidebar-link.active {
+  @apply text-[#00FF66] bg-[#00FF6611];
+}
+
+/* Btn variants */
+.btn-primary {
+  @apply w-full py-4 rounded-xl bg-[#00FF66] text-black font-bold text-lg active:scale-95 transition-transform;
+}
+.btn-secondary {
+  @apply w-full py-4 rounded-xl border-2 border-[#00FF66] text-[#00FF66] font-bold text-lg active:scale-95 transition-transform bg-transparent;
+}
+.btn-danger {
+  @apply w-full py-4 rounded-xl bg-red-600 text-white font-bold text-lg active:scale-95 transition-transform;
+}
