@@ -1,30 +1,36 @@
 "use client";
 
-import React, { createContext, useContext, useReducer, ReactNode } from "react";
-import type { Question, Door, Player, WithdrawalRequest, AppSettings } from "@/lib/types";
+import React, {
+  createContext, useContext, useReducer, useEffect, ReactNode,
+} from "react";
+import type { Question, Player, WithdrawalRequest, AppSettings } from "@/lib/types";
 import { mockQuestions, mockDoors, mockPlayers, mockWithdrawals, mockAppSettings } from "@/lib/mockData";
+import { getAdminToken, setAdminToken, removeAdminToken } from "@/lib/api";
 
 interface AdminState {
   isAuthenticated: boolean;
   questions: Question[];
-  doors: Door[];
+  doors: typeof mockDoors;
   players: Player[];
   withdrawals: WithdrawalRequest[];
   settings: AppSettings;
 }
 
 type Action =
-  | { type: "ADMIN_LOGIN" }
+  | { type: "ADMIN_LOGIN"; token: string }
   | { type: "ADMIN_LOGOUT" }
   | { type: "ADD_QUESTION"; question: Question }
   | { type: "UPDATE_QUESTION"; question: Question }
   | { type: "DELETE_QUESTION"; id: string }
-  | { type: "UPDATE_DOOR"; door: Door }
+  | { type: "UPDATE_DOOR"; door: typeof mockDoors[0] }
   | { type: "BAN_PLAYER"; id: string }
   | { type: "UNBAN_PLAYER"; id: string }
   | { type: "APPROVE_WITHDRAWAL"; id: string }
   | { type: "REJECT_WITHDRAWAL"; id: string }
-  | { type: "UPDATE_SETTINGS"; settings: Partial<AppSettings> };
+  | { type: "UPDATE_SETTINGS"; settings: Partial<AppSettings> }
+  | { type: "SET_QUESTIONS"; questions: Question[] }
+  | { type: "SET_PLAYERS"; players: Player[] }
+  | { type: "SET_WITHDRAWALS"; withdrawals: WithdrawalRequest[] };
 
 const initialState: AdminState = {
   isAuthenticated: false,
@@ -37,8 +43,10 @@ const initialState: AdminState = {
 
 function adminReducer(state: AdminState, action: Action): AdminState {
   switch (action.type) {
-    case "ADMIN_LOGIN": return { ...state, isAuthenticated: true };
-    case "ADMIN_LOGOUT": return { ...state, isAuthenticated: false };
+    case "ADMIN_LOGIN":
+      return { ...state, isAuthenticated: true };
+    case "ADMIN_LOGOUT":
+      return { ...state, isAuthenticated: false };
     case "ADD_QUESTION":
       return { ...state, questions: [...state.questions, action.question] };
     case "UPDATE_QUESTION":
@@ -57,6 +65,12 @@ function adminReducer(state: AdminState, action: Action): AdminState {
       return { ...state, withdrawals: state.withdrawals.map(w => w.id === action.id ? { ...w, status: "rejected" } : w) };
     case "UPDATE_SETTINGS":
       return { ...state, settings: { ...state.settings, ...action.settings } };
+    case "SET_QUESTIONS":
+      return { ...state, questions: action.questions };
+    case "SET_PLAYERS":
+      return { ...state, players: action.players };
+    case "SET_WITHDRAWALS":
+      return { ...state, withdrawals: action.withdrawals };
     default:
       return state;
   }
@@ -69,6 +83,15 @@ const AdminContext = createContext<{
 
 export function AdminProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(adminReducer, initialState);
+
+  // Rehydrate admin token on mount
+  useEffect(() => {
+    const token = getAdminToken();
+    if (token) {
+      dispatch({ type: "ADMIN_LOGIN", token });
+    }
+  }, []);
+
   return (
     <AdminContext.Provider value={{ state, dispatch }}>
       {children}

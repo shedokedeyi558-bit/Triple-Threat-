@@ -1,4 +1,5 @@
 "use client";
+
 import { useApp } from "@/context/AppContext";
 import { Wallet, ArrowLeft } from "lucide-react";
 import Link from "next/link";
@@ -34,13 +35,14 @@ export function NavBar({ title, showBack = false, showWallet = true }: Props) {
           </Link>
         )}
       </div>
-      {showWallet && state.isAuthenticated && (
+
+      {showWallet && state.isAuthenticated && state.player && (
         <Link
           href="/wallet"
           className="flex items-center gap-2 bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl px-3 py-1.5 text-sm font-semibold text-neon"
         >
           <Wallet size={16} />
-          ₦{state.balance.toLocaleString()}
+          ₦{state.player.balance.toLocaleString()}
         </Link>
       )}
     </div>

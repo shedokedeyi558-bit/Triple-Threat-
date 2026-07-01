@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useApp } from "@/context/AppContext";
 import { Logo } from "@/components/ui/Logo";
 import { Phone, ArrowRight, Shield } from "lucide-react";
+import { authApi, setToken, ApiError } from "@/lib/api";
 
 export default function AuthPage() {
   const router = useRouter();
@@ -16,7 +17,9 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const maskedPhone = phone ? `${phone.slice(0, 4)}***${phone.slice(-4)}` : "";
+  // Normalise to the format the backend expects (e.g. 08012345678)
+  const fullPhone = `0${phone}`;
+  const maskedPhone = phone ? `0${phone.slice(0, 3)}***${phone.slice(-4)}` : "";
 
   const handleSendOTP = async () => {
     if (phone.length < 10) {
@@ -25,10 +28,14 @@ export default function AuthPage() {
     }
     setError("");
     setLoading(true);
-    // Mock API call
-    await new Promise((r) => setTimeout(r, 1000));
-    setLoading(false);
-    setStep("otp");
+    try {
+      await authApi.register(fullPhone);
+      setStep("otp");
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Failed to send OTP. Try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleOtpChange = (val: string, idx: number) => {
@@ -39,7 +46,6 @@ export default function AuthPage() {
     if (val && idx < 5) {
       document.getElementById(`otp-${idx + 1}`)?.focus();
     }
-    // Auto verify
     if (newOtp.every((d) => d !== "") && idx === 5) {
       handleVerify(newOtp.join(""));
     }
@@ -59,11 +65,25 @@ export default function AuthPage() {
     }
     setError("");
     setLoading(true);
-    // Mock verification — accept any 6-digit code
-    await new Promise((r) => setTimeout(r, 1000));
-    setLoading(false);
-    dispatch({ type: "LOGIN", phone: `0${phone}` });
-    router.push("/format");
+    try {
+      const data = await authApi.verifyOtp(fullPhone, codeToVerify);
+      setToken(data.token);
+      dispatch({
+        type: "LOGIN",
+        token: data.token,
+        player: {
+          id: data.player.id,
+          phone: data.player.phone,
+          name: data.player.name,
+          balance: data.player.balance,
+        },
+      });
+      router.push("/format");
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Verification failed. Try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -90,7 +110,9 @@ export default function AuthPage() {
                   <Phone size={18} className="text-neon" />
                   <h2 className="text-white font-bold text-lg">Enter your phone number</h2>
                 </div>
-                <p className="text-gray-400 text-sm mb-5">We&apos;ll send a verification code via SMS</p>
+                <p className="text-gray-400 text-sm mb-5">
+                  We&apos;ll send a verification code via SMS
+                </p>
 
                 <div className="flex items-center gap-2 mb-4">
                   <div className="bg-[#2A2A2A] rounded-xl px-3 py-3.5 text-sm font-semibold text-white whitespace-nowrap">
@@ -135,7 +157,8 @@ export default function AuthPage() {
                   <h2 className="text-white font-bold text-lg">Enter OTP</h2>
                 </div>
                 <p className="text-gray-400 text-sm mb-5">
-                  Enter the 6-digit code sent to <span className="text-white font-semibold">{maskedPhone}</span>
+                  Enter the 6-digit code sent to{" "}
+                  <span className="text-white font-semibold">{maskedPhone}</span>
                 </p>
 
                 <div className="flex gap-2 justify-between mb-5">
@@ -170,15 +193,11 @@ export default function AuthPage() {
                 </button>
 
                 <button
-                  onClick={() => setStep("phone")}
+                  onClick={() => { setStep("phone"); setError(""); }}
                   className="w-full text-center text-gray-400 text-sm mt-3 py-2"
                 >
                   Change number
                 </button>
-
-                <p className="text-center text-xs text-gray-500 mt-2">
-                  Didn&apos;t receive it? Use <span className="text-neon font-bold">123456</span> to demo
-                </p>
               </div>
             </motion.div>
           )}

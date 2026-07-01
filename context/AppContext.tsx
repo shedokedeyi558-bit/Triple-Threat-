@@ -1,103 +1,124 @@
 "use client";
 
-import React, { createContext, useContext, useReducer, ReactNode } from "react";
-import type { QuestionFormat, Door, GameSession, Transaction } from "@/lib/types";
-import { mockDoors, mockTransactions } from "@/lib/mockData";
+import React, {
+  createContext, useContext, useReducer, useEffect, ReactNode,
+} from "react";
+import type { QuestionFormat } from "@/lib/types";
+import type { ApiDoor, ApiQuestion, PlayResponse, SubmitResponse } from "@/lib/api";
+import { getToken, setToken, removeToken } from "@/lib/api";
 
-interface AppState {
-  // Auth
-  isAuthenticated: boolean;
-  playerPhone: string | null;
-  // Wallet
+// ─── State shape ──────────────────────────────────────────────────────────────
+
+export interface PlayerInfo {
+  id: string;
+  phone: string;
+  name: string | null;
   balance: number;
-  transactions: Transaction[];
-  // Game
-  selectedFormat: QuestionFormat | null;
-  selectedDoor: Door | null;
-  currentSession: Partial<GameSession> | null;
-  // Doors
-  doors: Door[];
 }
 
+interface ActiveSession {
+  sessionId: string;
+  doorId: number;
+  question: ApiQuestion;
+  entryFee: number;
+  result?: {
+    correct: boolean;
+    prize: number;
+    correctAnswer: string;
+    playerAnswer: string;
+  };
+}
+
+interface AppState {
+  isAuthenticated: boolean;
+  player: PlayerInfo | null;
+  selectedFormat: QuestionFormat | null;
+  selectedDoor: ApiDoor | null;
+  activeSession: ActiveSession | null;
+  // live doors fetched from API
+  doors: ApiDoor[];
+  doorsLoading: boolean;
+  doorsError: string | null;
+}
+
+// ─── Actions ──────────────────────────────────────────────────────────────────
+
 type Action =
-  | { type: "LOGIN"; phone: string }
+  | { type: "LOGIN"; player: PlayerInfo; token: string }
   | { type: "LOGOUT" }
+  | { type: "SET_PLAYER"; player: PlayerInfo }
   | { type: "SET_FORMAT"; format: QuestionFormat }
-  | { type: "SELECT_DOOR"; door: Door }
-  | { type: "START_SESSION"; session: Partial<GameSession> }
-  | { type: "END_SESSION"; won: boolean; prize: number; entryFee: number; playerAnswer: string }
-  | { type: "DEPOSIT"; amount: number }
-  | { type: "SET_BALANCE"; balance: number }
-  | { type: "CLEAR_SESSION" };
+  | { type: "SET_DOORS"; doors: ApiDoor[] }
+  | { type: "DOORS_LOADING" }
+  | { type: "DOORS_ERROR"; error: string }
+  | { type: "SELECT_DOOR"; door: ApiDoor }
+  | { type: "START_SESSION"; session: ActiveSession }
+  | { type: "END_SESSION"; result: ActiveSession["result"] }
+  | { type: "CLEAR_SESSION" }
+  | { type: "UPDATE_BALANCE"; balance: number };
 
 const initialState: AppState = {
   isAuthenticated: false,
-  playerPhone: null,
-  balance: 0,
-  transactions: mockTransactions,
+  player: null,
   selectedFormat: null,
   selectedDoor: null,
-  currentSession: null,
-  doors: mockDoors,
+  activeSession: null,
+  doors: [],
+  doorsLoading: false,
+  doorsError: null,
 };
 
 function appReducer(state: AppState, action: Action): AppState {
   switch (action.type) {
     case "LOGIN":
-      return { ...state, isAuthenticated: true, playerPhone: action.phone, balance: 2500 };
+      return {
+        ...state,
+        isAuthenticated: true,
+        player: action.player,
+      };
     case "LOGOUT":
       return { ...initialState };
+    case "SET_PLAYER":
+      return { ...state, player: action.player };
     case "SET_FORMAT":
       return { ...state, selectedFormat: action.format };
+    case "DOORS_LOADING":
+      return { ...state, doorsLoading: true, doorsError: null };
+    case "SET_DOORS":
+      return { ...state, doors: action.doors, doorsLoading: false };
+    case "DOORS_ERROR":
+      return { ...state, doorsError: action.error, doorsLoading: false };
     case "SELECT_DOOR":
       return { ...state, selectedDoor: action.door };
     case "START_SESSION":
-      return { ...state, currentSession: action.session };
-    case "END_SESSION": {
-      const { won, prize, entryFee, playerAnswer } = action;
-      const newBalance = won ? state.balance + prize : state.balance;
-      const tx: Transaction = {
-        id: `t${Date.now()}`,
-        type: won ? "win" : "entry_fee",
-        amount: won ? prize : -entryFee,
-        description: won ? `Won ₦${prize.toLocaleString()} (Door ${state.selectedDoor?.id})` : `Entry fee -₦${entryFee} (Door ${state.selectedDoor?.id})`,
-        doorId: state.selectedDoor?.id,
-        createdAt: new Date().toISOString(),
-      };
+      return { ...state, activeSession: action.session };
+    case "END_SESSION":
+      if (!state.activeSession) return state;
       return {
         ...state,
-        balance: newBalance,
-        transactions: [tx, ...state.transactions],
-        currentSession: {
-          ...state.currentSession,
-          status: won ? "won" : "lost",
-          playerAnswer,
-          prize: won ? prize : 0,
-        },
+        activeSession: { ...state.activeSession, result: action.result },
+        player: state.player
+          ? {
+              ...state.player,
+              balance: action.result?.correct
+                ? state.player.balance + (action.result.prize - state.activeSession.entryFee)
+                : state.player.balance,
+            }
+          : null,
       };
-    }
-    case "DEPOSIT": {
-      const depositTx: Transaction = {
-        id: `t${Date.now()}`,
-        type: "deposit",
-        amount: action.amount,
-        description: "Wallet deposit",
-        createdAt: new Date().toISOString(),
-      };
-      return {
-        ...state,
-        balance: state.balance + action.amount,
-        transactions: [depositTx, ...state.transactions],
-      };
-    }
-    case "SET_BALANCE":
-      return { ...state, balance: action.balance };
     case "CLEAR_SESSION":
-      return { ...state, currentSession: null, selectedDoor: null };
+      return { ...state, activeSession: null, selectedDoor: null };
+    case "UPDATE_BALANCE":
+      return {
+        ...state,
+        player: state.player ? { ...state.player, balance: action.balance } : null,
+      };
     default:
       return state;
   }
 }
+
+// ─── Context ──────────────────────────────────────────────────────────────────
 
 const AppContext = createContext<{
   state: AppState;
@@ -106,6 +127,31 @@ const AppContext = createContext<{
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(appReducer, initialState);
+
+  // Rehydrate from localStorage on mount
+  useEffect(() => {
+    const token = getToken();
+    const stored = localStorage.getItem("tt_player");
+    if (token && stored) {
+      try {
+        const player = JSON.parse(stored) as PlayerInfo;
+        dispatch({ type: "LOGIN", player, token });
+      } catch {
+        removeToken();
+        localStorage.removeItem("tt_player");
+      }
+    }
+  }, []);
+
+  // Persist player info whenever it changes
+  useEffect(() => {
+    if (state.player) {
+      localStorage.setItem("tt_player", JSON.stringify(state.player));
+    } else {
+      localStorage.removeItem("tt_player");
+    }
+  }, [state.player]);
+
   return (
     <AppContext.Provider value={{ state, dispatch }}>
       {children}

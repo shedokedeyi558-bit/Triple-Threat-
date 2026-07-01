@@ -11,31 +11,27 @@ export default function ResultPage() {
   const router = useRouter();
   const { state, dispatch } = useApp();
 
-  const session = state.currentSession;
-  const door = state.selectedDoor;
-  const question = door?.question;
-
-  const won = session?.status === "won";
-  const prize = session?.prize ?? 0;
-  const playerAnswer = session?.playerAnswer ?? "";
-  const correctAnswer = question?.correctAnswer ?? question?.options?.find((o) => o.isCorrect)?.text ?? "";
+  const session = state.activeSession;
+  const result = session?.result;
 
   useEffect(() => {
-    if (!session) {
+    if (!session || !result) {
       router.replace("/doors");
     }
-  }, [session, router]);
+  }, [session, result, router]);
 
   const handlePlayAgain = () => {
     dispatch({ type: "CLEAR_SESSION" });
     router.push("/doors");
   };
 
-  if (!session) return null;
+  if (!session || !result) return null;
+
+  const balance = state.player?.balance ?? 0;
 
   return (
     <div className="min-h-dvh bg-bg flex flex-col items-center justify-center px-5">
-      {won && <Confetti />}
+      {result.correct && <Confetti />}
 
       <motion.div
         className="w-full max-w-sm"
@@ -44,7 +40,7 @@ export default function ResultPage() {
         transition={{ type: "spring", damping: 18 }}
       >
         <div className="bg-card border border-[#2A2A2A] rounded-3xl p-7 text-center">
-          {won ? (
+          {result.correct ? (
             <>
               <motion.div
                 className="text-6xl mb-3"
@@ -58,7 +54,9 @@ export default function ResultPage() {
 
               <div className="bg-[#00FF6611] border border-neon/30 rounded-2xl py-5 px-4 mb-6">
                 <p className="text-gray-400 text-sm">You won</p>
-                <p className="text-neon font-black text-4xl mt-1">₦{prize.toLocaleString()}</p>
+                <p className="text-neon font-black text-4xl mt-1">
+                  ₦{result.prize.toLocaleString()}
+                </p>
               </div>
 
               <div className="flex flex-col gap-3">
@@ -76,7 +74,7 @@ export default function ResultPage() {
 
               <div className="mt-5 bg-[#111] rounded-xl px-4 py-2 text-sm">
                 <span className="text-gray-400">Wallet: </span>
-                <span className="text-neon font-bold">₦{state.balance.toLocaleString()}</span>
+                <span className="text-neon font-bold">₦{balance.toLocaleString()}</span>
               </div>
             </>
           ) : (
@@ -88,15 +86,14 @@ export default function ResultPage() {
               <div className="bg-[#1E1010] border border-red-900/50 rounded-2xl p-4 mb-5 text-left space-y-3">
                 <div>
                   <p className="text-xs text-gray-500 mb-0.5">The correct answer was</p>
-                  <p className="text-white font-bold">{correctAnswer}</p>
+                  <p className="text-white font-bold">{result.correctAnswer}</p>
                 </div>
-                {playerAnswer && (
+                {result.playerAnswer ? (
                   <div>
                     <p className="text-xs text-gray-500 mb-0.5">You answered</p>
-                    <p className="text-red-400 font-medium">{playerAnswer}</p>
+                    <p className="text-red-400 font-medium">{result.playerAnswer}</p>
                   </div>
-                )}
-                {!playerAnswer && (
+                ) : (
                   <p className="text-gray-500 text-sm italic">Time ran out — no answer submitted</p>
                 )}
               </div>
@@ -112,7 +109,7 @@ export default function ResultPage() {
 
               <div className="mt-5 bg-[#111] rounded-xl px-4 py-2 text-sm">
                 <span className="text-gray-400">Wallet: </span>
-                <span className="text-white font-bold">₦{state.balance.toLocaleString()}</span>
+                <span className="text-white font-bold">₦{balance.toLocaleString()}</span>
               </div>
             </>
           )}

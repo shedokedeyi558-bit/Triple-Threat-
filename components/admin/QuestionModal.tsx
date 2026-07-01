@@ -2,72 +2,111 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useAdmin } from "@/context/AdminContext";
-import { X } from "lucide-react";
-import type { Question, QuestionFormat, Difficulty } from "@/lib/types";
+import { X, Loader2 } from "lucide-react";
+import { adminApi, type AdminQuestion, ApiError } from "@/lib/api";
 
 interface Props {
   open: boolean;
   onClose: () => void;
-  question: Question | null;
+  question: AdminQuestion | null;
+  onSaved: (q: AdminQuestion) => void;
 }
 
-const emptyQuestion = (): Partial<Question> => ({
-  doorId: 1,
+const empty = (): Partial<AdminQuestion> => ({
+  door_id: 1,
   text: "",
   format: "multiple_choice",
   difficulty: "Easy",
   prize: 500,
-  timeLimit: 15,
+  time_limit: 15,
   options: [
-    { id: "a", text: "", isCorrect: true },
-    { id: "b", text: "", isCorrect: false },
-    { id: "c", text: "", isCorrect: false },
-    { id: "d", text: "", isCorrect: false },
+    { id: "a", text: "" },
+    { id: "b", text: "" },
+    { id: "c", text: "" },
+    { id: "d", text: "" },
   ],
-  correctAnswer: "",
-  caseSensitive: false,
-  spellingTolerance: "strict",
+  correct_answer: "",
+  case_sensitive: false,
+  spelling_tolerance: "strict",
   status: "active",
 });
 
-export function QuestionModal({ open, onClose, question }: Props) {
-  const { dispatch } = useAdmin();
-  const [form, setForm] = useState<Partial<Question>>(emptyQuestion());
+export function QuestionModal({ open, onClose, question, onSaved }: Props) {
+  const [form, setForm] = useState<Partial<AdminQuestion>>(empty());
+  const [correctOptionIdx, setCorrectOptionIdx] = useState(0);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    if (question) setForm({ ...question });
-    else setForm(emptyQuestion());
+    if (question) {
+      setForm({ ...question });
+      // Determine correct option index from correct_answer matching an option
+      const idx = (question.options ?? []).findIndex(
+        (o) => o.text.toLowerCase() === (question.correct_answer ?? "").toLowerCase()
+      );
+      setCorrectOptionIdx(idx >= 0 ? idx : 0);
+    } else {
+      setForm(empty());
+      setCorrectOptionIdx(0);
+    }
+    setError("");
   }, [question, open]);
 
-  const set = (key: keyof Question, val: unknown) => setForm((f) => ({ ...f, [key]: val }));
+  const set = <K extends keyof AdminQuestion>(key: K, val: AdminQuestion[K]) =>
+    setForm((f) => ({ ...f, [key]: val }));
 
   const handleOptionChange = (idx: number, text: string) => {
     const opts = [...(form.options ?? [])];
     opts[idx] = { ...opts[idx], text };
     set("options", opts);
+    // Keep correct_answer in sync for MC
+    if (idx === correctOptionIdx && form.format === "multiple_choice") {
+      set("correct_answer", text);
+    }
   };
 
   const handleSetCorrect = (idx: number) => {
-    const opts = (form.options ?? []).map((o, i) => ({ ...o, isCorrect: i === idx }));
-    set("options", opts);
+    setCorrectOptionIdx(idx);
+    set("correct_answer", form.options?.[idx]?.text ?? "");
   };
 
-  const handleSave = () => {
-    if (!form.text?.trim()) return;
-    if (question) {
-      dispatch({ type: "UPDATE_QUESTION", question: form as Question });
-    } else {
-      dispatch({
-        type: "ADD_QUESTION",
-        question: {
-          ...form,
-          id: `q${Date.now()}`,
-          createdAt: new Date().toISOString().split("T")[0],
-        } as Question,
-      });
+  const handleSave = async () => {
+    if (!form.text?.trim()) { setError("Question text is required"); return; }
+    if (!form.correct_answer?.trim()) { setError("Correct answer is required"); return; }
+    if (!form.prize || form.prize <= 0) { setError("Prize must be greater than 0"); return; }
+
+    setSaving(true);
+    setError("");
+
+    const payload: Partial<AdminQuestion> = {
+      door_id: form.door_id,
+      text: form.text,
+      format: form.format,
+      difficulty: form.difficulty,
+      prize: form.prize,
+      time_limit: form.time_limit,
+      correct_answer: form.correct_answer,
+      case_sensitive: form.case_sensitive,
+      spelling_tolerance: form.spelling_tolerance,
+      status: form.status,
+      options: form.format === "multiple_choice" ? form.options : null,
+    };
+
+    try {
+      let saved: AdminQuestion;
+      if (question) {
+        const res = await adminApi.updateQuestion(question.id, payload);
+        saved = res.question;
+      } else {
+        const res = await adminApi.createQuestion(payload);
+        saved = res.question;
+      }
+      onSaved(saved);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Save failed. Try again.");
+    } finally {
+      setSaving(false);
     }
-    onClose();
   };
 
   return (
@@ -75,9 +114,7 @@ export function QuestionModal({ open, onClose, question }: Props) {
       {open && (
         <>
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="fixed inset-0 bg-black/70 z-50"
             onClick={onClose}
           />
@@ -87,9 +124,11 @@ export function QuestionModal({ open, onClose, question }: Props) {
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             className="fixed inset-x-4 top-4 bottom-4 z-50 bg-[#141414] border border-[#2A2A2A] rounded-2xl overflow-y-auto md:inset-x-auto md:left-1/2 md:-translate-x-1/2 md:w-full md:max-w-lg"
           >
+            {/* Header */}
             <div className="sticky top-0 bg-[#141414] border-b border-[#2A2A2A] px-5 py-4 flex items-center justify-between z-10">
               <h2 className="text-white font-bold text-lg">
-                {question ? "Edit Question" : "Add New Question"} — Door {form.doorId}
+                {question ? "Edit Question" : "Add New Question"}
+                {form.door_id ? ` — Door ${form.door_id}` : ""}
               </h2>
               <button onClick={onClose} className="p-2 rounded-full hover:bg-white/10 text-gray-400">
                 <X size={18} />
@@ -99,7 +138,7 @@ export function QuestionModal({ open, onClose, question }: Props) {
             <div className="p-5 space-y-4">
               {/* Question text */}
               <div>
-                <label className="text-xs text-gray-400 mb-1.5 block">Question</label>
+                <label className="text-xs text-gray-400 mb-1.5 block">Question *</label>
                 <textarea
                   rows={3}
                   value={form.text}
@@ -114,15 +153,16 @@ export function QuestionModal({ open, onClose, question }: Props) {
                 <div>
                   <label className="text-xs text-gray-400 mb-1.5 block">Door</label>
                   <select
-                    value={form.doorId}
-                    onChange={(e) => set("doorId", Number(e.target.value))}
+                    value={form.door_id ?? ""}
+                    onChange={(e) => set("door_id", e.target.value ? Number(e.target.value) : null as unknown as number)}
                     className="w-full bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl px-3 py-2.5 text-white text-sm outline-none"
                   >
+                    <option value="">None</option>
                     {[1, 2, 3].map((d) => <option key={d} value={d}>Door {d}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs text-gray-400 mb-1.5 block">Prize (₦)</label>
+                  <label className="text-xs text-gray-400 mb-1.5 block">Prize (₦) *</label>
                   <input
                     type="number"
                     value={form.prize}
@@ -133,8 +173,8 @@ export function QuestionModal({ open, onClose, question }: Props) {
                 <div>
                   <label className="text-xs text-gray-400 mb-1.5 block">Difficulty</label>
                   <select
-                    value={form.difficulty}
-                    onChange={(e) => set("difficulty", e.target.value as Difficulty)}
+                    value={form.difficulty ?? ""}
+                    onChange={(e) => set("difficulty", e.target.value as AdminQuestion["difficulty"])}
                     className="w-full bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl px-3 py-2.5 text-white text-sm outline-none"
                   >
                     {["Easy", "Medium", "Hard"].map((d) => <option key={d}>{d}</option>)}
@@ -148,7 +188,7 @@ export function QuestionModal({ open, onClose, question }: Props) {
                   <label className="text-xs text-gray-400 mb-1.5 block">Format</label>
                   <select
                     value={form.format}
-                    onChange={(e) => set("format", e.target.value as QuestionFormat)}
+                    onChange={(e) => set("format", e.target.value as AdminQuestion["format"])}
                     className="w-full bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl px-3 py-2.5 text-white text-sm outline-none"
                   >
                     <option value="multiple_choice">MC</option>
@@ -159,8 +199,8 @@ export function QuestionModal({ open, onClose, question }: Props) {
                   <label className="text-xs text-gray-400 mb-1.5 block">Time (s)</label>
                   <input
                     type="number"
-                    value={form.timeLimit}
-                    onChange={(e) => set("timeLimit", Number(e.target.value))}
+                    value={form.time_limit}
+                    onChange={(e) => set("time_limit", Number(e.target.value))}
                     className="w-full bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl px-3 py-2.5 text-white text-sm outline-none"
                   />
                 </div>
@@ -168,7 +208,7 @@ export function QuestionModal({ open, onClose, question }: Props) {
                   <label className="text-xs text-gray-400 mb-1.5 block">Status</label>
                   <select
                     value={form.status}
-                    onChange={(e) => set("status", e.target.value as "active" | "inactive")}
+                    onChange={(e) => set("status", e.target.value as AdminQuestion["status"])}
                     className="w-full bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl px-3 py-2.5 text-white text-sm outline-none"
                   >
                     <option value="active">Active</option>
@@ -180,11 +220,15 @@ export function QuestionModal({ open, onClose, question }: Props) {
               {/* MC options */}
               {form.format === "multiple_choice" && (
                 <div>
-                  <label className="text-xs text-gray-400 mb-2 block">Options (select correct answer)</label>
+                  <label className="text-xs text-gray-400 mb-2 block">
+                    Options — tap ✓ to mark correct answer
+                  </label>
                   <div className="space-y-2">
                     {(form.options ?? []).map((opt, i) => (
                       <div key={opt.id} className="flex items-center gap-2">
-                        <span className="text-gray-500 text-sm w-5 flex-shrink-0">{String.fromCharCode(65 + i)})</span>
+                        <span className="text-gray-500 text-sm w-5 flex-shrink-0">
+                          {String.fromCharCode(65 + i)})
+                        </span>
                         <input
                           type="text"
                           placeholder={`Option ${String.fromCharCode(65 + i)}`}
@@ -194,12 +238,12 @@ export function QuestionModal({ open, onClose, question }: Props) {
                         />
                         <button
                           onClick={() => handleSetCorrect(i)}
-                          className={`w-8 h-8 flex-shrink-0 rounded-full border-2 transition-colors ${
-                            opt.isCorrect
+                          className={`w-8 h-8 flex-shrink-0 rounded-full border-2 text-xs font-bold transition-colors ${
+                            correctOptionIdx === i
                               ? "border-neon bg-neon/20 text-neon"
                               : "border-[#2A2A2A] text-gray-600 hover:border-gray-400"
                           }`}
-                          aria-label={`Set option ${String.fromCharCode(65 + i)} as correct`}
+                          aria-label="Mark as correct"
                         >
                           ✓
                         </button>
@@ -213,11 +257,11 @@ export function QuestionModal({ open, onClose, question }: Props) {
               {form.format === "type_answer" && (
                 <div className="space-y-3">
                   <div>
-                    <label className="text-xs text-gray-400 mb-1.5 block">Correct answer</label>
+                    <label className="text-xs text-gray-400 mb-1.5 block">Correct answer *</label>
                     <input
                       type="text"
-                      value={form.correctAnswer}
-                      onChange={(e) => set("correctAnswer", e.target.value)}
+                      value={form.correct_answer}
+                      onChange={(e) => set("correct_answer", e.target.value)}
                       placeholder="e.g. Au"
                       className="w-full bg-[#1A1A1A] border border-[#2A2A2A] focus:border-neon rounded-xl px-4 py-3 text-white text-sm outline-none transition-colors"
                     />
@@ -226,8 +270,8 @@ export function QuestionModal({ open, onClose, question }: Props) {
                     <div>
                       <label className="text-xs text-gray-400 mb-1.5 block">Case sensitive</label>
                       <select
-                        value={form.caseSensitive ? "yes" : "no"}
-                        onChange={(e) => set("caseSensitive", e.target.value === "yes")}
+                        value={form.case_sensitive ? "yes" : "no"}
+                        onChange={(e) => set("case_sensitive", e.target.value === "yes")}
                         className="w-full bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl px-3 py-2.5 text-white text-sm outline-none"
                       >
                         <option value="no">No</option>
@@ -237,27 +281,38 @@ export function QuestionModal({ open, onClose, question }: Props) {
                     <div>
                       <label className="text-xs text-gray-400 mb-1.5 block">Spelling</label>
                       <select
-                        value={form.spellingTolerance}
-                        onChange={(e) => set("spellingTolerance", e.target.value as "strict" | "lenient")}
+                        value={form.spelling_tolerance}
+                        onChange={(e) => set("spelling_tolerance", e.target.value as "strict" | "lenient")}
                         className="w-full bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl px-3 py-2.5 text-white text-sm outline-none"
                       >
                         <option value="strict">Strict</option>
-                        <option value="lenient">Lenient</option>
+                        <option value="lenient">Lenient (±1 char)</option>
                       </select>
                     </div>
                   </div>
                 </div>
               )}
 
+              {error && (
+                <div className="bg-red-900/20 border border-red-800/40 rounded-xl p-3 text-red-400 text-sm">
+                  {error}
+                </div>
+              )}
+
               <div className="flex gap-3 pt-2">
-                <button onClick={onClose} className="flex-1 py-3 rounded-xl border border-[#2A2A2A] text-gray-400 font-semibold text-sm hover:text-white hover:border-gray-400 transition-colors">
+                <button
+                  onClick={onClose}
+                  className="flex-1 py-3 rounded-xl border border-[#2A2A2A] text-gray-400 font-semibold text-sm hover:text-white hover:border-gray-400 transition-colors"
+                >
                   Cancel
                 </button>
                 <button
                   onClick={handleSave}
-                  className="flex-1 py-3 rounded-xl bg-neon text-black font-bold text-sm active:scale-95 transition-transform"
+                  disabled={saving}
+                  className="flex-1 py-3 rounded-xl bg-neon text-black font-bold text-sm active:scale-95 transition-transform disabled:opacity-60 flex items-center justify-center gap-2"
                 >
-                  Save Question
+                  {saving ? <Loader2 size={15} className="animate-spin" /> : null}
+                  {saving ? "Saving…" : "Save Question"}
                 </button>
               </div>
             </div>

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useAdmin } from "@/context/AdminContext";
 import { Lock, Mail } from "lucide-react";
+import { authApi, setAdminToken, ApiError } from "@/lib/api";
 
 export function AdminLogin() {
   const { dispatch } = useAdmin();
@@ -18,14 +19,15 @@ export function AdminLogin() {
     }
     setLoading(true);
     setError("");
-    await new Promise((r) => setTimeout(r, 800));
-    // Mock auth — admin@tt.com / admin123
-    if (email === "admin@tt.com" && password === "admin123") {
-      dispatch({ type: "ADMIN_LOGIN" });
-    } else {
-      setError("Invalid credentials. Use admin@tt.com / admin123");
+    try {
+      const data = await authApi.adminLogin(email.trim(), password);
+      setAdminToken(data.token);
+      dispatch({ type: "ADMIN_LOGIN", token: data.token });
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Login failed. Check your credentials.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
@@ -43,7 +45,7 @@ export function AdminLogin() {
               <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500" />
               <input
                 type="email"
-                placeholder="admin@tt.com"
+                placeholder="admin@triplethreat.app"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleLogin()}

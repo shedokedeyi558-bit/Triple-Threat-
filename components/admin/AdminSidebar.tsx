@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAdmin } from "@/context/AdminContext";
+import { removeAdminToken } from "@/lib/api";
 import {
   LayoutDashboard, FileQuestion, DoorOpen, Users, CreditCard,
   BarChart2, Settings, LogOut, X
@@ -54,7 +55,7 @@ export function AdminSidebar({ onClose }: { onClose?: () => void }) {
       </nav>
 
       <button
-        onClick={() => dispatch({ type: "ADMIN_LOGOUT" })}
+        onClick={() => { removeAdminToken(); dispatch({ type: "ADMIN_LOGOUT" }); }}
         className="sidebar-link text-red-400 hover:text-red-300 hover:bg-red-900/20 mt-2"
       >
         <LogOut size={17} />

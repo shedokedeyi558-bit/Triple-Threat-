@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useApp } from "@/context/AppContext";
 import { TimerBar } from "@/components/ui/TimerBar";
+import { gameApi, ApiError } from "@/lib/api";
 
 export default function QuestionPage() {
   const router = useRouter();
@@ -13,51 +14,57 @@ export default function QuestionPage() {
   const [typedAnswer, setTypedAnswer] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [timerRunning, setTimerRunning] = useState(true);
+  const [submitError, setSubmitError] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const door = state.selectedDoor;
-  const question = door?.question;
+  const session = state.activeSession;
+  const question = session?.question;
+  // Use the player-selected format; fall back to the question's own format
   const format = state.selectedFormat ?? question?.format ?? "multiple_choice";
 
   useEffect(() => {
-    if (!door || !question) {
+    if (!session || !question) {
       router.replace("/doors");
+      return;
     }
     if (format === "type_answer" && inputRef.current) {
-      inputRef.current.focus();
+      setTimeout(() => inputRef.current?.focus(), 100);
     }
-  }, [door, question, format, router]);
+  }, [session, question, format, router]);
 
   const submitAnswer = useCallback(
-    (answer: string) => {
-      if (submitted || !question) return;
+    async (answer: string) => {
+      if (submitted || !session) return;
       setSubmitted(true);
       setTimerRunning(false);
 
-      const correctAnswer = question.correctAnswer ?? question.options?.find((o) => o.isCorrect)?.text ?? "";
-      const normalize = (s: string) =>
-        question.caseSensitive ? s.trim() : s.trim().toLowerCase();
-
-      const isCorrect = normalize(answer) === normalize(correctAnswer);
-
-      setTimeout(() => {
+      try {
+        const result = await gameApi.submit(session.sessionId, answer);
         dispatch({
           type: "END_SESSION",
-          won: isCorrect,
-          prize: question.prize,
-          entryFee: door!.entryFee,
-          playerAnswer: answer,
+          result: {
+            correct: result.correct,
+            prize: result.prize,
+            correctAnswer: result.correctAnswer,
+            playerAnswer: answer,
+          },
         });
-        router.push("/result");
-      }, 600);
+        // Small delay so user can see selection highlight before navigating
+        setTimeout(() => router.push("/result"), 500);
+      } catch (err) {
+        setSubmitError(
+          err instanceof ApiError ? err.message : "Failed to submit. Please try again."
+        );
+        // Allow resubmit on error
+        setSubmitted(false);
+        setTimerRunning(true);
+      }
     },
-    [submitted, question, door, dispatch, router]
+    [submitted, session, dispatch, router]
   );
 
   const handleTimerExpire = useCallback(() => {
-    if (!submitted) {
-      submitAnswer("");
-    }
+    if (!submitted) submitAnswer("");
   }, [submitted, submitAnswer]);
 
   const handleOptionClick = (optionText: string) => {
@@ -71,16 +78,16 @@ export default function QuestionPage() {
     submitAnswer(typedAnswer.trim());
   };
 
-  if (!door || !question) return null;
+  if (!session || !question) return null;
 
   return (
     <div className="min-h-dvh bg-bg flex flex-col">
       {/* Timer */}
       <div className="sticky top-0 z-20 bg-bg px-4 pt-4 pb-2">
         <TimerBar
-          duration={question.timeLimit}
+          duration={question.time_limit}
           onExpire={handleTimerExpire}
-          running={timerRunning}
+          running={timerRunning && !submitError}
         />
       </div>
 
@@ -91,7 +98,7 @@ export default function QuestionPage() {
           animate={{ opacity: 1, y: 0 }}
           className="bg-card border border-[#2A2A2A] rounded-2xl px-4 py-3 mb-4 flex items-center justify-between"
         >
-          <span className="text-gray-400 font-medium text-sm">🚪 Door {door.id}</span>
+          <span className="text-gray-400 font-medium text-sm">🚪 Door {session.doorId}</span>
           <span className="text-neon font-black text-xl">₦{question.prize.toLocaleString()}</span>
         </motion.div>
 
@@ -105,6 +112,13 @@ export default function QuestionPage() {
           <p className="text-white font-semibold text-lg leading-snug">{question.text}</p>
         </motion.div>
 
+        {/* Submit error */}
+        {submitError && (
+          <div className="mb-4 bg-red-900/20 border border-red-800/40 rounded-xl p-3 text-red-400 text-sm">
+            {submitError}
+          </div>
+        )}
+
         {/* Answer area */}
         <AnimatePresence mode="wait">
           {format === "multiple_choice" && question.options ? (
@@ -116,13 +130,7 @@ export default function QuestionPage() {
             >
               {question.options.map((opt, i) => {
                 let cls = "option-btn";
-                if (submitted) {
-                  if (opt.isCorrect) cls += " correct";
-                  else if (selectedOption === opt.text && !opt.isCorrect) cls += " wrong";
-                } else if (selectedOption === opt.text) {
-                  cls += " selected";
-                }
-
+                if (selectedOption === opt.text) cls += " selected";
                 return (
                   <motion.button
                     key={opt.id}
@@ -160,11 +168,9 @@ export default function QuestionPage() {
               >
                 {submitted ? "Submitted ✓" : "Submit →"}
               </button>
-              {!question.caseSensitive && (
-                <p className="text-center text-xs text-gray-500 mt-2">
-                  Not case-sensitive · Spelling counts
-                </p>
-              )}
+              <p className="text-center text-xs text-gray-500 mt-2">
+                Spelling counts · Press Enter or tap Submit
+              </p>
             </motion.div>
           )}
         </AnimatePresence>
