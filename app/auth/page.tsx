@@ -90,7 +90,7 @@ export default function AuthPage() {
                   <Phone size={18} className="text-neon" />
                   <h2 className="text-white font-bold text-lg">Enter your phone number</h2>
                 </div>
-                <p className="text-gray-400 text-sm mb-5">We'll send a verification code via SMS</p>
+                <p className="text-gray-400 text-sm mb-5">We&apos;ll send a verification code via SMS</p>
 
                 <div className="flex items-center gap-2 mb-4">
                   <div className="bg-[#2A2A2A] rounded-xl px-3 py-3.5 text-sm font-semibold text-white whitespace-nowrap">
@@ -177,7 +177,7 @@ export default function AuthPage() {
                 </button>
 
                 <p className="text-center text-xs text-gray-500 mt-2">
-                  Didn't receive it? Use <span className="text-neon font-bold">123456</span> to demo
+                  Didn&apos;t receive it? Use <span className="text-neon font-bold">123456</span> to demo
                 </p>
               </div>
             </motion.div>

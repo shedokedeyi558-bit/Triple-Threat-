@@ -21,6 +21,9 @@ const config: Config = {
       fontFamily: {
         sans: ["Inter", "system-ui", "sans-serif"],
       },
+      scale: {
+        "98": "0.98",
+      },
       animation: {
         marquee: "marquee 30s linear infinite",
         "pulse-neon": "pulseNeon 2s ease-in-out infinite",

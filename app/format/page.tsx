@@ -5,11 +5,12 @@ import { useRouter } from "next/navigation";
 import { useApp } from "@/context/AppContext";
 import { NavBar } from "@/components/ui/NavBar";
 import { CheckSquare, Keyboard, ArrowRight } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import type { QuestionFormat } from "@/lib/types";
 
 const formats: {
   id: QuestionFormat;
-  icon: React.ComponentType<{ size?: number; className?: string }>;
+  icon: LucideIcon;
   title: string;
   subtitle: string;
   tags: string[];
@@ -64,7 +65,7 @@ export default function FormatPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.1 }}
               onClick={() => handleSelect(id)}
-              className={`w-full text-left bg-card border-2 rounded-2xl p-5 transition-all duration-200 active:scale-98 group ${
+              className={`w-full text-left bg-card border-2 rounded-2xl p-5 transition-all duration-200 active:scale-95 group ${
                 state.selectedFormat === id ? "border-neon shadow-[0_0_16px_#00FF6633]" : color
               }`}
             >
