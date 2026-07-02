@@ -1,18 +1,41 @@
-<svg width="192" height="192" viewBox="0 0 192 192" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- Background -->
-  <rect width="192" height="192" rx="40" fill="#0A0A0A"/>
+<svg width="32" height="32" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="40" height="40" rx="8" fill="#0A0A0A"/>
   
-  <!-- Outer glow circle -->
-  <circle cx="96" cy="96" r="85" fill="none" stroke="#00FF66" stroke-width="2" opacity="0.3"/>
-  
-  <!-- Lightning bolt (main icon) -->
-  <g transform="translate(96, 96)">
-    <!-- Left part of bolt -->
-    <path d="M -10 -35 L 5 -5 L -15 0 L 25 45 L 5 20 L 20 15 Z" fill="#00FF66" stroke="#00FF66" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+  <defs>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="2" result="coloredBlur" />
+      <feMerge>
+        <feMergeNode in="coloredBlur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+
+  {/* Trophy/cup shape with geometric flair */}
+  {/* Base hexagon */}
+  <polygon
+    points="20,2 35,10 35,30 20,38 5,30 5,10"
+    fill="none"
+    stroke="#00FF66"
+    strokeWidth="1.5"
+    opacity="0.5"
+  />
+
+  {/* Inner trophy silhouette */}
+  <g fill="#00FF66" filter="url(#glow)">
+    {/* Handle left */}
+    <path d="M 15 12 Q 8 15 8 22 Q 8 28 15 28" fill="none" stroke="#00FF66" strokeWidth="2" />
+    {/* Handle right */}
+    <path d="M 25 12 Q 32 15 32 22 Q 32 28 25 28" fill="none" stroke="#00FF66" strokeWidth="2" />
+    {/* Cup body */}
+    <rect x="14" y="12" width="12" height="18" rx="2" fill="#00FF66" opacity="0.9" />
+    {/* Crown on top */}
+    <polygon points="14,10 20,6 26,10" fill="#00FF66" />
+    {/* Shine effect */}
+    <rect x="16" y="14" width="2" height="10" fill="white" opacity="0.6" rx="1" />
   </g>
-  
-  <!-- Accent circles -->
-  <circle cx="50" cy="50" r="8" fill="#00FF66" opacity="0.6"/>
-  <circle cx="142" cy="142" r="6" fill="#00FF66" opacity="0.4"/>
-  <circle cx="142" cy="50" r="5" fill="#00FF66" opacity="0.5"/>
+
+  {/* Dynamic accent lines */}
+  <line x1="20" y1="2" x2="20" y2="6" stroke="#00FF66" strokeWidth="1" opacity="0.7" />
+  <circle cx="20" cy="20" r="15" fill="none" stroke="#00FF66" strokeWidth="0.5" opacity="0.3" />
 </svg>
