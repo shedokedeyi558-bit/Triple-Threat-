@@ -22,13 +22,9 @@ export function Logo({ size = "md", showIcon = true }: { size?: "sm" | "md" | "l
           </div>
         </div>
       )}
-      <div className="flex flex-col items-start leading-tight whitespace-nowrap">
-        <span className={`font-black uppercase tracking-tight text-white ${currentSize.text}`}>
-          BIT
-        </span>
-        <span className={`font-black uppercase tracking-tight text-neon ${currentSize.text} neon-text-glow`}>
-          LYFE
-        </span>
+      <div className={`font-black uppercase tracking-tight ${currentSize.text} leading-none whitespace-nowrap`}>
+        <span className="text-white">BIT</span>
+        <span className="text-neon neon-text-glow">LYFE</span>
       </div>
     </div>
   );
