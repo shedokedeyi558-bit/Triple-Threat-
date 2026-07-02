@@ -1,33 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Logo } from "@/components/ui/Logo";
 import { TrendingUp, Users, Activity, ArrowRight } from "lucide-react";
 import { useApp } from "@/context/AppContext";
-import { gameApi, removeToken, type RecentWinner } from "@/lib/api";
-
-function WinnerTicker({ winners }: { winners: string[] }) {
-  const text = winners.join(" • ") + " • ";
-  return (
-    <div className="marquee-container w-full py-2.5 sm:py-3 bg-gradient-to-r from-[#0A0A0A] via-[#00FF66]/5 to-[#0A0A0A] border-y border-[#1A1A1A]">
-      <div className="marquee-content text-xs sm:text-sm text-[#00FF66] font-medium">
-        {text}
-      </div>
-    </div>
-  );
-}
+import { removeToken } from "@/lib/api";
 
 export default function HomePage() {
   const router = useRouter();
   const { state, dispatch } = useApp();
-  const [winnerLines, setWinnerLines] = useState<string[]>([
-    "Player won ₦5,000",
-    "Player won ₦3,500",
-    "Player won ₦8,200",
-  ]);
   const [showMenu, setShowMenu] = useState(false);
 
   const handleLogout = () => {
@@ -36,18 +20,6 @@ export default function HomePage() {
     setShowMenu(false);
     router.push("/");
   };
-
-  useEffect(() => {
-    gameApi.recentWinners()
-      .then((winners: RecentWinner[]) => {
-        if (winners.length > 0) {
-          setWinnerLines(
-            winners.map((w) => `${w.phone.slice(0, 6)}... won ₦${w.prize.toLocaleString()}`)
-          );
-        }
-      })
-      .catch(() => {});
-  }, []);
 
   return (
     <main className="min-h-dvh bg-bg flex flex-col">
@@ -190,18 +162,6 @@ export default function HomePage() {
           )}
         </div>
       </div>
-
-      {/* Footer: Winners ticker */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.6 }}
-      >
-        <WinnerTicker winners={winnerLines} />
-        <div className="text-center py-3 sm:py-4 text-xs text-gray-600 bg-[#0A0A0A]">
-          Last 1 hour winners • Minimum stake ₦500
-        </div>
-      </motion.div>
     </main>
   );
 }
