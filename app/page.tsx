@@ -134,7 +134,7 @@ export default function HomePage() {
             </Link>
             <Link
               href={state.isAuthenticated ? "/challenges" : "/auth"}
-              className="w-full py-3 sm:py-3.5 px-4 rounded-lg sm:rounded-xl border border-[#2A2A2A] hover:border-neon/50 text-white text-sm sm:text-base font-semibold transition-colors text-center"
+              className="w-full block py-3 sm:py-3.5 px-4 rounded-lg sm:rounded-xl border border-[#2A2A2A] hover:border-neon/50 text-white text-sm sm:text-base font-semibold transition-colors text-center"
             >
               Explore Challenges
             </Link>
