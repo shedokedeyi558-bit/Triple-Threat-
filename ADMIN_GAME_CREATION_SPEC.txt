@@ -1,0 +1,345 @@
+ADMIN GAME CREATION SYSTEM - Complete Specification
+
+================================================================================
+GAME TYPES IN BITLYFE
+================================================================================
+
+Two game types available for admin creation:
+
+1. DOOR GAME (Existing 3-Door Game)
+   - 3 interactive doors
+   - Each door has a question
+   - Can be Multiple Choice or Type Answer
+   - Entry fee deducted upfront
+   - Winner determined immediately upon answer submission
+   - Continues running (no participant limit)
+
+2. CHALLENGE GAME (New - Limited Participation)
+   - Single prediction/question
+   - Admin sets entry stake
+   - Admin sets prize pool
+   - Admin sets max participants (hard limit)
+   - Auto-locks when max reached or countdown expires
+   - Admin reveals answer after deadline
+   - Winners split prize pool
+
+================================================================================
+DATABASE SCHEMA UPDATES
+================================================================================
+
+Table: games (NEW - unified game management)
+- id (UUID, PK)
+- game_type (ENUM) — "door_game" | "challenge_game"
+- title (TEXT)
+- description (TEXT, nullable)
+- status (ENUM) — "draft" | "active" | "paused" | "ended" | "archived"
+- created_by (UUID FK) — Admin who created
+- created_at (TIMESTAMP)
+- updated_at (TIMESTAMP)
+
+--- For DOOR_GAME type, these fields are used: ---
+- entry_fee (INTEGER)
+- door_ids (ARRAY) — References to 3 doors
+
+--- For CHALLENGE_GAME type, these fields are used: ---
+- category (VARCHAR) — "Sports", "Football", "Crypto", etc.
+- stake_amount (INTEGER) — Entry fee
+- prize_pool (INTEGER) — Total prize
+- max_participants (INTEGER) — Hard limit (e.g., 10, 50, 100)
+- current_participants (INTEGER) — Count
+- countdown_duration (INTEGER) — Minutes until auto-lock
+- ends_at (TIMESTAMP) — When countdown expires
+- correct_answer (TEXT, nullable) — Set by admin before reveal
+- answer_revealed_at (TIMESTAMP, nullable)
+
+================================================================================
+ADMIN API ENDPOINTS
+================================================================================
+
+--- GAME MANAGEMENT ---
+
+POST /api/admin/games/create
+  Create a new game (either type)
+  
+  For DOOR_GAME:
+  Body: {
+    game_type: "door_game",
+    title: "Daily Quiz #42",
+    description: "Test your knowledge",
+    entry_fee: 500,
+    door_ids: ["door-1", "door-2", "door-3"]  // Pre-existing door IDs
+  }
+  Response: { game: { id, game_type, status, ... } }
+
+  For CHALLENGE_GAME:
+  Body: {
+    game_type: "challenge_game",
+    title: "How many goals will be scored today?",
+    description: "Chelsea vs Arsenal",
+    category: "Football",
+    stake_amount: 1000,
+    prize_pool: 50000,
+    max_participants: 20,
+    countdown_duration: 120  // Minutes
+  }
+  Response: { game: { id, game_type, status, ... } }
+
+GET /api/admin/games?type=door_game&status=active&page=1&limit=20
+  List all games by type and status
+  Response: { games: [...], total, page, limit }
+
+PUT /api/admin/games/:id
+  Update game (only if status is "draft")
+  Body: { title, description, ... (only updatable fields) }
+  Response: { game: {...} }
+
+POST /api/admin/games/:id/activate
+  Activate game (change status from "draft" to "active")
+  Response: { message: "Game activated", game: {...} }
+
+POST /api/admin/games/:id/pause
+  Pause game (status becomes "paused")
+  Response: { message: "Game paused" }
+
+POST /api/admin/games/:id/resume
+  Resume paused game
+  Response: { message: "Game resumed" }
+
+POST /api/admin/games/:id/end
+  End game (status becomes "ended")
+  Response: { message: "Game ended" }
+
+DELETE /api/admin/games/:id
+  Delete game (only if status is "draft")
+  Response: { message: "Game deleted" }
+
+--- CHALLENGE-SPECIFIC ENDPOINTS ---
+
+POST /api/admin/games/:id/reveal-answer (For CHALLENGE_GAME only)
+  Reveal answer and evaluate all participants
+  Body: { correct_answer: "7" }
+  Actions:
+  - Validate all participations
+  - Calculate winners
+  - Credit prize payouts
+  - Send notifications
+  Response: {
+    message: "Answer revealed",
+    total_participants: 20,
+    total_correct: 5,
+    prize_per_winner: 8000,
+    total_paid: 40000
+  }
+
+GET /api/admin/games/:id/stats
+  Get game statistics and analytics
+  Response: {
+    game: {...},
+    stats: {
+      total_players: 20,
+      total_revenue: 20000,
+      total_payout: 8000,
+      profit: 12000,
+      completion_rate: 0.95  // For CHALLENGE only
+    }
+  }
+
+GET /api/admin/games/:id/participants
+  List all participants (especially for CHALLENGE)
+  Response: { participations: [...], total }
+
+================================================================================
+FRONTEND: ADMIN GAME CREATION DASHBOARD
+================================================================================
+
+Page: /admin/games (Main dashboard)
+- List all games (active, paused, draft, ended)
+- Filter by game type (Door Game, Challenge Game)
+- Filter by status
+- "Create New Game" button
+
+Modal/Page: /admin/games/create
+- Step 1: Select Game Type
+  - Door Game (Icon: 🚪)
+  - Challenge Game (Icon: ⚡)
+
+- Step 2: Configure Game (type-specific form)
+
+  FOR DOOR_GAME:
+  - Title
+  - Description
+  - Entry Fee (₦)
+  - Select 3 doors from existing doors (dropdown/selector)
+  
+  FOR CHALLENGE_GAME:
+  - Title
+  - Description
+  - Category (dropdown: Sports, Football, Crypto, Politics, etc.)
+  - Entry Stake (₦)
+  - Prize Pool (₦)
+  - Max Participants (number)
+  - Countdown Duration (minutes)
+
+- Step 3: Review & Activate
+  - Show all settings
+  - "Create & Activate" button
+  - "Save as Draft" button
+
+Page: /admin/games/:id
+- Game details
+- Current status with action buttons (Pause/Resume/End)
+- Statistics (players, revenue, payout)
+- For CHALLENGE: Show "Reveal Answer" button if not yet revealed
+- Participant list with filters
+
+================================================================================
+GAME FLOW LOGIC
+================================================================================
+
+DOOR GAME FLOW:
+1. Admin creates → Status = "draft"
+2. Admin activates → Status = "active"
+3. System loads 3 doors with questions
+4. Players join, answer questions
+5. Winners credited immediately
+6. Admin can pause/resume/end anytime
+7. Status = "ended" when admin ends it
+
+CHALLENGE GAME FLOW:
+1. Admin creates → Status = "draft"
+2. Admin activates → Status = "active", countdown starts
+3. Players join and submit answers, stake deducted
+4. Auto-locks when max participants reached OR countdown expires
+5. Admin clicks "Reveal Answer"
+6. System evaluates all answers
+7. Winners are identified and paid
+8. Status = "ended"
+9. Admin can view results and participant answers
+
+================================================================================
+VALIDATION RULES
+================================================================================
+
+DOOR_GAME:
+- Entry fee must be > 0
+- Must select exactly 3 doors
+- Selected doors must be active
+- Title must be 3-100 characters
+
+CHALLENGE_GAME:
+- Entry stake must be > 0
+- Prize pool must be > 0
+- Max participants must be > 0 and <= 1000
+- Countdown duration must be > 0 minutes
+- Category must be selected
+- Title must be 3-200 characters
+
+================================================================================
+API ADMIN RESPONSES
+================================================================================
+
+Game Creation Response:
+{
+  "success": true,
+  "data": {
+    "game": {
+      "id": "uuid",
+      "game_type": "challenge_game",
+      "title": "How many goals today?",
+      "status": "draft",
+      "stake_amount": 1000,
+      "prize_pool": 50000,
+      "max_participants": 20,
+      "current_participants": 0,
+      "countdown_duration": 120,
+      "created_at": "2024-01-15T10:30:00Z",
+      "created_by": "admin-uuid"
+    }
+  }
+}
+
+List Games Response:
+{
+  "success": true,
+  "data": {
+    "games": [
+      {
+        "id": "uuid-1",
+        "game_type": "door_game",
+        "title": "Daily Quiz",
+        "status": "active",
+        "entry_fee": 500,
+        "stats": {
+          "total_players": 145,
+          "revenue": 72500
+        }
+      },
+      {
+        "id": "uuid-2",
+        "game_type": "challenge_game",
+        "title": "Football Challenge",
+        "status": "active",
+        "max_participants": 20,
+        "current_participants": 18,
+        "stake_amount": 1000,
+        "prize_pool": 20000,
+        "countdown_remaining": "45 minutes"
+      }
+    ],
+    "total": 2,
+    "page": 1,
+    "limit": 20
+  }
+}
+
+================================================================================
+KEY BUSINESS LOGIC
+================================================================================
+
+Revenue Streams:
+1. DOOR_GAME: Entry fee × Total Players × App Fee (20%)
+2. CHALLENGE_GAME: 
+   - Total Stake = Entry Stake × Max Participants
+   - App keeps: Total Stake × 20%
+   - Winners split: Total Stake × 80%
+
+Auto-locking CHALLENGE:
+- Triggered when: current_participants == max_participants
+- OR countdown_duration minutes have passed
+- Status changes to "locked"
+- No more joins allowed
+
+Prize Distribution:
+- If 5 winners from 20 participants:
+  - Total pool = 20 × 1000 × 0.8 = ₦16,000
+  - Per winner = ₦16,000 ÷ 5 = ₦3,200
+
+================================================================================
+ADMIN NOTIFICATIONS
+================================================================================
+
+When game created:
+- "Game created successfully. Status: Draft"
+
+When game activated:
+- "Game activated. Players can now join."
+
+When max participants reached (CHALLENGE only):
+- "Challenge locked - max participants reached"
+
+When countdown expires (CHALLENGE only):
+- "Challenge ended - answer reveal pending"
+
+When answer revealed (CHALLENGE only):
+- "Answer revealed. X winners paid ₦Y total"
+
+================================================================================
+SUMMARY
+================================================================================
+
+Admin now has TWO game creation paths:
+
+✓ DOOR_GAME: Quick, ongoing, entry-fee based
+✓ CHALLENGE_GAME: Prediction-based, limited slots, high prize potential
+
+Both integrated into unified admin dashboard with create/manage/analytics pages.

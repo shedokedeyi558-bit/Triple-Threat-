@@ -3,13 +3,17 @@ import "./globals.css";
 import { AppProvider } from "@/context/AppContext";
 
 export const metadata: Metadata = {
-  title: "Triple Threat — Three doors. Three questions. One shot.",
-  description: "Pick a door. Answer the question. Win real money.",
+  title: "BITLYFE - Test Your Skills, Win Real Money",
+  description: "Answer quick questions and compete in live challenges. Earn real money based on your skill and knowledge.",
   manifest: "/manifest.json",
+  icons: {
+    icon: "/favicon.svg",
+    apple: "/icon-192.png",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Triple Threat",
+    title: "BITLYFE",
   },
 };
 

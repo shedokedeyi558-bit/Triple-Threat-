@@ -1,0 +1,193 @@
+BACKEND REQUIREMENTS: Daily Challenges System
+
+OVERVIEW:
+Add a new "Daily Challenges" feature alongside existing 3-doors game.
+- Admin creates time-limited prediction challenges
+- Users can join limited-participation challenges
+- Auto-lock when max participants reached or countdown expires
+- Admin validates answers and pays winners
+
+DATABASE SCHEMA:
+==============
+
+Table: challenges
+- id (UUID, PK)
+- title (TEXT) — "How many corner kicks will Chelsea play?"
+- description (TEXT, nullable)
+- category (VARCHAR) — "Sports", "Football", "Crypto", "Politics", etc. (set by admin)
+- question_type (ENUM) — "prediction", "trivia", "live_event"
+- correct_answer (TEXT) — Admin enters before challenge ends
+- stake_amount (INTEGER) — Entry fee in Naira (e.g., ₦500)
+- prize_pool (INTEGER) — Total prize (calculated or fixed)
+- max_participants (INTEGER) — Hard limit (e.g., 10)
+- current_participants (INTEGER) — Count of joined users
+- status (ENUM) — "active", "locked", "ended", "closed"
+- starts_at (TIMESTAMP) — When challenge is visible
+- countdown_duration (INTEGER) — Minutes until auto-lock (e.g., 60)
+- ends_at (TIMESTAMP) — When countdown expires or max reached
+- answer_reveal_at (TIMESTAMP, nullable) — When correct answer is shown
+- created_by (UUID FK) — Admin who created it
+- created_at (TIMESTAMP)
+- updated_at (TIMESTAMP)
+
+Table: challenge_participations
+- id (UUID, PK)
+- challenge_id (UUID FK)
+- player_id (UUID FK)
+- player_answer (TEXT)
+- is_correct (BOOLEAN, nullable) — NULL until admin validates
+- amount_won (INTEGER) — 0 if wrong, prize split if correct
+- participated_at (TIMESTAMP)
+- created_at (TIMESTAMP)
+
+ADMIN API ENDPOINTS:
+===================
+
+1. POST /api/admin/challenges
+   Create a new challenge
+   Body: {
+     title: "How many corner kicks will Chelsea play?",
+     description: "Chelsea vs Arsenal today",
+     category: "Football",
+     question_type: "prediction",
+     stake_amount: 500,
+     max_participants: 10,
+     countdown_duration: 60,  // minutes
+     correct_answer: "7"  // Set by admin before challenge ends
+   }
+   Response: { challenge: { id, title, status, ... } }
+
+2. GET /api/admin/challenges?status=active&page=1
+   List all challenges (active, locked, ended, closed)
+   Response: { challenges: [...], total, page }
+
+3. PUT /api/admin/challenges/:id
+   Update challenge (before it starts)
+   Body: { title, description, category, stake_amount, max_participants, ... }
+   Response: { challenge: {...} }
+
+4. DELETE /api/admin/challenges/:id
+   Soft delete (for draft/not-started challenges only)
+
+5. POST /api/admin/challenges/:id/reveal-answer
+   Reveal correct answer and trigger evaluation
+   Body: { correct_answer: "7" }
+   - Validates all participations
+   - Credits winners
+   - Marks challenge as "closed"
+   Response: {
+     message: "Answer revealed",
+     total_correct: 3,
+     total_incorrect: 7,
+     total_paid: 1500  // ₦1500 paid to 3 winners
+   }
+
+6. GET /api/admin/challenges/:id/participants
+   List all participants and their answers
+   Response: { participations: [...], total }
+
+PLAYER API ENDPOINTS:
+====================
+
+1. GET /api/challenges
+   Get active/upcoming challenges
+   Response: {
+     challenges: [{
+       id, title, description, category,
+       stake_amount, max_participants, current_participants,
+       countdown_duration, ends_at,
+       status, is_user_joined
+     }]
+   }
+
+2. POST /api/challenges/:id/join
+   Join a challenge and submit answer
+   Auth: Required
+   Body: { answer: "7" }
+   
+   Validations:
+   - Challenge must be "active"
+   - User not already joined
+   - current_participants < max_participants
+   - User balance >= stake_amount
+   
+   Actions:
+   - Deduct stake_amount from player balance (same as game entry fee)
+   - Create challenge_participation record
+   - Increment current_participants
+   - If current_participants == max_participants, set status to "locked"
+   
+   Response: {
+     success: true,
+     participation: { id, answer, status },
+     newBalance
+   }
+
+3. GET /api/challenges/:id
+   Get challenge details (for player viewing)
+   Response: {
+     challenge: {...},
+     my_participation: {
+       answer, is_correct, amount_won
+     },  // null if not joined
+     other_participants_count,
+     has_ended: boolean,
+     correct_answer: null || "7"  // null until revealed
+   }
+
+BUSINESS LOGIC:
+===============
+
+Challenge Lifecycle:
+1. ADMIN CREATES → status="active", countdown starts
+2. USERS JOIN → current_participants++
+   - If max_participants reached → status="locked" (no more joins)
+3. COUNTDOWN EXPIRES → status="ended" (no more joins)
+4. ADMIN REVEALS ANSWER → status="closed"
+   - Evaluate all participations
+   - Calculate winners and payouts
+   - Credit winners' wallets
+   - Record transaction for each winner
+
+Countdown Logic:
+- Challenge created at T=0
+- If countdown_duration=60, ends_at = T + 60 minutes
+- If countdown expires → Challenge auto-locks (cron job or timestamp check)
+- If max_participants reached before countdown → Immediate lock
+
+Answer Validation:
+- Answers stored as TEXT (flexible for any type)
+- Comparison done by admin or auto-validation rules
+  - String comparison: case-insensitive, trimmed
+  - Numeric comparison: exact match or range
+- Admin manually validates or sets auto_validate=true
+
+Payment Distribution:
+- Prize pool = max_participants × stake_amount × 0.8 (20% app fee)
+- Split evenly among winners if multiple correct
+- Example: 10 users, 3 correct
+  - Total pool = 10 × 500 × 0.8 = ₦4,000
+  - Per winner = ₦4,000 ÷ 3 = ₦1,333
+
+Transaction Recording:
+- Create transaction record for each player (win or loss)
+  - WIN: +amount_won, type="challenge_win"
+  - LOSS: -stake_amount, type="challenge_loss"
+
+IMPORTANT NOTES:
+- Challenges are separate from 3-doors game
+- Entry fee deducted immediately (like game)
+- Only admin can validate answers
+- Answers are revealed ONLY after admin reveals correct answer
+- Players see other participants count but NOT their answers
+- Challenge can be "locked" early if max reached or countdown ends
+- Use transactions table for all financial records
+
+FRONTEND WILL NEED:
+- Challenge listing page
+- Challenge detail/join page
+- Challenge history (user's past participations)
+- Admin: Create challenge modal
+- Admin: List challenges with stats
+- Admin: Reveal answer form
+- Admin: View participants and answers

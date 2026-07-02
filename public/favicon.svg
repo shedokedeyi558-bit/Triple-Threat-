@@ -1,0 +1,18 @@
+<svg width="192" height="192" viewBox="0 0 192 192" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="192" height="192" rx="40" fill="#0A0A0A"/>
+  
+  <!-- Outer glow circle -->
+  <circle cx="96" cy="96" r="85" fill="none" stroke="#00FF66" stroke-width="2" opacity="0.3"/>
+  
+  <!-- Lightning bolt (main icon) -->
+  <g transform="translate(96, 96)">
+    <!-- Left part of bolt -->
+    <path d="M -10 -35 L 5 -5 L -15 0 L 25 45 L 5 20 L 20 15 Z" fill="#00FF66" stroke="#00FF66" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+  </g>
+  
+  <!-- Accent circles -->
+  <circle cx="50" cy="50" r="8" fill="#00FF66" opacity="0.6"/>
+  <circle cx="142" cy="142" r="6" fill="#00FF66" opacity="0.4"/>
+  <circle cx="142" cy="50" r="5" fill="#00FF66" opacity="0.5"/>
+</svg>

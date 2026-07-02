@@ -16,6 +16,7 @@ export default function AuthPage() {
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [isReturning, setIsReturning] = useState(false); // Track if returning player
 
   // Normalise to the format the backend expects (e.g. 08012345678)
   const fullPhone = `0${phone}`;
@@ -29,7 +30,8 @@ export default function AuthPage() {
     setError("");
     setLoading(true);
     try {
-      await authApi.register(fullPhone);
+      const response = await authApi.register(fullPhone);
+      setIsReturning(response.isExisting); // Set flag based on backend response
       setStep("otp");
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to send OTP. Try again.");
@@ -87,13 +89,13 @@ export default function AuthPage() {
   };
 
   return (
-    <main className="min-h-dvh flex flex-col items-center justify-center px-5 bg-bg">
+    <main className="min-h-dvh flex flex-col items-center justify-center px-4 sm:px-5 bg-bg">
       <motion.div
         className="w-full max-w-sm"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
       >
-        <div className="text-center mb-8">
+        <div className="text-center mb-6 sm:mb-8">
           <Logo size="md" />
         </div>
 
@@ -105,17 +107,17 @@ export default function AuthPage() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
             >
-              <div className="bg-card border border-[#2A2A2A] rounded-2xl p-6">
+              <div className="bg-card border border-[#2A2A2A] rounded-2xl p-4 sm:p-6">
                 <div className="flex items-center gap-2 mb-2">
-                  <Phone size={18} className="text-neon" />
-                  <h2 className="text-white font-bold text-lg">Enter your phone number</h2>
+                  <Phone size={18} className="text-neon flex-shrink-0" />
+                  <h2 className="text-white font-bold text-base sm:text-lg">Enter your phone number</h2>
                 </div>
-                <p className="text-gray-400 text-sm mb-5">
+                <p className="text-gray-400 text-xs sm:text-sm mb-5">
                   We&apos;ll send a verification code via SMS
                 </p>
 
                 <div className="flex items-center gap-2 mb-4">
-                  <div className="bg-[#2A2A2A] rounded-xl px-3 py-3.5 text-sm font-semibold text-white whitespace-nowrap">
+                  <div className="bg-[#2A2A2A] rounded-lg sm:rounded-xl px-2 sm:px-3 py-2.5 sm:py-3.5 text-xs sm:text-sm font-semibold text-white whitespace-nowrap">
                     🇳🇬 +234
                   </div>
                   <input
@@ -124,17 +126,17 @@ export default function AuthPage() {
                     placeholder="8012345678"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
-                    className="flex-1 bg-[#2A2A2A] rounded-xl px-4 py-3.5 text-white placeholder-gray-500 text-sm font-medium outline-none focus:ring-2 focus:ring-neon"
+                    className="flex-1 bg-[#2A2A2A] rounded-lg sm:rounded-xl px-3 sm:px-4 py-2.5 sm:py-3.5 text-white placeholder-gray-500 text-sm font-medium outline-none focus:ring-2 focus:ring-neon"
                     onKeyDown={(e) => e.key === "Enter" && handleSendOTP()}
                   />
                 </div>
 
-                {error && <p className="text-red-400 text-sm mb-3">{error}</p>}
+                {error && <p className="text-red-400 text-xs sm:text-sm mb-3">{error}</p>}
 
                 <button
                   onClick={handleSendOTP}
                   disabled={loading}
-                  className="btn-primary flex items-center justify-center gap-2 disabled:opacity-50"
+                  className="btn-primary flex items-center justify-center gap-2 disabled:opacity-50 text-sm sm:text-base"
                 >
                   {loading ? (
                     <span className="animate-spin border-2 border-black border-t-transparent rounded-full w-5 h-5" />
@@ -151,17 +153,19 @@ export default function AuthPage() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
             >
-              <div className="bg-card border border-[#2A2A2A] rounded-2xl p-6">
+              <div className="bg-card border border-[#2A2A2A] rounded-2xl p-4 sm:p-6">
                 <div className="flex items-center gap-2 mb-2">
-                  <Shield size={18} className="text-neon" />
-                  <h2 className="text-white font-bold text-lg">Enter OTP</h2>
+                  <Shield size={18} className="text-neon flex-shrink-0" />
+                  <h2 className="text-white font-bold text-base sm:text-lg">
+                    {isReturning ? "Welcome back!" : "Create account"}
+                  </h2>
                 </div>
-                <p className="text-gray-400 text-sm mb-5">
-                  Enter the 6-digit code sent to{" "}
+                <p className="text-gray-400 text-xs sm:text-sm mb-5">
+                  {isReturning ? "Enter the verification code sent to " : "Enter the 6-digit code sent to "}
                   <span className="text-white font-semibold">{maskedPhone}</span>
                 </p>
 
-                <div className="flex gap-2 justify-between mb-5">
+                <div className="flex gap-1.5 sm:gap-2 justify-between mb-5">
                   {otp.map((digit, i) => (
                     <input
                       key={i}
@@ -172,18 +176,18 @@ export default function AuthPage() {
                       value={digit}
                       onChange={(e) => handleOtpChange(e.target.value, i)}
                       onKeyDown={(e) => handleKeyDown(e, i)}
-                      className="w-11 h-12 text-center text-white font-bold text-lg bg-[#2A2A2A] rounded-xl border border-[#2A2A2A] focus:border-neon focus:ring-2 focus:ring-neon/30 outline-none transition-colors"
+                      className="flex-1 aspect-square min-w-0 max-w-12 sm:max-w-none text-center text-white font-bold text-base sm:text-lg bg-[#2A2A2A] rounded-lg sm:rounded-xl border border-[#2A2A2A] focus:border-neon focus:ring-2 focus:ring-neon/30 outline-none transition-colors"
                       autoFocus={i === 0}
                     />
                   ))}
                 </div>
 
-                {error && <p className="text-red-400 text-sm mb-3">{error}</p>}
+                {error && <p className="text-red-400 text-xs sm:text-sm mb-3">{error}</p>}
 
                 <button
                   onClick={() => handleVerify()}
                   disabled={loading}
-                  className="btn-primary flex items-center justify-center gap-2 disabled:opacity-50"
+                  className="btn-primary flex items-center justify-center gap-2 disabled:opacity-50 text-sm sm:text-base"
                 >
                   {loading ? (
                     <span className="animate-spin border-2 border-black border-t-transparent rounded-full w-5 h-5" />
@@ -193,8 +197,8 @@ export default function AuthPage() {
                 </button>
 
                 <button
-                  onClick={() => { setStep("phone"); setError(""); }}
-                  className="w-full text-center text-gray-400 text-sm mt-3 py-2"
+                  onClick={() => { setStep("phone"); setError(""); setIsReturning(false); }}
+                  className="w-full text-center text-gray-400 text-xs sm:text-sm mt-3 py-2"
                 >
                   Change number
                 </button>

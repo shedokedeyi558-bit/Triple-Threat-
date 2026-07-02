@@ -83,7 +83,7 @@ export default function QuestionPage() {
   return (
     <div className="min-h-dvh bg-bg flex flex-col">
       {/* Timer */}
-      <div className="sticky top-0 z-20 bg-bg px-4 pt-4 pb-2">
+      <div className="sticky top-0 z-20 bg-bg px-3 sm:px-4 pt-3 sm:pt-4 pb-2">
         <TimerBar
           duration={question.time_limit}
           onExpire={handleTimerExpire}
@@ -91,15 +91,15 @@ export default function QuestionPage() {
         />
       </div>
 
-      <main className="flex-1 px-4 py-4 flex flex-col">
+      <main className="flex-1 px-3 sm:px-4 py-4 flex flex-col">
         {/* Door / Prize header */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-card border border-[#2A2A2A] rounded-2xl px-4 py-3 mb-4 flex items-center justify-between"
+          className="bg-card border border-[#2A2A2A] rounded-lg sm:rounded-2xl px-3 sm:px-4 py-2.5 sm:py-3 mb-3 sm:mb-4 flex items-center justify-between"
         >
-          <span className="text-gray-400 font-medium text-sm">🚪 Door {session.doorId}</span>
-          <span className="text-neon font-black text-xl">₦{question.prize.toLocaleString()}</span>
+          <span className="text-gray-400 font-medium text-xs sm:text-sm">🚪 Door {session.doorId}</span>
+          <span className="text-neon font-black text-lg sm:text-xl">₦{question.prize.toLocaleString()}</span>
         </motion.div>
 
         {/* Question */}
@@ -107,14 +107,14 @@ export default function QuestionPage() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-card border border-[#2A2A2A] rounded-2xl p-5 mb-5"
+          className="bg-card border border-[#2A2A2A] rounded-lg sm:rounded-2xl p-4 sm:p-5 mb-4 sm:mb-5"
         >
-          <p className="text-white font-semibold text-lg leading-snug">{question.text}</p>
+          <p className="text-white font-semibold text-base sm:text-lg leading-snug">{question.text}</p>
         </motion.div>
 
         {/* Submit error */}
         {submitError && (
-          <div className="mb-4 bg-red-900/20 border border-red-800/40 rounded-xl p-3 text-red-400 text-sm">
+          <div className="mb-4 bg-red-900/20 border border-red-800/40 rounded-lg sm:rounded-xl p-2.5 sm:p-3 text-red-400 text-xs sm:text-sm">
             {submitError}
           </div>
         )}
@@ -126,7 +126,7 @@ export default function QuestionPage() {
               key="mc"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="flex flex-col gap-3"
+              className="flex flex-col gap-2 sm:gap-3"
             >
               {question.options.map((opt, i) => {
                 let cls = "option-btn";
@@ -141,7 +141,7 @@ export default function QuestionPage() {
                     onClick={() => handleOptionClick(opt.text)}
                     disabled={submitted}
                   >
-                    <span className="text-gray-500 mr-2 text-sm">
+                    <span className="text-gray-500 mr-2 text-xs sm:text-sm">
                       {String.fromCharCode(65 + i)})
                     </span>
                     {opt.text}
@@ -159,12 +159,12 @@ export default function QuestionPage() {
                 onChange={(e) => setTypedAnswer(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleTypeSubmit()}
                 disabled={submitted}
-                className="w-full bg-card border-2 border-[#2A2A2A] focus:border-neon rounded-xl px-4 py-4 text-white placeholder-gray-500 text-base font-medium outline-none transition-colors mb-4"
+                className="w-full bg-card border-2 border-[#2A2A2A] focus:border-neon rounded-lg sm:rounded-xl px-3 sm:px-4 py-3 sm:py-4 text-white placeholder-gray-500 text-sm sm:text-base font-medium outline-none transition-colors mb-3 sm:mb-4"
               />
               <button
                 onClick={handleTypeSubmit}
                 disabled={submitted || !typedAnswer.trim()}
-                className="btn-primary disabled:opacity-50 flex items-center justify-center gap-2"
+                className="btn-primary disabled:opacity-50 flex items-center justify-center gap-2 text-sm sm:text-base"
               >
                 {submitted ? "Submitted ✓" : "Submit →"}
               </button>

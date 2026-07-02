@@ -81,18 +81,18 @@ export default function DoorsPage() {
     <div className="min-h-dvh bg-bg flex flex-col">
       <NavBar showBack showWallet />
 
-      <main className="flex-1 px-4 py-5">
+      <main className="flex-1 px-3 sm:px-4 py-4 sm:py-5">
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-5"
+          className="mb-4 sm:mb-5"
         >
-          <h1 className="text-2xl font-black text-white">Pick your door</h1>
-          <p className="text-gray-400 text-sm mt-1">
+          <h1 className="text-xl sm:text-2xl font-black text-white">Pick your door</h1>
+          <p className="text-gray-400 text-xs sm:text-sm mt-1">
             Each door has a question. Answer correctly to win.
           </p>
           {state.selectedFormat && (
-            <span className="inline-block mt-2 text-xs px-3 py-1 rounded-full bg-neon/10 text-neon border border-neon/20 font-medium">
+            <span className="inline-block mt-2 text-xs px-2.5 sm:px-3 py-1 rounded-full bg-neon/10 text-neon border border-neon/20 font-medium">
               {state.selectedFormat === "multiple_choice" ? "📝 Multiple Choice" : "⌨️ Type Answer"}
             </span>
           )}
@@ -126,7 +126,7 @@ export default function DoorsPage() {
 
         {/* Door cards */}
         {!state.doorsLoading && !state.doorsError && (
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-3 gap-2 sm:gap-3">
             {doors.map((door, i) => (
               <motion.button
                 key={door.id}
@@ -134,18 +134,18 @@ export default function DoorsPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.12 }}
                 onClick={() => handleDoorTap(door)}
-                className="door-card min-h-[160px]"
+                className="door-card min-h-32 sm:min-h-40"
                 whileTap={{ scale: 0.95 }}
               >
-                <div className="text-4xl mb-1">🚪</div>
+                <div className="text-3xl sm:text-4xl mb-1">🚪</div>
                 <div className="text-xs font-bold text-gray-400 uppercase tracking-wider">
                   Door {door.id}
                 </div>
-                <div className={`text-xl font-black mt-1 ${difficultyColors[door.question.difficulty]}`}>
+                <div className={`text-lg sm:text-xl font-black mt-1 ${difficultyColors[door.question.difficulty]}`}>
                   ₦{door.prize.toLocaleString()}
                 </div>
                 <DifficultyBadge difficulty={door.question.difficulty} />
-                <div className="mt-2 text-xs text-gray-500 font-medium">Tap to select</div>
+                <div className="mt-1 sm:mt-2 text-xs text-gray-500 font-medium">Tap to select</div>
               </motion.button>
             ))}
           </div>
@@ -153,18 +153,18 @@ export default function DoorsPage() {
 
         {/* Wallet bar */}
         <motion.div
-          className="mt-6 bg-card border border-[#2A2A2A] rounded-2xl px-4 py-3 flex items-center justify-between"
+          className="mt-4 sm:mt-6 bg-card border border-[#2A2A2A] rounded-lg sm:rounded-2xl px-3 sm:px-4 py-2.5 sm:py-3 flex items-center justify-between"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.4 }}
         >
           <div>
             <p className="text-xs text-gray-400">Wallet balance</p>
-            <p className="text-neon font-bold text-lg">₦{balance.toLocaleString()}</p>
+            <p className="text-neon font-bold text-base sm:text-lg">₦{balance.toLocaleString()}</p>
           </div>
           <Link
             href="/wallet"
-            className="text-sm font-semibold text-black bg-neon px-4 py-2 rounded-xl active:scale-95 transition-transform"
+            className="text-xs sm:text-sm font-semibold text-black bg-neon px-3 sm:px-4 py-2 rounded-lg sm:rounded-xl active:scale-95 transition-transform"
           >
             Top up
           </Link>
@@ -178,19 +178,19 @@ export default function DoorsPage() {
         title={selectedDoor ? `Door ${selectedDoor.id} — ₦${selectedDoor.prize.toLocaleString()} at stake` : ""}
       >
         {selectedDoor && (
-          <div className="space-y-4">
-            <div className="bg-[#111] rounded-xl p-4 flex items-center justify-between">
-              <span className="text-gray-400 text-sm">Entry fee</span>
-              <span className="text-white font-bold text-lg">₦{selectedDoor.entry_fee.toLocaleString()}</span>
+          <div className="space-y-3 sm:space-y-4">
+            <div className="bg-[#111] rounded-lg sm:rounded-xl p-3 sm:p-4 flex items-center justify-between">
+              <span className="text-gray-400 text-xs sm:text-sm">Entry fee</span>
+              <span className="text-white font-bold text-base sm:text-lg">₦{selectedDoor.entry_fee.toLocaleString()}</span>
             </div>
-            <div className="bg-[#111] rounded-xl p-4 flex items-center justify-between">
-              <span className="text-gray-400 text-sm">Prize if you win</span>
-              <span className="text-neon font-bold text-lg">₦{selectedDoor.prize.toLocaleString()}</span>
+            <div className="bg-[#111] rounded-lg sm:rounded-xl p-3 sm:p-4 flex items-center justify-between">
+              <span className="text-gray-400 text-xs sm:text-sm">Prize if you win</span>
+              <span className="text-neon font-bold text-base sm:text-lg">₦{selectedDoor.prize.toLocaleString()}</span>
             </div>
 
-            <div className="bg-[#111] rounded-xl p-4">
-              <p className="text-xs text-gray-400 mb-3">Accepted payments</p>
-              <div className="flex flex-wrap gap-2">
+            <div className="bg-[#111] rounded-lg sm:rounded-xl p-3 sm:p-4">
+              <p className="text-xs text-gray-400 mb-2 sm:mb-3">Accepted payments</p>
+              <div className="flex flex-wrap gap-1.5 sm:gap-2">
                 {[
                   { icon: CreditCard, label: "Card" },
                   { icon: Smartphone, label: "USSD" },
@@ -200,7 +200,7 @@ export default function DoorsPage() {
                 ].map(({ icon: Icon, label }) => (
                   <div
                     key={label}
-                    className="flex items-center gap-1.5 bg-[#2A2A2A] rounded-lg px-2.5 py-1.5 text-xs text-gray-300"
+                    className="flex items-center gap-1 bg-[#2A2A2A] rounded-lg px-2 sm:px-2.5 py-1 sm:py-1.5 text-xs text-gray-300"
                   >
                     <Icon size={12} />
                     {label}
@@ -210,10 +210,10 @@ export default function DoorsPage() {
             </div>
 
             {payError && (
-              <div className="bg-red-900/30 border border-red-800 rounded-xl p-3 text-sm text-red-400">
+              <div className="bg-red-900/30 border border-red-800 rounded-lg sm:rounded-xl p-2.5 sm:p-3 text-xs sm:text-sm text-red-400">
                 {payError}
                 {payError.includes("balance") && (
-                  <Link href="/wallet" className="block mt-1 text-neon underline text-sm">
+                  <Link href="/wallet" className="block mt-1 text-neon underline text-xs sm:text-sm">
                     Top up wallet →
                   </Link>
                 )}
@@ -223,7 +223,7 @@ export default function DoorsPage() {
             <button
               onClick={handlePay}
               disabled={paying}
-              className="btn-primary flex items-center justify-center gap-2 disabled:opacity-60"
+              className="btn-primary flex items-center justify-center gap-2 disabled:opacity-60 text-sm sm:text-base"
             >
               {paying ? (
                 <>
@@ -240,7 +240,7 @@ export default function DoorsPage() {
 
             <button
               onClick={() => setSelectedDoor(null)}
-              className="w-full text-center text-gray-400 text-sm py-2"
+              className="w-full text-center text-gray-400 text-xs sm:text-sm py-2"
             >
               Cancel
             </button>

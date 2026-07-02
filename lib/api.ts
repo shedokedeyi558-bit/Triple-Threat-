@@ -75,7 +75,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
 
 export interface RegisterResponse {
   message: string;
-  isExisting: boolean;
+  isExisting: boolean; // true = returning player, false = new player
 }
 
 export interface VerifyOtpResponse {
@@ -328,7 +328,211 @@ export interface DoorStat {
   payouts: number;
 }
 
+export interface GameParticipation {
+  id: string;
+  player_id: string;
+  player_phone: string;
+  answer: string;
+  is_correct: boolean | null;
+  amount_won: number;
+  participated_at: string;
+}
+
+// ─── CHALLENGES ───────────────────────────────────────────────────────────
+
+export interface Challenge {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  stake_amount: number;
+  prize_pool: number;
+  max_participants: number;
+  current_participants: number;
+  status: "active" | "locked" | "ended" | "closed";
+  countdown_duration: number;
+  ends_at: string;
+  is_user_joined: boolean;
+}
+
+export interface ChallengeDetail extends Challenge {
+  my_participation: {
+    answer: string;
+    is_correct: boolean | null;
+    amount_won: number;
+  } | null;
+  correct_answer: string | null;
+  has_ended: boolean;
+}
+
+export interface ChallengesResponse {
+  challenges: Challenge[];
+  total: number;
+}
+
+export const challengeApi = {
+  getChallenges: () =>
+    request<ChallengesResponse>("/api/challenges", { token: getToken() }),
+
+  getChallenge: (id: string) =>
+    request<ChallengeDetail>(`/api/challenges/${id}`, { token: getToken() }),
+
+  joinChallenge: (id: string, answer: string) =>
+    request<{ participation: { id: string }; newBalance: number }>(
+      `/api/challenges/${id}/join`,
+      { method: "POST", body: { answer }, token: getToken() }
+    ),
+};
+
+export interface Game {
+  id: string;
+  game_type: "door_game" | "challenge_game";
+  title: string;
+  description?: string;
+  status: "draft" | "active" | "paused" | "ended" | "archived";
+  entry_fee?: number;
+  door_ids?: string[];
+  category?: string;
+  stake_amount?: number;
+  prize_pool?: number;
+  max_participants?: number;
+  current_participants?: number;
+  countdown_duration?: number;
+  ends_at?: string;
+  created_at: string;
+  created_by: string;
+  stats?: {
+    total_players?: number;
+    revenue?: number;
+  };
+}
+
 export const adminApi = {
+  // Games Management
+  createGame: (data: {
+    game_type: "door_game" | "challenge_game";
+    title: string;
+    description?: string;
+    entry_fee?: number;
+    door_ids?: string[];
+    category?: string;
+    stake_amount?: number;
+    prize_pool?: number;
+    max_participants?: number;
+    countdown_duration?: number;
+  }) =>
+    request<{ game: Game }>("/api/admin/games/create", {
+      method: "POST",
+      body: data,
+      token: getAdminToken(),
+    }),
+
+  getGames: (params?: Record<string, string | number>) =>
+    request<{ games: Game[]; total: number; page: number; limit: number }>(
+      "/api/admin/games",
+      { token: getAdminToken(), params }
+    ),
+
+  getGame: (id: string) =>
+    request<{ game: Game }>(`/api/admin/games/${id}`, {
+      token: getAdminToken(),
+    }),
+
+  updateGame: (id: string, data: Partial<Game>) =>
+    request<{ game: Game }>(`/api/admin/games/${id}`, {
+      method: "PUT",
+      body: data,
+      token: getAdminToken(),
+    }),
+
+  activateGame: (id: string) =>
+    request<{ message: string; game: Game }>(`/api/admin/games/${id}/activate`, {
+      method: "POST",
+      token: getAdminToken(),
+    }),
+
+  pauseGame: (id: string) =>
+    request<{ message: string }>(`/api/admin/games/${id}/pause`, {
+      method: "POST",
+      token: getAdminToken(),
+    }),
+
+  resumeGame: (id: string) =>
+    request<{ message: string }>(`/api/admin/games/${id}/resume`, {
+      method: "POST",
+      token: getAdminToken(),
+    }),
+
+  endGame: (id: string) =>
+    request<{ message: string }>(`/api/admin/games/${id}/end`, {
+      method: "POST",
+      token: getAdminToken(),
+    }),
+
+  deleteGame: (id: string) =>
+    request<{ message: string }>(`/api/admin/games/${id}`, {
+      method: "DELETE",
+      token: getAdminToken(),
+    }),
+
+  revealGameAnswer: (id: string, correctAnswer: string) =>
+    request<{ message: string; total_participants: number; total_correct: number; prize_per_winner: number; total_paid: number }>(
+      `/api/admin/games/${id}/reveal-answer`,
+      { method: "POST", body: { correct_answer: correctAnswer }, token: getAdminToken() }
+    ),
+
+  getGameStats: (id: string) =>
+    request<{ game: Game; stats: { total_players: number; total_revenue: number; total_payout: number; profit: number; completion_rate?: number } }>(
+      `/api/admin/games/${id}/stats`,
+      { token: getAdminToken() }
+    ),
+
+  getGameParticipants: (id: string) =>
+    request<{ participations: GameParticipation[]; total: number }>(
+      `/api/admin/games/${id}/participants`,
+      { token: getAdminToken() }
+    ),
+
+  // Challenges
+  createChallenge: (data: {
+    title: string;
+    description: string;
+    category: string;
+    stake_amount: number;
+    max_participants: number;
+    countdown_duration: number;
+  }) =>
+    request<{ challenge: Challenge }>("/api/admin/challenges", {
+      method: "POST",
+      body: data,
+      token: getAdminToken(),
+    }),
+
+  getChallenges: (params?: Record<string, string | number>) =>
+    request<{ challenges: Challenge[]; total: number }>(
+      "/api/admin/challenges",
+      { token: getAdminToken(), params }
+    ),
+
+  updateChallenge: (id: string, data: Partial<Challenge>) =>
+    request<{ challenge: Challenge }>(`/api/admin/challenges/${id}`, {
+      method: "PUT",
+      body: data,
+      token: getAdminToken(),
+    }),
+
+  revealAnswer: (id: string, correctAnswer: string) =>
+    request<{ message: string; total_correct: number; total_paid: number }>(
+      `/api/admin/challenges/${id}/reveal-answer`,
+      { method: "POST", body: { correct_answer: correctAnswer }, token: getAdminToken() }
+    ),
+
+  getChallengeParticipants: (id: string) =>
+    request<{ participations: GameParticipation[]; total: number }>(
+      `/api/admin/challenges/${id}/participants`,
+      { token: getAdminToken() }
+    ),
+
   // Stats
   getStats: () =>
     request<AdminStats>("/api/admin/stats", { token: getAdminToken() }),

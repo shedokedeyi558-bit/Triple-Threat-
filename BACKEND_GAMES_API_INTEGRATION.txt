@@ -1,0 +1,563 @@
+================================================================================
+BACKEND API INTEGRATION REQUIREMENTS
+BITLYFE - Unified Game Management System
+================================================================================
+
+STATUS: Frontend completed and ready for backend API implementation
+PRIORITY: HIGH - Blocking frontend game creation workflow
+
+================================================================================
+OVERVIEW
+================================================================================
+
+The frontend admin game creation system is now fully implemented and ready for 
+backend integration. Two game types are available:
+
+1. DOOR GAME - Traditional 3-door game with immediate winners
+2. CHALLENGE GAME - Limited participation prediction game with admin reveal
+
+Frontend has already:
+✓ Game creation wizard with 3-step flow (Type → Config → Review)
+✓ Game management dashboard with filtering and status tracking
+✓ API method calls prepared in lib/api.ts
+✓ Mobile-responsive UI throughout
+✓ Form validation and error handling
+
+BACKEND NOW NEEDS TO IMPLEMENT:
+1. Database tables for unified game management
+2. All admin API endpoints for game CRUD and management
+3. Player API endpoints for game participation
+4. Answer reveal logic with winner calculation and payouts
+
+================================================================================
+DATABASE SCHEMA REQUIRED
+================================================================================
+
+Table: games (NEW - unified game management)
+- id (UUID, PK)
+- game_type (ENUM) — "door_game" | "challenge_game"
+- title (TEXT)
+- description (TEXT, nullable)
+- status (ENUM) — "draft" | "active" | "paused" | "ended" | "archived"
+- created_by (UUID FK to admins)
+- created_at (TIMESTAMP)
+- updated_at (TIMESTAMP)
+
+--- For DOOR_GAME type, these fields are used: ---
+- entry_fee (INTEGER)
+- door_ids (ARRAY) — References to 3 doors [id1, id2, id3]
+
+--- For CHALLENGE_GAME type, these fields are used: ---
+- category (VARCHAR) — "Sports", "Football", "Crypto", etc.
+- stake_amount (INTEGER) — Entry fee
+- prize_pool (INTEGER) — Total prize distributed
+- max_participants (INTEGER) — Hard limit (e.g., 10, 50, 100)
+- current_participants (INTEGER) — Count
+- countdown_duration (INTEGER) — Minutes until auto-lock
+- ends_at (TIMESTAMP) — When countdown expires
+- correct_answer (TEXT, nullable) — Set by admin before reveal
+- answer_revealed_at (TIMESTAMP, nullable) — When answer was revealed
+
+Indexes needed:
+- idx_games_status (status) - for filtering active games
+- idx_games_game_type (game_type) - for type-based queries
+- idx_games_created_by (created_by) - for admin's games
+- idx_games_ends_at (ends_at) - for countdown expiration checks
+
+================================================================================
+ADMIN API ENDPOINTS REQUIRED
+================================================================================
+
+PREFIX: /api/admin/games
+AUTHENTICATION: Bearer token (admin)
+
+--- GAME CREATION ---
+
+POST /api/admin/games/create
+  Create a new game (either type)
+  
+  DOOR GAME:
+  {
+    game_type: "door_game",
+    title: string (required, 3-100 chars),
+    description: string (optional),
+    entry_fee: number (required, > 0),
+    door_ids: string[] (required, exactly 3 valid door IDs)
+  }
+  
+  CHALLENGE GAME:
+  {
+    game_type: "challenge_game",
+    title: string (required, 3-200 chars),
+    description: string (optional),
+    category: string (required),
+    stake_amount: number (required, > 0),
+    prize_pool: number (required, > 0),
+    max_participants: number (required, > 0, <= 1000),
+    countdown_duration: number (required, > 0 minutes)
+  }
+  
+  Response:
+  {
+    success: true,
+    data: {
+      game: {
+        id: string,
+        game_type: string,
+        title: string,
+        status: "draft",
+        created_at: string,
+        created_by: string,
+        // ... type-specific fields
+      }
+    }
+  }
+  
+  Status Codes:
+  - 201: Created successfully
+  - 400: Validation error (missing fields, invalid values)
+  - 401: Unauthorized
+  - 403: Admin permissions required
+
+
+--- GAME RETRIEVAL ---
+
+GET /api/admin/games
+  List all games with filtering and pagination
+  
+  Query Params:
+  - type: "door_game" | "challenge_game" (optional)
+  - status: "draft" | "active" | "paused" | "ended" (optional)
+  - page: number (default 1)
+  - limit: number (default 20, max 100)
+  
+  Response:
+  {
+    success: true,
+    data: {
+      games: [
+        {
+          id: string,
+          game_type: string,
+          title: string,
+          status: string,
+          created_at: string,
+          // type-specific fields...
+          stats: {
+            total_players: number,
+            revenue: number
+          }
+        }
+      ],
+      total: number,
+      page: number,
+      limit: number
+    }
+  }
+
+
+GET /api/admin/games/:id
+  Get single game details
+  
+  Response: { success: true, data: { game: {...} } }
+
+
+--- GAME UPDATES ---
+
+PUT /api/admin/games/:id
+  Update game (only if status is "draft")
+  
+  Body: Partial game object (title, description, etc.)
+  Response: { success: true, data: { game: {...} } }
+  
+  Note: Cannot update status via PUT. Use specific status endpoints instead.
+
+
+POST /api/admin/games/:id/activate
+  Change game status from "draft" to "active"
+  
+  For CHALLENGE_GAME: Starts countdown timer (ends_at = now + countdown_duration)
+  For DOOR_GAME: Makes game available to players
+  
+  Response: { success: true, data: { message: "Game activated", game: {...} } }
+
+
+POST /api/admin/games/:id/pause
+  Pause active game (status: active → paused)
+  
+  Response: { success: true, data: { message: "Game paused" } }
+
+
+POST /api/admin/games/:id/resume
+  Resume paused game (status: paused → active)
+  
+  For CHALLENGE_GAME: Resume countdown
+  Response: { success: true, data: { message: "Game resumed" } }
+
+
+POST /api/admin/games/:id/end
+  End active/paused game (status → "ended")
+  
+  Response: { success: true, data: { message: "Game ended" } }
+
+
+DELETE /api/admin/games/:id
+  Delete game (only if status is "draft")
+  
+  Response: { success: true, data: { message: "Game deleted" } }
+
+
+--- CHALLENGE-SPECIFIC OPERATIONS ---
+
+POST /api/admin/games/:id/reveal-answer
+  Reveal answer and evaluate all participants (CHALLENGE_GAME only)
+  
+  Body: { correct_answer: string (the correct answer) }
+  
+  CRITICAL LOGIC:
+  1. Validate correct_answer parameter
+  2. Update games table: correct_answer, answer_revealed_at = now, status = "ended"
+  3. Query all challenge_participations for this game_id
+  4. For each participation:
+     - Compare player_answer to correct_answer
+     - Mark is_correct = true/false
+     - If correct, calculate prize: (max_participants * stake_amount * 0.8) / correct_count
+     - Record in amount_won field
+  5. Create transaction records for each player:
+     - All players: type="challenge_loss", amount=-stake_amount
+     - Winners: Add type="challenge_win", amount=prize_won
+  6. Update player balances (subtract stakes, add prizes)
+  7. Log payouts for admin tracking
+  8. Send notifications to players
+  
+  Response:
+  {
+    success: true,
+    data: {
+      message: "Answer revealed",
+      total_participants: number,
+      total_correct: number,
+      prize_per_winner: number,
+      total_paid: number
+    }
+  }
+
+
+GET /api/admin/games/:id/stats
+  Get game statistics and analytics
+  
+  Response:
+  {
+    success: true,
+    data: {
+      game: {...},
+      stats: {
+        total_players: number,
+        total_revenue: number (total stakes collected),
+        total_payout: number (prizes paid),
+        profit: number (revenue - payout),
+        completion_rate: number (for challenges: % answered)
+      }
+    }
+  }
+
+
+GET /api/admin/games/:id/participants
+  List all participants (for CHALLENGE or statistics)
+  
+  Query Params:
+  - page: number (default 1)
+  - limit: number (default 50)
+  
+  Response:
+  {
+    success: true,
+    data: {
+      participations: [
+        {
+          id: string,
+          player_id: string,
+          player_phone: string,
+          answer: string,
+          is_correct: boolean | null,
+          amount_won: number,
+          participated_at: string
+        }
+      ],
+      total: number
+    }
+  }
+
+================================================================================
+PLAYER API ENDPOINTS REQUIRED
+================================================================================
+
+These endpoints should already exist (based on backend info) but may need updates
+for new game system:
+
+GET /api/game/doors (existing - keep as is)
+  Returns 3 active doors for door games
+
+POST /api/game/play (existing - keep as is)
+  Start a door game session
+
+POST /api/game/submit (existing - keep as is)
+  Submit door game answer
+
+=== NEW: Challenge Participation Endpoints ===
+
+GET /api/challenges
+  Get active challenges for player to join
+  
+  Response:
+  {
+    success: true,
+    data: {
+      challenges: [
+        {
+          id: string,
+          title: string,
+          description: string,
+          category: string,
+          stake_amount: number,
+          prize_pool: number,
+          max_participants: number,
+          current_participants: number,
+          status: string,
+          ends_at: string,
+          is_user_joined: boolean
+        }
+      ]
+    }
+  }
+
+
+GET /api/challenges/:id
+  Get challenge details and user's participation
+  
+  Response:
+  {
+    success: true,
+    data: {
+      challenge: {...},
+      my_participation: {
+        answer: string,
+        is_correct: boolean | null,
+        amount_won: number
+      } | null,
+      correct_answer: null | string (null until revealed),
+      has_ended: boolean
+    }
+  }
+
+
+POST /api/challenges/:id/join
+  Join a challenge and submit answer
+  
+  Body: { answer: string }
+  
+  VALIDATIONS:
+  - Challenge status must be "active" (not locked, ended, closed)
+  - User not already participating
+  - current_participants < max_participants
+  - User balance >= stake_amount
+  
+  ACTIONS:
+  - Deduct stake_amount from player wallet
+  - Create challenge_participation record
+  - Increment current_participants
+  - If current_participants == max_participants, set status to "locked"
+  - Record transaction: type="challenge_loss", amount=-stake_amount
+  
+  Response:
+  {
+    success: true,
+    data: {
+      participation: { id: string, answer: string },
+      newBalance: number
+    }
+  }
+
+================================================================================
+BUSINESS LOGIC - AUTO-LOCKING
+================================================================================
+
+CHALLENGE AUTO-LOCK TRIGGERS:
+
+Trigger 1: Max Participants Reached
+- Checked in POST /api/challenges/:id/join
+- When current_participants == max_participants
+- Action: Set status = "locked", ends_at = now
+- Result: No more joins allowed
+
+Trigger 2: Countdown Expired
+- Implement via background job (cron) or timestamp check on retrieve
+- Check all active challenges: if ends_at < now, set status = "locked"
+- Frequency: Run every 1-5 minutes
+- Action: Update status to "locked"
+
+Alternative (Simple): Check on every GET request
+- If challenge.ends_at < now and status != "locked", update to "locked"
+
+Result: Players cannot join locked challenges
+
+================================================================================
+BUSINESS LOGIC - ANSWER REVEAL
+================================================================================
+
+When admin calls POST /api/admin/games/:id/reveal-answer:
+
+Example:
+- Challenge: "How many goals scored?" Stake=₦1000, Max=10, Prize Pool=₦8000
+- 10 users joined (current_participants = 10)
+- Total revenue collected: 10 × ₦1000 = ₦10,000
+- App fee (20%): ₦2,000
+- Prize pool for winners (80%): ₦8,000
+
+- Answers submitted: [5, 7, 5, 7, 9, 5, 7, 10, 5, 7]
+- Correct answer: 7
+- Winners: 5 correct (indices: 1, 3, 6, 9, and one more)
+
+Actually 4 users answered 7:
+- Prize per winner: ₦8,000 / 4 = ₦2,000
+- 4 winners × ₦2,000 = ₦8,000 paid
+
+Total transactions recorded:
+- 10 loss transactions: -₦1,000 each
+- 4 win transactions: +₦2,000 each
+- Admin revenue: ₦2,000 profit
+
+================================================================================
+CRON JOBS REQUIRED
+================================================================================
+
+1. Challenge Auto-Lock Job
+   Frequency: Every 1-5 minutes
+   
+   SELECT * FROM games 
+   WHERE game_type = "challenge_game" 
+   AND status = "active" 
+   AND ends_at < now()
+   
+   For each: UPDATE status = "locked"
+   
+   Note: Front-end should also check timestamp and disable "Join" button
+
+
+2. Challenge Timeout Alerts (Optional)
+   Frequency: Every minute
+   
+   Find challenges ending soon (< 5 min remaining)
+   Send notifications to players not yet joined
+
+
+3. Withdrawal Processing (Existing, no change needed)
+   Continue as is
+
+================================================================================
+ERROR RESPONSES
+================================================================================
+
+All error responses must follow:
+{
+  success: false,
+  error: "descriptive error message"
+}
+
+Common errors:
+- "Unauthorized" (401)
+- "Admin permissions required" (403)
+- "Game not found" (404)
+- "Challenge already locked" (400)
+- "Insufficient balance" (400)
+- "User already joined this challenge" (400)
+- "Validation error: title must be 3-100 characters" (400)
+
+================================================================================
+TESTING CHECKLIST
+================================================================================
+
+After implementing, test with:
+
+DOOR GAME:
+[ ] Create door game with valid entry fee
+[ ] Verify game appears in games list
+[ ] Filter door games from challenges
+[ ] Activate door game
+[ ] Pause/resume door game
+[ ] End door game
+[ ] Update door game in draft
+[ ] Cannot update game once active
+
+CHALLENGE GAME:
+[ ] Create challenge with all fields
+[ ] Challenge appears with correct participant count (0/max)
+[ ] Player can join challenge
+[ ] current_participants increments
+[ ] Second player joins
+[ ] Auto-lock when max reached
+[ ] Cannot join locked challenge
+[ ] Admin can reveal answer
+[ ] Winner payouts calculated correctly
+[ ] Loser transactions recorded
+[ ] Player balance updated correctly
+
+ADMIN OPERATIONS:
+[ ] List games with type filter
+[ ] List games with status filter
+[ ] Pagination works (page, limit)
+[ ] Game stats accurate
+[ ] Participant list shows all answers
+[ ] Reveal answer response has correct numbers
+
+EDGE CASES:
+[ ] Cannot create game with empty title
+[ ] Cannot set negative entry fee
+[ ] Cannot join with insufficient balance
+[ ] Cannot join same challenge twice
+[ ] Correct answer comparison handles case sensitivity
+[ ] Decimal answer values handled correctly
+[ ] Very large participant counts (100+) handled efficiently
+
+================================================================================
+FRONTEND ALREADY COMPLETE
+================================================================================
+
+The following are ready to use once backend is implemented:
+
+✓ /admin/games - Games dashboard with filtering and stats
+✓ /admin/games/create - 3-step creation wizard
+✓ Game creation form validation and error display
+✓ API calls prepared in lib/api.ts (adminApi.createGame, getGames, etc.)
+✓ Mobile-responsive UI throughout
+✓ Loading states and error handling
+
+FRONTEND STILL NEEDS (after backend ready):
+- /admin/games/:id - Game detail page with actions (pause/resume/end)
+- Admin answer reveal form for challenges
+- Player challenge pages and join flow
+- Challenge history/results pages
+
+================================================================================
+SUMMARY
+================================================================================
+
+Frontend Status: ✓ COMPLETE - Ready for API integration
+Backend Status: ⏳ TODO - Implement all endpoints below
+
+Critical Path:
+1. Create games table (migrations)
+2. Implement POST /api/admin/games/create
+3. Implement GET /api/admin/games (with listing/filtering)
+4. Implement POST /api/admin/games/:id/activate
+5. Implement POST /api/admin/games/:id/reveal-answer (for challenges)
+6. Set up cron job for auto-locking challenges
+7. Implement challenge participation endpoints
+
+Once done, admin can fully create and manage both game types from the dashboard.
+
+Questions? Review the specification files:
+- ADMIN_GAME_CREATION_SPEC.txt (original design)
+- This file (integration requirements)
+
+================================================================================

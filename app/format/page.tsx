@@ -47,17 +47,17 @@ export default function FormatPage() {
     <div className="min-h-dvh bg-bg flex flex-col">
       <NavBar title="Choose Format" showBack />
 
-      <main className="flex-1 px-5 py-6">
+      <main className="flex-1 px-3 sm:px-5 py-5 sm:py-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-6"
+          className="mb-5 sm:mb-6"
         >
-          <h1 className="text-2xl font-black text-white">How do you want to play?</h1>
-          <p className="text-gray-400 text-sm mt-1">You can change this before each game</p>
+          <h1 className="text-xl sm:text-2xl font-black text-white">How do you want to play?</h1>
+          <p className="text-gray-400 text-xs sm:text-sm mt-1">You can change this before each game</p>
         </motion.div>
 
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-3 sm:gap-4">
           {formats.map(({ id, icon: Icon, title, subtitle, tags, color }, i) => (
             <motion.button
               key={id}
@@ -65,31 +65,31 @@ export default function FormatPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.1 }}
               onClick={() => handleSelect(id)}
-              className={`w-full text-left bg-card border-2 rounded-2xl p-5 transition-all duration-200 active:scale-95 group ${
+              className={`w-full text-left bg-card border-2 rounded-lg sm:rounded-2xl p-3.5 sm:p-5 transition-all duration-200 active:scale-95 group ${
                 state.selectedFormat === id ? "border-neon shadow-[0_0_16px_#00FF6633]" : color
               }`}
             >
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-3">
-                  <div className={`p-3 rounded-xl ${id === "multiple_choice" ? "bg-neon/10" : "bg-gold/10"}`}>
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-start gap-2 sm:gap-3 min-w-0">
+                  <div className={`p-2 sm:p-3 rounded-lg sm:rounded-xl flex-shrink-0 ${id === "multiple_choice" ? "bg-neon/10" : "bg-gold/10"}`}>
                     <Icon
-                      size={24}
-                      className={id === "multiple_choice" ? "text-neon" : "text-gold"}
+                      size={20}
+                      className={`${id === "multiple_choice" ? "text-neon" : "text-gold"}`}
                     />
                   </div>
-                  <div>
-                    <h2 className="text-white font-bold text-lg">{title}</h2>
-                    <p className="text-gray-400 text-sm">{subtitle}</p>
+                  <div className="min-w-0">
+                    <h2 className="text-white font-bold text-sm sm:text-lg">{title}</h2>
+                    <p className="text-gray-400 text-xs sm:text-sm">{subtitle}</p>
                   </div>
                 </div>
-                <ArrowRight size={20} className="text-gray-600 group-hover:text-white transition-colors mt-1" />
+                <ArrowRight size={18} className="text-gray-600 group-hover:text-white transition-colors mt-1 flex-shrink-0" />
               </div>
 
-              <div className="flex flex-wrap gap-2 mt-4">
+              <div className="flex flex-wrap gap-1.5 sm:gap-2 mt-3 sm:mt-4">
                 {tags.map((tag) => (
                   <span
                     key={tag}
-                    className="text-xs px-2.5 py-1 rounded-full bg-[#2A2A2A] text-gray-300 font-medium"
+                    className="text-xs px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full bg-[#2A2A2A] text-gray-300 font-medium"
                   >
                     {tag}
                   </span>

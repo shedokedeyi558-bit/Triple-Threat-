@@ -130,26 +130,26 @@ export default function WalletPage() {
     <div className="min-h-dvh bg-bg flex flex-col">
       <NavBar title="My Wallet" showBack showWallet={false} />
 
-      <main className="flex-1 px-4 py-5 pb-10">
+      <main className="flex-1 px-3 sm:px-4 py-4 sm:py-5 pb-8 sm:pb-10">
         {/* Balance */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-6"
+          className="text-center mb-5 sm:mb-6"
         >
-          <p className="text-gray-400 text-sm mb-1">Available balance</p>
-          <p className="text-neon font-black text-5xl neon-text-glow">
+          <p className="text-gray-400 text-xs sm:text-sm mb-1">Available balance</p>
+          <p className="text-neon font-black text-4xl sm:text-5xl neon-text-glow">
             ₦{balance.toLocaleString()}
           </p>
         </motion.div>
 
         {/* Tabs */}
-        <div className="flex bg-card border border-[#2A2A2A] rounded-xl p-1 mb-5">
+        <div className="flex bg-card border border-[#2A2A2A] rounded-lg sm:rounded-xl p-1 mb-4 sm:mb-5">
           {(["deposit", "withdraw"] as const).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
-              className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all capitalize ${
+              className={`flex-1 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm font-semibold transition-all capitalize ${
                 tab === t ? "bg-neon text-black" : "text-gray-400"
               }`}
             >
@@ -160,25 +160,25 @@ export default function WalletPage() {
 
         {tab === "deposit" ? (
           <motion.div key="deposit" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               <div>
-                <label className="text-sm text-gray-400 mb-1.5 block">Enter amount (₦)</label>
+                <label className="text-xs sm:text-sm text-gray-400 mb-1.5 block">Enter amount (₦)</label>
                 <input
                   type="number"
                   placeholder="0"
                   value={depositAmt}
                   onChange={(e) => setDepositAmt(e.target.value)}
-                  className="w-full bg-card border border-[#2A2A2A] focus:border-neon rounded-xl px-4 py-3.5 text-white text-lg font-bold outline-none transition-colors"
+                  className="w-full bg-card border border-[#2A2A2A] focus:border-neon rounded-lg sm:rounded-xl px-3 sm:px-4 py-2.5 sm:py-3.5 text-white text-lg sm:text-lg font-bold outline-none transition-colors"
                 />
               </div>
               <div>
-                <p className="text-xs text-gray-500 mb-2">Quick picks</p>
-                <div className="grid grid-cols-4 gap-2">
+                <p className="text-xs text-gray-500 mb-1.5 sm:mb-2">Quick picks</p>
+                <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
                   {quickAmounts.map((a) => (
                     <button
                       key={a}
                       onClick={() => setDepositAmt(String(a))}
-                      className={`py-2.5 rounded-xl border text-sm font-bold transition-all ${
+                      className={`py-2 sm:py-2.5 rounded-lg sm:rounded-xl border text-xs sm:text-sm font-bold transition-all ${
                         depositAmt === String(a)
                           ? "border-neon bg-neon/10 text-neon"
                           : "border-[#2A2A2A] text-gray-300"
@@ -190,12 +190,12 @@ export default function WalletPage() {
                 </div>
               </div>
               {depositError && (
-                <p className="text-red-400 text-sm">{depositError}</p>
+                <p className="text-red-400 text-xs sm:text-sm">{depositError}</p>
               )}
               <button
                 onClick={handleDeposit}
                 disabled={depositLoading || !depositAmt}
-                className="btn-primary flex items-center justify-center gap-2 disabled:opacity-50"
+                className="btn-primary flex items-center justify-center gap-2 disabled:opacity-50 text-sm sm:text-base"
               >
                 {depositLoading ? (
                   <Loader2 size={18} className="animate-spin" />
@@ -210,46 +210,46 @@ export default function WalletPage() {
           </motion.div>
         ) : (
           <motion.div key="withdraw" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               <div>
-                <label className="text-sm text-gray-400 mb-1.5 block">Amount (min ₦1,000)</label>
+                <label className="text-xs sm:text-sm text-gray-400 mb-1.5 block">Amount (min ₦1,000)</label>
                 <input
                   type="number"
                   placeholder="1000"
                   value={withdrawAmt}
                   onChange={(e) => setWithdrawAmt(e.target.value)}
-                  className="w-full bg-card border border-[#2A2A2A] focus:border-neon rounded-xl px-4 py-3.5 text-white text-lg font-bold outline-none transition-colors"
+                  className="w-full bg-card border border-[#2A2A2A] focus:border-neon rounded-lg sm:rounded-xl px-3 sm:px-4 py-2.5 sm:py-3.5 text-white text-lg font-bold outline-none transition-colors"
                 />
               </div>
               <div>
-                <label className="text-sm text-gray-400 mb-1.5 block">Select bank</label>
+                <label className="text-xs sm:text-sm text-gray-400 mb-1.5 block">Select bank</label>
                 <select
                   value={bank}
                   onChange={(e) => setBank(e.target.value)}
-                  className="w-full bg-card border border-[#2A2A2A] focus:border-neon rounded-xl px-4 py-3.5 text-white outline-none"
+                  className="w-full bg-card border border-[#2A2A2A] focus:border-neon rounded-lg sm:rounded-xl px-3 sm:px-4 py-2.5 sm:py-3.5 text-white outline-none text-sm sm:text-base"
                 >
                   <option value="">Choose bank...</option>
                   {banks.map((b) => <option key={b} value={b}>{b}</option>)}
                 </select>
               </div>
               <div>
-                <label className="text-sm text-gray-400 mb-1.5 block">Account number</label>
+                <label className="text-xs sm:text-sm text-gray-400 mb-1.5 block">Account number</label>
                 <input
                   type="tel"
                   inputMode="numeric"
                   placeholder="0123456789"
                   value={accNum}
                   onChange={(e) => setAccNum(e.target.value.replace(/\D/g, "").slice(0, 10))}
-                  className="w-full bg-card border border-[#2A2A2A] focus:border-neon rounded-xl px-4 py-3.5 text-white outline-none transition-colors"
+                  className="w-full bg-card border border-[#2A2A2A] focus:border-neon rounded-lg sm:rounded-xl px-3 sm:px-4 py-2.5 sm:py-3.5 text-white outline-none transition-colors text-sm sm:text-base"
                 />
               </div>
               {withdrawMsg && (
-                <div className="bg-neon/10 border border-neon/30 rounded-xl p-3 text-neon text-sm font-semibold text-center">
+                <div className="bg-neon/10 border border-neon/30 rounded-lg sm:rounded-xl p-2.5 sm:p-3 text-neon text-xs sm:text-sm font-semibold text-center">
                   ✅ {withdrawMsg}
                 </div>
               )}
               {withdrawError && (
-                <p className="text-red-400 text-sm">{withdrawError}</p>
+                <p className="text-red-400 text-xs sm:text-sm">{withdrawError}</p>
               )}
               <button
                 onClick={handleWithdraw}
@@ -260,7 +260,7 @@ export default function WalletPage() {
                   !bank ||
                   accNum.length < 10
                 }
-                className="btn-primary flex items-center justify-center gap-2 disabled:opacity-50"
+                className="btn-primary flex items-center justify-center gap-2 disabled:opacity-50 text-sm sm:text-base"
               >
                 {withdrawLoading ? (
                   <Loader2 size={18} className="animate-spin" />
@@ -273,34 +273,36 @@ export default function WalletPage() {
         )}
 
         {/* Transaction history */}
-        <div className="mt-8">
-          <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">
+        <div className="mt-6 sm:mt-8">
+          <h3 className="text-xs sm:text-sm font-bold text-gray-400 uppercase tracking-wider mb-2.5 sm:mb-3">
             Transaction History
           </h3>
           {txLoading ? (
-            <div className="flex justify-center py-8">
+            <div className="flex justify-center py-6 sm:py-8">
               <Loader2 size={24} className="text-neon animate-spin" />
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-1.5 sm:space-y-2">
               {transactions.length === 0 && (
-                <p className="text-gray-600 text-sm text-center py-4">No transactions yet</p>
+                <p className="text-gray-600 text-xs sm:text-sm text-center py-3 sm:py-4">No transactions yet</p>
               )}
               {transactions.map((tx) => (
                 <motion.div
                   key={tx.id}
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
-                  className="bg-card border border-[#2A2A2A] rounded-xl px-4 py-3 flex items-center justify-between"
+                  className="bg-card border border-[#2A2A2A] rounded-lg sm:rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 flex items-center justify-between gap-2"
                 >
-                  <div className="flex items-center gap-3">
-                    <TxIcon type={tx.type} />
-                    <div>
-                      <p className="text-sm text-white font-medium leading-tight">{tx.description}</p>
+                  <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                    <div className="flex-shrink-0">
+                      <TxIcon type={tx.type} />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs sm:text-sm text-white font-medium leading-tight truncate">{tx.description}</p>
                       <p className="text-xs text-gray-500 mt-0.5">{formatDate(tx.created_at)}</p>
                     </div>
                   </div>
-                  <span className={`font-bold text-sm ${tx.amount > 0 ? "text-neon" : "text-red-400"}`}>
+                  <span className={`font-bold text-xs sm:text-sm flex-shrink-0 ${tx.amount > 0 ? "text-neon" : "text-red-400"}`}>
                     {tx.amount > 0 ? "+" : ""}₦{Math.abs(tx.amount).toLocaleString()}
                   </span>
                 </motion.div>
