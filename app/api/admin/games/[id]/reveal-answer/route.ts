@@ -1,18 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
 
-export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
-  const body = await request.json();
-  const { correct_answer } = body;
+const BACKEND = process.env.NEXT_PUBLIC_API_URL || "https://bitlyfe-production.up.railway.app";
 
-  // Mock reveal logic
-  return NextResponse.json({
-    success: true,
-    data: {
-      message: "Answer revealed",
-      total_participants: 18,
-      total_correct: 7,
-      prize_per_winner: 2285, // (18 * 1000 * 0.8) / 7
-      total_paid: 16000,
-    },
-  });
+export async function POST(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const token = request.headers.get("authorization");
+    const body = await request.json();
+    const res = await fetch(`${BACKEND}/api/admin/games/${params.id}/reveal-answer`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: token } : {}),
+      },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    return NextResponse.json(data, { status: res.status });
+  } catch {
+    return NextResponse.json({ success: false, error: "Server error" }, { status: 500 });
+  }
 }

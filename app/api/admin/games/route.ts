@@ -1,32 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 
+const BACKEND = process.env.NEXT_PUBLIC_API_URL || "https://bitlyfe-production.up.railway.app";
+
 export async function GET(request: NextRequest) {
   try {
-    // TODO: Replace with real backend API call
-    // const response = await fetch(`${process.env.BACKEND_API_URL}/api/games`, {
-    //   headers: { Authorization: `Bearer ${token}` },
-    // });
-    // const data = await response.json();
-    
-    // For now, return empty games list until backend is ready
-    const games: any[] = [];
-
-    return NextResponse.json({
-      success: true,
-      data: {
-        games: games,
-        total: 0,
-        page: 1,
-        limit: 50,
+    const token = request.headers.get("authorization");
+    const { searchParams } = new URL(request.url);
+    const qs = searchParams.toString();
+    const res = await fetch(`${BACKEND}/api/admin/games${qs ? `?${qs}` : ""}`, {
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: token } : {}),
       },
     });
-  } catch (error) {
-    return NextResponse.json(
-      {
-        success: false,
-        error: "Server error",
-      },
-      { status: 500 }
-    );
+    const data = await res.json();
+    return NextResponse.json(data, { status: res.status });
+  } catch {
+    return NextResponse.json({ success: false, error: "Server error" }, { status: 500 });
   }
 }
