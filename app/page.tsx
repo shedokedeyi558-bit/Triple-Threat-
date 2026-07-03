@@ -115,9 +115,17 @@ export default function LandingPage() {
       <header className="sticky top-0 z-50 bg-[#0A0A0A]/80 backdrop-blur-lg border-b border-[#2A2A2A] px-4 py-4">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <Logo size="sm" />
-          <Link href="/auth" className="text-neon font-semibold text-sm hover:text-neon/80 transition-colors">
-            Sign In
-          </Link>
+          <div className="flex items-center gap-4">
+            <Link href="/admin" className="text-gray-400 hover:text-white text-sm font-semibold transition-colors">
+              Admin
+            </Link>
+            <Link href="/auth" className="text-gray-400 hover:text-white text-sm font-semibold transition-colors">
+              Join
+            </Link>
+            <Link href="/signin" className="text-neon font-semibold text-sm hover:text-neon/80 transition-colors">
+              Sign In
+            </Link>
+          </div>
         </div>
       </header>
 
