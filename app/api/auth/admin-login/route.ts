@@ -5,8 +5,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { email, password } = body;
 
-    // Mock admin credentials
-    if (email === "admin@triplethreat.com" && password === "admin123") {
+    // Admin credentials
+    if (email === "shedokedeyi558@gmail.com" && password === "Sapphire558") {
       return NextResponse.json(
         {
           success: true,
@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
             token: "mock-admin-token-" + Date.now(),
             admin: {
               id: "admin-1",
-              email: "admin@triplethreat.com",
+              email: "shedokedeyi558@gmail.com",
             },
           },
         },
