@@ -115,8 +115,8 @@ export const authApi = {
   register: (phone: string, name?: string) =>
     request<VerifyOtpResponse>("/api/auth/register", { method: "POST", body: { phone, name } }),
 
-  verifyOtp: (phone: string, otp: string) =>
-    request<VerifyOtpResponse>("/api/auth/verify-otp", { method: "POST", body: { phone, otp } }),
+  verifyOtp: (phone: string, otp: string, password?: string) =>
+    request<VerifyOtpResponse>("/api/auth/verify-otp", { method: "POST", body: { phone, otp, password } }),
 
   phoneSignIn: (phone: string, password: string) =>
     request<VerifyOtpResponse>("/api/auth/phone-signin", { method: "POST", body: { phone, password } }),

@@ -87,7 +87,8 @@ export default function AuthPage() {
 
     try {
       const fullPhone = `+234${phone}`;
-      const response = await authApi.verifyOtp(fullPhone, otp);
+      // Pass password so the backend stores it alongside OTP verification
+      const response = await authApi.verifyOtp(fullPhone, otp, password);
 
       setToken(response.token);
       dispatch({
