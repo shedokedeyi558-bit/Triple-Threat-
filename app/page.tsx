@@ -145,39 +145,29 @@ export default function LandingPage() {
         <>
           {/* Backdrop */}
           <div
-            className="fixed inset-0 z-40 bg-black/50 md:hidden"
+            className="fixed inset-0 z-40 md:hidden"
             onClick={() => setMobileMenuOpen(false)}
           />
-          {/* Drawer - slides in from right, fixed width */}
+          {/* Compact Popover Menu - top right corner */}
           <motion.div
-            initial={{ x: "100%" }}
-            animate={{ x: 0 }}
-            exit={{ x: "100%" }}
-            transition={{ type: "tween", duration: 0.25 }}
-            className="fixed top-0 right-0 h-full w-64 z-50 bg-[#111] border-l border-[#2A2A2A] flex flex-col md:hidden"
+            initial={{ opacity: 0, scale: 0.95, y: -10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: -10 }}
+            transition={{ type: "spring", duration: 0.2 }}
+            className="fixed top-16 right-4 z-50 bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl py-2 md:hidden shadow-lg"
           >
-            <div className="flex items-center justify-between px-5 py-5 border-b border-[#2A2A2A]">
-              <Logo size="sm" />
-              <button onClick={() => setMobileMenuOpen(false)} className="p-1.5 rounded-lg hover:bg-[#1A1A1A] text-gray-400">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            <nav className="flex-1 px-4 py-6 space-y-1">
-              <Link href="/admin" onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center px-3 py-3 rounded-xl text-gray-400 hover:text-white hover:bg-[#1A1A1A] text-sm font-semibold transition-colors">
-                Admin Panel
-              </Link>
-              <Link href="/auth" onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center px-3 py-3 rounded-xl text-gray-400 hover:text-white hover:bg-[#1A1A1A] text-sm font-semibold transition-colors">
-                Join Now
-              </Link>
-              <Link href="/signin" onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center px-3 py-3 rounded-xl text-neon hover:bg-neon/10 text-sm font-semibold transition-colors">
-                Sign In
-              </Link>
-            </nav>
+            <Link href="/admin" onClick={() => setMobileMenuOpen(false)}
+              className="block px-4 py-2.5 text-gray-400 hover:text-white text-sm font-semibold transition-colors hover:bg-[#2A2A2A]">
+              Admin
+            </Link>
+            <Link href="/auth" onClick={() => setMobileMenuOpen(false)}
+              className="block px-4 py-2.5 text-gray-400 hover:text-white text-sm font-semibold transition-colors hover:bg-[#2A2A2A]">
+              Join
+            </Link>
+            <Link href="/signin" onClick={() => setMobileMenuOpen(false)}
+              className="block px-4 py-2.5 text-neon hover:text-neon text-sm font-semibold transition-colors hover:bg-neon/5">
+              Sign In
+            </Link>
           </motion.div>
         </>
       )}
