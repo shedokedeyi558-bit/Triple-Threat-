@@ -116,66 +116,71 @@ export default function LandingPage() {
       <header className="sticky top-0 z-50 bg-[#0A0A0A]/80 backdrop-blur-lg border-b border-[#2A2A2A] px-4 py-4">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <Logo size="sm" />
-          
+
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-4">
-            <Link href="/admin" className="text-gray-400 hover:text-white text-sm font-semibold transition-colors">
-              Admin
-            </Link>
-            <Link href="/auth" className="text-gray-400 hover:text-white text-sm font-semibold transition-colors">
-              Join
-            </Link>
-            <Link href="/signin" className="text-neon font-semibold text-sm hover:text-neon/80 transition-colors">
-              Sign In
-            </Link>
+            <Link href="/admin" className="text-gray-400 hover:text-white text-sm font-semibold transition-colors">Admin</Link>
+            <Link href="/auth" className="text-gray-400 hover:text-white text-sm font-semibold transition-colors">Join</Link>
+            <Link href="/signin" className="text-neon font-semibold text-sm hover:text-neon/80 transition-colors">Sign In</Link>
           </div>
 
-          {/* Mobile Hamburger Menu */}
+          {/* Mobile Hamburger Button */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             className="md:hidden p-2 rounded-lg hover:bg-[#1A1A1A] transition-colors"
             aria-label="Toggle menu"
           >
             <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              {mobileMenuOpen
+                ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              }
             </svg>
           </button>
-
-          {/* Mobile Menu Dropdown */}
-          {mobileMenuOpen && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="absolute top-full left-0 right-0 bg-[#0A0A0A] border-b border-[#2A2A2A] md:hidden"
-            >
-              <div className="px-4 py-3 space-y-2">
-                <Link
-                  href="/admin"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="block py-2 text-gray-400 hover:text-white text-sm font-semibold transition-colors"
-                >
-                  Admin
-                </Link>
-                <Link
-                  href="/auth"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="block py-2 text-gray-400 hover:text-white text-sm font-semibold transition-colors"
-                >
-                  Join
-                </Link>
-                <Link
-                  href="/signin"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="block py-2 text-neon font-semibold text-sm hover:text-neon/80 transition-colors"
-                >
-                  Sign In
-                </Link>
-              </div>
-            </motion.div>
-          )}
         </div>
       </header>
+
+      {/* Mobile Right Drawer */}
+      {mobileMenuOpen && (
+        <>
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 z-40 bg-black/50 md:hidden"
+            onClick={() => setMobileMenuOpen(false)}
+          />
+          {/* Drawer - slides in from right, fixed width */}
+          <motion.div
+            initial={{ x: "100%" }}
+            animate={{ x: 0 }}
+            exit={{ x: "100%" }}
+            transition={{ type: "tween", duration: 0.25 }}
+            className="fixed top-0 right-0 h-full w-64 z-50 bg-[#111] border-l border-[#2A2A2A] flex flex-col md:hidden"
+          >
+            <div className="flex items-center justify-between px-5 py-5 border-b border-[#2A2A2A]">
+              <Logo size="sm" />
+              <button onClick={() => setMobileMenuOpen(false)} className="p-1.5 rounded-lg hover:bg-[#1A1A1A] text-gray-400">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <nav className="flex-1 px-4 py-6 space-y-1">
+              <Link href="/admin" onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center px-3 py-3 rounded-xl text-gray-400 hover:text-white hover:bg-[#1A1A1A] text-sm font-semibold transition-colors">
+                Admin Panel
+              </Link>
+              <Link href="/auth" onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center px-3 py-3 rounded-xl text-gray-400 hover:text-white hover:bg-[#1A1A1A] text-sm font-semibold transition-colors">
+                Join Now
+              </Link>
+              <Link href="/signin" onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center px-3 py-3 rounded-xl text-neon hover:bg-neon/10 text-sm font-semibold transition-colors">
+                Sign In
+              </Link>
+            </nav>
+          </motion.div>
+        </>
+      )}
 
       {/* Hero Section */}
       <section className="relative min-h-screen flex flex-col items-center justify-center px-4 py-20 overflow-hidden">
