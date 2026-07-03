@@ -1,10 +1,11 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { AppProvider } from "@/context/AppContext";
+import { BottomNavigation } from "@/components/ui/BottomNavigation";
 
 export const metadata: Metadata = {
-  title: "BitLyfe — Pick a Door. Win Real Cash.",
-  description: "Nigeria's skill-based quiz game. Pick a door, answer a question, win real money. Three doors, one winner.",
+  title: "BitLyfe — Play Smart. Win Real.",
+  description: "BitLyfe: Play smart, win real. Pick a pill or predict the future and earn real money.",
   manifest: "/manifest.json",
   icons: {
     icon: "/favicon.svg",
@@ -16,8 +17,8 @@ export const metadata: Metadata = {
     title: "BitLyfe",
   },
   openGraph: {
-    title: "BitLyfe — Pick a Door. Win Real Cash.",
-    description: "Nigeria's skill-based quiz game. Three doors, three questions — one winner takes the prize.",
+    title: "BitLyfe — Play Smart. Win Real.",
+    description: "BitLyfe: Play smart, win real. Pick a pill or predict the future and earn real money.",
     type: "website",
     siteName: "BitLyfe",
   },
@@ -37,6 +38,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="bg-bg text-white antialiased">
         <AppProvider>
           {children}
+          <BottomNavigation />
         </AppProvider>
       </body>
     </html>

@@ -31,6 +31,40 @@ interface ActiveSession {
   };
 }
 
+export interface Pill {
+  id: string;
+  question: string;
+  category: string;
+  price: number;
+  prize: number;
+  status: "available" | "played" | "expired";
+  format: "multiple_choice" | "type_answer";
+  options?: string[];
+  timer: number;
+}
+
+export interface Prediction {
+  id: string;
+  question: string;
+  category: string;
+  fee: number;
+  prize_per_winner: number;
+  slots_filled: number;
+  max_slots: number;
+  countdown_end: string;
+  status: "active" | "locked" | "completed" | "cancelled";
+}
+
+interface PillState {
+  selectedPill: Pill | null;
+  pills: Pill[];
+  pillsLoading: boolean;
+  activePrediction: Prediction | null;
+  predictions: Prediction[];
+  predictionsLoading: boolean;
+  userPredictionAnswer?: string;
+}
+
 interface AppState {
   isAuthenticated: boolean;
   player: PlayerInfo | null;
@@ -41,6 +75,8 @@ interface AppState {
   doors: ApiDoor[];
   doorsLoading: boolean;
   doorsError: string | null;
+  // Pills & Predictions
+  pills: PillState;
 }
 
 // ─── Actions ──────────────────────────────────────────────────────────────────
@@ -57,7 +93,16 @@ type Action =
   | { type: "START_SESSION"; session: ActiveSession }
   | { type: "END_SESSION"; result: ActiveSession["result"] }
   | { type: "CLEAR_SESSION" }
-  | { type: "UPDATE_BALANCE"; balance: number };
+  | { type: "UPDATE_BALANCE"; balance: number }
+  | { type: "SET_PILLS"; pills: Pill[] }
+  | { type: "PILLS_LOADING" }
+  | { type: "SELECT_PILL"; pill: Pill }
+  | { type: "CLEAR_PILL" }
+  | { type: "SET_PREDICTIONS"; predictions: Prediction[] }
+  | { type: "PREDICTIONS_LOADING" }
+  | { type: "SELECT_PREDICTION"; prediction: Prediction }
+  | { type: "SET_PREDICTION_ANSWER"; answer: string }
+  | { type: "CLEAR_PREDICTION" };
 
 const initialState: AppState = {
   isAuthenticated: false,
@@ -68,6 +113,14 @@ const initialState: AppState = {
   doors: [],
   doorsLoading: false,
   doorsError: null,
+  pills: {
+    selectedPill: null,
+    pills: [],
+    pillsLoading: false,
+    activePrediction: null,
+    predictions: [],
+    predictionsLoading: false,
+  },
 };
 
 function appReducer(state: AppState, action: Action): AppState {
@@ -115,6 +168,24 @@ function appReducer(state: AppState, action: Action): AppState {
         ...state,
         player: state.player ? { ...state.player, balance: action.balance } : null,
       };
+    case "SET_PILLS":
+      return { ...state, pills: { ...state.pills, pills: action.pills, pillsLoading: false } };
+    case "PILLS_LOADING":
+      return { ...state, pills: { ...state.pills, pillsLoading: true } };
+    case "SELECT_PILL":
+      return { ...state, pills: { ...state.pills, selectedPill: action.pill } };
+    case "CLEAR_PILL":
+      return { ...state, pills: { ...state.pills, selectedPill: null } };
+    case "SET_PREDICTIONS":
+      return { ...state, pills: { ...state.pills, predictions: action.predictions, predictionsLoading: false } };
+    case "PREDICTIONS_LOADING":
+      return { ...state, pills: { ...state.pills, predictionsLoading: true } };
+    case "SELECT_PREDICTION":
+      return { ...state, pills: { ...state.pills, activePrediction: action.prediction } };
+    case "SET_PREDICTION_ANSWER":
+      return { ...state, pills: { ...state.pills, userPredictionAnswer: action.answer } };
+    case "CLEAR_PREDICTION":
+      return { ...state, pills: { ...state.pills, activePrediction: null, userPredictionAnswer: undefined } };
     default:
       return state;
   }

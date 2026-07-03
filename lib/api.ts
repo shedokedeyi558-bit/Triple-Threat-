@@ -431,6 +431,112 @@ export interface Game {
   };
 }
 
+// ─── PILLS ────────────────────────────────────────────────────────────────────
+
+export interface PillData {
+  id: string;
+  question: string;
+  category: string;
+  price: number;
+  prize: number;
+  status: "available" | "played" | "expired";
+  format: "multiple_choice" | "type_answer";
+  options?: string[];
+  timer: number;
+}
+
+export interface PillOpenResponse {
+  question: string;
+  category: string;
+  format: "multiple_choice" | "type_answer";
+  options?: string[];
+  timer: number;
+  prize: number;
+  entryFee: number;
+}
+
+export interface PillSubmitResponse {
+  won: boolean;
+  correctAnswer: string;
+  prize?: number;
+  newBalance: number;
+}
+
+export const pillsApi = {
+  getAvailable: () =>
+    request<{ pills: PillData[] }>("/api/pills/available", { token: getToken() }),
+
+  open: (pillId: string) =>
+    request<PillOpenResponse>("/api/pills/open", {
+      method: "POST",
+      body: { pillId },
+      token: getToken(),
+    }),
+
+  submit: (pillId: string, answer: string) =>
+    request<PillSubmitResponse>("/api/pills/submit", {
+      method: "POST",
+      body: { pillId, answer },
+      token: getToken(),
+    }),
+};
+
+// ─── PREDICTIONS ──────────────────────────────────────────────────────────────
+
+export interface PredictionData {
+  id: string;
+  question: string;
+  category: string;
+  fee: number;
+  prize_per_winner: number;
+  slots_filled: number;
+  max_slots: number;
+  countdown_end: string;
+  status: "active" | "locked" | "completed" | "cancelled";
+}
+
+export interface PredictionEnterResponse {
+  success: boolean;
+  prediction: PredictionData;
+  newBalance: number;
+}
+
+export interface PredictionSubmitResponse {
+  success: boolean;
+  message: string;
+}
+
+export interface PredictionResultResponse {
+  won: boolean;
+  correctAnswer: string;
+  prize?: number;
+  newBalance: number;
+}
+
+export const predictionsApi = {
+  getActive: () =>
+    request<{ predictions: PredictionData[] }>("/api/predictions/active", { token: getToken() }),
+
+  enter: (predictionId: string) =>
+    request<PredictionEnterResponse>("/api/predictions/enter", {
+      method: "POST",
+      body: { predictionId },
+      token: getToken(),
+    }),
+
+  submit: (predictionId: string, answer: string) =>
+    request<PredictionSubmitResponse>("/api/predictions/submit", {
+      method: "POST",
+      body: { predictionId, answer },
+      token: getToken(),
+    }),
+
+  getResult: (predictionId: string) =>
+    request<PredictionResultResponse>(`/api/predictions/result/${predictionId}`, {
+      token: getToken(),
+    }),
+};
+
 export const adminApi = {
   // Games Management
   createGame: (data: {

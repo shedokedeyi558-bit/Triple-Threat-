@@ -1,262 +1,247 @@
 "use client";
 
-import { useState, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { useApp } from "@/context/AppContext";
+import { useRouter } from "next/navigation";
 import { Logo } from "@/components/ui/Logo";
-import { ArrowRight, ArrowLeft } from "lucide-react";
-import { authApi, setToken, ApiError } from "@/lib/api";
-import Link from "next/link";
+import { motion } from "framer-motion";
+import { AlertCircle, Loader2 } from "lucide-react";
+import { authApi } from "@/lib/api";
+import { setToken } from "@/lib/api";
 
 type Step = "phone" | "otp";
 
 export default function AuthPage() {
-  const router = useRouter();
   const { dispatch } = useApp();
-  
+  const router = useRouter();
   const [step, setStep] = useState<Step>("phone");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-
-  // Phone step
-  const [phoneDigits, setPhoneDigits] = useState("");
-  const [isOver18, setIsOver18] = useState(false);
-
-  // OTP step
+  const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
-  const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
-  const [fullPhone, setFullPhone] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [checkbox, setCheckbox] = useState(false);
 
-  const handleSendOTP = async () => {
-    if (phoneDigits.length !== 10) {
-      setError("Please enter a valid 10-digit phone number");
-      return;
-    }
-    if (!isOver18) {
-      setError("You must confirm you are 18 years or older");
-      return;
-    }
-
-    const phone = `234${phoneDigits}`;
-    setFullPhone(phone);
-    setError("");
-    setLoading(true);
-
-    try {
-      await authApi.register(phone);
-      setStep("otp");
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Failed to send OTP. Try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleVerifyOTP = async () => {
-    const otpCode = otp.join("");
-    if (otpCode.length !== 6) {
-      setError("Please enter the complete 6-digit code");
-      return;
-    }
-
-    setError("");
-    setLoading(true);
-
-    try {
-      const data = await authApi.verifyOtp(fullPhone, otpCode);
-      setToken(data.token);
-      dispatch({
-        type: "LOGIN",
-        token: data.token,
-        player: {
-          id: data.player.id,
-          email: "", // Phone-only auth
-          phone: data.player.phone,
-          name: data.player.name,
-          balance: data.player.balance,
-          is_admin: false,
-        },
-      });
-      router.push("/format");
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Verification failed. Try again.");
-    } finally {
-      setLoading(false);
-    }
+  const handlePhoneChange = (value: string) => {
+    // Only allow digits, max 10
+    const cleaned = value.replace(/\D/g, "").slice(0, 10);
+    setPhone(cleaned);
   };
 
   const handleOtpChange = (index: number, value: string) => {
-    if (!/^\d*$/.test(value)) return;
+    const cleaned = value.replace(/\D/g, "");
+    if (cleaned.length > 1) return;
 
     const newOtp = [...otp];
-    newOtp[index] = value.slice(-1);
+    newOtp[index] = cleaned;
     setOtp(newOtp);
 
-    // Auto-advance
-    if (value && index < 5) {
-      otpRefs.current[index + 1]?.focus();
+    // Auto-advance to next box
+    if (cleaned && index < 5) {
+      const nextInput = document.getElementById(`otp-${index + 1}`);
+      nextInput?.focus();
     }
   };
 
-  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Backspace" && !otp[index] && index > 0) {
-      otpRefs.current[index - 1]?.focus();
+  const handlePhoneSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+
+    if (!phone || phone.length !== 10) {
+      setError("Please enter a valid 10-digit phone number");
+      return;
+    }
+
+    if (!checkbox) {
+      setError("You must confirm you are 18 or older");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Register with +234 prefix
+      await authApi.register(`+234${phone}`);
+      setStep("otp");
+    } catch (err: any) {
+      setError(err.message || "Failed to send OTP");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleChangeNumber = () => {
-    setStep("phone");
-    setOtp(["", "", "", "", "", ""]);
-    setError("");
-  };
+  const handleOtpSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
 
-  const maskedPhone = fullPhone ? `+234${fullPhone.slice(3, 6)}****${fullPhone.slice(-3)}` : "";
+    const otpCode = otp.join("");
+    if (otpCode.length !== 6) {
+      setError("Please enter a 6-digit code");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await authApi.verifyOtp(`+234${phone}`, otpCode);
+
+      // Store token and player info
+      setToken(res.token);
+      dispatch({
+        type: "LOGIN",
+        player: {
+          id: res.player.id,
+          email: "",
+          phone: res.player.phone,
+          name: res.player.name,
+          balance: res.player.balance,
+        },
+        token: res.token,
+      });
+
+      router.push("/play");
+    } catch (err: any) {
+      setError(err.message || "Invalid OTP");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <main className="min-h-dvh flex flex-col items-center justify-center px-4 sm:px-5 bg-black">
+    <main className="min-h-screen bg-[#0A0A0A] text-white flex flex-col">
+      <header className="px-4 sm:px-6 py-6">
+        <Logo size="md" />
+      </header>
+
       <motion.div
-        className="w-full max-w-sm"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
+        className="flex-1 flex items-center justify-center px-4"
       >
-        <div className="text-center mb-8">
-          <Logo size="md" />
-        </div>
-
-        <AnimatePresence mode="wait">
+        <div className="w-full max-w-sm">
           {step === "phone" ? (
-            <motion.div
-              key="phone"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-            >
-              <div className="bg-gray-950 border border-gray-800 rounded-2xl p-6 space-y-5">
-                <div className="text-center mb-2">
-                  <h1 className="text-2xl font-bold text-white mb-2">Welcome to BitLyfe</h1>
-                  <p className="text-sm text-gray-400">Enter your phone number to continue</p>
-                </div>
+            <form onSubmit={handlePhoneSubmit} className="space-y-6">
+              <div className="text-center mb-8">
+                <h1 className="text-2xl font-black uppercase mb-2">Get Started</h1>
+                <p className="text-gray-400">Enter your phone number to begin</p>
+              </div>
 
-                <div>
-                  <label className="text-sm text-gray-400 mb-1.5 block">Phone Number</label>
-                  <div className="flex items-center gap-2">
-                    <div className="bg-gray-900 border border-gray-800 rounded-xl px-4 py-3 text-white text-sm font-medium">
-                      +234
-                    </div>
-                    <input
-                      type="tel"
-                      inputMode="numeric"
-                      placeholder="8012345678"
-                      value={phoneDigits}
-                      onChange={(e) => setPhoneDigits(e.target.value.replace(/\D/g, "").slice(0, 10))}
-                      onKeyDown={(e) => e.key === "Enter" && handleSendOTP()}
-                      className="flex-1 bg-gray-900 border border-gray-800 focus:border-[#00FF66] rounded-xl px-4 py-3 text-white placeholder-gray-600 text-sm outline-none transition-colors"
-                    />
-                  </div>
-                </div>
-
-                {/* Age confirmation checkbox */}
-                <label className="flex items-start gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={isOver18}
-                    onChange={(e) => setIsOver18(e.target.checked)}
-                    className="mt-0.5 w-4 h-4 accent-[#00FF66] cursor-pointer"
-                  />
-                  <span className="text-sm text-gray-300">
-                    I confirm I am 18 years or older
-                  </span>
-                </label>
-
-                {error && (
-                  <div className="text-red-400 text-sm bg-red-900/20 border border-red-900/40 rounded-xl p-3">
-                    {error}
-                  </div>
-                )}
-
-                <button
-                  onClick={handleSendOTP}
-                  disabled={loading || phoneDigits.length !== 10 || !isOver18}
-                  className="w-full py-3 bg-[#00FF66] text-black font-semibold rounded-lg hover:bg-[#00FF66]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              {error && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-red-900/20 border border-red-700/50 rounded-lg p-4 flex gap-3"
                 >
-                  {loading ? (
-                    <span className="animate-spin border-2 border-black border-t-transparent rounded-full w-5 h-5" />
-                  ) : (
-                    <>Send OTP <ArrowRight size={18} /></>
-                  )}
-                </button>
+                  <AlertCircle size={20} className="text-red-400 flex-shrink-0 mt-0.5" />
+                  <p className="text-red-300 text-sm">{error}</p>
+                </motion.div>
+              )}
 
-                <p className="text-center text-gray-500 text-xs mt-4">
-                  By continuing you agree to our{" "}
-                  <Link href="/terms" className="text-[#00FF66] underline">
-                    Terms of Service
-                  </Link>
+              <div>
+                <label className="text-sm font-semibold text-gray-300 block mb-3">
+                  Phone Number
+                </label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-semibold">
+                    +234
+                  </span>
+                  <input
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => handlePhoneChange(e.target.value)}
+                    placeholder="8012345678"
+                    maxLength={10}
+                    className="w-full bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl px-4 py-4 pl-16 text-white placeholder-gray-600 focus:outline-none focus:border-neon transition-colors"
+                  />
+                </div>
+              </div>
+
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={checkbox}
+                  onChange={(e) => setCheckbox(e.target.checked)}
+                  className="w-5 h-5 rounded accent-neon mt-1 cursor-pointer"
+                />
+                <span className="text-sm text-gray-400">
+                  I confirm I am 18 years or older and agree to the Terms of Service
+                </span>
+              </label>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-neon text-black font-bold py-4 rounded-xl hover:bg-neon/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+              >
+                {loading && <Loader2 size={20} className="animate-spin" />}
+                Send Code
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={handleOtpSubmit} className="space-y-6">
+              <div className="text-center mb-8">
+                <h1 className="text-2xl font-black uppercase mb-2">Verify Code</h1>
+                <p className="text-gray-400">
+                  We sent a 6-digit code to<br />
+                  <span className="text-neon">+234{phone}</span>
                 </p>
               </div>
-            </motion.div>
-          ) : (
-            <motion.div
-              key="otp"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-            >
-              <div className="bg-gray-950 border border-gray-800 rounded-2xl p-6 space-y-5">
-                <div className="text-center mb-2">
-                  <h1 className="text-2xl font-bold text-white mb-2">Enter verification code</h1>
-                  <p className="text-sm text-gray-400">
-                    A 6-digit code was sent to {maskedPhone}
-                  </p>
-                </div>
 
-                {/* OTP inputs */}
-                <div className="flex gap-2 justify-center">
-                  {otp.map((digit, index) => (
+              {error && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-red-900/20 border border-red-700/50 rounded-lg p-4 flex gap-3"
+                >
+                  <AlertCircle size={20} className="text-red-400 flex-shrink-0 mt-0.5" />
+                  <p className="text-red-300 text-sm">{error}</p>
+                </motion.div>
+              )}
+
+              <div>
+                <label className="text-sm font-semibold text-gray-300 block mb-4">
+                  Enter Code
+                </label>
+                <div className="flex gap-2 justify-between">
+                  {otp.map((digit, idx) => (
                     <input
-                      key={index}
-                      ref={(el) => { otpRefs.current[index] = el; }}
+                      key={idx}
+                      id={`otp-${idx}`}
                       type="text"
-                      inputMode="numeric"
-                      maxLength={1}
                       value={digit}
-                      onChange={(e) => handleOtpChange(index, e.target.value)}
-                      onKeyDown={(e) => handleOtpKeyDown(index, e)}
-                      className="w-12 h-14 bg-gray-900 border border-gray-800 focus:border-[#00FF66] rounded-xl text-white text-center text-xl font-bold outline-none transition-colors"
+                      onChange={(e) => handleOtpChange(idx, e.target.value)}
+                      maxLength={1}
+                      inputMode="numeric"
+                      className="w-12 h-14 bg-[#1A1A1A] border border-[#2A2A2A] rounded-lg text-center text-xl font-bold text-white focus:outline-none focus:border-neon transition-colors"
                     />
                   ))}
                 </div>
-
-                {error && (
-                  <div className="text-red-400 text-sm bg-red-900/20 border border-red-900/40 rounded-xl p-3">
-                    {error}
-                  </div>
-                )}
-
-                <button
-                  onClick={handleVerifyOTP}
-                  disabled={loading || otp.join("").length !== 6}
-                  className="w-full py-3 bg-[#00FF66] text-black font-semibold rounded-lg hover:bg-[#00FF66]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  {loading ? (
-                    <span className="animate-spin border-2 border-black border-t-transparent rounded-full w-5 h-5" />
-                  ) : (
-                    <>Verify & Continue <ArrowRight size={18} /></>
-                  )}
-                </button>
-
-                <button
-                  onClick={handleChangeNumber}
-                  className="w-full text-center text-gray-400 text-sm font-medium py-2 hover:text-[#00FF66] transition-colors flex items-center justify-center gap-2"
-                >
-                  <ArrowLeft size={16} />
-                  Change number
-                </button>
               </div>
-            </motion.div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-neon text-black font-bold py-4 rounded-xl hover:bg-neon/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+              >
+                {loading && <Loader2 size={20} className="animate-spin" />}
+                Verify
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setStep("phone");
+                  setError(null);
+                }}
+                className="w-full text-gray-400 hover:text-white py-2 transition-colors"
+              >
+                Back
+              </button>
+            </form>
           )}
-        </AnimatePresence>
+        </div>
       </motion.div>
+
+      <footer className="px-4 py-6 text-center text-xs text-gray-600">
+        <p>Terms apply. Must be 18+</p>
+      </footer>
     </main>
   );
 }
