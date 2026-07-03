@@ -4,12 +4,65 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Zap, Trophy, Users, Clock, Target, Sparkles } from "lucide-react";
+import { Zap, Trophy, Users, Clock, Target, Sparkles } from "lucide-react";
 import { useApp } from "@/context/AppContext";
-import { removeToken } from "@/lib/api";
+import { removeToken, gameApi } from "@/lib/api";
 import { Logo } from "@/components/ui/Logo";
 
+// Stat card component
+function StatCard({ number, label, delay }: { number: string; label: string; delay: number }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.9 }}
+      whileInView={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.5, delay }}
+      viewport={{ once: true }}
+      className="text-center"
+    >
+      <div className="text-4xl sm:text-5xl font-bold text-neon mb-2">{number}</div>
+      <div className="text-gray-400 text-base sm:text-lg font-medium">{label}</div>
+    </motion.div>
+  );
+}
 
+// Stats display component that fetches from API
+function StatsDisplay() {
+  const [stats, setStats] = useState<{ winners: number; totalPaid: number } | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    gameApi.recentWinners()
+      .then((winners) => {
+        const uniqueWinners = new Set(winners.map(w => w.phone)).size;
+        const totalPaid = winners.reduce((sum, w) => sum + w.prize, 0);
+        setStats({ winners: uniqueWinners, totalPaid });
+      })
+      .catch(() => {
+        setStats(null);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-8 sm:gap-12">
+        <StatCard number="—" label="Total Winners" delay={0} />
+        <StatCard number="—" label="Total Paid Out" delay={0.1} />
+        <StatCard number="Live" label="Status" delay={0.2} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-3 gap-8 sm:gap-12">
+      <StatCard number={stats?.winners.toString() || "—"} label="Total Winners" delay={0} />
+      <StatCard number={stats ? `₦${stats.totalPaid.toLocaleString()}` : "—"} label="Total Paid Out" delay={0.1} />
+      <StatCard number="Live" label="Status" delay={0.2} />
+    </div>
+  );
+}
 
 // Feature card component
 function FeatureCard({ icon: Icon, title, description, delay }: {
@@ -31,22 +84,6 @@ function FeatureCard({ icon: Icon, title, description, delay }: {
       </div>
       <h3 className="text-xl font-semibold text-white mb-2">{title}</h3>
       <p className="text-gray-400 text-base">{description}</p>
-    </motion.div>
-  );
-}
-
-// Stat card component
-function StatCard({ number, label, delay }: { number: string; label: string; delay: number }) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.9 }}
-      whileInView={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.5, delay }}
-      viewport={{ once: true }}
-      className="text-center"
-    >
-      <div className="text-4xl sm:text-5xl font-bold text-neon mb-2">{number}</div>
-      <div className="text-gray-400 text-base sm:text-lg font-medium">{label}</div>
     </motion.div>
   );
 }
@@ -156,27 +193,29 @@ export default function HomePage() {
           <div className="max-w-5xl mx-auto">
             <div className="text-center mb-12">
               <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-white mb-6">
-                Compete for Real.
+                Pick a door.
                 <br />
-                <span className="text-[#00FF66]">Win Real Cash.</span>
+                Answer the question.
+                <br />
+                <span className="text-[#00FF66]">Win real cash.</span>
               </h1>
               
               <p className="text-lg sm:text-xl text-gray-300 max-w-2xl mx-auto mb-10">
-                Skill-based competitions with instant payouts. No luck, no nonsense.
+                BitLyfe is Nigeria&apos;s skill-based quiz game. Three doors, three questions — one winner takes the prize.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Link
-                  href={state.isAuthenticated ? "/format" : "/auth"}
+                  href="/doors"
                   className="px-8 py-4 bg-[#00FF66] text-black font-semibold rounded-lg hover:bg-[#00dd55] transition-colors text-lg"
                 >
-                  Start Earning Now
+                  Play Now
                 </Link>
                 <Link
-                  href={state.isAuthenticated ? "/challenges" : "/auth"}
+                  href="/format"
                   className="px-8 py-4 border border-gray-700 text-white font-semibold rounded-lg hover:bg-gray-900 transition-all text-lg"
                 >
-                  See Challenges
+                  View Challenges
                 </Link>
               </div>
             </div>
@@ -186,12 +225,7 @@ export default function HomePage() {
         {/* Stats Section */}
         <section className="py-16 sm:py-20 px-4 border-t border-gray-900 bg-[#0A0A0A]">
           <div className="max-w-5xl mx-auto">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 sm:gap-12">
-              <StatCard number="45K+" label="Active Players" delay={0} />
-              <StatCard number="₦1.8M" label="Paid Out" delay={0.1} />
-              <StatCard number="500+" label="Daily Games" delay={0.2} />
-              <StatCard number="98%" label="On-time Payouts" delay={0.3} />
-            </div>
+            <StatsDisplay />
           </div>
         </section>
 
@@ -313,36 +347,6 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* Escape the Matrix Section */}
-        <section className="py-20 sm:py-28 px-4 border-t border-gray-900 bg-[#0A0A0A]">
-          <div className="max-w-3xl mx-auto">
-            <motion.div
-              className="relative p-12 rounded-xl border border-neon/30 bg-gradient-to-br from-neon/5 via-black to-black overflow-hidden"
-              initial={{ opacity: 0, scale: 0.95 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.6 }}
-              viewport={{ once: true }}
-            >
-              <div className="absolute inset-0 bg-gradient-to-r from-neon/5 to-transparent pointer-events-none" />
-              <div className="relative z-10 text-center">
-                <h2 className="text-4xl sm:text-5xl font-bold text-white mb-4">
-                  Escape the Matrix
-                </h2>
-                <p className="text-lg text-gray-400 mb-10">
-                  Break free from the ordinary. Compete in mind-bending challenges that test your intelligence. Are you ready to unplug?
-                </p>
-                <Link
-                  href={state.isAuthenticated ? "/challenges" : "/auth"}
-                  className="inline-flex items-center gap-2 px-8 py-4 bg-neon text-black font-semibold rounded-lg hover:bg-neon/90 transition-colors text-lg shadow-lg hover:shadow-neon/50"
-                >
-                  Enter Now
-                  <ArrowRight size={20} />
-                </Link>
-              </div>
-            </motion.div>
-          </div>
-        </section>
-
         {/* Footer */}
         <footer className="py-16 sm:py-20 px-4 border-t border-gray-900 bg-gray-950">
           <div className="max-w-6xl mx-auto">
@@ -356,31 +360,26 @@ export default function HomePage() {
               <div>
                 <h4 className="font-bold text-white mb-4 text-lg">Games</h4>
                 <ul className="space-y-3 text-sm text-gray-400">
-                  <li><Link href="#" className="hover:text-white transition-colors">Trivia</Link></li>
-                  <li><Link href="#" className="hover:text-white transition-colors">Puzzles</Link></li>
-                  <li><Link href="#" className="hover:text-white transition-colors">Challenges</Link></li>
+                  <li><Link href="/doors" className="hover:text-white transition-colors">Doors</Link></li>
+                  <li><Link href="/format" className="hover:text-white transition-colors">Challenges</Link></li>
                 </ul>
               </div>
               <div>
                 <h4 className="font-bold text-white mb-4 text-lg">Support</h4>
                 <ul className="space-y-3 text-sm text-gray-400">
-                  <li><Link href="#" className="hover:text-white transition-colors">Help Center</Link></li>
-                  <li><Link href="#" className="hover:text-white transition-colors">Contact</Link></li>
-                  <li><Link href="#" className="hover:text-white transition-colors">FAQ</Link></li>
+                  <li><a href="mailto:support@bitlyfe.com" className="hover:text-white transition-colors">support@bitlyfe.com</a></li>
                 </ul>
               </div>
               <div>
                 <h4 className="font-bold text-white mb-4 text-lg">Legal</h4>
                 <ul className="space-y-3 text-sm text-gray-400">
-                  <li><Link href="#" className="hover:text-white transition-colors">Terms</Link></li>
-                  <li><Link href="#" className="hover:text-white transition-colors">Privacy</Link></li>
-                  <li><Link href="#" className="hover:text-white transition-colors">Responsible Gaming</Link></li>
+                  <li><Link href="/terms" className="hover:text-white transition-colors">Terms of Service</Link></li>
                 </ul>
               </div>
             </div>
 
             <div className="border-t border-gray-800 pt-8 text-center text-gray-500 text-sm">
-              <p>&copy; 2024 BitLyfe. All rights reserved.</p>
+              <p>&copy; 2026 BitLyfe. All rights reserved.</p>
             </div>
           </div>
         </footer>

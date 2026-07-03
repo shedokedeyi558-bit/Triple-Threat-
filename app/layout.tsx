@@ -3,8 +3,8 @@ import "./globals.css";
 import { AppProvider } from "@/context/AppContext";
 
 export const metadata: Metadata = {
-  title: "BITLYFE - Test Your Skills, Win Real Money",
-  description: "Answer quick questions and compete in live challenges. Earn real money based on your skill and knowledge.",
+  title: "BitLyfe — Pick a Door. Win Real Cash.",
+  description: "Nigeria's skill-based quiz game. Pick a door, answer a question, win real money. Three doors, one winner.",
   manifest: "/manifest.json",
   icons: {
     icon: "/favicon.svg",
@@ -13,7 +13,13 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "BITLYFE",
+    title: "BitLyfe",
+  },
+  openGraph: {
+    title: "BitLyfe — Pick a Door. Win Real Cash.",
+    description: "Nigeria's skill-based quiz game. Three doors, three questions — one winner takes the prize.",
+    type: "website",
+    siteName: "BitLyfe",
   },
 };
 

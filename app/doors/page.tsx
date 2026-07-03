@@ -6,14 +6,17 @@ import { useRouter } from "next/navigation";
 import { useApp } from "@/context/AppContext";
 import { NavBar } from "@/components/ui/NavBar";
 import { BottomSheet } from "@/components/ui/BottomSheet";
+import { DifficultyBadge } from "@/components/ui/DifficultyBadge";
 import { gameApi, type ApiDoor, ApiError } from "@/lib/api";
 import { Wallet, CreditCard, Smartphone, Landmark, Loader2, Lock } from "lucide-react";
 import Link from "next/link";
+import type { Difficulty } from "@/lib/types";
 
 export default function DoorsPage() {
   const router = useRouter();
   const { state, dispatch } = useApp();
   const [selectedDoor, setSelectedDoor] = useState<ApiDoor | null>(null);
+  const [showSignInSheet, setShowSignInSheet] = useState(false);
   const [paying, setPaying] = useState(false);
   const [payError, setPayError] = useState("");
 
@@ -29,7 +32,10 @@ export default function DoorsPage() {
   }, [dispatch]);
 
   const handleDoorTap = (door: ApiDoor) => {
-    if (!state.isAuthenticated) { router.push("/auth"); return; }
+    if (!state.isAuthenticated) {
+      setShowSignInSheet(true);
+      return;
+    }
     setSelectedDoor(door);
     setPayError("");
   };
@@ -126,7 +132,7 @@ export default function DoorsPage() {
                     transition={{ delay: i * 0.12 }}
                     onClick={() => handleDoorTap(door)}
                     whileTap={{ scale: 0.98 }}
-                    className="group relative h-48 rounded-xl overflow-hidden transition-all duration-300"
+                    className="group relative min-h-52 rounded-xl overflow-hidden transition-all duration-300"
                   >
                     {/* Background gradient */}
                     <div className="absolute inset-0 bg-gradient-to-br from-gray-900/40 to-black border border-gray-800 group-hover:border-[#00FF66]/40 transition-all duration-300" />
@@ -135,48 +141,82 @@ export default function DoorsPage() {
                     <div className="absolute inset-0 bg-gradient-to-r from-[#00FF66]/0 to-[#00FF66]/0 group-hover:from-[#00FF66]/10 group-hover:to-[#00FF66]/0 transition-all duration-300" />
 
                     {/* Content */}
-                    <div className="relative z-10 h-full flex flex-col items-center justify-center px-6">
-                      {/* Door number - large and centered */}
-                      <div className="text-6xl font-bold text-gray-700 group-hover:text-[#00FF66] transition-colors duration-300 mb-4">
-                        {door.id}
+                    <div className="relative z-10 h-full flex flex-col items-center justify-center px-6 py-6">
+                      {/* Door number */}
+                      <div className="text-5xl font-bold text-gray-700 group-hover:text-[#00FF66] transition-colors duration-300 mb-4">
+                        Door {door.id}
                       </div>
                       
-                      {/* Door label */}
-                      <div className="text-center">
-                        <p className="text-sm text-gray-500 uppercase tracking-widest font-semibold mb-2">
-                          Selection {door.id}
-                        </p>
-                        <p className="text-xs text-gray-600 font-medium">
-                          Tap to select
-                        </p>
+                      {/* Door info */}
+                      <div className="text-center space-y-3 w-full">
+                        <div className="flex items-center justify-center gap-2">
+                          <span className="text-xs text-gray-500 uppercase font-semibold">Entry</span>
+                          <span className="text-base text-white font-bold">₦{door.entry_fee.toLocaleString()}</span>
+                        </div>
+                        
+                        <div className="flex items-center justify-center gap-2">
+                          <span className="text-xs text-gray-500 uppercase font-semibold">Prize</span>
+                          <span className="text-xl text-[#00FF66] font-bold">₦{door.prize.toLocaleString()}</span>
+                        </div>
+
+                        <div className="flex justify-center">
+                          <DifficultyBadge difficulty={door.question.difficulty as Difficulty} />
+                        </div>
                       </div>
                     </div>
                   </motion.button>
                 ))}
               </div>
 
-              {/* Balance bar */}
-              <motion.div
-                className="bg-gradient-to-r from-gray-900/30 to-black border border-gray-800 rounded-xl px-6 py-5 flex items-center justify-between"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-              >
-                <div>
-                  <p className="text-sm text-gray-500 uppercase tracking-wide font-semibold mb-1">Available Balance</p>
-                  <p className="text-[#00FF66] font-bold text-2xl">₦{balance.toLocaleString()}</p>
-                </div>
-                <Link
-                  href="/wallet"
-                  className="px-6 py-3 bg-[#00FF66] text-black font-bold rounded-lg hover:bg-[#00FF66]/90 transition-colors active:scale-95"
+              {/* Balance bar - only show if authenticated */}
+              {state.isAuthenticated && (
+                <motion.div
+                  className="bg-gradient-to-r from-gray-900/30 to-black border border-gray-800 rounded-xl px-6 py-5 flex items-center justify-between"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4 }}
                 >
-                  Top Up
-                </Link>
-              </motion.div>
+                  <div>
+                    <p className="text-sm text-gray-500 uppercase tracking-wide font-semibold mb-1">Available Balance</p>
+                    <p className="text-[#00FF66] font-bold text-2xl">₦{balance.toLocaleString()}</p>
+                  </div>
+                  <Link
+                    href="/wallet"
+                    className="px-6 py-3 bg-[#00FF66] text-black font-bold rounded-lg hover:bg-[#00FF66]/90 transition-colors active:scale-95"
+                  >
+                    Top Up
+                  </Link>
+                </motion.div>
+              )}
             </div>
           )}
         </div>
       </main>
+
+      {/* Sign in bottom sheet */}
+      <BottomSheet
+        open={showSignInSheet}
+        onClose={() => setShowSignInSheet(false)}
+        title="Sign in to play"
+      >
+        <div className="space-y-4">
+          <p className="text-gray-300 text-center">
+            You need to sign in to participate in challenges
+          </p>
+          <Link
+            href="/auth"
+            className="block w-full py-3 bg-[#00FF66] text-black font-bold rounded-xl hover:bg-[#00FF66]/90 transition-all active:scale-95 text-center"
+          >
+            Sign In
+          </Link>
+          <button
+            onClick={() => setShowSignInSheet(false)}
+            className="w-full text-center text-gray-500 text-sm font-medium py-2.5 hover:text-gray-400 transition-colors"
+          >
+            Cancel
+          </button>
+        </div>
+      </BottomSheet>
 
       {/* Payment bottom sheet */}
       <BottomSheet
