@@ -27,9 +27,10 @@ export function BottomSheet({ open, onClose, title, children }: Props) {
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed bottom-0 left-0 right-0 z-50 bg-[#1A1A1A] rounded-t-3xl p-6 max-w-lg mx-auto"
+            className="fixed bottom-0 left-0 right-0 z-50 bg-[#1A1A1A] rounded-t-3xl max-h-[90vh] flex flex-col max-w-lg mx-auto"
           >
-            <div className="flex items-center justify-between mb-4">
+            {/* Header - Fixed */}
+            <div className="flex-shrink-0 flex items-center justify-between px-6 py-4 border-b border-gray-800">
               {title && <h3 className="text-lg font-bold text-white">{title}</h3>}
               <button
                 onClick={onClose}
@@ -39,7 +40,11 @@ export function BottomSheet({ open, onClose, title, children }: Props) {
                 <X size={20} />
               </button>
             </div>
-            {children}
+
+            {/* Content - Scrollable */}
+            <div className="flex-1 overflow-y-auto px-6 py-4">
+              {children}
+            </div>
           </motion.div>
         </>
       )}

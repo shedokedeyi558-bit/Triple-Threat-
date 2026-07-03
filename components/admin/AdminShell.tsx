@@ -45,7 +45,10 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           >
             <Menu size={22} />
           </button>
-          <span className="text-neon font-black text-lg">Triple Threat Admin</span>
+          <span className="font-black uppercase tracking-tight text-lg leading-none">
+            <span className="text-white">BIT</span>
+            <span className="text-neon neon-text-glow">LYFE</span>
+          </span>
         </div>
 
         <main className="flex-1 overflow-auto p-4 md:p-6">

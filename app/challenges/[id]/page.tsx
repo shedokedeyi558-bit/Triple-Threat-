@@ -79,7 +79,7 @@ export default function ChallengeDetailPage() {
   if (loading) {
     return (
       <div className="min-h-dvh bg-bg flex flex-col">
-        <NavBar title="Challenge" showBack />
+        <NavBar title="Challenge" />
         <div className="flex-1 flex justify-center items-center">
           <Loader2 size={32} className="text-neon animate-spin" />
         </div>
@@ -90,7 +90,7 @@ export default function ChallengeDetailPage() {
   if (!challenge) {
     return (
       <div className="min-h-dvh bg-bg flex flex-col">
-        <NavBar title="Challenge" showBack />
+        <NavBar title="Challenge" />
         <div className="flex-1 flex justify-center items-center">
           <p className="text-gray-400">Challenge not found</p>
         </div>
@@ -100,7 +100,7 @@ export default function ChallengeDetailPage() {
 
   return (
     <div className="min-h-dvh bg-bg flex flex-col">
-      <NavBar title={challenge.category} showBack />
+      <NavBar title={challenge.category} />
 
       <main className="flex-1 px-3 sm:px-4 py-4 sm:py-5 pb-6">
         {/* Challenge title */}

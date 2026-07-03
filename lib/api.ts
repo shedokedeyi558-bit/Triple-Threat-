@@ -1,9 +1,19 @@
 /**
  * Centralized API client for Triple Threat backend.
  * Base URL read from NEXT_PUBLIC_API_URL env var.
+ * Falls back to Next.js API routes for development.
  */
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+const getBaseUrl = () => {
+  if (typeof window === "undefined") {
+    // Server-side
+    return process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+  }
+  // Client-side - use Next.js API routes as default, fallback to external backend
+  return ""; // Empty string means use relative paths (same origin)
+};
+
+const BASE_URL = getBaseUrl();
 
 // ─── Token helpers ────────────────────────────────────────────────────────────
 
@@ -73,9 +83,14 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
 
 // ─── AUTH ────────────────────────────────────────────────────────────────────
 
-export interface RegisterResponse {
-  message: string;
-  isExisting: boolean; // true = returning player, false = new player
+export interface SignUpResponse {
+  token: string;
+  player: { id: string; email: string; phone: string; name: string | null; balance: number; is_admin: boolean };
+}
+
+export interface SignInResponse {
+  token: string;
+  player: { id: string; email: string; phone: string; name: string | null; balance: number; is_admin: boolean };
 }
 
 export interface VerifyOtpResponse {
@@ -89,8 +104,16 @@ export interface AdminLoginResponse {
 }
 
 export const authApi = {
+  // New unified auth endpoints
+  signUp: (email: string, password: string, phone: string, name?: string) =>
+    request<SignUpResponse>("/api/auth/signup", { method: "POST", body: { email, password, phone, name } }),
+
+  signIn: (email: string, password: string) =>
+    request<SignInResponse>("/api/auth/signin", { method: "POST", body: { email, password } }),
+
+  // Legacy endpoints (kept for backward compatibility)
   register: (phone: string, name?: string) =>
-    request<RegisterResponse>("/api/auth/register", { method: "POST", body: { phone, name } }),
+    request<VerifyOtpResponse>("/api/auth/register", { method: "POST", body: { phone, name } }),
 
   verifyOtp: (phone: string, otp: string) =>
     request<VerifyOtpResponse>("/api/auth/verify-otp", { method: "POST", body: { phone, otp } }),
@@ -389,7 +412,7 @@ export interface Game {
   game_type: "door_game" | "challenge_game";
   title: string;
   description?: string;
-  status: "draft" | "active" | "paused" | "ended" | "archived";
+  status: "draft" | "active" | "paused" | "ended" | "locked" | "closed";
   entry_fee?: number;
   door_ids?: string[];
   category?: string;
@@ -399,11 +422,12 @@ export interface Game {
   current_participants?: number;
   countdown_duration?: number;
   ends_at?: string;
+  answer_revealed_at?: string;
   created_at: string;
   created_by: string;
   stats?: {
-    total_players?: number;
-    revenue?: number;
+    total_players: number;
+    revenue: number;
   };
 }
 

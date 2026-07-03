@@ -69,7 +69,7 @@ export default function ChallengesPage() {
 
   return (
     <div className="min-h-dvh bg-bg flex flex-col">
-      <NavBar title="Daily Challenges" showBack showWallet />
+      <NavBar title="Daily Challenges" showWallet />
 
       <main className="flex-1 px-3 sm:px-4 py-4 sm:py-5">
         {error && (

@@ -237,11 +237,11 @@ export const mockAppSettings: AppSettings = {
   autoRotateInterval: 30,
   autoApproveWithdrawals: false,
   autoApproveLimit: 1000,
-  gameName: "Triple Threat",
+  gameName: "BITLYFE",
   primaryColor: "#00FF66",
   gameKillSwitch: false,
   payoutBankName: "Opay",
-  payoutAccountName: "Triple Threat Games",
+  payoutAccountName: "BITLYFE Games",
   payoutAccountNumber: "9012345678",
 };
 

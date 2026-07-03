@@ -11,9 +11,11 @@ import { getToken, setToken, removeToken } from "@/lib/api";
 
 export interface PlayerInfo {
   id: string;
+  email: string;
   phone: string;
   name: string | null;
   balance: number;
+  is_admin?: boolean;
 }
 
 interface ActiveSession {

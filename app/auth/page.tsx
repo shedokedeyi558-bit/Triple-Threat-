@@ -5,207 +5,303 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useApp } from "@/context/AppContext";
 import { Logo } from "@/components/ui/Logo";
-import { Phone, ArrowRight, Shield } from "lucide-react";
+import { Mail, Lock, Phone, User, ArrowRight } from "lucide-react";
 import { authApi, setToken, ApiError } from "@/lib/api";
+
+type AuthMode = "signin" | "signup";
 
 export default function AuthPage() {
   const router = useRouter();
   const { dispatch } = useApp();
-  const [step, setStep] = useState<"phone" | "otp">("phone");
-  const [phone, setPhone] = useState("");
-  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
+  const [mode, setMode] = useState<AuthMode>("signin");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [isReturning, setIsReturning] = useState(false); // Track if returning player
 
-  // Normalise to the format the backend expects (e.g. 08012345678)
-  const fullPhone = `0${phone}`;
-  const maskedPhone = phone ? `0${phone.slice(0, 3)}***${phone.slice(-4)}` : "";
+  // Sign In fields
+  const [signInEmail, setSignInEmail] = useState("");
+  const [signInPassword, setSignInPassword] = useState("");
 
-  const handleSendOTP = async () => {
-    if (phone.length < 10) {
-      setError("Enter a valid 10-digit phone number");
+  // Sign Up fields
+  const [signUpEmail, setSignUpEmail] = useState("");
+  const [signUpPassword, setSignUpPassword] = useState("");
+  const [signUpPasswordConfirm, setSignUpPasswordConfirm] = useState("");
+  const [signUpPhone, setSignUpPhone] = useState("");
+  const [signUpName, setSignUpName] = useState("");
+
+  const handleSignIn = async () => {
+    if (!signInEmail || !signInPassword) {
+      setError("Please fill in all fields");
       return;
     }
     setError("");
     setLoading(true);
     try {
-      const response = await authApi.register(fullPhone);
-      setIsReturning(response.isExisting); // Set flag based on backend response
-      setStep("otp");
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Failed to send OTP. Try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleOtpChange = (val: string, idx: number) => {
-    if (!/^\d?$/.test(val)) return;
-    const newOtp = [...otp];
-    newOtp[idx] = val;
-    setOtp(newOtp);
-    if (val && idx < 5) {
-      document.getElementById(`otp-${idx + 1}`)?.focus();
-    }
-    if (newOtp.every((d) => d !== "") && idx === 5) {
-      handleVerify(newOtp.join(""));
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent, idx: number) => {
-    if (e.key === "Backspace" && !otp[idx] && idx > 0) {
-      document.getElementById(`otp-${idx - 1}`)?.focus();
-    }
-  };
-
-  const handleVerify = async (code?: string) => {
-    const codeToVerify = code || otp.join("");
-    if (codeToVerify.length < 6) {
-      setError("Enter all 6 digits");
-      return;
-    }
-    setError("");
-    setLoading(true);
-    try {
-      const data = await authApi.verifyOtp(fullPhone, codeToVerify);
+      const data = await authApi.signIn(signInEmail.trim(), signInPassword);
       setToken(data.token);
       dispatch({
         type: "LOGIN",
         token: data.token,
         player: {
           id: data.player.id,
+          email: data.player.email,
           phone: data.player.phone,
           name: data.player.name,
           balance: data.player.balance,
+          is_admin: data.player.is_admin,
+        },
+      });
+      // Redirect based on role
+      router.push(data.player.is_admin ? "/admin" : "/format");
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Sign in failed. Check your credentials.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSignUp = async () => {
+    if (!signUpEmail || !signUpPassword || !signUpPasswordConfirm || !signUpPhone) {
+      setError("Please fill in all required fields");
+      return;
+    }
+
+    if (signUpPassword !== signUpPasswordConfirm) {
+      setError("Passwords do not match");
+      return;
+    }
+
+    if (signUpPassword.length < 6) {
+      setError("Password must be at least 6 characters");
+      return;
+    }
+
+    if (signUpPhone.replace(/\D/g, "").length < 10) {
+      setError("Please enter a valid phone number");
+      return;
+    }
+
+    setError("");
+    setLoading(true);
+    try {
+      const data = await authApi.signUp(signUpEmail.trim(), signUpPassword, signUpPhone, signUpName || undefined);
+      setToken(data.token);
+      dispatch({
+        type: "LOGIN",
+        token: data.token,
+        player: {
+          id: data.player.id,
+          email: data.player.email,
+          phone: data.player.phone,
+          name: data.player.name,
+          balance: data.player.balance,
+          is_admin: data.player.is_admin,
         },
       });
       router.push("/format");
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Verification failed. Try again.");
+      setError(err instanceof ApiError ? err.message : "Sign up failed. Try again.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <main className="min-h-dvh flex flex-col items-center justify-center px-4 sm:px-5 bg-bg">
+    <main className="min-h-dvh flex flex-col items-center justify-center px-4 sm:px-5 bg-black">
       <motion.div
         className="w-full max-w-sm"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
       >
-        <div className="text-center mb-6 sm:mb-8">
+        <div className="text-center mb-8">
           <Logo size="md" />
         </div>
 
+        {/* Mode toggle */}
+        <div className="flex gap-2 mb-6 bg-gray-900 rounded-lg p-1">
+          <button
+            onClick={() => { setMode("signin"); setError(""); }}
+            className={`flex-1 py-2 rounded-md font-semibold text-sm transition-colors ${
+              mode === "signin"
+                ? "bg-neon text-black"
+                : "text-gray-400 hover:text-white"
+            }`}
+          >
+            Sign In
+          </button>
+          <button
+            onClick={() => { setMode("signup"); setError(""); }}
+            className={`flex-1 py-2 rounded-md font-semibold text-sm transition-colors ${
+              mode === "signup"
+                ? "bg-neon text-black"
+                : "text-gray-400 hover:text-white"
+            }`}
+          >
+            Sign Up
+          </button>
+        </div>
+
         <AnimatePresence mode="wait">
-          {step === "phone" ? (
+          {mode === "signin" ? (
             <motion.div
-              key="phone"
+              key="signin"
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
             >
-              <div className="bg-card border border-[#2A2A2A] rounded-2xl p-4 sm:p-6">
-                <div className="flex items-center gap-2 mb-2">
-                  <Phone size={18} className="text-neon flex-shrink-0" />
-                  <h2 className="text-white font-bold text-base sm:text-lg">Enter your phone number</h2>
-                </div>
-                <p className="text-gray-400 text-xs sm:text-sm mb-5">
-                  We&apos;ll send a verification code via SMS
-                </p>
-
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="bg-[#2A2A2A] rounded-lg sm:rounded-xl px-2 sm:px-3 py-2.5 sm:py-3.5 text-xs sm:text-sm font-semibold text-white whitespace-nowrap">
-                    🇳🇬 +234
+              <div className="bg-gray-950 border border-gray-800 rounded-2xl p-6 space-y-4">
+                <div>
+                  <label className="text-sm text-gray-400 mb-1.5 block">Email</label>
+                  <div className="relative">
+                    <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500" />
+                    <input
+                      type="email"
+                      placeholder="you@example.com"
+                      value={signInEmail}
+                      onChange={(e) => setSignInEmail(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && handleSignIn()}
+                      className="w-full bg-gray-900 border border-gray-800 focus:border-neon rounded-xl pl-10 pr-4 py-3 text-white placeholder-gray-600 text-sm outline-none transition-colors"
+                    />
                   </div>
-                  <input
-                    type="tel"
-                    inputMode="numeric"
-                    placeholder="8012345678"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
-                    className="flex-1 bg-[#2A2A2A] rounded-lg sm:rounded-xl px-3 sm:px-4 py-2.5 sm:py-3.5 text-white placeholder-gray-500 text-sm font-medium outline-none focus:ring-2 focus:ring-neon"
-                    onKeyDown={(e) => e.key === "Enter" && handleSendOTP()}
-                  />
                 </div>
 
-                {error && <p className="text-red-400 text-xs sm:text-sm mb-3">{error}</p>}
+                <div>
+                  <label className="text-sm text-gray-400 mb-1.5 block">Password</label>
+                  <div className="relative">
+                    <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500" />
+                    <input
+                      type="password"
+                      placeholder="••••••••"
+                      value={signInPassword}
+                      onChange={(e) => setSignInPassword(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && handleSignIn()}
+                      className="w-full bg-gray-900 border border-gray-800 focus:border-neon rounded-xl pl-10 pr-4 py-3 text-white placeholder-gray-600 text-sm outline-none transition-colors"
+                    />
+                  </div>
+                </div>
+
+                {error && (
+                  <div className="text-red-400 text-sm bg-red-900/20 border border-red-900/40 rounded-xl p-3">
+                    {error}
+                  </div>
+                )}
 
                 <button
-                  onClick={handleSendOTP}
+                  onClick={handleSignIn}
                   disabled={loading}
-                  className="btn-primary flex items-center justify-center gap-2 disabled:opacity-50 text-sm sm:text-base"
+                  className="w-full py-3 bg-neon text-black font-semibold rounded-lg hover:bg-neon/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   {loading ? (
                     <span className="animate-spin border-2 border-black border-t-transparent rounded-full w-5 h-5" />
                   ) : (
-                    <>Send OTP <ArrowRight size={18} /></>
+                    <>Sign In <ArrowRight size={18} /></>
                   )}
                 </button>
               </div>
             </motion.div>
           ) : (
             <motion.div
-              key="otp"
+              key="signup"
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
             >
-              <div className="bg-card border border-[#2A2A2A] rounded-2xl p-4 sm:p-6">
-                <div className="flex items-center gap-2 mb-2">
-                  <Shield size={18} className="text-neon flex-shrink-0" />
-                  <h2 className="text-white font-bold text-base sm:text-lg">
-                    {isReturning ? "Welcome back!" : "Create account"}
-                  </h2>
-                </div>
-                <p className="text-gray-400 text-xs sm:text-sm mb-5">
-                  {isReturning ? "Enter the verification code sent to " : "Enter the 6-digit code sent to "}
-                  <span className="text-white font-semibold">{maskedPhone}</span>
-                </p>
-
-                <div className="flex gap-1.5 sm:gap-2 justify-between mb-5">
-                  {otp.map((digit, i) => (
+              <div className="bg-gray-950 border border-gray-800 rounded-2xl p-6 space-y-4">
+                <div>
+                  <label className="text-sm text-gray-400 mb-1.5 block">Email</label>
+                  <div className="relative">
+                    <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500" />
                     <input
-                      key={i}
-                      id={`otp-${i}`}
-                      type="text"
-                      inputMode="numeric"
-                      maxLength={1}
-                      value={digit}
-                      onChange={(e) => handleOtpChange(e.target.value, i)}
-                      onKeyDown={(e) => handleKeyDown(e, i)}
-                      className="flex-1 aspect-square min-w-0 max-w-12 sm:max-w-none text-center text-white font-bold text-base sm:text-lg bg-[#2A2A2A] rounded-lg sm:rounded-xl border border-[#2A2A2A] focus:border-neon focus:ring-2 focus:ring-neon/30 outline-none transition-colors"
-                      autoFocus={i === 0}
+                      type="email"
+                      placeholder="you@example.com"
+                      value={signUpEmail}
+                      onChange={(e) => setSignUpEmail(e.target.value)}
+                      className="w-full bg-gray-900 border border-gray-800 focus:border-neon rounded-xl pl-10 pr-4 py-3 text-white placeholder-gray-600 text-sm outline-none transition-colors"
                     />
-                  ))}
+                  </div>
                 </div>
 
-                {error && <p className="text-red-400 text-xs sm:text-sm mb-3">{error}</p>}
+                <div>
+                  <label className="text-sm text-gray-400 mb-1.5 block">Full Name (Optional)</label>
+                  <div className="relative">
+                    <User size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500" />
+                    <input
+                      type="text"
+                      placeholder="John Doe"
+                      value={signUpName}
+                      onChange={(e) => setSignUpName(e.target.value)}
+                      className="w-full bg-gray-900 border border-gray-800 focus:border-neon rounded-xl pl-10 pr-4 py-3 text-white placeholder-gray-600 text-sm outline-none transition-colors"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-sm text-gray-400 mb-1.5 block">Phone Number</label>
+                  <div className="relative">
+                    <Phone size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500" />
+                    <input
+                      type="tel"
+                      inputMode="numeric"
+                      placeholder="08012345678"
+                      value={signUpPhone}
+                      onChange={(e) => setSignUpPhone(e.target.value.replace(/\D/g, "").slice(0, 11))}
+                      className="w-full bg-gray-900 border border-gray-800 focus:border-neon rounded-xl pl-10 pr-4 py-3 text-white placeholder-gray-600 text-sm outline-none transition-colors"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-sm text-gray-400 mb-1.5 block">Password</label>
+                  <div className="relative">
+                    <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500" />
+                    <input
+                      type="password"
+                      placeholder="••••••••"
+                      value={signUpPassword}
+                      onChange={(e) => setSignUpPassword(e.target.value)}
+                      className="w-full bg-gray-900 border border-gray-800 focus:border-neon rounded-xl pl-10 pr-4 py-3 text-white placeholder-gray-600 text-sm outline-none transition-colors"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-sm text-gray-400 mb-1.5 block">Confirm Password</label>
+                  <div className="relative">
+                    <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500" />
+                    <input
+                      type="password"
+                      placeholder="••••••••"
+                      value={signUpPasswordConfirm}
+                      onChange={(e) => setSignUpPasswordConfirm(e.target.value)}
+                      className="w-full bg-gray-900 border border-gray-800 focus:border-neon rounded-xl pl-10 pr-4 py-3 text-white placeholder-gray-600 text-sm outline-none transition-colors"
+                    />
+                  </div>
+                </div>
+
+                {error && (
+                  <div className="text-red-400 text-sm bg-red-900/20 border border-red-900/40 rounded-xl p-3">
+                    {error}
+                  </div>
+                )}
 
                 <button
-                  onClick={() => handleVerify()}
+                  onClick={handleSignUp}
                   disabled={loading}
-                  className="btn-primary flex items-center justify-center gap-2 disabled:opacity-50 text-sm sm:text-base"
+                  className="w-full py-3 bg-neon text-black font-semibold rounded-lg hover:bg-neon/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   {loading ? (
                     <span className="animate-spin border-2 border-black border-t-transparent rounded-full w-5 h-5" />
                   ) : (
-                    "Verify & Continue"
+                    <>Create Account <ArrowRight size={18} /></>
                   )}
-                </button>
-
-                <button
-                  onClick={() => { setStep("phone"); setError(""); setIsReturning(false); }}
-                  className="w-full text-center text-gray-400 text-xs sm:text-sm mt-3 py-2"
-                >
-                  Change number
                 </button>
               </div>
             </motion.div>
           )}
         </AnimatePresence>
+
+        <p className="text-center text-gray-500 text-xs mt-6">
+          By signing up, you agree to our Terms of Service and Privacy Policy
+        </p>
       </motion.div>
     </main>
   );

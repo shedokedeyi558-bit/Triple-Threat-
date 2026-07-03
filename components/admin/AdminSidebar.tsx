@@ -11,8 +11,7 @@ import {
 
 const links = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/admin/questions", label: "Questions", icon: FileQuestion },
-  { href: "/admin/doors", label: "Door Settings", icon: DoorOpen },
+  { href: "/admin/games", label: "Games", icon: LayoutDashboard },
   { href: "/admin/players", label: "Players", icon: Users },
   { href: "/admin/withdrawals", label: "Withdrawals", icon: CreditCard },
   { href: "/admin/analytics", label: "Analytics", icon: BarChart2 },
@@ -27,8 +26,11 @@ export function AdminSidebar({ onClose }: { onClose?: () => void }) {
     <div className="h-full bg-[#111] border-r border-[#1E1E1E] flex flex-col p-3">
       <div className="flex items-center justify-between px-2 py-3 mb-4">
         <div>
-          <div className="text-neon font-black text-base uppercase tracking-tight">Triple Threat</div>
-          <div className="text-gray-500 text-xs mt-0.5">Admin Panel</div>
+          <div className="font-black uppercase tracking-tight text-base leading-none">
+            <span className="text-white">BIT</span>
+            <span className="text-neon neon-text-glow">LYFE</span>
+          </div>
+          <div className="text-gray-500 text-xs mt-1">Admin Panel</div>
         </div>
         {onClose && (
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400">
@@ -37,7 +39,7 @@ export function AdminSidebar({ onClose }: { onClose?: () => void }) {
         )}
       </div>
 
-      <nav className="flex-1 space-y-1">
+      <nav className="flex-1 overflow-y-auto space-y-1 py-2 pr-2">
         {links.map(({ href, label, icon: Icon }) => {
           const active = pathname === href;
           return (
@@ -56,7 +58,7 @@ export function AdminSidebar({ onClose }: { onClose?: () => void }) {
 
       <button
         onClick={() => { removeAdminToken(); dispatch({ type: "ADMIN_LOGOUT" }); }}
-        className="sidebar-link text-red-400 hover:text-red-300 hover:bg-red-900/20 mt-2"
+        className="sidebar-link text-red-400 hover:text-red-300 hover:bg-red-900/20 flex-shrink-0"
       >
         <LogOut size={17} />
         Logout

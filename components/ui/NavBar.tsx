@@ -1,50 +1,54 @@
 "use client";
 
 import { useApp } from "@/context/AppContext";
-import { Wallet, ArrowLeft } from "lucide-react";
+import { Wallet } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { removeToken } from "@/lib/api";
 
 interface Props {
   title?: string;
-  showBack?: boolean;
   showWallet?: boolean;
 }
 
-export function NavBar({ title, showBack = false, showWallet = true }: Props) {
+export function NavBar({ title, showWallet = true }: Props) {
   const { state } = useApp();
-  const router = useRouter();
 
   return (
-    <div className="sticky top-0 z-30 bg-bg/95 backdrop-blur border-b border-[#1E1E1E] px-4 py-3 flex items-center justify-between">
+    <div className="sticky top-0 z-30 bg-black/50 backdrop-blur-md border-b border-gray-900 px-4 sm:px-6 py-4 flex items-center justify-between">
       <div className="flex items-center gap-3">
-        {showBack && (
-          <button
-            onClick={() => router.back()}
-            className="p-2 rounded-full hover:bg-[#1A1A1A] text-gray-400"
-            aria-label="Go back"
-          >
-            <ArrowLeft size={20} />
-          </button>
-        )}
         {title ? (
           <span className="font-bold text-white text-lg">{title}</span>
         ) : (
-          <Link href="/" className="font-black text-neon text-xl uppercase tracking-tight">
-            Triple Threat
+          <Link href="/" className="font-black uppercase tracking-tight text-xl leading-none flex-shrink-0">
+            <span className="text-white">BIT</span>
+            <span className="text-[#00FF66] neon-text-glow">LYFE</span>
           </Link>
         )}
       </div>
 
-      {showWallet && state.isAuthenticated && state.player && (
-        <Link
-          href="/wallet"
-          className="flex items-center gap-2 bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl px-3 py-1.5 text-sm font-semibold text-neon"
-        >
-          <Wallet size={16} />
-          ₦{state.player.balance.toLocaleString()}
-        </Link>
-      )}
+      <div className="flex items-center gap-3">
+        {showWallet && state.isAuthenticated && state.player && (
+          <Link
+            href="/wallet"
+            className="flex items-center gap-2 bg-gray-900 border border-gray-800 hover:border-[#00FF66]/40 rounded-xl px-4 py-2 text-sm font-semibold text-[#00FF66] transition-colors"
+          >
+            <Wallet size={16} />
+            ₦{state.player.balance.toLocaleString()}
+          </Link>
+        )}
+        
+        {state.isAuthenticated && (
+          <button
+            onClick={() => {
+              removeToken();
+              window.location.href = "/auth";
+            }}
+            className="px-4 py-2 text-sm font-semibold text-red-400 hover:text-red-300 hover:bg-red-900/20 rounded-lg transition-colors"
+          >
+            Logout
+          </button>
+        )}
+      </div>
     </div>
   );
 }

@@ -128,7 +128,7 @@ export default function WalletPage() {
 
   return (
     <div className="min-h-dvh bg-bg flex flex-col">
-      <NavBar title="My Wallet" showBack showWallet={false} />
+      <NavBar title="My Wallet" showWallet={false} />
 
       <main className="flex-1 px-3 sm:px-4 py-4 sm:py-5 pb-8 sm:pb-10">
         {/* Balance */}
