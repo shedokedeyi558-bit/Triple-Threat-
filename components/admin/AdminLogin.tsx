@@ -41,14 +41,15 @@ export function AdminLogin() {
     <div className="min-h-dvh bg-black flex flex-col">
       {/* Header with back button */}
       <header className="sticky top-0 z-50 bg-black/80 backdrop-blur-lg border-b border-gray-800 px-5 py-4">
-        <div className="flex items-center justify-center">
-          <Link href="/" className="absolute left-5 hover:opacity-80 transition-opacity">
+        <div className="grid grid-cols-3 items-center">
+          <Link href="/" className="hover:opacity-80 transition-opacity justify-self-start">
             <ArrowLeft size={24} className="text-gray-400 hover:text-white" />
           </Link>
-          <div className="font-black uppercase tracking-tight text-xl leading-none">
+          <div className="font-black uppercase tracking-tight text-xl leading-none text-center justify-self-center">
             <span className="text-white">BIT</span>
             <span className="text-neon neon-text-glow">LYFE</span>
           </div>
+          <div />
         </div>
       </header>
 

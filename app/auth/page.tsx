@@ -120,14 +120,14 @@ export default function AuthPage() {
     <div className="min-h-screen bg-[#0A0A0A] text-white flex flex-col">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-[#0A0A0A]/80 backdrop-blur-lg border-b border-[#2A2A2A] px-4 py-4">
-        <div className="max-w-md mx-auto flex items-center justify-between">
-          <Link href="/" className="hover:opacity-80 transition-opacity">
+        <div className="max-w-md mx-auto grid grid-cols-3 items-center">
+          <Link href="/" className="hover:opacity-80 transition-opacity justify-self-start">
             <ArrowLeft size={24} className="text-gray-400 hover:text-white" />
           </Link>
-          <Link href="/" className="hover:opacity-80 transition-opacity absolute left-1/2 -translate-x-1/2">
+          <Link href="/" className="hover:opacity-80 transition-opacity justify-self-center">
             <Logo size="sm" />
           </Link>
-          <div className="w-6" />
+          <div />
         </div>
       </header>
 
