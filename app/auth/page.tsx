@@ -7,15 +7,16 @@ import { authApi, setToken, ApiError } from "@/lib/api";
 import { Logo } from "@/components/ui/Logo";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, AlertCircle, Loader, Check } from "lucide-react";
+import { ArrowRight, AlertCircle, Loader, Check, ArrowLeft } from "lucide-react";
 
-type AuthStep = "phone" | "otp" | "success";
+type AuthStep = "phone" | "password" | "otp" | "success";
 
 export default function AuthPage() {
   const router = useRouter();
   const { dispatch } = useApp();
   const [step, setStep] = useState<AuthStep>("phone");
   const [phone, setPhone] = useState("");
+  const [password, setPassword] = useState("");
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -42,18 +43,13 @@ export default function AuthPage() {
       return;
     }
 
-    if (!checkbox) {
-      setError("You must confirm you are 18 or older");
-      return;
-    }
-
     setLoading(true);
     setError(null);
 
     try {
       const fullPhone = `+234${phone}`;
       await authApi.register(fullPhone);
-      setStep("otp");
+      setStep("password");
     } catch (err) {
       setError(
         err instanceof ApiError ? err.message : "Failed to send OTP. Please try again."
@@ -61,6 +57,22 @@ export default function AuthPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters");
+      return;
+    }
+
+    if (!checkbox) {
+      setError("You must confirm you are 18 or older");
+      return;
+    }
+
+    setError(null);
+    setStep("otp");
   };
 
   const handleVerifyOTP = async (e: React.FormEvent) => {
@@ -108,10 +120,14 @@ export default function AuthPage() {
     <div className="min-h-screen bg-[#0A0A0A] text-white flex flex-col">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-[#0A0A0A]/80 backdrop-blur-lg border-b border-[#2A2A2A] px-4 py-4">
-        <div className="max-w-md mx-auto flex items-center">
+        <div className="max-w-md mx-auto flex items-center justify-between">
           <Link href="/" className="hover:opacity-80 transition-opacity">
+            <ArrowLeft size={24} className="text-gray-400 hover:text-white" />
+          </Link>
+          <Link href="/" className="hover:opacity-80 transition-opacity absolute left-1/2 -translate-x-1/2">
             <Logo size="sm" />
           </Link>
+          <div className="w-6" />
         </div>
       </header>
 
@@ -127,11 +143,13 @@ export default function AuthPage() {
           <div className="space-y-4">
             <h1 className="text-3xl sm:text-4xl font-black tracking-tight">
               {step === "phone" && "Join BitLyfe"}
+              {step === "password" && "Create Password"}
               {step === "otp" && "Verify Your Number"}
               {step === "success" && "Welcome!"}
             </h1>
             <p className="text-gray-400 text-sm">
               {step === "phone" && "Enter your phone number to get started"}
+              {step === "password" && "You'll use this to sign in next time"}
               {step === "otp" && `We sent a code to ${formattedPhone}`}
               {step === "success" && "You're all set. Let's go!"}
             </p>
@@ -181,6 +199,58 @@ export default function AuthPage() {
                   <p className="text-xs text-gray-500 mt-2">Nigerian number required</p>
                 </div>
 
+                <button
+                  type="submit"
+                  disabled={loading || phone.length !== 10}
+                  className="w-full py-4 px-4 bg-neon text-black font-bold rounded-lg hover:bg-neon/90 disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2 text-lg"
+                >
+                  {loading ? (
+                    <>
+                      <Loader size={20} className="animate-spin" />
+                      Sending...
+                    </>
+                  ) : (
+                    <>
+                      Continue <ArrowRight size={20} />
+                    </>
+                  )}
+                </button>
+
+                <p className="text-center text-xs text-gray-500">
+                  Already have an account?{" "}
+                  <Link href="/signin" className="text-neon hover:underline">
+                    Sign in
+                  </Link>
+                </p>
+              </motion.form>
+            )}
+          </AnimatePresence>
+
+          {/* Password Step */}
+          <AnimatePresence mode="wait">
+            {step === "password" && (
+              <motion.form
+                key="password-form"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                onSubmit={handleSetPassword}
+                className="space-y-4"
+              >
+                <div>
+                  <label className="block text-sm font-semibold mb-2 text-gray-300">
+                    Password
+                  </label>
+                  <input
+                    type="password"
+                    placeholder="Enter a strong password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full bg-[#1A1A1A] border border-[#2A2A2A] rounded-lg px-4 py-3 text-white placeholder-gray-600 outline-none focus:border-neon transition-colors"
+                  />
+                  <p className="text-xs text-gray-500 mt-2">Minimum 6 characters</p>
+                </div>
+
                 {/* 18+ Agreement */}
                 <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-lg p-4">
                   <label className="flex items-start gap-3 cursor-pointer">
@@ -201,34 +271,33 @@ export default function AuthPage() {
 
                 <button
                   type="submit"
-                  disabled={loading || phone.length !== 10 || !checkbox}
+                  disabled={loading || password.length < 6 || !checkbox}
                   className="w-full py-4 px-4 bg-neon text-black font-bold rounded-lg hover:bg-neon/90 disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2 text-lg"
                 >
                   {loading ? (
                     <>
                       <Loader size={20} className="animate-spin" />
-                      Sending...
+                      Setting up...
                     </>
                   ) : (
                     <>
-                      Send Code <ArrowRight size={20} />
+                      Next <ArrowRight size={20} />
                     </>
                   )}
                 </button>
 
-                <p className="text-center text-xs text-gray-500">
-                  Already have an account?{" "}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setStep("otp");
-                      setError(null);
-                    }}
-                    className="text-neon hover:underline"
-                  >
-                    Have a code?
-                  </button>
-                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStep("phone");
+                    setPassword("");
+                    setCheckbox(false);
+                    setError(null);
+                  }}
+                  className="w-full py-2 text-gray-400 text-sm hover:text-white transition-colors"
+                >
+                  Back
+                </button>
               </motion.form>
             )}
           </AnimatePresence>

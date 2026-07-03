@@ -45,6 +45,10 @@ export function AdminLogin() {
           <Link href="/" className="absolute left-5 hover:opacity-80 transition-opacity">
             <ArrowLeft size={24} className="text-gray-400 hover:text-white" />
           </Link>
+          <div className="font-black uppercase tracking-tight text-xl leading-none">
+            <span className="text-white">BIT</span>
+            <span className="text-neon neon-text-glow">LYFE</span>
+          </div>
         </div>
       </header>
 
