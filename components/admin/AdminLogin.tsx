@@ -3,8 +3,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAdmin } from "@/context/AdminContext";
-import { Lock, Mail } from "lucide-react";
+import { Lock, Mail, ArrowLeft } from "lucide-react";
 import { authApi, setAdminToken, ApiError } from "@/lib/api";
+import Link from "next/link";
 
 export function AdminLogin() {
   const router = useRouter();
@@ -37,7 +38,18 @@ export function AdminLogin() {
   };
 
   return (
-    <div className="min-h-dvh bg-black flex items-center justify-center px-5">
+    <div className="min-h-dvh bg-black flex flex-col">
+      {/* Header with back button */}
+      <header className="sticky top-0 z-50 bg-black/80 backdrop-blur-lg border-b border-gray-800 px-5 py-4">
+        <div className="flex items-center justify-center">
+          <Link href="/" className="absolute left-5 hover:opacity-80 transition-opacity">
+            <ArrowLeft size={24} className="text-gray-400 hover:text-white" />
+          </Link>
+        </div>
+      </header>
+
+      {/* Login form */}
+      <div className="flex-1 flex items-center justify-center px-5">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <div className="font-black uppercase tracking-tight text-3xl leading-none mb-1">
@@ -100,6 +112,7 @@ export function AdminLogin() {
         <p className="text-center text-gray-500 text-xs mt-6">
           Admin login only. Unauthorized access attempts will be logged.
         </p>
+      </div>
       </div>
     </div>
   );
