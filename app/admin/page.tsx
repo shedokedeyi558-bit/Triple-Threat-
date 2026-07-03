@@ -5,23 +5,8 @@ import Link from "next/link";
 import { adminApi, ApiError } from "@/lib/api";
 import { Users, Gamepad2, TrendingUp, DollarSign, AlertCircle, Loader2, Plus } from "lucide-react";
 
-interface GameSummary {
-  game_type: "door_game" | "challenge_game";
-  active_count: number;
-  draft_count: number;
-  total_revenue: number;
-}
-
-interface PendingChallenge {
-  id: string;
-  title: string;
-  current_participants: number;
-  max_participants: number;
-}
-
 export default function AdminDashboard() {
   const [games, setGames] = useState<any[]>([]);
-  const [stats, setStats] = useState<GameSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -30,16 +15,6 @@ export default function AdminDashboard() {
       try {
         const gamesRes = await adminApi.getGames();
         setGames(gamesRes.games || []);
-
-        // Calculate game summary
-        const doorGames = gamesRes.games?.filter((g: any) => g.game_type === "door_game") || [];
-        const summary: GameSummary = {
-          game_type: "door_game",
-          active_count: doorGames.filter((g: any) => g.status === "active").length,
-          draft_count: doorGames.filter((g: any) => g.status === "draft").length,
-          total_revenue: doorGames.reduce((sum: number, g: any) => sum + (g.stats?.revenue || 0), 0),
-        };
-        setStats(summary);
       } catch (err) {
         setError(err instanceof ApiError ? err.message : "Failed to load dashboard");
       } finally {
@@ -50,16 +25,12 @@ export default function AdminDashboard() {
     fetchData();
   }, []);
 
-  const doorGames = games.filter((g) => g.game_type === "door_game");
-  const challengeGames = games.filter((g) => g.game_type === "challenge_game");
+  // Separate PILLS and TIME_MACHINE games
+  const pillsGames = games.filter((g) => g.game_type === "pills");
+  const timeMachineGames = games.filter((g) => g.game_type === "predictions");
 
-  const pendingChallenges = challengeGames.filter(
-    (g) => g.status === "active" && !g.answer_revealed_at
-  );
-
-  const totalPlayers = doorGames.reduce((sum, g) => sum + (g.stats?.total_players || 0), 0);
-  const totalRevenue = doorGames.reduce((sum, g) => sum + (g.stats?.revenue || 0), 0) +
-    challengeGames.reduce((sum, g) => sum + (g.stake_amount * g.current_participants || 0), 0);
+  const totalPlayers = games.reduce((sum, g) => sum + (g.stats?.total_players || 0), 0);
+  const totalRevenue = games.reduce((sum, g) => sum + (g.stats?.revenue || 0), 0);
 
   return (
     <div className="space-y-6">
@@ -102,7 +73,7 @@ export default function AdminDashboard() {
               <Gamepad2 size={16} className="text-neon" />
               <span className="text-xs text-gray-500">Active Games</span>
             </div>
-            <div className="text-2xl font-black text-white">{doorGames.filter(g => g.status === "active").length + challengeGames.filter(g => g.status === "active").length}</div>
+            <div className="text-2xl font-black text-white">{pillsGames.filter(g => g.status === "active").length + timeMachineGames.filter(g => g.status === "active").length}</div>
           </div>
 
           <div className="bg-card border border-[#2A2A2A] rounded-2xl p-4">
@@ -131,39 +102,17 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* Pending Actions Alert */}
-      {pendingChallenges.length > 0 && (
-        <div className="bg-yellow-900/20 border border-yellow-700/40 rounded-2xl p-4">
-          <div className="flex items-start justify-between">
-            <div className="flex items-start gap-3">
-              <AlertCircle size={18} className="text-yellow-400 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-yellow-400 font-semibold text-sm">
-                  {pendingChallenges.length} Challenge{pendingChallenges.length > 1 ? "s" : ""} Awaiting Answer Reveal
-                </p>
-                <p className="text-xs text-yellow-300/70 mt-0.5">
-                  {pendingChallenges.map((c) => c.title).join(", ")}
-                </p>
-              </div>
-            </div>
-            <Link href="/admin/games" className="text-xs text-yellow-300 hover:text-yellow-200 font-semibold">
-              Review →
-            </Link>
-          </div>
-        </div>
-      )}
-
       {/* Games Overview */}
       <div className="grid md:grid-cols-2 gap-4">
-        {/* Door Games */}
+        {/* PILLS Games */}
         <div className="bg-card border border-[#2A2A2A] rounded-2xl p-5">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-black text-white">🚪 Door Games</h2>
-            <span className="text-sm text-gray-400">{doorGames.length} total</span>
+            <h2 className="text-lg font-black text-white">💊 PILLS</h2>
+            <span className="text-sm text-gray-400">{pillsGames.length} total</span>
           </div>
 
           <div className="space-y-2 mb-4">
-            {doorGames.slice(0, 3).map((game) => (
+            {pillsGames.slice(0, 3).map((game) => (
               <Link
                 key={game.id}
                 href={`/admin/games/${game.id}`}
@@ -173,7 +122,7 @@ export default function AdminDashboard() {
                   <div className="flex-1">
                     <p className="text-sm font-semibold text-white truncate">{game.title}</p>
                     <p className="text-xs text-gray-500 mt-0.5">
-                      {game.stats?.total_players || 0} players · ₦{game.entry_fee.toLocaleString()} entry
+                      {game.stats?.total_players || 0} plays · ₦{game.stats?.revenue || 0} revenue
                     </p>
                   </div>
                   <span className={`text-xs font-bold px-2 py-1 rounded flex-shrink-0 ml-2 ${
@@ -191,22 +140,22 @@ export default function AdminDashboard() {
           </div>
 
           <Link
-            href="/admin/games?type=door_game"
+            href="/admin/games?type=pills"
             className="block text-center py-2 text-sm font-semibold text-neon hover:text-white transition-colors border border-neon/30 rounded-lg"
           >
-            View All Door Games →
+            View All PILLS →
           </Link>
         </div>
 
-        {/* Challenge Games */}
+        {/* TIME MACHINE Games */}
         <div className="bg-card border border-[#2A2A2A] rounded-2xl p-5">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-black text-white">⚡ Challenges</h2>
-            <span className="text-sm text-gray-400">{challengeGames.length} total</span>
+            <h2 className="text-lg font-black text-white">⏰ TIME MACHINE</h2>
+            <span className="text-sm text-gray-400">{timeMachineGames.length} total</span>
           </div>
 
           <div className="space-y-2 mb-4">
-            {challengeGames.slice(0, 3).map((game) => (
+            {timeMachineGames.slice(0, 3).map((game) => (
               <Link
                 key={game.id}
                 href={`/admin/games/${game.id}`}
@@ -216,7 +165,7 @@ export default function AdminDashboard() {
                   <div className="flex-1">
                     <p className="text-sm font-semibold text-white truncate">{game.title}</p>
                     <p className="text-xs text-gray-500 mt-0.5">
-                      {game.current_participants}/{game.max_participants} joined · ₦{game.stake_amount.toLocaleString()} stake
+                      {game.current_participants || 0} participants · ₦{game.stats?.revenue || 0} revenue
                     </p>
                   </div>
                   <span className={`text-xs font-bold px-2 py-1 rounded flex-shrink-0 ml-2 ${
@@ -224,7 +173,7 @@ export default function AdminDashboard() {
                       ? "bg-neon/20 text-neon"
                       : game.status === "locked"
                       ? "bg-orange-900/20 text-orange-400"
-                      : game.status === "closed"
+                      : game.status === "completed"
                       ? "bg-gray-800 text-gray-400"
                       : "bg-red-900/20 text-red-400"
                   }`}>
@@ -236,10 +185,10 @@ export default function AdminDashboard() {
           </div>
 
           <Link
-            href="/admin/games?type=challenge_game"
+            href="/admin/games?type=predictions"
             className="block text-center py-2 text-sm font-semibold text-neon hover:text-white transition-colors border border-neon/30 rounded-lg"
           >
-            View All Challenges →
+            View All TIME MACHINE →
           </Link>
         </div>
       </div>
@@ -259,9 +208,9 @@ export default function AdminDashboard() {
         </div>
 
         <div className="bg-card border border-[#2A2A2A] rounded-2xl p-4">
-          <p className="text-xs text-gray-500 mb-2">Challenges Ended</p>
-          <p className="text-2xl font-black text-white">{challengeGames.filter(g => g.status === "closed").length}</p>
-          <p className="text-xs text-gray-400 mt-2">With payouts processed</p>
+          <p className="text-xs text-gray-500 mb-2">Completed Games</p>
+          <p className="text-2xl font-black text-white">{games.filter(g => g.status === "completed").length}</p>
+          <p className="text-xs text-gray-400 mt-2">With results processed</p>
         </div>
       </div>
     </div>
