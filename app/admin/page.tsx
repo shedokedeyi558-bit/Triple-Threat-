@@ -2,217 +2,288 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { adminApi, ApiError } from "@/lib/api";
-import { Users, Gamepad2, TrendingUp, DollarSign, AlertCircle, Loader2, Plus } from "lucide-react";
+import { motion } from "framer-motion";
+import { adminApi, type AdminStats, ApiError } from "@/lib/api";
+import {
+  Users, TrendingUp, DollarSign, AlertCircle,
+  Loader2, Plus, Clock, ArrowRight, ShieldAlert,
+} from "lucide-react";
+
+interface RecentPack {
+  id: string;
+  name: string;
+  category: string;
+  status: string;
+  pills: { id: string; color: string; status: string }[];
+}
+
+interface RecentPrediction {
+  id: string;
+  title: string;
+  category: string;
+  status: string;
+  slots_filled: number;
+  max_slots: number;
+  countdown_end: string;
+}
+
+const statusPill = (s: string) => {
+  switch (s) {
+    case "active":    return "bg-neon/15 text-neon";
+    case "draft":     return "bg-[#222] text-gray-500";
+    case "completed": return "bg-blue-900/20 text-blue-400";
+    case "locked":    return "bg-orange-900/20 text-orange-400";
+    default:          return "bg-[#222] text-gray-500";
+  }
+};
 
 export default function AdminDashboard() {
-  const [games, setGames] = useState<any[]>([]);
+  const [stats, setStats] = useState<AdminStats | null>(null);
+  const [packs, setPacks] = useState<RecentPack[]>([]);
+  const [predictions, setPredictions] = useState<RecentPrediction[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetch = async () => {
       try {
-        const gamesRes = await adminApi.getGames();
-        setGames(gamesRes.games || []);
+        const [statsRes, gamesRes, packsRes] = await Promise.allSettled([
+          adminApi.getStats(),
+          adminApi.getGames({ limit: 5 }),
+          adminApi.getPillPacks(),
+        ]);
+
+        if (statsRes.status === "fulfilled") setStats(statsRes.value);
+        if (gamesRes.status === "fulfilled") {
+          const games = gamesRes.value.games || [];
+          setPredictions(
+            (games as any[])
+              .filter((g) => g.game_type === "predictions")
+              .slice(0, 4) as RecentPrediction[]
+          );
+        }
+        if (packsRes.status === "fulfilled") {
+          setPacks((packsRes.value.packs || []).slice(0, 4) as RecentPack[]);
+        }
       } catch (err) {
         setError(err instanceof ApiError ? err.message : "Failed to load dashboard");
       } finally {
         setLoading(false);
       }
     };
-
-    fetchData();
+    fetch();
   }, []);
 
-  // Separate PILLS and TIME_MACHINE games
-  const pillsGames = games.filter((g) => g.game_type === "pills");
-  const timeMachineGames = games.filter((g) => g.game_type === "predictions");
-
-  const totalPlayers = games.reduce((sum, g) => sum + (g.stats?.total_players || 0), 0);
-  const totalRevenue = games.reduce((sum, g) => sum + (g.stats?.revenue || 0), 0);
-
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-5xl">
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-black text-white">Dashboard</h1>
-          <p className="text-gray-400 text-sm mt-1">Game management hub</p>
+          <h1 className="text-2xl font-black text-white">Dashboard</h1>
+          <p className="text-gray-500 text-sm mt-0.5">Live overview</p>
         </div>
         <Link
           href="/admin/games/create"
-          className="flex items-center gap-2 px-4 py-2 bg-neon text-black font-semibold rounded-lg hover:bg-neon/90 transition-colors"
+          className="flex items-center gap-2 px-4 py-2.5 bg-neon text-black font-bold rounded-xl hover:bg-neon/90 transition-colors text-sm"
         >
-          <Plus size={18} />
-          Create Game
+          <Plus size={16} /> Create Game
         </Link>
       </div>
 
-      {/* Error Banner */}
       {error && (
-        <div className="bg-red-900/20 border border-red-800/40 rounded-xl p-3 text-red-400 text-sm flex items-start gap-2">
-          <AlertCircle size={16} className="flex-shrink-0 mt-0.5" />
-          {error}
+        <div className="bg-red-900/20 border border-red-800/40 rounded-xl p-3 text-red-400 text-sm flex items-center gap-2">
+          <AlertCircle size={15} className="flex-shrink-0" /> {error}
         </div>
       )}
 
-      {/* Key Metrics */}
+      {/* ── Stats Row ── */}
       {loading ? (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="bg-card border border-[#2A2A2A] rounded-2xl p-4 h-20 flex items-center justify-center">
-              <Loader2 size={20} className="text-neon animate-spin" />
-            </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {[1,2,3,4].map((i) => (
+            <div key={i} className="bg-[#141414] border border-[#1E1E1E] rounded-2xl p-4 h-20 animate-pulse" />
           ))}
         </div>
-      ) : (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <div className="bg-card border border-[#2A2A2A] rounded-2xl p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <Gamepad2 size={16} className="text-neon" />
-              <span className="text-xs text-gray-500">Active Games</span>
-            </div>
-            <div className="text-2xl font-black text-white">{pillsGames.filter(g => g.status === "active").length + timeMachineGames.filter(g => g.status === "active").length}</div>
-          </div>
-
-          <div className="bg-card border border-[#2A2A2A] rounded-2xl p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <Users size={16} className="text-blue-400" />
-              <span className="text-xs text-gray-500">Players Today</span>
-            </div>
-            <div className="text-2xl font-black text-white">{totalPlayers.toLocaleString()}</div>
-          </div>
-
-          <div className="bg-card border border-[#2A2A2A] rounded-2xl p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <DollarSign size={16} className="text-neon" />
-              <span className="text-xs text-gray-500">Revenue Today</span>
-            </div>
-            <div className="text-2xl font-black text-neon">₦{(totalRevenue / 1000).toFixed(0)}k</div>
-          </div>
-
-          <div className="bg-card border border-[#2A2A2A] rounded-2xl p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <TrendingUp size={16} className="text-yellow-400" />
-              <span className="text-xs text-gray-500">Games Managed</span>
-            </div>
-            <div className="text-2xl font-black text-white">{games.length}</div>
-          </div>
+      ) : stats ? (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {[
+            {
+              icon: <DollarSign size={15} className="text-neon" />,
+              label: "Revenue Today",
+              value: `₦${stats.revenueToday.toLocaleString()}`,
+              sub: `₦${stats.payoutsToday.toLocaleString()} paid out`,
+              valueColor: "text-neon",
+            },
+            {
+              icon: <TrendingUp size={15} className="text-yellow-400" />,
+              label: "Profit Today",
+              value: `₦${stats.profitToday.toLocaleString()}`,
+              sub: `${stats.playsToday} plays`,
+              valueColor: "text-yellow-400",
+            },
+            {
+              icon: <Users size={15} className="text-blue-400" />,
+              label: "Total Players",
+              value: stats.totalPlayers.toLocaleString(),
+              sub: "Registered accounts",
+              valueColor: "text-white",
+            },
+            {
+              icon: <ShieldAlert size={15} className="text-orange-400" />,
+              label: "Pending Withdrawals",
+              value: stats.pendingWithdrawals.toString(),
+              sub: stats.pendingWithdrawals > 0 ? "Needs attention" : "All clear",
+              valueColor: stats.pendingWithdrawals > 0 ? "text-orange-400" : "text-white",
+            },
+          ].map((card, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.07 }}
+              className="bg-[#141414] border border-[#1E1E1E] rounded-2xl p-4"
+            >
+              <div className="flex items-center gap-2 mb-2">
+                {card.icon}
+                <span className="text-[11px] text-gray-500 font-medium">{card.label}</span>
+              </div>
+              <p className={`text-xl font-black ${card.valueColor}`}>{card.value}</p>
+              <p className="text-[11px] text-gray-600 mt-1">{card.sub}</p>
+            </motion.div>
+          ))}
         </div>
-      )}
+      ) : null}
 
-      {/* Games Overview */}
-      <div className="grid md:grid-cols-2 gap-4">
-        {/* PILLS Games */}
-        <div className="bg-card border border-[#2A2A2A] rounded-2xl p-5">
+      {/* ── Content Grid ── */}
+      <div className="grid lg:grid-cols-2 gap-5">
+
+        {/* Pill Packs */}
+        <div className="bg-[#141414] border border-[#1E1E1E] rounded-2xl p-5">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-black text-white">💊 PILLS</h2>
-            <span className="text-sm text-gray-400">{pillsGames.length} total</span>
+            <h2 className="font-black text-white">Pill Packs</h2>
+            <Link href="/admin/games?type=pills" className="text-xs text-neon hover:underline flex items-center gap-1">
+              View all <ArrowRight size={12} />
+            </Link>
           </div>
 
-          <div className="space-y-2 mb-4">
-            {pillsGames.slice(0, 3).map((game) => (
-              <Link
-                key={game.id}
-                href={`/admin/games/${game.id}`}
-                className="block p-3 bg-[#111] rounded-xl hover:border-neon border border-[#2A2A2A] transition-colors"
-              >
-                <div className="flex items-start justify-between mb-1">
-                  <div className="flex-1">
-                    <p className="text-sm font-semibold text-white truncate">{game.title}</p>
-                    <p className="text-xs text-gray-500 mt-0.5">
-                      {game.stats?.total_players || 0} plays · ₦{game.stats?.revenue || 0} revenue
-                    </p>
+          {loading ? (
+            <div className="space-y-2">
+              {[1,2].map((i) => <div key={i} className="h-14 bg-[#1A1A1A] rounded-xl animate-pulse" />)}
+            </div>
+          ) : packs.length === 0 ? (
+            <div className="py-8 text-center">
+              <p className="text-gray-600 text-sm">No pill packs yet</p>
+              <Link href="/admin/games/create" className="text-xs text-neon mt-2 inline-block hover:underline">
+                Create your first pack →
+              </Link>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {packs.map((pack) => (
+                <div
+                  key={pack.id}
+                  className="flex items-center justify-between bg-[#0E0E0E] border border-[#1E1E1E] rounded-xl px-3 py-3"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    {/* Pill color dots */}
+                    <div className="flex gap-1 flex-shrink-0">
+                      {pack.pills.slice(0, 5).map((p) => (
+                        <span
+                          key={p.id}
+                          className="w-3 h-3 rounded-full"
+                          style={{ background: p.color, opacity: p.status === "played" ? 0.3 : 1 }}
+                        />
+                      ))}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-white truncate">{pack.name}</p>
+                      <p className="text-[11px] text-gray-500">{pack.category} · {pack.pills.length} pills</p>
+                    </div>
                   </div>
-                  <span className={`text-xs font-bold px-2 py-1 rounded flex-shrink-0 ml-2 ${
-                    game.status === "active"
-                      ? "bg-neon/20 text-neon"
-                      : game.status === "draft"
-                      ? "bg-gray-800 text-gray-400"
-                      : "bg-red-900/20 text-red-400"
-                  }`}>
-                    {game.status}
+                  <span className={`text-[10px] font-bold px-2 py-1 rounded-full flex-shrink-0 ml-2 ${statusPill(pack.status)}`}>
+                    {pack.status}
                   </span>
                 </div>
-              </Link>
-            ))}
-          </div>
-
-          <Link
-            href="/admin/games?type=pills"
-            className="block text-center py-2 text-sm font-semibold text-neon hover:text-white transition-colors border border-neon/30 rounded-lg"
-          >
-            View All PILLS →
-          </Link>
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* TIME MACHINE Games */}
-        <div className="bg-card border border-[#2A2A2A] rounded-2xl p-5">
+        {/* Time Machine */}
+        <div className="bg-[#141414] border border-[#1E1E1E] rounded-2xl p-5">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-black text-white">⏰ TIME MACHINE</h2>
-            <span className="text-sm text-gray-400">{timeMachineGames.length} total</span>
+            <h2 className="font-black text-white">Time Machine</h2>
+            <Link href="/admin/games?type=predictions" className="text-xs text-neon hover:underline flex items-center gap-1">
+              View all <ArrowRight size={12} />
+            </Link>
           </div>
 
-          <div className="space-y-2 mb-4">
-            {timeMachineGames.slice(0, 3).map((game) => (
-              <Link
-                key={game.id}
-                href={`/admin/games/${game.id}`}
-                className="block p-3 bg-[#111] rounded-xl hover:border-neon border border-[#2A2A2A] transition-colors"
-              >
-                <div className="flex items-start justify-between mb-1">
-                  <div className="flex-1">
-                    <p className="text-sm font-semibold text-white truncate">{game.title}</p>
-                    <p className="text-xs text-gray-500 mt-0.5">
-                      {game.current_participants || 0} participants · ₦{game.stats?.revenue || 0} revenue
-                    </p>
-                  </div>
-                  <span className={`text-xs font-bold px-2 py-1 rounded flex-shrink-0 ml-2 ${
-                    game.status === "active"
-                      ? "bg-neon/20 text-neon"
-                      : game.status === "locked"
-                      ? "bg-orange-900/20 text-orange-400"
-                      : game.status === "completed"
-                      ? "bg-gray-800 text-gray-400"
-                      : "bg-red-900/20 text-red-400"
-                  }`}>
-                    {game.status}
-                  </span>
-                </div>
+          {loading ? (
+            <div className="space-y-2">
+              {[1,2].map((i) => <div key={i} className="h-14 bg-[#1A1A1A] rounded-xl animate-pulse" />)}
+            </div>
+          ) : predictions.length === 0 ? (
+            <div className="py-8 text-center">
+              <p className="text-gray-600 text-sm">No predictions yet</p>
+              <Link href="/admin/games/create" className="text-xs text-neon mt-2 inline-block hover:underline">
+                Create a prediction →
               </Link>
-            ))}
-          </div>
-
-          <Link
-            href="/admin/games?type=predictions"
-            className="block text-center py-2 text-sm font-semibold text-neon hover:text-white transition-colors border border-neon/30 rounded-lg"
-          >
-            View All TIME MACHINE →
-          </Link>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {predictions.map((pred) => {
+                const end = new Date(pred.countdown_end);
+                const now = new Date();
+                const diffH = Math.max(0, Math.floor((end.getTime() - now.getTime()) / 3600000));
+                return (
+                  <Link
+                    key={pred.id}
+                    href={`/admin/games/${pred.id}`}
+                    className="flex items-center justify-between bg-[#0E0E0E] border border-[#1E1E1E] rounded-xl px-3 py-3 hover:border-neon/30 transition-colors"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-white truncate">{pred.title}</p>
+                      <div className="flex items-center gap-3 mt-0.5">
+                        <span className="text-[11px] text-gray-500">{pred.category}</span>
+                        <span className="flex items-center gap-1 text-[11px] text-gray-500">
+                          <Users size={9} /> {pred.slots_filled}/{pred.max_slots}
+                        </span>
+                        {pred.status === "active" && (
+                          <span className="flex items-center gap-1 text-[11px] text-orange-400">
+                            <Clock size={9} /> {diffH}h left
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <span className={`text-[10px] font-bold px-2 py-1 rounded-full flex-shrink-0 ml-2 ${statusPill(pred.status)}`}>
+                      {pred.status}
+                    </span>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Quick Stats */}
-      <div className="grid md:grid-cols-3 gap-4">
-        <div className="bg-card border border-[#2A2A2A] rounded-2xl p-4">
-          <p className="text-xs text-gray-500 mb-2">Draft Games</p>
-          <p className="text-2xl font-black text-white">{games.filter(g => g.status === "draft").length}</p>
-          <p className="text-xs text-gray-400 mt-2">Ready to launch</p>
-        </div>
-
-        <div className="bg-card border border-[#2A2A2A] rounded-2xl p-4">
-          <p className="text-xs text-gray-500 mb-2">Total Revenue</p>
-          <p className="text-2xl font-black text-neon">₦{(totalRevenue / 1000).toFixed(0)}k</p>
-          <p className="text-xs text-gray-400 mt-2">All active games</p>
-        </div>
-
-        <div className="bg-card border border-[#2A2A2A] rounded-2xl p-4">
-          <p className="text-xs text-gray-500 mb-2">Completed Games</p>
-          <p className="text-2xl font-black text-white">{games.filter(g => g.status === "completed").length}</p>
-          <p className="text-xs text-gray-400 mt-2">With results processed</p>
-        </div>
+      {/* ── Quick Actions ── */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {[
+          { label: "Create Pack", href: "/admin/games/create", color: "border-neon/30 text-neon hover:bg-neon/10" },
+          { label: "Withdrawals", href: "/admin/withdrawals", color: "border-orange-700/30 text-orange-400 hover:bg-orange-900/10" },
+          { label: "Players", href: "/admin/players", color: "border-blue-700/30 text-blue-400 hover:bg-blue-900/10" },
+          { label: "Analytics", href: "/admin/analytics", color: "border-yellow-700/30 text-yellow-400 hover:bg-yellow-900/10" },
+        ].map((a) => (
+          <Link
+            key={a.href}
+            href={a.href}
+            className={`py-3 rounded-xl border text-center text-sm font-semibold transition-colors ${a.color}`}
+          >
+            {a.label}
+          </Link>
+        ))}
       </div>
+
     </div>
   );
 }
