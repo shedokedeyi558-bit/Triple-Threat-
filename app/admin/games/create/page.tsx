@@ -21,9 +21,7 @@ interface PillEntry {
   format: "multiple_choice" | "type_answer";
   options: string[];
   correct_answer: string;
-  timer: number;
-  entry_fee: number;
-  prize: number;
+  timer: number | "";
   color: string;
 }
 
@@ -32,9 +30,7 @@ const defaultPill = (): PillEntry => ({
   format: "multiple_choice",
   options: ["", "", "", ""],
   correct_answer: "",
-  timer: 30,
-  entry_fee: 200,
-  prize: 1000,
+  timer: "",
   color: PILL_COLORS[0],
 });
 
@@ -48,13 +44,15 @@ export default function CreateGamePage() {
   // Pill Pack config
   const [packName, setPackName] = useState("");
   const [packCategory, setPackCategory] = useState("General Knowledge");
+  const [packEntryFee, setPackEntryFee] = useState<number | "">("");
+  const [packPrize, setPackPrize] = useState<number | "">("");
   const [pills, setPills] = useState<PillEntry[]>([defaultPill()]);
   const [activePillIdx, setActivePillIdx] = useState(0);
 
   // Prediction config
   const [predConfig, setPredConfig] = useState({
     question: "", category: "Football",
-    entry_fee: 500, prize_per_winner: 2000, max_slots: 20, countdown_end: "",
+    entry_fee: "" as number | "", prize_per_winner: "" as number | "", max_slots: "" as number | "", countdown_end: "",
   });
 
   const activePill = pills[activePillIdx];
@@ -65,9 +63,6 @@ export default function CreateGamePage() {
   const addPill = () => {
     const next = defaultPill();
     next.color = PILL_COLORS[pills.length % PILL_COLORS.length];
-    next.entry_fee = pills[0].entry_fee;
-    next.prize = pills[0].prize;
-    next.timer = pills[0].timer;
     setPills((prev) => [...prev, next]);
     setActivePillIdx(pills.length);
   };
@@ -82,11 +77,12 @@ export default function CreateGamePage() {
     setError("");
     if (gameType === "pill_pack") {
       if (!packName.trim()) { setError("Pack name is required"); return false; }
+      if (!packEntryFee || packEntryFee <= 0) { setError("Entry fee is required"); return false; }
+      if (!packPrize || packPrize <= 0) { setError("Prize is required"); return false; }
       for (let i = 0; i < pills.length; i++) {
         const p = pills[i];
         if (!p.question.trim()) { setError(`Pill ${i + 1}: question is required`); setActivePillIdx(i); return false; }
-        if (p.entry_fee <= 0) { setError(`Pill ${i + 1}: entry fee must be > 0`); setActivePillIdx(i); return false; }
-        if (p.prize <= 0) { setError(`Pill ${i + 1}: prize must be > 0`); setActivePillIdx(i); return false; }
+        if (!p.timer || p.timer <= 0) { setError(`Pill ${i + 1}: timer is required`); setActivePillIdx(i); return false; }
         if (p.format === "multiple_choice" && p.options.some((o) => !o.trim())) {
           setError(`Pill ${i + 1}: all 4 options required`); setActivePillIdx(i); return false;
         }
@@ -94,6 +90,9 @@ export default function CreateGamePage() {
       }
     } else {
       if (!predConfig.question.trim()) { setError("Question is required"); return false; }
+      if (!predConfig.entry_fee || predConfig.entry_fee <= 0) { setError("Entry fee is required"); return false; }
+      if (!predConfig.prize_per_winner || predConfig.prize_per_winner <= 0) { setError("Prize is required"); return false; }
+      if (!predConfig.max_slots || predConfig.max_slots <= 0) { setError("Max players is required"); return false; }
       if (!predConfig.countdown_end) { setError("Countdown end is required"); return false; }
     }
     return true;
@@ -126,9 +125,9 @@ export default function CreateGamePage() {
             format: pill.format,
             options: pill.format === "multiple_choice" ? pill.options : undefined,
             correct_answer: pill.correct_answer,
-            timer: pill.timer,
-            entry_fee: pill.entry_fee,
-            prize: pill.prize,
+            timer: pill.timer as number,
+            entry_fee: packEntryFee as number,
+            prize: packPrize as number,
             color: pill.color,
           });
         }
@@ -143,9 +142,9 @@ export default function CreateGamePage() {
           title: predConfig.question.slice(0, 60),
           question: predConfig.question,
           category: predConfig.category,
-          entry_fee: predConfig.entry_fee,
-          prize_per_winner: predConfig.prize_per_winner,
-          max_slots: predConfig.max_slots,
+          entry_fee: predConfig.entry_fee as number,
+          prize_per_winner: predConfig.prize_per_winner as number,
+          max_slots: predConfig.max_slots as number,
           countdown_end: predConfig.countdown_end,
         } as any);
         router.push(`/admin/games/${res.game.id}`);
@@ -237,6 +236,28 @@ export default function CreateGamePage() {
               </div>
             </div>
 
+            {/* Pack-level fee and prize */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-gray-400 mb-1 block">Entry Fee per pill (₦) *</label>
+                <input
+                  type="number" min="50" placeholder="e.g. 200"
+                  value={packEntryFee}
+                  onChange={(e) => setPackEntryFee(e.target.value === "" ? "" : Number(e.target.value))}
+                  className="w-full bg-[#111] border border-[#2A2A2A] focus:border-neon rounded-lg px-3 py-2 text-sm text-white outline-none"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-gray-400 mb-1 block">Prize per pill (₦) *</label>
+                <input
+                  type="number" min="100" placeholder="e.g. 1000"
+                  value={packPrize}
+                  onChange={(e) => setPackPrize(e.target.value === "" ? "" : Number(e.target.value))}
+                  className="w-full bg-[#111] border border-[#2A2A2A] focus:border-neon rounded-lg px-3 py-2 text-sm text-white outline-none"
+                />
+              </div>
+            </div>
+
             {/* Pill tabs */}
             <div>
               <div className="flex items-center gap-2 mb-3 flex-wrap">
@@ -318,32 +339,11 @@ export default function CreateGamePage() {
                       </select>
                     </div>
                     <div>
-                      <label className="text-xs text-gray-400 mb-1 block">Timer (secs)</label>
+                      <label className="text-xs text-gray-400 mb-1 block">Timer (secs) *</label>
                       <input
-                        type="number" min="10"
+                        type="number" min="10" placeholder="e.g. 30"
                         value={activePill.timer}
-                        onChange={(e) => updatePill({ timer: Number(e.target.value) })}
-                        className="w-full bg-[#0A0A0A] border border-[#2A2A2A] focus:border-neon rounded-lg px-3 py-2 text-sm text-white outline-none"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-xs text-gray-400 mb-1 block">Entry Fee (₦)</label>
-                      <input
-                        type="number" min="50"
-                        value={activePill.entry_fee}
-                        onChange={(e) => updatePill({ entry_fee: Number(e.target.value) })}
-                        className="w-full bg-[#0A0A0A] border border-[#2A2A2A] focus:border-neon rounded-lg px-3 py-2 text-sm text-white outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs text-gray-400 mb-1 block">Prize (₦)</label>
-                      <input
-                        type="number" min="100"
-                        value={activePill.prize}
-                        onChange={(e) => updatePill({ prize: Number(e.target.value) })}
+                        onChange={(e) => updatePill({ timer: e.target.value === "" ? "" : Number(e.target.value) })}
                         className="w-full bg-[#0A0A0A] border border-[#2A2A2A] focus:border-neon rounded-lg px-3 py-2 text-sm text-white outline-none"
                       />
                     </div>
@@ -415,21 +415,21 @@ export default function CreateGamePage() {
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div>
-                <label className="text-xs text-gray-400 mb-1 block">Entry Fee (₦)</label>
-                <input type="number" min="100" value={predConfig.entry_fee}
-                  onChange={(e) => setPredConfig({ ...predConfig, entry_fee: Number(e.target.value) })}
+                <label className="text-xs text-gray-400 mb-1 block">Entry Fee (₦) *</label>
+                <input type="number" min="100" placeholder="e.g. 500" value={predConfig.entry_fee}
+                  onChange={(e) => setPredConfig({ ...predConfig, entry_fee: e.target.value === "" ? "" : Number(e.target.value) })}
                   className="w-full bg-[#111] border border-[#2A2A2A] focus:border-neon rounded-lg px-3 py-2 text-sm text-white outline-none" />
               </div>
               <div>
-                <label className="text-xs text-gray-400 mb-1 block">Prize/Winner (₦)</label>
-                <input type="number" min="100" value={predConfig.prize_per_winner}
-                  onChange={(e) => setPredConfig({ ...predConfig, prize_per_winner: Number(e.target.value) })}
+                <label className="text-xs text-gray-400 mb-1 block">Prize/Winner (₦) *</label>
+                <input type="number" min="100" placeholder="e.g. 2000" value={predConfig.prize_per_winner}
+                  onChange={(e) => setPredConfig({ ...predConfig, prize_per_winner: e.target.value === "" ? "" : Number(e.target.value) })}
                   className="w-full bg-[#111] border border-[#2A2A2A] focus:border-neon rounded-lg px-3 py-2 text-sm text-white outline-none" />
               </div>
               <div>
-                <label className="text-xs text-gray-400 mb-1 block">Max Players</label>
-                <input type="number" min="2" value={predConfig.max_slots}
-                  onChange={(e) => setPredConfig({ ...predConfig, max_slots: Number(e.target.value) })}
+                <label className="text-xs text-gray-400 mb-1 block">Max Players *</label>
+                <input type="number" min="2" placeholder="e.g. 20" value={predConfig.max_slots}
+                  onChange={(e) => setPredConfig({ ...predConfig, max_slots: e.target.value === "" ? "" : Number(e.target.value) })}
                   className="w-full bg-[#111] border border-[#2A2A2A] focus:border-neon rounded-lg px-3 py-2 text-sm text-white outline-none" />
               </div>
             </div>
@@ -475,11 +475,11 @@ export default function CreateGamePage() {
                 </div>
                 <div className="flex justify-between border-t border-[#2A2A2A] pt-3">
                   <span className="text-gray-400">Entry Fee</span>
-                  <span className="font-bold text-neon">₦{pills[0].entry_fee.toLocaleString()} / pill</span>
+                  <span className="font-bold text-neon">₦{(packEntryFee || 0).toLocaleString()} / pill</span>
                 </div>
                 <div className="flex justify-between border-t border-[#2A2A2A] pt-3">
                   <span className="text-gray-400">Prize</span>
-                  <span className="font-bold text-neon">₦{pills[0].prize.toLocaleString()} / pill</span>
+                  <span className="font-bold text-neon">₦{(packPrize || 0).toLocaleString()} / pill</span>
                 </div>
               </div>
             ) : (
