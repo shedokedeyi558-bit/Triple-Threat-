@@ -1,110 +1,444 @@
 "use client";
 
-import { useApp } from "@/context/AppContext";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
-import { Logo } from "@/components/ui/Logo";
+import { motion, AnimatePresence } from "framer-motion";
+import { useApp } from "@/context/AppContext";
+import { pillsApi, predictionsApi, type PillPack, type PillPackPill, type PredictionData, ApiError } from "@/lib/api";
 import { BottomNavigation } from "@/components/ui/BottomNavigation";
-import { motion } from "framer-motion";
+import { Wallet, Clock, ChevronRight, Users, Lock } from "lucide-react";
 import Link from "next/link";
-import { Pill, Clock } from "lucide-react";
 
+// ─── Pill color to tailwind-compatible style ───────────────────────────────────
+function pillGlow(color: string) {
+  return {
+    background: color,
+    boxShadow: `0 0 16px ${color}66, 0 0 32px ${color}33`,
+  };
+}
+
+// ─── Single animated pill icon ─────────────────────────────────────────────────
+function PillBead({
+  pill,
+  index,
+  onTap,
+}: {
+  pill: PillPackPill;
+  index: number;
+  onTap: (pill: PillPackPill) => void;
+}) {
+  const played = pill.status === "played";
+
+  return (
+    <motion.button
+      initial={{ scale: 0, opacity: 0 }}
+      animate={{ scale: 1, opacity: played ? 0.35 : 1 }}
+      transition={{ delay: index * 0.06, type: "spring", stiffness: 320, damping: 22 }}
+      whileHover={played ? {} : { scale: 1.18, rotate: [0, -8, 8, 0] }}
+      whileTap={played ? {} : { scale: 0.88 }}
+      onClick={() => !played && onTap(pill)}
+      disabled={played}
+      className="relative flex-shrink-0 w-11 h-11 rounded-full flex items-center justify-center"
+      style={played ? { background: "#333", boxShadow: "none" } : pillGlow(pill.color)}
+      aria-label={played ? "Already played" : `Play pill — ₦${pill.price}`}
+    >
+      {/* Pill capsule shape */}
+      <span className="text-[22px] select-none" style={{ filter: played ? "grayscale(1)" : "none" }}>
+        💊
+      </span>
+      {played && (
+        <motion.div
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          className="absolute inset-0 rounded-full flex items-center justify-center"
+        >
+          <span className="text-[10px] font-black text-gray-500">✓</span>
+        </motion.div>
+      )}
+      {/* Pulse ring on hover */}
+      {!played && (
+        <motion.span
+          className="absolute inset-0 rounded-full pointer-events-none"
+          animate={{ scale: [1, 1.5, 1], opacity: [0.4, 0, 0.4] }}
+          transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut", delay: index * 0.3 }}
+          style={{ border: `2px solid ${pill.color}` }}
+        />
+      )}
+    </motion.button>
+  );
+}
+
+// ─── Pill Pack card ────────────────────────────────────────────────────────────
+function PillPackCard({
+  pack,
+  onPillTap,
+}: {
+  pack: PillPack;
+  onPillTap: (pack: PillPack, pill: PillPackPill) => void;
+}) {
+  const available = pack.pills.filter((p) => p.status === "available").length;
+  const total = pack.pills.length;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 24 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ type: "spring", stiffness: 260, damping: 24 }}
+      className="bg-[#141414] border border-[#222] rounded-2xl p-4 space-y-4"
+    >
+      {/* Pack header */}
+      <div className="flex items-start justify-between">
+        <div>
+          <p className="text-[11px] font-bold uppercase tracking-widest text-gray-500">{pack.category}</p>
+          <h3 className="text-white font-black text-lg leading-tight mt-0.5">{pack.name}</h3>
+        </div>
+        <div className="text-right">
+          <p className="text-[11px] text-gray-500">{available}/{total} left</p>
+          <div className="flex gap-1 mt-1 justify-end">
+            {pack.pills.map((p) => (
+              <span
+                key={p.id}
+                className="w-2 h-2 rounded-full"
+                style={{ background: p.status === "available" ? p.color : "#333" }}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Pills row */}
+      <div className="flex gap-3 items-center flex-wrap">
+        {pack.pills.map((pill, i) => (
+          <PillBead
+            key={pill.id}
+            pill={pill}
+            index={i}
+            onTap={(p) => onPillTap(pack, p)}
+          />
+        ))}
+      </div>
+
+      {/* Entry fee hint */}
+      <p className="text-[11px] text-gray-600">
+        Tap a pill · ₦{pack.pills[0]?.price.toLocaleString() ?? "—"} per pill
+      </p>
+    </motion.div>
+  );
+}
+
+// ─── Prediction row ────────────────────────────────────────────────────────────
+function PredictionRow({
+  prediction,
+  onEnter,
+}: {
+  prediction: PredictionData;
+  onEnter: (p: PredictionData) => void;
+}) {
+  const end = new Date(prediction.countdown_end);
+  const now = new Date();
+  const diffMs = end.getTime() - now.getTime();
+  const hours = Math.floor(diffMs / 3600000);
+  const mins = Math.floor((diffMs % 3600000) / 60000);
+  const locked = prediction.status === "locked" || diffMs <= 0;
+  const timeLabel = locked ? "Locked" : hours > 0 ? `${hours}h ${mins}m left` : `${mins}m left`;
+
+  return (
+    <motion.button
+      initial={{ opacity: 0, x: -16 }}
+      animate={{ opacity: 1, x: 0 }}
+      whileTap={{ scale: 0.98 }}
+      onClick={() => !locked && onEnter(prediction)}
+      disabled={locked}
+      className="w-full bg-[#141414] border border-[#222] rounded-xl p-4 text-left flex items-center justify-between gap-3 disabled:opacity-50"
+    >
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 mb-1">
+          <span className="text-[10px] font-bold uppercase tracking-widest text-purple-400">{prediction.category}</span>
+          <span className={`flex items-center gap-1 text-[10px] font-semibold ${locked ? "text-orange-400" : "text-gray-400"}`}>
+            {locked ? <Lock size={10} /> : <Clock size={10} />}
+            {timeLabel}
+          </span>
+        </div>
+        <p className="text-white text-sm font-semibold leading-tight truncate">{prediction.question}</p>
+        <div className="flex items-center gap-3 mt-1.5">
+          <span className="flex items-center gap-1 text-[11px] text-gray-500">
+            <Users size={10} />
+            {prediction.slots_filled}/{prediction.max_slots}
+          </span>
+          <span className="text-[11px] text-neon font-bold">₦{prediction.fee.toLocaleString()} entry</span>
+          <span className="text-[11px] text-gray-400">· ₦{prediction.prize_per_winner.toLocaleString()}/win</span>
+        </div>
+      </div>
+      {!locked && <ChevronRight size={16} className="text-gray-600 flex-shrink-0" />}
+    </motion.button>
+  );
+}
+
+// ─── Pill confirm bottom sheet ─────────────────────────────────────────────────
+function PillSheet({
+  pack,
+  pill,
+  onConfirm,
+  onClose,
+  balance,
+}: {
+  pack: PillPack;
+  pill: PillPackPill;
+  onConfirm: () => void;
+  onClose: () => void;
+  balance: number;
+}) {
+  const canAfford = balance >= pill.price;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-end"
+      onClick={onClose}
+    >
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+
+      {/* Sheet */}
+      <motion.div
+        initial={{ y: "100%" }}
+        animate={{ y: 0 }}
+        exit={{ y: "100%" }}
+        transition={{ type: "spring", stiffness: 340, damping: 32 }}
+        onClick={(e) => e.stopPropagation()}
+        className="relative w-full bg-[#111] border-t border-[#222] rounded-t-3xl px-6 py-8 space-y-6"
+      >
+        {/* Drag handle */}
+        <div className="w-10 h-1 bg-[#333] rounded-full mx-auto -mt-2 mb-4" />
+
+        {/* Pill preview */}
+        <div className="flex flex-col items-center gap-3">
+          <motion.div
+            animate={{ rotate: [0, -10, 10, -10, 0], scale: [1, 1.1, 1] }}
+            transition={{ duration: 0.6, ease: "easeInOut" }}
+            className="w-20 h-20 rounded-full flex items-center justify-center text-5xl"
+            style={pillGlow(pill.color)}
+          >
+            💊
+          </motion.div>
+          <div className="text-center">
+            <p className="text-white font-black text-xl">{pack.name}</p>
+            <p className="text-gray-400 text-sm mt-0.5">{pack.category}</p>
+          </div>
+        </div>
+
+        {/* Stats */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="bg-[#1A1A1A] rounded-xl p-3 text-center">
+            <p className="text-[11px] text-gray-500 mb-1">Entry Fee</p>
+            <p className="text-neon font-black text-lg">₦{pill.price.toLocaleString()}</p>
+          </div>
+          <div className="bg-[#1A1A1A] rounded-xl p-3 text-center">
+            <p className="text-[11px] text-gray-500 mb-1">You can win</p>
+            <p className="text-white font-black text-lg">₦{pill.prize.toLocaleString()}</p>
+          </div>
+        </div>
+
+        {!canAfford && (
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-center text-red-400 text-sm"
+          >
+            Insufficient balance.{" "}
+            <Link href="/wallet" className="underline text-neon">Deposit</Link>
+          </motion.p>
+        )}
+
+        <div className="space-y-3">
+          <motion.button
+            whileTap={{ scale: 0.96 }}
+            onClick={onConfirm}
+            disabled={!canAfford}
+            className="w-full py-4 bg-neon text-black font-black text-lg rounded-xl disabled:opacity-40 disabled:cursor-not-allowed"
+            style={canAfford ? { boxShadow: "0 0 24px #00FF6644" } : {}}
+          >
+            Take This Pill
+          </motion.button>
+          <button
+            onClick={onClose}
+            className="w-full py-3 text-gray-500 text-sm font-semibold"
+          >
+            Cancel
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+// ─── Main page ─────────────────────────────────────────────────────────────────
 export default function PlayPage() {
-  const { state } = useApp();
+  const { state, dispatch } = useApp();
   const router = useRouter();
+
+  const [packs, setPacks] = useState<PillPack[]>([]);
+  const [predictions, setPredictions] = useState<PredictionData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  // Pill sheet state
+  const [sheet, setSheet] = useState<{ pack: PillPack; pill: PillPackPill } | null>(null);
 
   useEffect(() => {
     if (!state.isAuthenticated) {
       router.push("/auth");
+      return;
     }
-  }, [state.isAuthenticated, router]);
+    fetchAll();
+    const interval = setInterval(fetchAll, 15000);
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.isAuthenticated]);
+
+  const fetchAll = useCallback(async () => {
+    try {
+      const [packsRes, predsRes] = await Promise.allSettled([
+        pillsApi.getPacks(),
+        predictionsApi.getActive(),
+      ]);
+
+      if (packsRes.status === "fulfilled") setPacks(packsRes.value.packs ?? []);
+      if (predsRes.status === "fulfilled") setPredictions(predsRes.value.predictions ?? []);
+    } catch (err) {
+      if (err instanceof ApiError) setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const handlePillTap = (pack: PillPack, pill: PillPackPill) => {
+    setSheet({ pack, pill });
+  };
+
+  const handleConfirm = () => {
+    if (!sheet) return;
+    const { pill } = sheet;
+    setSheet(null);
+    router.push(`/pills/play/${pill.id}`);
+  };
+
+  const handleEnterPrediction = (prediction: PredictionData) => {
+    if (!state.player || state.player.balance < prediction.fee) {
+      setError("Insufficient balance. Please deposit.");
+      return;
+    }
+    dispatch({ type: "SELECT_PREDICTION", prediction });
+    router.push(`/predictions/play/${prediction.id}`);
+  };
 
   if (!state.isAuthenticated) return null;
 
-  const containerVariants = {
-    hidden: { opacity: 0, y: 10 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: { duration: 0.4, ease: "easeOut" },
-    },
-  };
-
   return (
-    <main className="min-h-screen bg-[#0A0A0A] text-white pb-32">
+    <main className="min-h-screen bg-[#0A0A0A] text-white pb-28">
       {/* Header */}
-      <header className="sticky top-0 z-40 bg-black/50 backdrop-blur-md border-b border-[#2A2A2A] px-4 sm:px-6 py-4">
+      <header className="sticky top-0 z-40 bg-[#0A0A0A]/90 backdrop-blur-md border-b border-[#1A1A1A] px-4 py-4">
         <div className="max-w-lg mx-auto flex items-center justify-between">
           <div>
-            <h1 className="font-black text-xl uppercase tracking-tight">Select Game</h1>
-            <p className="text-xs text-gray-500 mt-1">Choose your game mode</p>
+            <span className="font-black text-xl uppercase tracking-tight">
+              <span className="text-white">BIT</span>
+              <span className="text-neon">LYFE</span>
+            </span>
           </div>
           <Link
             href="/wallet"
-            className="px-3 py-2 rounded-lg bg-[#1A1A1A] border border-[#2A2A2A] text-neon font-semibold text-sm hover:border-neon/40 transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#141414] border border-[#222] text-neon font-bold text-sm hover:border-neon/40 transition-colors"
           >
-            ₦{state.player?.balance.toLocaleString()}
+            <Wallet size={14} />
+            ₦{state.player?.balance.toLocaleString() ?? "0"}
           </Link>
         </div>
       </header>
 
-      {/* Content */}
-      <section className="max-w-lg mx-auto px-4 py-8">
-        <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-          className="space-y-4"
-        >
-          {/* Pills Card */}
-          <Link href="/pills">
-            <motion.div
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-2xl p-6 cursor-pointer hover:border-neon/40 transition-colors group min-h-[140px] flex flex-col justify-between"
-            >
-              <div>
-                <div className="flex items-start gap-4 mb-3">
-                  <div className="p-3 rounded-xl bg-neon/10 group-hover:bg-neon/20 transition-colors">
-                    <Pill className="text-neon" size={32} />
-                  </div>
-                  <div className="flex-1">
-                    <h2 className="text-2xl font-bold text-white">Pills</h2>
-                    <p className="text-sm text-gray-500 mt-1">Quick answers</p>
-                  </div>
-                </div>
-              </div>
-              <p className="text-gray-400 text-sm">
-                Pick a pill. Answer fast. Win instantly.
-              </p>
-            </motion.div>
-          </Link>
+      <div className="max-w-lg mx-auto px-4 py-5 space-y-8">
 
-          {/* Time Machine Card */}
-          <Link href="/time-machine">
-            <motion.div
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-2xl p-6 cursor-pointer hover:border-neon/40 transition-colors group min-h-[140px] flex flex-col justify-between"
-            >
-              <div>
-                <div className="flex items-start gap-4 mb-3">
-                  <div className="p-3 rounded-xl bg-neon/10 group-hover:bg-neon/20 transition-colors">
-                    <Clock className="text-neon" size={32} />
-                  </div>
-                  <div className="flex-1">
-                    <h2 className="text-2xl font-bold text-white">Time Machine</h2>
-                    <p className="text-sm text-gray-500 mt-1">Make predictions</p>
-                  </div>
-                </div>
-              </div>
-              <p className="text-gray-400 text-sm">
-                Predict the future. Win when you&apos;re right.
-              </p>
-            </motion.div>
-          </Link>
-        </motion.div>
-      </section>
+        {error && (
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-red-400 text-sm bg-red-900/10 border border-red-900/30 rounded-xl p-3"
+          >
+            {error}
+          </motion.p>
+        )}
+
+        {/* ── PILLS SECTION ── */}
+        <section>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-white font-black text-xl tracking-tight">Pill Packs</h2>
+              <p className="text-gray-500 text-xs mt-0.5">Pick a pill. Answer fast. Win instantly.</p>
+            </div>
+          </div>
+
+          {loading ? (
+            <div className="space-y-3">
+              {[1, 2].map((i) => (
+                <div key={i} className="bg-[#141414] border border-[#1E1E1E] rounded-2xl p-4 h-28 animate-pulse" />
+              ))}
+            </div>
+          ) : packs.length === 0 ? (
+            <div className="bg-[#141414] border border-[#1E1E1E] rounded-2xl p-8 text-center">
+              <p className="text-gray-600 text-sm">No pill packs available right now</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {packs.map((pack) => (
+                <PillPackCard key={pack.id} pack={pack} onPillTap={handlePillTap} />
+              ))}
+            </div>
+          )}
+        </section>
+
+        {/* ── TIME MACHINE SECTION ── */}
+        <section>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-white font-black text-xl tracking-tight">Time Machine</h2>
+              <p className="text-gray-500 text-xs mt-0.5">Predict the future. Earn rewards.</p>
+            </div>
+          </div>
+
+          {loading ? (
+            <div className="space-y-2">
+              {[1, 2].map((i) => (
+                <div key={i} className="bg-[#141414] border border-[#1E1E1E] rounded-xl p-4 h-20 animate-pulse" />
+              ))}
+            </div>
+          ) : predictions.length === 0 ? (
+            <div className="bg-[#141414] border border-[#1E1E1E] rounded-xl p-8 text-center">
+              <p className="text-gray-600 text-sm">No active predictions right now</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {predictions.map((p) => (
+                <PredictionRow key={p.id} prediction={p} onEnter={handleEnterPrediction} />
+              ))}
+            </div>
+          )}
+        </section>
+
+      </div>
+
+      {/* Pill confirm sheet */}
+      <AnimatePresence>
+        {sheet && (
+          <PillSheet
+            pack={sheet.pack}
+            pill={sheet.pill}
+            balance={state.player?.balance ?? 0}
+            onConfirm={handleConfirm}
+            onClose={() => setSheet(null)}
+          />
+        )}
+      </AnimatePresence>
 
       <BottomNavigation />
     </main>

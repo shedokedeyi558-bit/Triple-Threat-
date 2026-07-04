@@ -465,9 +465,28 @@ export interface PillSubmitResponse {
   newBalance: number;
 }
 
+export interface PillPackPill {
+  id: string;
+  color: string;
+  price: number;
+  prize: number;
+  status: "available" | "played";
+}
+
+export interface PillPack {
+  id: string;
+  name: string;
+  category: string;
+  status: "active" | "inactive" | "draft";
+  pills: PillPackPill[];
+}
+
 export const pillsApi = {
   getAvailable: () =>
     request<{ pills: PillData[] }>("/api/pills/available", { token: getToken() }),
+
+  getPacks: () =>
+    request<{ packs: PillPack[] }>("/api/pills/packs", { token: getToken() }),
 
   open: (pillId: string) =>
     request<PillOpenResponse>("/api/pills/open", {
