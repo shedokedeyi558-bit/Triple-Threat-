@@ -5,13 +5,13 @@ import { usePathname } from "next/navigation";
 import { useAdmin } from "@/context/AdminContext";
 import { removeAdminToken } from "@/lib/api";
 import {
-  LayoutDashboard, FileQuestion, DoorOpen, Users, CreditCard,
-  BarChart2, Settings, LogOut, X
+  LayoutDashboard, Users, CreditCard,
+  BarChart2, Settings, LogOut, X, Plus
 } from "lucide-react";
 
 const links = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/admin/games", label: "Games", icon: LayoutDashboard },
+  { href: "/admin/games/create", label: "Create Game", icon: Plus },
   { href: "/admin/players", label: "Players", icon: Users },
   { href: "/admin/withdrawals", label: "Withdrawals", icon: CreditCard },
   { href: "/admin/analytics", label: "Analytics", icon: BarChart2 },
