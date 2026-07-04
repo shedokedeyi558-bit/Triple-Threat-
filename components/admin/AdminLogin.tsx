@@ -57,10 +57,6 @@ export function AdminLogin() {
       <div className="flex-1 flex items-center justify-center px-5">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <div className="font-black uppercase tracking-tight text-3xl leading-none mb-1">
-            <span className="text-white">BIT</span>
-            <span className="text-neon neon-text-glow">LYFE</span>
-          </div>
           <div className="text-gray-400 text-sm">Admin Panel</div>
         </div>
 
