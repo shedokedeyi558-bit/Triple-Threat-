@@ -759,6 +759,37 @@ export const adminApi = {
       token: getAdminToken(),
     }),
 
+  // Pill Packs (admin)
+  getPillPacks: () =>
+    request<{ packs: PillPack[] }>("/api/admin/pills/packs", { token: getAdminToken() }),
+
+  createPillPack: (data: { name: string; category: string }) =>
+    request<{ pack: { id: string; name: string; category: string; status: string } }>(
+      "/api/admin/pills/packs",
+      { method: "POST", body: data, token: getAdminToken() }
+    ),
+
+  updatePillPack: (packId: string, data: { name?: string; category?: string; status?: string }) =>
+    request<{ pack: { id: string; status: string } }>(
+      `/api/admin/pills/packs/${packId}`,
+      { method: "PUT", body: data, token: getAdminToken() }
+    ),
+
+  addPillToPack: (packId: string, data: {
+    question: string;
+    format: "multiple_choice" | "type_answer";
+    options?: string[];
+    correct_answer: string;
+    timer: number;
+    entry_fee: number;
+    prize: number;
+    color: string;
+  }) =>
+    request<{ pill: { id: string } }>(
+      `/api/admin/pills/packs/${packId}/pills`,
+      { method: "POST", body: data, token: getAdminToken() }
+    ),
+
   // Withdrawals — PUT for approve/reject
   getWithdrawals: (status?: string, page = 1, limit = 20) =>
     request<{ withdrawals: AdminWithdrawal[]; total: number }>("/api/admin/withdrawals", {
