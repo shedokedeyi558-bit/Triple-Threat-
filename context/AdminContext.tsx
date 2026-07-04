@@ -84,11 +84,17 @@ const AdminContext = createContext<{
 export function AdminProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(adminReducer, initialState);
 
-  // Rehydrate admin token on mount
+  // Rehydrate admin token on mount — only accept real JWTs (3 base64 segments)
   useEffect(() => {
     const token = getAdminToken();
     if (token) {
-      dispatch({ type: "ADMIN_LOGIN", token });
+      const isRealJwt = token.split(".").length === 3;
+      if (isRealJwt) {
+        dispatch({ type: "ADMIN_LOGIN", token });
+      } else {
+        // Stale mock token — clear it so user is shown login screen
+        removeAdminToken();
+      }
     }
   }, []);
 
