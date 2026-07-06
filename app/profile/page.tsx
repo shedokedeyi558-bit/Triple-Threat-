@@ -5,7 +5,7 @@ import { useApp } from "@/context/AppContext";
 import { removeToken } from "@/lib/api";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { LogOut, Wallet, Shield, FileText, ChevronRight, Phone, Trophy, Zap, Target } from "lucide-react";
+import { LogOut, Shield, FileText, ChevronRight, Phone, Trophy, Zap, Target } from "lucide-react";
 
 export default function ProfilePage() {
   const { state, dispatch } = useApp();
@@ -25,6 +25,16 @@ export default function ProfilePage() {
 
   return (
     <div className="h-full px-4 lg:px-8 py-6">
+
+      {/* Desktop: logout top-right */}
+      <div className="hidden lg:flex justify-end mb-4">
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-2 text-red-400 text-sm font-semibold hover:text-red-300 transition-colors"
+        >
+          <LogOut size={15} /> Log Out
+        </button>
+      </div>
       {/* On desktop: 2-col. On mobile: single col */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
 
@@ -63,30 +73,13 @@ export default function ProfilePage() {
             </div>
           </motion.div>
 
-          {/* Balance card */}
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.05 }}
-            className="bg-[#111] border border-[#1E1E1E] rounded-2xl p-5"
-          >
-            <p className="text-[11px] text-gray-600 uppercase tracking-widest font-bold mb-1">Wallet Balance</p>
-            <p className="text-neon font-black text-4xl">₦{player?.balance.toLocaleString() ?? "0"}</p>
-            <Link
-              href="/wallet"
-              className="mt-4 flex items-center justify-center gap-2 w-full py-3 bg-neon/10 border border-neon/20 rounded-xl text-neon font-bold text-sm hover:bg-neon/20 transition-colors"
-            >
-              <Wallet size={15} /> Manage Wallet
-            </Link>
-          </motion.div>
-
-          {/* Logout — desktop only here, mobile below */}
+          {/* Logout — mobile only */}
           <motion.button
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
             onClick={handleLogout}
-            className="lg:flex hidden w-full items-center justify-center gap-2.5 py-3.5 rounded-2xl border border-red-900/30 text-red-400 font-bold text-sm hover:bg-red-900/10 transition-colors"
+            className="lg:hidden w-full flex items-center justify-center gap-2.5 py-3.5 rounded-2xl border border-red-900/30 text-red-400 font-bold text-sm hover:bg-red-900/10 transition-colors"
           >
             <LogOut size={16} /> Log Out
           </motion.button>
