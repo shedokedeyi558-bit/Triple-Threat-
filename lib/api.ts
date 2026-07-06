@@ -559,6 +559,89 @@ export const predictionsApi = {
     }),
 };
 
+// ─── BLITZ ───────────────────────────────────────────────────────────────────
+
+export interface BlitzTournament {
+  id: string;
+  title: string;
+  description?: string;
+  entry_fee: number;
+  question_count: number;
+  time_limit_seconds: number;
+  registration_start: string;
+  tournament_start: string;
+  tournament_end: string;
+  status: "draft" | "registration" | "active" | "scoring" | "completed";
+  total_registered: number;
+  prize_pool: number;
+  platform_cut_percent: number;
+  created_at: string;
+}
+
+export interface BlitzQuestion {
+  id: string;
+  question: string;
+  format: "multiple_choice" | "type_answer";
+  options?: string[];
+  order_index: number;
+}
+
+export interface BlitzAttemptStart {
+  attempt_id: string;
+  questions: BlitzQuestion[];
+  time_limit_seconds: number;
+  started_at: string;
+}
+
+export interface BlitzSubmitResponse {
+  score: number;
+  total_questions: number;
+  rank_estimate: number;
+}
+
+export interface BlitzResult {
+  leaderboard: {
+    position: number;
+    player_phone: string;
+    score: number;
+    total_time_ms: number;
+    prize_type?: "cash" | "free_ticket";
+    amount?: number;
+  }[];
+  my_position?: number;
+  my_score?: number;
+  my_prize?: { prize_type: "cash" | "free_ticket"; amount: number; ticket_code?: string };
+}
+
+export const blitzApi = {
+  getAll: () =>
+    request<{ tournaments: BlitzTournament[] }>("/api/blitz", { token: getToken() }),
+
+  getOne: (id: string) =>
+    request<{ tournament: BlitzTournament; is_registered: boolean; has_attempted: boolean }>(
+      `/api/blitz/${id}`, { token: getToken() }
+    ),
+
+  register: (id: string, ticket_code?: string) =>
+    request<{ message: string; newBalance: number }>(
+      `/api/blitz/${id}/register`,
+      { method: "POST", body: { ticket_code }, token: getToken() }
+    ),
+
+  startAttempt: (id: string) =>
+    request<BlitzAttemptStart>(`/api/blitz/${id}/attempt/start`, {
+      method: "POST", token: getToken()
+    }),
+
+  submitAttempt: (id: string, answers: { question_id: string; answer: string }[]) =>
+    request<BlitzSubmitResponse>(`/api/blitz/${id}/attempt/submit`, {
+      method: "POST", body: { answers }, token: getToken()
+    }),
+
+  getResults: (id: string) =>
+    request<BlitzResult>(`/api/blitz/${id}/results`, { token: getToken() }),
+};
+
 export const adminApi = {
   // Games Management
   createGame: (data: {
@@ -812,4 +895,54 @@ export const adminApi = {
   // Export CSV — returns raw URL to open
   getExportUrl: (type: "sessions" | "players" | "withdrawals", days = 30) =>
     `${BASE_URL}/api/admin/export?type=${type}&days=${days}&token=${getAdminToken()}`,
+
+  // Blitz
+  getBlitzTournaments: () =>
+    request<{ tournaments: BlitzTournament[] }>("/api/admin/blitz", { token: getAdminToken() }),
+
+  createBlitz: (data: {
+    title: string;
+    description?: string;
+    entry_fee: number;
+    question_count: number;
+    time_limit_seconds: number;
+    registration_start: string;
+    tournament_start: string;
+    tournament_end: string;
+    platform_cut_percent?: number;
+  }) =>
+    request<{ tournament: BlitzTournament }>("/api/admin/blitz", {
+      method: "POST", body: data, token: getAdminToken()
+    }),
+
+  addBlitzQuestion: (id: string, data: {
+    question: string;
+    format: "multiple_choice" | "type_answer";
+    options?: string[];
+    correct_answer: string;
+    order_index?: number;
+  }) =>
+    request<{ question: BlitzQuestion }>(`/api/admin/blitz/${id}/questions`, {
+      method: "POST", body: data, token: getAdminToken()
+    }),
+
+  publishBlitz: (id: string) =>
+    request<{ message: string }>(`/api/admin/blitz/${id}/publish`, {
+      method: "POST", token: getAdminToken()
+    }),
+
+  activateBlitz: (id: string) =>
+    request<{ message: string }>(`/api/admin/blitz/${id}/activate`, {
+      method: "POST", token: getAdminToken()
+    }),
+
+  scoreBlitz: (id: string) =>
+    request<{ message: string; winners: number }>(`/api/admin/blitz/${id}/score`, {
+      method: "POST", token: getAdminToken()
+    }),
+
+  getBlitzLeaderboard: (id: string) =>
+    request<{ leaderboard: BlitzResult["leaderboard"] }>(`/api/admin/blitz/${id}/leaderboard`, {
+      token: getAdminToken()
+    }),
 };

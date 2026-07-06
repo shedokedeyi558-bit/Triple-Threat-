@@ -4,9 +4,9 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useApp } from "@/context/AppContext";
-import { pillsApi, predictionsApi, type PillPack, type PillPackPill, type PredictionData, ApiError } from "@/lib/api";
+import { pillsApi, predictionsApi, blitzApi, type PillPack, type PillPackPill, type PredictionData, type BlitzTournament, ApiError } from "@/lib/api";
 import { BottomNavigation } from "@/components/ui/BottomNavigation";
-import { Wallet, Clock, ChevronRight, Users, Lock } from "lucide-react";
+import { Wallet, Clock, ChevronRight, Users, Lock, Zap } from "lucide-react";
 import Link from "next/link";
 
 // ─── Pill color to tailwind-compatible style ───────────────────────────────────
@@ -281,6 +281,7 @@ export default function PlayPage() {
 
   const [packs, setPacks] = useState<PillPack[]>([]);
   const [predictions, setPredictions] = useState<PredictionData[]>([]);
+  const [blitzTournaments, setBlitzTournaments] = useState<BlitzTournament[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -300,13 +301,15 @@ export default function PlayPage() {
 
   const fetchAll = useCallback(async () => {
     try {
-      const [packsRes, predsRes] = await Promise.allSettled([
+      const [packsRes, predsRes, blitzRes] = await Promise.allSettled([
         pillsApi.getPacks(),
         predictionsApi.getActive(),
+        blitzApi.getAll(),
       ]);
 
       if (packsRes.status === "fulfilled") setPacks(packsRes.value.packs ?? []);
       if (predsRes.status === "fulfilled") setPredictions(predsRes.value.predictions ?? []);
+      if (blitzRes.status === "fulfilled") setBlitzTournaments(blitzRes.value.tournaments ?? []);
     } catch (err) {
       if (err instanceof ApiError) setError(err.message);
     } finally {
@@ -395,6 +398,77 @@ export default function PlayPage() {
               ))}
             </div>
           )}
+        </section>
+
+        {/* ── BLITZ SECTION ── */}
+        <section>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-white font-black text-xl tracking-tight flex items-center gap-2">
+                <Zap size={18} className="text-neon" />
+                Blitz
+              </h2>
+              <p className="text-gray-500 text-xs mt-0.5">Speed quiz tournaments. Win big.</p>
+            </div>
+            <Link href="/blitz" className="text-neon text-xs font-bold flex items-center gap-1 hover:underline">
+              All <ChevronRight size={14} />
+            </Link>
+          </div>
+
+          {loading ? (
+            <div className="space-y-2">
+              {[1].map((i) => (
+                <div key={i} className="bg-[#141414] border border-[#1E1E1E] rounded-xl p-4 h-20 animate-pulse" />
+              ))}
+            </div>
+          ) : (() => {
+            const liveBlitz = blitzTournaments.filter(
+              (t) => t.status === "active" || t.status === "registration"
+            );
+            if (liveBlitz.length === 0) {
+              return (
+                <p className="text-gray-700 text-xs">No active tournaments right now</p>
+              );
+            }
+            return (
+              <div className="space-y-2">
+                {liveBlitz.map((t, i) => (
+                  <motion.button
+                    key={t.id}
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.07 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => router.push(`/blitz/${t.id}`)}
+                    className="w-full bg-[#141414] border border-[#1E1E1E] rounded-xl p-3.5 text-left flex items-center justify-between gap-3 hover:border-neon/30 transition-colors"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Zap size={12} className="text-neon flex-shrink-0" />
+                        <p className="text-white font-bold text-sm truncate">{t.title}</p>
+                        <span className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded flex-shrink-0 ${
+                          t.status === "active"
+                            ? "bg-neon/20 text-neon"
+                            : "bg-blue-500/20 text-blue-400"
+                        }`}>
+                          {t.status === "active" ? "Live" : "Open"}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3 text-[11px]">
+                        <span className="text-neon font-semibold">₦{t.entry_fee.toLocaleString()}</span>
+                        <span className="text-gray-500">Pool: ₦{t.prize_pool.toLocaleString()}</span>
+                        <span className="flex items-center gap-1 text-gray-500">
+                          <Users size={10} />
+                          {t.total_registered}
+                        </span>
+                      </div>
+                    </div>
+                    <ChevronRight size={16} className="text-gray-600 flex-shrink-0" />
+                  </motion.button>
+                ))}
+              </div>
+            );
+          })()}
         </section>
 
         {/* ── TIME MACHINE SECTION ── */}
