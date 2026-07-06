@@ -38,11 +38,18 @@ interface CreatePillPackFormProps {
 
 export function CreatePillPackForm({ isOpen, onClose, onSuccess }: CreatePillPackFormProps) {
   const [step, setStep] = useState<"config" | "pills" | "review">("config");
-  const [packName, setPackName] = useState("");
+  const [packName, setPackName] = useState("Test Pack");
   const [packCategory, setPackCategory] = useState("General Knowledge");
-  const [packEntryFee, setPackEntryFee] = useState<number | "">("");
-  const [packPrize, setPackPrize] = useState<number | "">("");
-  const [pills, setPills] = useState<PillEntry[]>([defaultPill()]);
+  const [packEntryFee, setPackEntryFee] = useState<number | "">(200);
+  const [packPrize, setPackPrize] = useState<number | "">(1000);
+  const [pills, setPills] = useState<PillEntry[]>([{
+    question: "What is the capital of France?",
+    format: "multiple_choice",
+    options: ["Berlin", "Paris", "Rome", "Madrid"],
+    correct_answer: "Paris",
+    timer: 30,
+    color: PILL_COLORS[0],
+  }]);
   const [activePillIdx, setActivePillIdx] = useState(0);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
