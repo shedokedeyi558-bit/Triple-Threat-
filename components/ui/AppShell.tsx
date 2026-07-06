@@ -3,13 +3,12 @@
 import { useApp } from "@/context/AppContext";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { Gamepad2, Wallet, User, Zap, LogOut } from "lucide-react";
+import { Gamepad2, Wallet, User, LogOut } from "lucide-react";
 import { removeToken } from "@/lib/api";
 import { useRouter } from "next/navigation";
 
 const navItems = [
   { href: "/play",    label: "Play",    icon: Gamepad2 },
-  { href: "/blitz",   label: "Blitz",   icon: Zap },
   { href: "/wallet",  label: "Wallet",  icon: Wallet },
   { href: "/profile", label: "Profile", icon: User },
 ];
