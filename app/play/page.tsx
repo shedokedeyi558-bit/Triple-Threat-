@@ -342,8 +342,8 @@ export default function PlayPage() {
   return (
     <main className="min-h-screen bg-[#0A0A0A] text-white pb-28">
       {/* Header */}
-      <header className="sticky top-0 z-40 bg-[#0A0A0A]/90 backdrop-blur-md border-b border-[#1A1A1A] px-4 py-4">
-        <div className="max-w-lg mx-auto flex items-center justify-between">
+      <header className="sticky top-0 z-40 bg-[#0A0A0A]/90 backdrop-blur-md border-b border-[#1A1A1A] px-6 py-4">
+        <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div>
             <span className="font-black text-xl uppercase tracking-tight">
               <span className="text-white">BIT</span>
@@ -360,145 +360,144 @@ export default function PlayPage() {
         </div>
       </header>
 
-      <div className="max-w-lg mx-auto px-4 py-5 space-y-8">
+      <div className="max-w-6xl mx-auto px-6 py-6">
 
         {error && (
           <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="text-red-400 text-sm bg-red-900/10 border border-red-900/30 rounded-xl p-3"
+            className="text-red-400 text-sm bg-red-900/10 border border-red-900/30 rounded-xl p-3 mb-6"
           >
             {error}
           </motion.p>
         )}
 
-        {/* ── PILLS SECTION ── */}
-        <section>
-          <div className="flex items-center justify-between mb-4">
-            <div>
+        {/* Desktop: 3-column grid. Mobile: single column stack */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+          {/* ── PILLS SECTION ── */}
+          <section className="lg:col-span-1">
+            <div className="mb-4">
               <h2 className="text-white font-black text-xl tracking-tight">Pill Packs</h2>
               <p className="text-gray-500 text-xs mt-0.5">Pick a pill. Answer fast. Win instantly.</p>
             </div>
-          </div>
 
-          {loading ? (
-            <div className="space-y-3">
-              {[1, 2].map((i) => (
-                <div key={i} className="bg-[#141414] border border-[#1E1E1E] rounded-2xl p-4 h-28 animate-pulse" />
-              ))}
-            </div>
-          ) : packs.length === 0 ? (
-            <div className="bg-[#141414] border border-[#1E1E1E] rounded-2xl p-8 text-center">
-              <p className="text-gray-600 text-sm">No pill packs available right now</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {packs.map((pack) => (
-                <PillPackCard key={pack.id} pack={pack} onPillTap={handlePillTap} />
-              ))}
-            </div>
-          )}
-        </section>
-
-        {/* ── BLITZ SECTION ── */}
-        <section>
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h2 className="text-white font-black text-xl tracking-tight flex items-center gap-2">
-                <Zap size={18} className="text-neon" />
-                Blitz
-              </h2>
-              <p className="text-gray-500 text-xs mt-0.5">Speed quiz tournaments. Win big.</p>
-            </div>
-            <Link href="/blitz" className="text-neon text-xs font-bold flex items-center gap-1 hover:underline">
-              All <ChevronRight size={14} />
-            </Link>
-          </div>
-
-          {loading ? (
-            <div className="space-y-2">
-              {[1].map((i) => (
-                <div key={i} className="bg-[#141414] border border-[#1E1E1E] rounded-xl p-4 h-20 animate-pulse" />
-              ))}
-            </div>
-          ) : (() => {
-            const liveBlitz = blitzTournaments.filter(
-              (t) => t.status === "active" || t.status === "registration"
-            );
-            if (liveBlitz.length === 0) {
-              return (
-                <p className="text-gray-700 text-xs">No active tournaments right now</p>
-              );
-            }
-            return (
-              <div className="space-y-2">
-                {liveBlitz.map((t, i) => (
-                  <motion.button
-                    key={t.id}
-                    initial={{ opacity: 0, y: 12 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.07 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => router.push(`/blitz/${t.id}`)}
-                    className="w-full bg-[#141414] border border-[#1E1E1E] rounded-xl p-3.5 text-left flex items-center justify-between gap-3 hover:border-neon/30 transition-colors"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <Zap size={12} className="text-neon flex-shrink-0" />
-                        <p className="text-white font-bold text-sm truncate">{t.title}</p>
-                        <span className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded flex-shrink-0 ${
-                          t.status === "active"
-                            ? "bg-neon/20 text-neon"
-                            : "bg-blue-500/20 text-blue-400"
-                        }`}>
-                          {t.status === "active" ? "Live" : "Open"}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-3 text-[11px]">
-                        <span className="text-neon font-semibold">₦{t.entry_fee.toLocaleString()}</span>
-                        <span className="text-gray-500">Pool: ₦{t.prize_pool.toLocaleString()}</span>
-                        <span className="flex items-center gap-1 text-gray-500">
-                          <Users size={10} />
-                          {t.total_registered}
-                        </span>
-                      </div>
-                    </div>
-                    <ChevronRight size={16} className="text-gray-600 flex-shrink-0" />
-                  </motion.button>
+            {loading ? (
+              <div className="space-y-3">
+                {[1, 2].map((i) => (
+                  <div key={i} className="bg-[#141414] border border-[#1E1E1E] rounded-2xl p-4 h-28 animate-pulse" />
                 ))}
               </div>
-            );
-          })()}
-        </section>
+            ) : packs.length === 0 ? (
+              <div className="bg-[#141414] border border-[#1E1E1E] rounded-2xl p-8 text-center">
+                <p className="text-gray-600 text-sm">No pill packs available right now</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {packs.map((pack) => (
+                  <PillPackCard key={pack.id} pack={pack} onPillTap={handlePillTap} />
+                ))}
+              </div>
+            )}
+          </section>
 
-        {/* ── TIME MACHINE SECTION ── */}
-        <section>
-          <div className="flex items-center justify-between mb-4">
-            <div>
+          {/* ── BLITZ SECTION ── */}
+          <section className="lg:col-span-1">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-white font-black text-xl tracking-tight flex items-center gap-2">
+                  <Zap size={18} className="text-neon" />
+                  Blitz
+                </h2>
+                <p className="text-gray-500 text-xs mt-0.5">Speed quiz tournaments. Win big.</p>
+              </div>
+              <Link href="/blitz" className="text-neon text-xs font-bold flex items-center gap-1 hover:underline">
+                All <ChevronRight size={14} />
+              </Link>
+            </div>
+
+            {loading ? (
+              <div className="space-y-2">
+                {[1].map((i) => (
+                  <div key={i} className="bg-[#141414] border border-[#1E1E1E] rounded-xl p-4 h-20 animate-pulse" />
+                ))}
+              </div>
+            ) : (() => {
+              const liveBlitz = blitzTournaments.filter(
+                (t) => t.status === "active" || t.status === "registration"
+              );
+              if (liveBlitz.length === 0) {
+                return (
+                  <div className="bg-[#141414] border border-[#1E1E1E] rounded-2xl p-8 text-center">
+                    <p className="text-gray-600 text-sm">No active tournaments right now</p>
+                  </div>
+                );
+              }
+              return (
+                <div className="space-y-2">
+                  {liveBlitz.map((t, i) => (
+                    <motion.button
+                      key={t.id}
+                      initial={{ opacity: 0, y: 12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.07 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => router.push(`/blitz/${t.id}`)}
+                      className="w-full bg-[#141414] border border-[#1E1E1E] rounded-xl p-3.5 text-left flex items-center justify-between gap-3 hover:border-neon/30 transition-colors"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Zap size={12} className="text-neon flex-shrink-0" />
+                          <p className="text-white font-bold text-sm truncate">{t.title}</p>
+                          <span className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded flex-shrink-0 ${
+                            t.status === "active" ? "bg-neon/20 text-neon" : "bg-blue-500/20 text-blue-400"
+                          }`}>
+                            {t.status === "active" ? "Live" : "Open"}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3 text-[11px]">
+                          <span className="text-neon font-semibold">₦{t.entry_fee.toLocaleString()}</span>
+                          <span className="text-gray-500">Pool: ₦{t.prize_pool.toLocaleString()}</span>
+                          <span className="flex items-center gap-1 text-gray-500">
+                            <Users size={10} /> {t.total_registered}
+                          </span>
+                        </div>
+                      </div>
+                      <ChevronRight size={16} className="text-gray-600 flex-shrink-0" />
+                    </motion.button>
+                  ))}
+                </div>
+              );
+            })()}
+          </section>
+
+          {/* ── TIME MACHINE SECTION ── */}
+          <section className="lg:col-span-1">
+            <div className="mb-4">
               <h2 className="text-white font-black text-xl tracking-tight">Time Machine</h2>
               <p className="text-gray-500 text-xs mt-0.5">Predict the future. Earn rewards.</p>
             </div>
-          </div>
 
-          {loading ? (
-            <div className="space-y-2">
-              {[1, 2].map((i) => (
-                <div key={i} className="bg-[#141414] border border-[#1E1E1E] rounded-xl p-4 h-20 animate-pulse" />
-              ))}
-            </div>
-          ) : predictions.length === 0 ? (
-            <div className="bg-[#141414] border border-[#1E1E1E] rounded-xl p-8 text-center">
-              <p className="text-gray-600 text-sm">No active predictions right now</p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {predictions.map((p) => (
-                <PredictionRow key={p.id} prediction={p} onEnter={handleEnterPrediction} />
-              ))}
-            </div>
-          )}
-        </section>
+            {loading ? (
+              <div className="space-y-2">
+                {[1, 2].map((i) => (
+                  <div key={i} className="bg-[#141414] border border-[#1E1E1E] rounded-xl p-4 h-20 animate-pulse" />
+                ))}
+              </div>
+            ) : predictions.length === 0 ? (
+              <div className="bg-[#141414] border border-[#1E1E1E] rounded-xl p-8 text-center">
+                <p className="text-gray-600 text-sm">No active predictions right now</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {predictions.map((p) => (
+                  <PredictionRow key={p.id} prediction={p} onEnter={handleEnterPrediction} />
+                ))}
+              </div>
+            )}
+          </section>
 
+        </div>
       </div>
 
       {/* Pill confirm sheet */}
