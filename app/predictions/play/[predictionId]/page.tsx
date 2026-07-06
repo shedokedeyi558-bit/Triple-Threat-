@@ -108,7 +108,12 @@ export default function PredictionPlayPage() {
       if (err instanceof ApiError) {
         // Backend returns already_entered: true with 409 — skip to submit
         if (err.status === 409 || err.message.toLowerCase().includes("already")) {
+          setError(null);
           setPageState("submit");
+        } else if (err.message.toLowerCase().includes("not participated")) {
+          // Player somehow got here without entering — show enter button cleanly
+          setError(null);
+          setPageState("enter");
         } else {
           setError(err.message);
         }
@@ -134,6 +139,10 @@ export default function PredictionPlayPage() {
         if (err.status === 409 || err.message.toLowerCase().includes("already submitted")) {
           setUserAnswer(answer);
           setPageState("locked");
+        } else if (err.message.toLowerCase().includes("not participated")) {
+          // Haven't entered yet — send back to enter step
+          setError(null);
+          setPageState("enter");
         } else {
           setError(err.message);
         }
