@@ -17,7 +17,7 @@ export function BottomNavigation() {
   };
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-[#0A0A0A] border-t border-[#2A2A2A] z-40">
+    <nav className="fixed bottom-0 left-0 right-0 bg-[#0A0A0A] border-t border-[#2A2A2A] z-40 lg:hidden">
       <div className="max-w-lg mx-auto flex items-center justify-around h-20 px-4">
         <Link
           href="/play"

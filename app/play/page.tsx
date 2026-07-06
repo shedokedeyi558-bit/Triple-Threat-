@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useApp } from "@/context/AppContext";
 import { pillsApi, predictionsApi, blitzApi, type PillPack, type PillPackPill, type PredictionData, type BlitzTournament, ApiError } from "@/lib/api";
@@ -278,6 +279,7 @@ function PillSheet({
 export default function PlayPage() {
   const { state, dispatch } = useApp();
   const router = useRouter();
+  const pathname = usePathname();
 
   const [packs, setPacks] = useState<PillPack[]>([]);
   const [predictions, setPredictions] = useState<PredictionData[]>([]);
@@ -350,6 +352,30 @@ export default function PlayPage() {
               <span className="text-neon">LYFE</span>
             </span>
           </div>
+
+          {/* Desktop nav links — hidden on mobile */}
+          <nav className="hidden lg:flex items-center gap-1">
+            {[
+              { href: "/play", label: "Play", icon: <Zap size={15} /> },
+              { href: "/wallet", label: "Wallet", icon: <Wallet size={15} /> },
+              { href: "/profile", label: "Profile", icon: <Users size={15} /> },
+            ].map((item) => {
+              const active = pathname.startsWith(item.href);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                    active ? "text-neon bg-neon/10" : "text-gray-400 hover:text-white hover:bg-[#1A1A1A]"
+                  }`}
+                >
+                  {item.icon}
+                  {item.label}
+                </Link>
+              );
+            })}
+          </nav>
+
           <Link
             href="/wallet"
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#141414] border border-[#222] text-neon font-bold text-sm hover:border-neon/40 transition-colors"
