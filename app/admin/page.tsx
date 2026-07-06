@@ -229,7 +229,7 @@ export default function AdminDashboard() {
                 return (
                   <Link
                     key={pred.id}
-                    href={`/admin/games/${pred.id}`}
+                    href={`/admin/predictions/${pred.id}`}
                     className="flex items-center justify-between bg-[#0E0E0E] border border-[#1E1E1E] rounded-xl px-3 py-2.5 hover:border-neon/20 transition-colors"
                   >
                     <div className="min-w-0 flex-1">
