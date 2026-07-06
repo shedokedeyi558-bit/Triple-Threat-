@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { useApp } from "@/context/AppContext";
-import { predictionsApi, type PredictionData, ApiError } from "@/lib/api";
+import { predictionsApi, type PredictionData } from "@/lib/api";
 import PredictionCard from "@/components/ui/PredictionCard";
 import { AlertCircle, Loader } from "lucide-react";
 
@@ -41,31 +41,9 @@ export default function TimeMachinePage() {
 
   const handlePredictionEnter = async (prediction: PredictionData) => {
     if (!state.player) return;
-
-    // Check balance
-    if (state.player.balance < prediction.fee) {
-      setError("Insufficient balance. Please deposit to play.");
-      return;
-    }
-
-    try {
-      // Enter (pay entry fee & register)
-      await predictionsApi.enter(prediction.id);
-      dispatch({ type: "SELECT_PREDICTION", prediction });
-      router.push(`/predictions/play/${prediction.id}`);
-    } catch (err) {
-      if (err instanceof ApiError) {
-        // If already entered, just navigate
-        if (err.message.toLowerCase().includes("already") || err.status === 409) {
-          dispatch({ type: "SELECT_PREDICTION", prediction });
-          router.push(`/predictions/play/${prediction.id}`);
-        } else {
-          setError(err.message);
-        }
-      } else {
-        setError("Failed to enter prediction");
-      }
-    }
+    // Just navigate — enter & pay happens on the play page
+    dispatch({ type: "SELECT_PREDICTION", prediction });
+    router.push(`/predictions/play/${prediction.id}`);
   };
 
   return (

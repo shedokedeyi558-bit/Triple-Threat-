@@ -5,12 +5,11 @@ import { useParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { useApp } from "@/context/AppContext";
 import { predictionsApi, ApiError, type PredictionData } from "@/lib/api";
-import PredictionPlay from "@/components/ui/PredictionPlay";
 import PredictionLocked from "@/components/ui/PredictionLocked";
 import PredictionResult from "@/components/ui/PredictionResult";
-import { AlertCircle, Loader, ChevronLeft } from "lucide-react";
+import { AlertCircle, Loader, ChevronLeft, Clock, Loader2 } from "lucide-react";
 
-type PageState = "loading" | "play" | "locked" | "result" | "error";
+type PageState = "loading" | "enter" | "submit" | "locked" | "result" | "error";
 
 export default function PredictionPlayPage() {
   const params = useParams();
@@ -20,32 +19,28 @@ export default function PredictionPlayPage() {
 
   const [pageState, setPageState] = useState<PageState>("loading");
   const [prediction, setPrediction] = useState<PredictionData | null>(null);
+  const [answer, setAnswer] = useState("");
   const [userAnswer, setUserAnswer] = useState<string | null>(null);
   const [result, setResult] = useState<{ won: boolean; correctAnswer: string; prize: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [entering, setEntering] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  // Only show errors from submit actions, not from initial load checks
-  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [timeLeft, setTimeLeft] = useState(0);
 
   useEffect(() => {
-    if (!state.isAuthenticated) {
-      router.push("/auth");
-      return;
-    }
+    if (!state.isAuthenticated) { router.push("/auth"); return; }
 
     const init = async () => {
       try {
-        // 1. Try to get result first (if already answered + revealed)
+        // Try result first (admin may have revealed answer)
         try {
           const res = await predictionsApi.getResult(predictionId);
           setResult({ won: res.won, correctAnswer: res.correctAnswer, prize: res.prize || 0 });
           setPageState("result");
           return;
-        } catch {
-          // Not revealed yet — continue
-        }
+        } catch { /* not revealed yet */ }
 
-        // 2. Load active predictions list to find this one
+        // Load prediction data
         const listRes = await predictionsApi.getActive();
         const found = listRes.predictions.find((p) => p.id === predictionId);
 
@@ -57,16 +52,14 @@ export default function PredictionPlayPage() {
 
         setPrediction(found);
 
-        // 3. Check if locked (countdown passed)
-        const isLocked = found.status === "locked" || new Date(found.countdown_end) < new Date();
-        if (isLocked) {
-          setUserAnswer(state.pills.userPredictionAnswer || "");
+        // If locked, show locked state
+        if (found.status === "locked" || new Date(found.countdown_end) < new Date()) {
           setPageState("locked");
           return;
         }
 
-        // 4. Show play state
-        setPageState("play");
+        // Default: show enter screen
+        setPageState("enter");
       } catch (err) {
         setError(err instanceof ApiError ? err.message : "Failed to load prediction");
         setPageState("error");
@@ -74,82 +67,178 @@ export default function PredictionPlayPage() {
     };
 
     init();
-  }, [state.isAuthenticated, predictionId, router, state.pills.userPredictionAnswer]);
+  }, [state.isAuthenticated, predictionId, router]);
 
-  const handleSubmit = async (answer: string) => {
+  // Countdown timer
+  useEffect(() => {
+    if (!prediction) return;
+    const tick = () => {
+      const diff = Math.max(0, Math.floor((new Date(prediction.countdown_end).getTime() - Date.now()) / 1000));
+      setTimeLeft(diff);
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [prediction]);
+
+  const formatTime = (s: number) => {
+    const h = Math.floor(s / 3600);
+    const m = Math.floor((s % 3600) / 60);
+    const sec = s % 60;
+    if (h > 0) return `${h}h ${m}m ${sec}s`;
+    if (m > 0) return `${m}m ${sec}s`;
+    return `${sec}s`;
+  };
+
+  const handleEnter = async () => {
+    if (!prediction) return;
+    setEntering(true);
+    setError(null);
+    try {
+      await predictionsApi.enter(predictionId);
+      // Update balance in app state
+      dispatch({ type: "UPDATE_BALANCE", balance: (state.player?.balance ?? 0) - (prediction.fee ?? 0) });
+      setPageState("submit");
+    } catch (err) {
+      if (err instanceof ApiError) {
+        // Already entered — go straight to submit
+        if (err.message.toLowerCase().includes("already")) {
+          setPageState("submit");
+        } else {
+          setError(err.message);
+        }
+      } else {
+        setError("Failed to enter prediction");
+      }
+    } finally {
+      setEntering(false);
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!answer.trim()) return;
     setSubmitting(true);
-    setSubmitError(null);
+    setError(null);
     try {
       await predictionsApi.submit(predictionId, answer);
-      dispatch({ type: "SET_PREDICTION_ANSWER", answer });
       setUserAnswer(answer);
       setPageState("locked");
     } catch (err) {
-      setSubmitError(err instanceof ApiError ? err.message : "Failed to submit prediction");
+      setError(err instanceof ApiError ? err.message : "Failed to submit prediction");
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] p-4 pt-6">
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.3 }}
-        className="max-w-lg mx-auto"
-      >
+    <div className="min-h-screen bg-[#0A0A0A] p-4 pt-6 pb-28">
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-lg mx-auto">
+
         {/* Header */}
         <div className="flex items-center gap-2 mb-6">
-          <button
-            onClick={() => router.back()}
-            className="p-2 hover:bg-[#1A1A1A] rounded-lg transition-colors"
-          >
+          <button onClick={() => router.back()} className="p-2 hover:bg-[#1A1A1A] rounded-lg transition-colors">
             <ChevronLeft size={24} />
           </button>
           <span className="text-sm text-[#888]">Time Machine</span>
         </div>
 
-        {submitError && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 mb-6 flex gap-3 items-start"
-          >
-            <AlertCircle size={20} className="text-red-500 flex-shrink-0 mt-0.5" />
-            <p className="text-sm text-red-400">{submitError}</p>
-          </motion.div>
-        )}
-
-        {error && pageState === "error" && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 mb-6 flex gap-3 items-start"
-          >
+        {/* Error banner — only for action errors */}
+        {error && (
+          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
+            className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 mb-6 flex gap-3 items-start">
             <AlertCircle size={20} className="text-red-500 flex-shrink-0 mt-0.5" />
             <p className="text-sm text-red-400">{error}</p>
           </motion.div>
         )}
 
+        {/* Loading */}
         {pageState === "loading" && (
           <div className="flex justify-center items-center min-h-96">
             <Loader className="animate-spin text-[#00FF66]" size={32} />
           </div>
         )}
 
-        {pageState === "play" && prediction && (
-          <PredictionPlay
-            prediction={prediction}
-            onSubmit={handleSubmit}
-            isLoading={submitting}
-          />
+        {/* ENTER STATE — show prediction info + Enter & Pay button */}
+        {(pageState === "enter" || pageState === "submit") && prediction && (
+          <div className="space-y-6">
+            <div>
+              <p className="text-xs text-[#888] uppercase tracking-tight font-bold">{prediction.category}</p>
+              <h2 className="text-2xl font-bold mt-3 leading-tight">{prediction.question}</h2>
+            </div>
+
+            {/* Countdown */}
+            <div className="bg-[#1A1A1A] border border-[#00FF66] rounded-xl p-4 flex items-center gap-3">
+              <Clock size={20} className="text-[#00FF66]" />
+              <div>
+                <p className="text-xs text-[#888] font-bold">Prediction Lock-in</p>
+                <p className="font-bold text-lg text-[#00FF66]">{formatTime(timeLeft)}</p>
+              </div>
+            </div>
+
+            {/* Stats */}
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                { label: "Entry", value: `₦${prediction.fee}` },
+                { label: "Prize", value: `₦${prediction.prize_per_winner}` },
+                { label: "Players", value: `${prediction.slots_filled}/${prediction.max_slots}` },
+              ].map((s) => (
+                <div key={s.label} className="bg-[#0A0A0A] border border-[#2A2A2A] rounded-xl p-3">
+                  <p className="text-xs text-[#888] font-bold">{s.label}</p>
+                  <p className="font-bold mt-1">{s.value}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* ENTER step */}
+            {pageState === "enter" && (
+              <motion.button
+                onClick={handleEnter}
+                disabled={entering}
+                whileTap={{ scale: 0.97 }}
+                className="w-full bg-[#00FF66] text-black font-bold uppercase tracking-tight rounded-xl py-4 text-base disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {entering
+                  ? <><Loader2 size={18} className="animate-spin" /> Entering...</>
+                  : `Enter & Pay ₦${prediction.fee}`}
+              </motion.button>
+            )}
+
+            {/* SUBMIT step — show after entering */}
+            {pageState === "submit" && (
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-bold uppercase tracking-tight text-[#888] block mb-2">
+                    Your Prediction
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Type your answer..."
+                    value={answer}
+                    onChange={(e) => setAnswer(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter" && answer.trim()) handleSubmit(); }}
+                    autoFocus
+                    className="w-full bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl p-4 text-white placeholder-[#666] focus:border-[#00FF66] focus:outline-none transition-colors"
+                  />
+                </div>
+                <motion.button
+                  onClick={handleSubmit}
+                  disabled={!answer.trim() || submitting}
+                  whileTap={{ scale: 0.97 }}
+                  className="w-full bg-[#00FF66] text-black font-bold uppercase tracking-tight rounded-xl py-4 disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {submitting
+                    ? <><Loader2 size={18} className="animate-spin" /> Submitting...</>
+                    : "Lock In Prediction"}
+                </motion.button>
+              </div>
+            )}
+          </div>
         )}
 
-        {pageState === "locked" && (
-          <PredictionLocked answer={userAnswer || ""} />
-        )}
+        {/* LOCKED */}
+        {pageState === "locked" && <PredictionLocked answer={userAnswer || ""} />}
 
+        {/* RESULT */}
         {pageState === "result" && result && (
           <PredictionResult
             won={result.won}
@@ -159,11 +248,13 @@ export default function PredictionPlayPage() {
           />
         )}
 
+        {/* ERROR */}
         {pageState === "error" && !error && (
           <div className="text-center py-12">
             <p className="text-[#888]">Unable to load prediction</p>
           </div>
         )}
+
       </motion.div>
     </div>
   );
