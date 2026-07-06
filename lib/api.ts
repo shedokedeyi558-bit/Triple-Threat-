@@ -951,4 +951,21 @@ export const adminApi = {
       "/api/admin/seed",
       { method: "POST", token: getAdminToken() }
     ),
+
+  // Predictions management
+  getPrediction: (id: string) =>
+    request<{ prediction: any }>(`/api/admin/predictions/${id}`, {
+      token: getAdminToken(),
+    }),
+
+  getPredictionParticipants: (id: string) =>
+    request<{ participations: any[] }>(`/api/admin/predictions/${id}/participants`, {
+      token: getAdminToken(),
+    }),
+
+  revealPredictionAnswer: (id: string, correctAnswer: string) =>
+    request<{ message: string; total_participants: number; total_correct: number; total_paid: number }>(
+      `/api/admin/predictions/${id}/reveal-answer`,
+      { method: "POST", body: { correct_answer: correctAnswer }, token: getAdminToken() }
+    ),
 };
