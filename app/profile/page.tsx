@@ -5,7 +5,7 @@ import { useApp } from "@/context/AppContext";
 import { removeToken } from "@/lib/api";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { LogOut, Shield, FileText, ChevronRight, Phone, Trophy, Zap, Target } from "lucide-react";
+import { LogOut, Wallet, Shield, FileText, ChevronRight, Phone, Trophy, Zap, Target } from "lucide-react";
 
 export default function ProfilePage() {
   const { state, dispatch } = useApp();
