@@ -4,6 +4,9 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { adminApi, type AdminStats, type BlitzTournament, ApiError } from "@/lib/api";
+import { CreateGameModal } from "@/components/admin/CreateGameModal";
+import { CreatePillPackForm } from "@/components/admin/CreatePillPackForm";
+import { CreateTimeMachineForm } from "@/components/admin/CreateTimeMachineForm";
 import {
   Users, TrendingUp, DollarSign, AlertCircle,
   Plus, Clock, ArrowRight, ShieldAlert, Zap,
@@ -45,6 +48,9 @@ export default function AdminDashboard() {
   const [blitz, setBlitz] = useState<BlitzTournament[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showPillForm, setShowPillForm] = useState(false);
+  const [showTimeMachineForm, setShowTimeMachineForm] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -122,12 +128,12 @@ export default function AdminDashboard() {
           <h1 className="text-2xl font-black text-white">Dashboard</h1>
           <p className="text-gray-500 text-sm mt-0.5">Live overview</p>
         </div>
-        <Link
-          href="/admin/games/create"
+        <button
+          onClick={() => setShowCreateModal(true)}
           className="flex items-center gap-2 px-4 py-2.5 bg-neon text-black font-bold rounded-xl hover:bg-neon/90 transition-colors text-sm"
         >
           <Plus size={15} /> Create Game
-        </Link>
+        </button>
       </div>
 
       {error && (
@@ -178,7 +184,7 @@ export default function AdminDashboard() {
           ) : packs.length === 0 ? (
             <div className="py-6 text-center">
               <p className="text-gray-600 text-xs">No packs yet</p>
-              <Link href="/admin/games/create" className="text-[11px] text-neon mt-1 inline-block">Create →</Link>
+              <button onClick={() => setShowCreateModal(true)} className="text-[11px] text-neon mt-1 inline-block hover:underline">Create →</button>
             </div>
           ) : (
             <div className="space-y-2">
@@ -205,16 +211,16 @@ export default function AdminDashboard() {
         <div className="bg-[#141414] border border-[#1E1E1E] rounded-2xl p-4">
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-black text-white text-sm">Time Machine</h2>
-            <Link href="/admin/games/create" className="text-[11px] text-neon flex items-center gap-1 hover:underline">
+            <button onClick={() => setShowCreateModal(true)} className="text-[11px] text-neon flex items-center gap-1 hover:underline">
               Create <ArrowRight size={11} />
-            </Link>
+            </button>
           </div>
           {loading ? (
             <div className="space-y-2">{[1,2].map((i) => <div key={i} className="h-12 bg-[#1A1A1A] rounded-xl animate-pulse" />)}</div>
           ) : predictions.length === 0 ? (
             <div className="py-6 text-center">
               <p className="text-gray-600 text-xs">No predictions yet</p>
-              <Link href="/admin/games/create" className="text-[11px] text-neon mt-1 inline-block">Create →</Link>
+              <button onClick={() => setShowCreateModal(true)} className="text-[11px] text-neon mt-1 inline-block hover:underline">Create →</button>
             </div>
           ) : (
             <div className="space-y-2">
@@ -311,6 +317,31 @@ export default function AdminDashboard() {
         ))}
       </div>
 
+      {/* Modals */}
+      <CreateGameModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onSelectType={(type) => {
+          setShowCreateModal(false);
+          if (type === "pill_pack") {
+            setShowPillForm(true);
+          } else {
+            setShowTimeMachineForm(true);
+          }
+        }}
+      />
+
+      <CreatePillPackForm
+        isOpen={showPillForm}
+        onClose={() => setShowPillForm(false)}
+        onSuccess={() => window.location.reload()}
+      />
+
+      <CreateTimeMachineForm
+        isOpen={showTimeMachineForm}
+        onClose={() => setShowTimeMachineForm(false)}
+        onSuccess={() => window.location.reload()}
+      />
     </div>
   );
 }
