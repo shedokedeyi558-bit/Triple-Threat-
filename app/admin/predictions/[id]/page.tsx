@@ -59,31 +59,12 @@ export default function PredictionDetailPage() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      // Try dedicated predictions endpoint first, fallback to unified games endpoint
-      let predData: any = null;
-      let partsData: any[] = [];
-
-      try {
-        const res = await adminApi.getPrediction(predId);
-        predData = res.prediction;
-      } catch {
-        // Fallback: try unified games endpoint
-        const res = await adminApi.getGame(predId);
-        predData = res.game;
-      }
-
-      try {
-        const res = await adminApi.getPredictionParticipants(predId);
-        partsData = res.participations || [];
-      } catch {
-        try {
-          const res = await adminApi.getGameParticipants(predId);
-          partsData = res.participations || [];
-        } catch { /* no participants yet */ }
-      }
-
-      setPrediction(predData as Prediction);
-      setParticipants(partsData);
+      const [gameRes, partRes] = await Promise.all([
+        adminApi.getGame(predId),
+        adminApi.getGameParticipants(predId),
+      ]);
+      setPrediction(gameRes.game as unknown as Prediction);
+      setParticipants(partRes.participations || []);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to load prediction");
     } finally {
@@ -111,12 +92,7 @@ export default function PredictionDetailPage() {
     if (!revealAnswer.trim()) { alert("Enter correct answer first"); return; }
     setRevealing(true);
     try {
-      let res: any;
-      try {
-        res = await adminApi.revealPredictionAnswer(predId, revealAnswer);
-      } catch {
-        res = await adminApi.revealGameAnswer(predId, revealAnswer);
-      }
+      const res = await adminApi.revealGameAnswer(predId, revealAnswer);
       alert(`Done!\n${res.total_participants} participants · ${res.total_correct} correct · ₦${res.total_paid} paid out`);
       setShowRevealForm(false);
       fetchData();
