@@ -19,9 +19,6 @@ export default function ProfilePage() {
   };
 
   const player = state.player;
-  const initials = player?.name
-    ? player.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
-    : player?.phone?.slice(-2) ?? "??";
 
   return (
     <div className="h-full px-4 lg:px-8 py-6">
@@ -40,24 +37,6 @@ export default function ProfilePage() {
 
         {/* ── LEFT COL: Hero + Stats ── */}
         <div className="lg:col-span-1 space-y-5">
-
-          {/* Hero card */}
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="relative bg-gradient-to-br from-[#141414] to-[#0D0D0D] border border-[#1E1E1E] rounded-2xl p-6 overflow-hidden"
-          >
-            <div className="absolute top-0 right-0 w-48 h-48 bg-neon/5 rounded-full blur-3xl pointer-events-none" />
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-2xl bg-neon/10 border border-neon/20 flex items-center justify-center flex-shrink-0">
-                <span className="text-neon font-black text-2xl">{initials}</span>
-              </div>
-              <div>
-                <p className="text-white font-black text-xl leading-tight">{player?.name || "Player"}</p>
-                <p className="text-gray-500 text-sm mt-0.5">{player?.phone}</p>
-              </div>
-            </div>
-          </motion.div>
 
           {/* Logout — mobile only */}
           <motion.button
