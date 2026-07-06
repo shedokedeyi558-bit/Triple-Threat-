@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useApp } from "@/context/AppContext";
-import { ArrowDownCircle, ArrowUpCircle, Plus, Minus, Loader2, TrendingUp, TrendingDown } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, Loader2, TrendingUp } from "lucide-react";
 import { walletApi, ApiError, type ApiTransaction } from "@/lib/api";
+import Link from "next/link";
 
 const quickAmounts = [500, 1000, 2000, 5000];
 const banks = ["GTBank", "Access Bank", "Zenith Bank", "First Bank", "UBA", "OPay", "PalmPay", "Kuda", "Moniepoint"];
@@ -20,16 +21,28 @@ function formatDate(iso: string) {
   return d.toLocaleDateString("en-NG", { month: "short", day: "numeric" }) + ` · ${time}`;
 }
 
-const txConfig: Record<string, { icon: React.ReactNode; label: string; sign: "+" | "-" }> = {
-  prize:              { icon: <TrendingUp size={15} className="text-neon" />, label: "Prize Won", sign: "+" },
-  deposit:            { icon: <ArrowDownCircle size={15} className="text-blue-400" />, label: "Deposit", sign: "+" },
-  deposit_settled:    { icon: <ArrowDownCircle size={15} className="text-blue-400" />, label: "Deposit", sign: "+" },
-  entry_fee:          { icon: <TrendingDown size={15} className="text-red-400" />, label: "Entry Fee", sign: "-" },
-  withdrawal_pending: { icon: <ArrowUpCircle size={15} className="text-orange-400" />, label: "Withdrawal", sign: "-" },
-  bonus:              { icon: <Plus size={15} className="text-purple-400" />, label: "Bonus", sign: "+" },
-};
+function TxRow({ tx }: { tx: ApiTransaction }) {
+  const isCredit = tx.amount > 0;
+  return (
+    <div className="flex items-center gap-3 px-5 py-3.5 hover:bg-[#161616] transition-colors">
+      <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${isCredit ? "bg-neon/10" : "bg-red-500/10"}`}>
+        {isCredit
+          ? <ArrowDownLeft size={15} className="text-neon" />
+          : <ArrowUpRight size={15} className="text-red-400" />
+        }
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-white text-sm font-medium truncate">{tx.description}</p>
+        <p className="text-gray-600 text-xs mt-0.5">{formatDate(tx.created_at)}</p>
+      </div>
+      <span className={`font-bold text-sm flex-shrink-0 ${isCredit ? "text-neon" : "text-red-400"}`}>
+        {isCredit ? "+" : ""}₦{Math.abs(tx.amount).toLocaleString()}
+      </span>
+    </div>
+  );
+}
 
-const inp = "w-full bg-[#0A0A0A] border border-[#1E1E1E] focus:border-neon rounded-xl px-4 py-3.5 text-white text-base outline-none transition-colors placeholder:text-gray-700";
+const inp = "w-full bg-[#0A0A0A] border border-[#1E1E1E] focus:border-neon rounded-xl px-4 py-3.5 text-white text-sm outline-none transition-colors placeholder:text-gray-700";
 
 export default function WalletPage() {
   const { state, dispatch } = useApp();
@@ -98,30 +111,46 @@ export default function WalletPage() {
 
   const balance = state.player?.balance ?? 0;
 
+  // Stats from transactions
+  const totalDeposited = transactions.filter(t => t.type === "deposit" || t.type === "deposit_settled").reduce((s, t) => s + t.amount, 0);
+  const totalWon = transactions.filter(t => t.type === "prize").reduce((s, t) => s + t.amount, 0);
+
   return (
-    <div className="max-w-5xl mx-auto px-4 lg:px-8 py-6">
+    <div className="px-4 lg:px-8 py-6">
 
-      {/* Balance hero */}
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="relative bg-gradient-to-br from-[#141414] to-[#0D0D0D] border border-[#1E1E1E] rounded-2xl p-6 mb-6 overflow-hidden"
-      >
-        <div className="absolute top-0 right-0 w-64 h-64 bg-neon/5 rounded-full blur-3xl pointer-events-none" />
-        <p className="text-gray-500 text-xs uppercase tracking-widest font-bold mb-1">Available Balance</p>
-        <p className="text-neon font-black text-5xl lg:text-6xl">₦{balance.toLocaleString()}</p>
-      </motion.div>
+      {/* ── BALANCE + STATS ROW ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+        {/* Main balance */}
+        <div className="lg:col-span-1 relative bg-gradient-to-br from-[#141414] to-[#0D0D0D] border border-[#1E1E1E] rounded-2xl p-6 overflow-hidden">
+          <div className="absolute top-0 right-0 w-40 h-40 bg-neon/5 rounded-full blur-3xl pointer-events-none" />
+          <p className="text-[11px] text-gray-500 uppercase tracking-widest font-bold mb-1">Available Balance</p>
+          <p className="text-neon font-black text-5xl">₦{balance.toLocaleString()}</p>
+        </div>
 
-      {/* Desktop: side by side. Mobile: stacked */}
+        {/* Quick stats */}
+        <div className="lg:col-span-2 grid grid-cols-2 gap-4">
+          <div className="bg-[#111] border border-[#1E1E1E] rounded-2xl p-5">
+            <div className="flex items-center gap-2 mb-2">
+              <ArrowDownLeft size={15} className="text-blue-400" />
+              <p className="text-[11px] text-gray-500 uppercase tracking-widest font-bold">Total Deposited</p>
+            </div>
+            <p className="text-white font-black text-2xl">₦{totalDeposited.toLocaleString()}</p>
+          </div>
+          <div className="bg-[#111] border border-[#1E1E1E] rounded-2xl p-5">
+            <div className="flex items-center gap-2 mb-2">
+              <TrendingUp size={15} className="text-neon" />
+              <p className="text-[11px] text-gray-500 uppercase tracking-widest font-bold">Total Won</p>
+            </div>
+            <p className="text-neon font-black text-2xl">₦{totalWon.toLocaleString()}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* ── MAIN CONTENT: Actions + History ── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-        {/* Left — Deposit / Withdraw */}
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.05 }}
-          className="bg-[#111] border border-[#1E1E1E] rounded-2xl overflow-hidden"
-        >
+        {/* Deposit / Withdraw */}
+        <div className="bg-[#111] border border-[#1E1E1E] rounded-2xl overflow-hidden">
           {/* Tabs */}
           <div className="flex border-b border-[#1E1E1E]">
             {(["deposit", "withdraw"] as const).map((t) => (
@@ -137,131 +166,108 @@ export default function WalletPage() {
             ))}
           </div>
 
-          <div className="p-5 space-y-4">
-            {tab === "deposit" ? (
-              <>
-                <div>
-                  <label className="text-xs text-gray-500 mb-2 block font-semibold uppercase tracking-wider">Amount (₦)</label>
-                  <input
-                    type="number" placeholder="Enter amount" value={depositAmt}
-                    onChange={(e) => setDepositAmt(e.target.value)}
-                    className={inp}
-                  />
-                </div>
-                <div className="grid grid-cols-4 gap-2">
-                  {quickAmounts.map((a) => (
-                    <button
-                      key={a}
-                      onClick={() => setDepositAmt(String(a))}
-                      className={`py-2.5 rounded-lg border text-xs font-bold transition-all ${
-                        depositAmt === String(a) ? "border-neon bg-neon/10 text-neon" : "border-[#1E1E1E] text-gray-400 hover:border-neon/30 hover:text-white"
-                      }`}
-                    >
-                      ₦{a >= 1000 ? `${a/1000}k` : a}
-                    </button>
-                  ))}
-                </div>
-                {depositError && <p className="text-red-400 text-xs">{depositError}</p>}
-                <button
-                  onClick={handleDeposit}
-                  disabled={depositLoading || !depositAmt}
-                  className="w-full py-4 bg-neon text-black font-black rounded-xl disabled:opacity-40 flex items-center justify-center gap-2 text-sm"
-                  style={{ boxShadow: "0 0 20px #00FF6630" }}
-                >
-                  {depositLoading ? <Loader2 size={16} className="animate-spin" /> : null}
-                  {depositLoading ? "Redirecting..." : "Deposit via Paystack →"}
-                </button>
-                <p className="text-[11px] text-center text-gray-600">Secured by Paystack · Cards, USSD, Bank Transfer</p>
-              </>
-            ) : (
-              <>
-                <div>
-                  <label className="text-xs text-gray-500 mb-2 block font-semibold uppercase tracking-wider">Amount (₦)</label>
-                  <input
-                    type="number" placeholder="Min ₦1,000" value={withdrawAmt}
-                    onChange={(e) => setWithdrawAmt(e.target.value)}
-                    className={inp}
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-gray-500 mb-2 block font-semibold uppercase tracking-wider">Bank</label>
-                  <select value={bank} onChange={(e) => setBank(e.target.value)} className={inp}>
-                    <option value="">Select bank...</option>
-                    {banks.map((b) => <option key={b} value={b}>{b}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs text-gray-500 mb-2 block font-semibold uppercase tracking-wider">Account Number</label>
-                  <input
-                    type="tel" inputMode="numeric" placeholder="10-digit number" value={accNum}
-                    onChange={(e) => setAccNum(e.target.value.replace(/\D/g, "").slice(0, 10))}
-                    className={inp}
-                  />
-                </div>
-                {withdrawMsg && (
-                  <div className="bg-neon/10 border border-neon/30 rounded-xl p-3 text-neon text-xs font-semibold text-center">
-                    ✓ {withdrawMsg}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={tab}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.15 }}
+              className="p-5 space-y-4"
+            >
+              {tab === "deposit" ? (
+                <>
+                  <div>
+                    <label className="text-[11px] text-gray-500 font-bold uppercase tracking-widest mb-2 block">Amount (₦)</label>
+                    <input
+                      type="number" placeholder="Enter amount" value={depositAmt}
+                      onChange={(e) => setDepositAmt(e.target.value)}
+                      className={inp}
+                    />
                   </div>
-                )}
-                {withdrawError && <p className="text-red-400 text-xs">{withdrawError}</p>}
-                <button
-                  onClick={handleWithdraw}
-                  disabled={withdrawLoading || !withdrawAmt || parseInt(withdrawAmt) < 1000 || !bank || accNum.length < 10}
-                  className="w-full py-4 bg-neon text-black font-black rounded-xl disabled:opacity-40 flex items-center justify-center gap-2 text-sm"
-                >
-                  {withdrawLoading ? <Loader2 size={16} className="animate-spin" /> : null}
-                  {withdrawLoading ? "Processing..." : "Request Withdrawal →"}
-                </button>
-              </>
-            )}
-          </div>
-        </motion.div>
+                  <div className="grid grid-cols-4 gap-2">
+                    {quickAmounts.map((a) => (
+                      <button
+                        key={a}
+                        onClick={() => setDepositAmt(String(a))}
+                        className={`py-2.5 rounded-lg border text-xs font-bold transition-all ${
+                          depositAmt === String(a) ? "border-neon bg-neon/10 text-neon" : "border-[#1E1E1E] text-gray-400 hover:border-neon/30"
+                        }`}
+                      >
+                        ₦{a >= 1000 ? `${a / 1000}k` : a}
+                      </button>
+                    ))}
+                  </div>
+                  {depositError && <p className="text-red-400 text-xs">{depositError}</p>}
+                  <button
+                    onClick={handleDeposit}
+                    disabled={depositLoading || !depositAmt}
+                    className="w-full py-4 bg-neon text-black font-black rounded-xl disabled:opacity-40 flex items-center justify-center gap-2 text-sm"
+                    style={{ boxShadow: "0 0 20px #00FF6620" }}
+                  >
+                    {depositLoading ? <Loader2 size={16} className="animate-spin" /> : null}
+                    {depositLoading ? "Redirecting..." : "Deposit via Paystack →"}
+                  </button>
+                  <p className="text-[11px] text-center text-gray-600">Secured by Paystack · Cards, USSD, Bank Transfer</p>
+                </>
+              ) : (
+                <>
+                  <div>
+                    <label className="text-[11px] text-gray-500 font-bold uppercase tracking-widest mb-2 block">Amount (₦)</label>
+                    <input type="number" placeholder="Min ₦1,000" value={withdrawAmt}
+                      onChange={(e) => setWithdrawAmt(e.target.value)} className={inp} />
+                  </div>
+                  <div>
+                    <label className="text-[11px] text-gray-500 font-bold uppercase tracking-widest mb-2 block">Bank</label>
+                    <select value={bank} onChange={(e) => setBank(e.target.value)} className={inp}>
+                      <option value="">Select bank...</option>
+                      {banks.map((b) => <option key={b} value={b}>{b}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-[11px] text-gray-500 font-bold uppercase tracking-widest mb-2 block">Account Number</label>
+                    <input type="tel" inputMode="numeric" placeholder="10-digit number" value={accNum}
+                      onChange={(e) => setAccNum(e.target.value.replace(/\D/g, "").slice(0, 10))} className={inp} />
+                  </div>
+                  {withdrawMsg && (
+                    <div className="bg-neon/10 border border-neon/30 rounded-xl p-3 text-neon text-xs font-semibold text-center">✓ {withdrawMsg}</div>
+                  )}
+                  {withdrawError && <p className="text-red-400 text-xs">{withdrawError}</p>}
+                  <button
+                    onClick={handleWithdraw}
+                    disabled={withdrawLoading || !withdrawAmt || parseInt(withdrawAmt) < 1000 || !bank || accNum.length < 10}
+                    className="w-full py-4 bg-neon text-black font-black rounded-xl disabled:opacity-40 flex items-center justify-center gap-2 text-sm"
+                  >
+                    {withdrawLoading ? <Loader2 size={16} className="animate-spin" /> : null}
+                    {withdrawLoading ? "Processing..." : "Request Withdrawal →"}
+                  </button>
+                </>
+              )}
+            </motion.div>
+          </AnimatePresence>
+        </div>
 
-        {/* Right — Transaction history */}
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="bg-[#111] border border-[#1E1E1E] rounded-2xl overflow-hidden"
-        >
-          <div className="px-5 py-4 border-b border-[#1E1E1E]">
+        {/* Transaction history */}
+        <div className="bg-[#111] border border-[#1E1E1E] rounded-2xl overflow-hidden flex flex-col">
+          <div className="px-5 py-4 border-b border-[#1E1E1E] flex-shrink-0">
             <p className="text-white font-bold text-sm">Transaction History</p>
           </div>
-          <div className="divide-y divide-[#1A1A1A] max-h-[480px] overflow-y-auto">
+          <div className="flex-1 overflow-y-auto divide-y divide-[#1A1A1A]" style={{ maxHeight: "420px" }}>
             {txLoading ? (
               <div className="flex justify-center py-12">
-                <Loader2 size={24} className="text-neon animate-spin" />
+                <Loader2 size={22} className="text-neon animate-spin" />
               </div>
             ) : transactions.length === 0 ? (
               <div className="py-12 text-center">
                 <p className="text-gray-600 text-sm">No transactions yet</p>
+                <p className="text-gray-700 text-xs mt-1">Deposit to get started</p>
               </div>
             ) : (
-              transactions.map((tx) => {
-                const cfg = txConfig[tx.type] ?? { icon: <Minus size={15} className="text-gray-500" />, label: tx.type, sign: tx.amount > 0 ? "+" : "-" };
-                return (
-                  <motion.div
-                    key={tx.id}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="flex items-center gap-3 px-5 py-3.5 hover:bg-[#161616] transition-colors"
-                  >
-                    <div className="w-8 h-8 rounded-lg bg-[#1A1A1A] flex items-center justify-center flex-shrink-0">
-                      {cfg.icon}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-white text-sm font-medium truncate">{tx.description}</p>
-                      <p className="text-gray-600 text-xs mt-0.5">{formatDate(tx.created_at)}</p>
-                    </div>
-                    <span className={`font-bold text-sm flex-shrink-0 ${tx.amount > 0 ? "text-neon" : "text-red-400"}`}>
-                      {tx.amount > 0 ? "+" : ""}₦{Math.abs(tx.amount).toLocaleString()}
-                    </span>
-                  </motion.div>
-                );
-              })
+              transactions.map((tx) => <TxRow key={tx.id} tx={tx} />)
             )}
           </div>
-        </motion.div>
+        </div>
+
       </div>
     </div>
   );
