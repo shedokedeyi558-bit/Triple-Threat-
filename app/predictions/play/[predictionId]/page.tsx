@@ -32,15 +32,19 @@ export default function PredictionPlayPage() {
 
     const init = async () => {
       try {
-        // Try result first (admin may have revealed answer)
+        // 1. Try result — only shows if admin has revealed answer
+        //    Backend now returns clean 404 "Result not available yet" if not revealed
+        //    So we catch silently and move on
         try {
           const res = await predictionsApi.getResult(predictionId);
           setResult({ won: res.won, correctAnswer: res.correctAnswer, prize: res.prize || 0 });
           setPageState("result");
           return;
-        } catch { /* not revealed yet */ }
+        } catch {
+          // Not revealed yet — continue normally, no error to show
+        }
 
-        // Load prediction data
+        // 2. Load the prediction
         const listRes = await predictionsApi.getActive();
         const found = listRes.predictions.find((p) => p.id === predictionId);
 
@@ -52,13 +56,13 @@ export default function PredictionPlayPage() {
 
         setPrediction(found);
 
-        // If locked, show locked state
+        // 3. If locked/expired, show locked state
         if (found.status === "locked" || new Date(found.countdown_end) < new Date()) {
           setPageState("locked");
           return;
         }
 
-        // Default: show enter screen
+        // 4. Default: show enter button
         setPageState("enter");
       } catch (err) {
         setError(err instanceof ApiError ? err.message : "Failed to load prediction");
@@ -69,7 +73,7 @@ export default function PredictionPlayPage() {
     init();
   }, [state.isAuthenticated, predictionId, router]);
 
-  // Countdown timer
+  // Countdown ticker
   useEffect(() => {
     if (!prediction) return;
     const tick = () => {
@@ -96,13 +100,12 @@ export default function PredictionPlayPage() {
     setError(null);
     try {
       await predictionsApi.enter(predictionId);
-      // Update balance in app state
       dispatch({ type: "UPDATE_BALANCE", balance: (state.player?.balance ?? 0) - (prediction.fee ?? 0) });
       setPageState("submit");
     } catch (err) {
       if (err instanceof ApiError) {
-        // Already entered — go straight to submit
-        if (err.message.toLowerCase().includes("already")) {
+        // Backend returns already_entered: true with 409 — skip to submit
+        if (err.status === 409 || err.message.toLowerCase().includes("already")) {
           setPageState("submit");
         } else {
           setError(err.message);
@@ -124,7 +127,17 @@ export default function PredictionPlayPage() {
       setUserAnswer(answer);
       setPageState("locked");
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Failed to submit prediction");
+      if (err instanceof ApiError) {
+        // Already submitted — treat as locked
+        if (err.status === 409 || err.message.toLowerCase().includes("already submitted")) {
+          setUserAnswer(answer);
+          setPageState("locked");
+        } else {
+          setError(err.message);
+        }
+      } else {
+        setError("Failed to submit prediction");
+      }
     } finally {
       setSubmitting(false);
     }
@@ -142,7 +155,7 @@ export default function PredictionPlayPage() {
           <span className="text-sm text-[#888]">Time Machine</span>
         </div>
 
-        {/* Error banner — only for action errors */}
+        {/* Error — only from submit/enter actions */}
         {error && (
           <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
             className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 mb-6 flex gap-3 items-start">
@@ -158,7 +171,7 @@ export default function PredictionPlayPage() {
           </div>
         )}
 
-        {/* ENTER STATE — show prediction info + Enter & Pay button */}
+        {/* ENTER or SUBMIT state — prediction info always visible */}
         {(pageState === "enter" || pageState === "submit") && prediction && (
           <div className="space-y-6">
             <div>
@@ -203,7 +216,7 @@ export default function PredictionPlayPage() {
               </motion.button>
             )}
 
-            {/* SUBMIT step — show after entering */}
+            {/* SUBMIT step */}
             {pageState === "submit" && (
               <div className="space-y-4">
                 <div>
@@ -215,7 +228,7 @@ export default function PredictionPlayPage() {
                     placeholder="Type your answer..."
                     value={answer}
                     onChange={(e) => setAnswer(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === "Enter" && answer.trim()) handleSubmit(); }}
+                    onKeyDown={(e) => { if (e.key === "Enter" && answer.trim() && !submitting) handleSubmit(); }}
                     autoFocus
                     className="w-full bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl p-4 text-white placeholder-[#666] focus:border-[#00FF66] focus:outline-none transition-colors"
                   />
@@ -248,10 +261,13 @@ export default function PredictionPlayPage() {
           />
         )}
 
-        {/* ERROR */}
-        {pageState === "error" && !error && (
-          <div className="text-center py-12">
-            <p className="text-[#888]">Unable to load prediction</p>
+        {/* ERROR page */}
+        {pageState === "error" && (
+          <div className="text-center py-12 space-y-3">
+            <p className="text-[#888]">{error || "Unable to load prediction"}</p>
+            <button onClick={() => router.back()} className="text-[#00FF66] text-sm font-bold">
+              Go back
+            </button>
           </div>
         )}
 
