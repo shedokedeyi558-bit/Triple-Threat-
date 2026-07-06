@@ -51,7 +51,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           </span>
         </div>
 
-        <main className="flex-1 overflow-auto p-4 md:p-6">
+        <main className="flex-1 overflow-auto p-4 md:p-8">
           {children}
         </main>
       </div>

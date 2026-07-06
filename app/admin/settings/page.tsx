@@ -98,7 +98,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="max-w-2xl space-y-5 pb-24">
+    <div className="space-y-5 pb-24">
       <div>
         <h1 className="text-2xl font-black text-white">Settings</h1>
         <p className="text-gray-500 text-sm mt-0.5">Configure game rules and platform defaults</p>
@@ -108,106 +108,73 @@ export default function SettingsPage() {
         <div className="bg-red-900/20 border border-red-800/40 rounded-xl p-3 text-red-400 text-sm">{error}</div>
       )}
 
-      {/* Game Rules */}
-      <Section title="Game Rules">
-        <div className="grid grid-cols-2 gap-4">
-          <Field label="Min withdrawal (₦)">
-            <input
-              type="number"
-              value={settings.min_withdrawal}
-              onChange={(e) => update("min_withdrawal", Number(e.target.value))}
-              className={inp}
-            />
+      {/* 2-col grid on desktop */}
+      <div className="grid md:grid-cols-2 gap-5">
+        {/* Game Rules */}
+        <Section title="Game Rules">
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="Min withdrawal (₦)">
+              <input type="number" value={settings.min_withdrawal} onChange={(e) => update("min_withdrawal", Number(e.target.value))} className={inp} />
+            </Field>
+            <Field label="Max daily plays per user">
+              <input type="number" value={settings.max_daily_plays} onChange={(e) => update("max_daily_plays", Number(e.target.value))} className={inp} />
+            </Field>
+          </div>
+          <Field label="New user bonus (₦)">
+            <div className="flex gap-2">
+              {[0, 200, 500].map((v) => (
+                <button key={v} onClick={() => update("new_user_bonus", v)}
+                  className={`flex-1 py-2.5 rounded-xl border text-sm font-semibold transition-all ${settings.new_user_bonus === v ? "border-neon bg-neon/10 text-neon" : "border-[#1E1E1E] text-gray-500 hover:border-neon/30"}`}>
+                  {v === 0 ? "None" : `₦${v}`}
+                </button>
+              ))}
+            </div>
           </Field>
-          <Field label="Max daily plays per user">
-            <input
-              type="number"
-              value={settings.max_daily_plays}
-              onChange={(e) => update("max_daily_plays", Number(e.target.value))}
-              className={inp}
-            />
+        </Section>
+
+        {/* Withdrawals */}
+        <Section title="Withdrawals">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-white font-medium">Auto-approve withdrawals</p>
+              <p className="text-xs text-gray-500 mt-0.5">Under ₦{settings.auto_approve_limit.toLocaleString()}</p>
+            </div>
+            <button onClick={() => update("auto_approve_withdrawals", !settings.auto_approve_withdrawals)}
+              className={`w-11 h-6 rounded-full transition-colors relative flex-shrink-0 ${settings.auto_approve_withdrawals ? "bg-neon" : "bg-[#333]"}`}>
+              <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-all ${settings.auto_approve_withdrawals ? "left-6" : "left-1"}`} />
+            </button>
+          </div>
+          <Field label="Auto-approve limit (₦)">
+            <input type="number" value={settings.auto_approve_limit} onChange={(e) => update("auto_approve_limit", Number(e.target.value))} disabled={!settings.auto_approve_withdrawals} className={`${inp} disabled:opacity-40`} />
           </Field>
-        </div>
-        <Field label="New user bonus (₦)">
-          <div className="flex gap-2">
-            {[0, 200, 500].map((v) => (
-              <button
-                key={v}
-                onClick={() => update("new_user_bonus", v)}
-                className={`flex-1 py-2.5 rounded-xl border text-sm font-semibold transition-all ${
-                  settings.new_user_bonus === v
-                    ? "border-neon bg-neon/10 text-neon"
-                    : "border-[#1E1E1E] text-gray-500 hover:border-neon/30"
-                }`}
-              >
-                {v === 0 ? "None" : `₦${v}`}
-              </button>
-            ))}
-          </div>
-        </Field>
-      </Section>
+        </Section>
 
-      {/* Withdrawals */}
-      <Section title="Withdrawals">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm text-white font-medium">Auto-approve withdrawals</p>
-            <p className="text-xs text-gray-500 mt-0.5">Under ₦{settings.auto_approve_limit.toLocaleString()}</p>
-          </div>
-          <button
-            onClick={() => update("auto_approve_withdrawals", !settings.auto_approve_withdrawals)}
-            className={`w-11 h-6 rounded-full transition-colors relative flex-shrink-0 ${
-              settings.auto_approve_withdrawals ? "bg-neon" : "bg-[#333]"
-            }`}
-          >
-            <span
-              className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-all ${
-                settings.auto_approve_withdrawals ? "left-6" : "left-1"
-              }`}
-            />
-          </button>
-        </div>
-        <Field label="Auto-approve limit (₦)">
-          <input
-            type="number"
-            value={settings.auto_approve_limit}
-            onChange={(e) => update("auto_approve_limit", Number(e.target.value))}
-            disabled={!settings.auto_approve_withdrawals}
-            className={`${inp} disabled:opacity-40`}
-          />
-        </Field>
-      </Section>
+        {/* Payout Account */}
+        <Section title="Payout Account">
+          <Field label="Bank name">
+            <input type="text" placeholder="e.g. Opay" value={settings.payout_bank_name} onChange={(e) => update("payout_bank_name", e.target.value)} className={inp} />
+          </Field>
+          <Field label="Account name">
+            <input type="text" placeholder="e.g. BITLYFE Games" value={settings.payout_account_name} onChange={(e) => update("payout_account_name", e.target.value)} className={inp} />
+          </Field>
+          <Field label="Account number">
+            <input type="tel" placeholder="10-digit number" value={settings.payout_account_number} onChange={(e) => update("payout_account_number", e.target.value)} className={inp} />
+          </Field>
+        </Section>
 
-      {/* Payout Account */}
-      <Section title="Payout Account">
-        <Field label="Bank name">
-          <input type="text" value={settings.payout_bank_name} onChange={(e) => update("payout_bank_name", e.target.value)} className={inp} />
-        </Field>
-        <Field label="Account name">
-          <input type="text" value={settings.payout_account_name} onChange={(e) => update("payout_account_name", e.target.value)} className={inp} />
-        </Field>
-        <Field label="Account number">
-          <input type="tel" value={settings.payout_account_number} onChange={(e) => update("payout_account_number", e.target.value)} className={inp} />
-        </Field>
-      </Section>
-
-      {/* Appearance */}
-      <Section title="Appearance">
-        <Field label="Game name">
-          <input type="text" value={settings.game_name} onChange={(e) => update("game_name", e.target.value)} className={inp} />
-        </Field>
-        <Field label="Primary color">
-          <div className="flex items-center gap-3">
-            <input
-              type="color"
-              value={settings.primary_color}
-              onChange={(e) => update("primary_color", e.target.value)}
-              className="w-10 h-10 rounded-lg border border-[#1E1E1E] bg-transparent cursor-pointer"
-            />
-            <span className="text-sm text-gray-400 font-mono">{settings.primary_color}</span>
-          </div>
-        </Field>
-      </Section>
+        {/* Appearance */}
+        <Section title="Appearance">
+          <Field label="Game name">
+            <input type="text" value={settings.game_name} onChange={(e) => update("game_name", e.target.value)} className={inp} />
+          </Field>
+          <Field label="Primary color">
+            <div className="flex items-center gap-3">
+              <input type="color" value={settings.primary_color} onChange={(e) => update("primary_color", e.target.value)} className="w-10 h-10 rounded-lg border border-[#1E1E1E] bg-transparent cursor-pointer" />
+              <span className="text-sm text-gray-400 font-mono">{settings.primary_color}</span>
+            </div>
+          </Field>
+        </Section>
+      </div>
 
       {/* Kill Switch */}
       <div className={`rounded-2xl p-5 border ${
