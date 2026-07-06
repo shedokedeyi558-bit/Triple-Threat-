@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { adminApi, type BackendSettings, ApiError } from "@/lib/api";
-import { AlertTriangle, Save, Loader2 } from "lucide-react";
+import { AlertTriangle, Save, Loader2, Zap } from "lucide-react";
 
 const inp = "w-full bg-[#0A0A0A] border border-[#1E1E1E] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-neon/60 transition-colors";
 
@@ -29,6 +29,7 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [togglingKill, setTogglingKill] = useState(false);
+  const [seeding, setSeeding] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
 
@@ -82,6 +83,22 @@ export default function SettingsPage() {
       setError(err instanceof ApiError ? err.message : "Kill switch failed");
     } finally {
       setTogglingKill(false);
+    }
+  };
+
+  const handleSeedData = async () => {
+    if (!confirm("Create sample games for testing? This will generate:\n\n• 3 Pill Packs (9 pills)\n• 3 Predictions\n• 3 Blitz Tournaments\n\nContinue?")) return;
+    setSeeding(true);
+    setError("");
+    try {
+      const res = await adminApi.seedTestData();
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+      window.location.reload();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Failed to seed data");
+    } finally {
+      setSeeding(false);
     }
   };
 
@@ -174,6 +191,30 @@ export default function SettingsPage() {
             </div>
           </Field>
         </Section>
+      </div>
+
+      {/* Seed Test Data */}
+      <div className="bg-blue-900/20 border border-blue-700/40 rounded-2xl p-5">
+        <div className="flex items-start gap-3 mb-4">
+          <Zap size={18} className="text-blue-400 flex-shrink-0 mt-0.5" />
+          <div>
+            <h3 className="text-white font-bold text-sm">Seed Test Data</h3>
+            <p className="text-xs text-gray-500 mt-0.5">Automatically create sample games to test dashboard displays and data flows.</p>
+          </div>
+        </div>
+        <div className="bg-[#111]/50 rounded-lg p-3 mb-4 text-xs text-gray-400 space-y-1">
+          <p>✓ 3 Pill Packs (9 pills total with unique colors)</p>
+          <p>✓ 3 Predictions with dummy registrations</p>
+          <p>✓ 3 Blitz Tournaments with leaderboard data</p>
+        </div>
+        <button
+          onClick={handleSeedData}
+          disabled={seeding}
+          className="w-full py-3 rounded-xl bg-blue-600/20 border border-blue-600/40 text-blue-400 hover:bg-blue-600/30 font-bold text-sm disabled:opacity-50 flex items-center justify-center gap-2 transition-colors"
+        >
+          {seeding ? <Loader2 size={15} className="animate-spin" /> : <Zap size={15} />}
+          {seeding ? "Creating test data..." : "Create Test Data"}
+        </button>
       </div>
 
       {/* Kill Switch */}

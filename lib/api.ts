@@ -945,4 +945,10 @@ export const adminApi = {
     request<{ leaderboard: BlitzResult["leaderboard"] }>(`/api/admin/blitz/${id}/leaderboard`, {
       token: getAdminToken()
     }),
+
+  seedTestData: () =>
+    request<{ success: boolean; data: { packs_created: number; predictions_created: number; blitz_created: number; message: string } }>(
+      "/api/admin/seed",
+      { method: "POST", token: getAdminToken() }
+    ),
 };
