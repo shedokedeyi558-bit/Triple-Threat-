@@ -5,7 +5,7 @@ import { useApp } from "@/context/AppContext";
 import { removeToken } from "@/lib/api";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { LogOut, Wallet, Shield, FileText, ChevronRight, Phone, Trophy, Zap, Target } from "lucide-react";
+import { LogOut, Wallet, Shield, FileText, ChevronRight, Phone } from "lucide-react";
 
 export default function ProfilePage() {
   const { state, dispatch } = useApp();
@@ -48,7 +48,7 @@ export default function ProfilePage() {
             className="relative bg-gradient-to-br from-[#141414] to-[#0D0D0D] border border-[#1E1E1E] rounded-2xl p-6 overflow-hidden"
           >
             <div className="absolute top-0 right-0 w-48 h-48 bg-neon/5 rounded-full blur-3xl pointer-events-none" />
-            <div className="flex items-center gap-4 mb-6">
+            <div className="flex items-center gap-4">
               <div className="w-16 h-16 rounded-2xl bg-neon/10 border border-neon/20 flex items-center justify-center flex-shrink-0">
                 <span className="text-neon font-black text-2xl">{initials}</span>
               </div>
@@ -56,20 +56,6 @@ export default function ProfilePage() {
                 <p className="text-white font-black text-xl leading-tight">{player?.name || "Player"}</p>
                 <p className="text-gray-500 text-sm mt-0.5">{player?.phone}</p>
               </div>
-            </div>
-
-            <div className="grid grid-cols-3 gap-3 pt-5 border-t border-[#1E1E1E]">
-              {[
-                { icon: <Trophy size={16} className="text-yellow-400" />, label: "Played", value: "—" },
-                { icon: <Zap size={16} className="text-neon" />, label: "Won", value: "—" },
-                { icon: <Target size={16} className="text-blue-400" />, label: "Win Rate", value: "—" },
-              ].map((stat) => (
-                <div key={stat.label} className="text-center">
-                  <div className="flex items-center justify-center mb-2">{stat.icon}</div>
-                  <p className="text-white font-black text-xl">{stat.value}</p>
-                  <p className="text-gray-600 text-[10px] uppercase tracking-wider mt-1">{stat.label}</p>
-                </div>
-              ))}
             </div>
           </motion.div>
 
