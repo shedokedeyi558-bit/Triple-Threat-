@@ -25,11 +25,7 @@ export default function TimeMachinePage() {
         const data = await predictionsApi.getActive();
         dispatch({ type: "SET_PREDICTIONS", predictions: data.predictions });
       } catch (err) {
-        if (err instanceof ApiError) {
-          setError(err.message);
-        } else {
-          setError("Failed to load predictions");
-        }
+        setError(err instanceof Error ? err.message : "Failed to load predictions");
       }
     };
 
