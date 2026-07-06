@@ -91,7 +91,7 @@ export default function PredictionLocked({ answer }: PredictionLockedProps) {
         className="bg-orange-900/10 border border-orange-800/30 rounded-xl p-4 text-center"
       >
         <p className="text-xs text-orange-300/80 leading-relaxed">
-          Come back after the event to see your result. You'll see a win or loss notification on this page.
+          Come back after the event to see your result. You&apos;ll see a win or loss notification on this page.
         </p>
       </motion.div>
 
