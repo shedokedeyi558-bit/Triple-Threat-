@@ -33,15 +33,17 @@ export default function PredictionPlayPage() {
     const init = async () => {
       try {
         // 1. Try result — only shows if admin has revealed answer
-        //    Backend now returns clean 404 "Result not available yet" if not revealed
-        //    So we catch silently and move on
+        //    Silently ignore ALL errors here — backend may return various errors
+        //    for unregistered players or unrevealed answers
         try {
           const res = await predictionsApi.getResult(predictionId);
-          setResult({ won: res.won, correctAnswer: res.correctAnswer, prize: res.prize || 0 });
-          setPageState("result");
-          return;
+          if (res && res.correctAnswer) {
+            setResult({ won: res.won, correctAnswer: res.correctAnswer, prize: res.prize || 0 });
+            setPageState("result");
+            return;
+          }
         } catch {
-          // Not revealed yet — continue normally, no error to show
+          // Ignore all errors — result not ready, player not entered, etc.
         }
 
         // 2. Load the prediction
