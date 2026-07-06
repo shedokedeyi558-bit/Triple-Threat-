@@ -71,15 +71,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           })}
         </nav>
 
-        {/* Balance + Logout */}
-        <div className="px-3 pb-6 space-y-2 border-t border-[#1A1A1A] pt-4">
-          {state.player && (
-            <div className="px-4 py-3 rounded-xl bg-[#141414] border border-[#1E1E1E]">
-              <p className="text-[11px] text-gray-600 uppercase tracking-widest mb-0.5">Balance</p>
-              <p className="text-neon font-black text-xl">₦{state.player.balance.toLocaleString()}</p>
-              <p className="text-gray-600 text-xs mt-0.5 truncate">{state.player.phone}</p>
-            </div>
-          )}
+        {/* Logout */}
+        <div className="px-3 pb-6 border-t border-[#1A1A1A] pt-4">
           <button
             onClick={handleLogout}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-gray-500 hover:text-red-400 hover:bg-red-900/10 transition-all"
