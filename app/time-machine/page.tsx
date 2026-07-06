@@ -49,10 +49,22 @@ export default function TimeMachinePage() {
     }
 
     try {
+      // Enter (pay entry fee & register)
+      await predictionsApi.enter(prediction.id);
       dispatch({ type: "SELECT_PREDICTION", prediction });
       router.push(`/predictions/play/${prediction.id}`);
-    } catch {
-      setError("Failed to enter prediction");
+    } catch (err) {
+      if (err instanceof ApiError) {
+        // If already entered, just navigate
+        if (err.message.toLowerCase().includes("already") || err.status === 409) {
+          dispatch({ type: "SELECT_PREDICTION", prediction });
+          router.push(`/predictions/play/${prediction.id}`);
+        } else {
+          setError(err.message);
+        }
+      } else {
+        setError("Failed to enter prediction");
+      }
     }
   };
 
