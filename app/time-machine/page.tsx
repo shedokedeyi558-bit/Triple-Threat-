@@ -43,49 +43,42 @@ export default function TimeMachinePage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] p-4 pt-6">
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-        className="max-w-lg mx-auto"
-      >
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold uppercase tracking-tight">Time Machine</h1>
-          <p className="text-[#888] text-sm mt-2">Predict the future. Earn rewards.</p>
+    <div className="max-w-3xl mx-auto px-4 lg:px-8 py-6">
+
+      {error && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 mb-6 flex gap-3 items-start"
+        >
+          <AlertCircle size={18} className="text-red-500 flex-shrink-0 mt-0.5" />
+          <p className="text-sm text-red-400">{error}</p>
+        </motion.div>
+      )}
+
+      {state.pills.predictionsLoading ? (
+        <div className="flex justify-center items-center min-h-64">
+          <Loader className="animate-spin text-[#00FF66]" size={28} />
         </div>
-
-        {error && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 mb-6 flex gap-3 items-start"
-          >
-            <AlertCircle size={20} className="text-red-500 flex-shrink-0 mt-0.5" />
-            <p className="text-sm text-red-400">{error}</p>
-          </motion.div>
-        )}
-
-        {state.pills.predictionsLoading ? (
-          <div className="flex justify-center items-center min-h-96">
-            <Loader className="animate-spin text-[#00FF66]" size={32} />
+      ) : state.pills.predictions.length > 0 ? (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {state.pills.predictions.map((prediction) => (
+            <PredictionCard
+              key={prediction.id}
+              prediction={prediction}
+              onEnter={handlePredictionEnter}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="flex flex-col items-center justify-center py-24 text-center">
+          <div className="w-16 h-16 rounded-2xl bg-[#141414] border border-[#1E1E1E] flex items-center justify-center mb-4">
+            <Loader size={24} className="text-gray-700" />
           </div>
-        ) : state.pills.predictions.length > 0 ? (
-          <div className="space-y-4 pb-24">
-            {state.pills.predictions.map((prediction) => (
-              <PredictionCard
-                key={prediction.id}
-                prediction={prediction}
-                onEnter={handlePredictionEnter}
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-12">
-            <p className="text-[#888]">No active predictions right now</p>
-          </div>
-        )}
-      </motion.div>
+          <p className="text-gray-500 font-semibold">No active predictions right now</p>
+          <p className="text-gray-700 text-sm mt-1">Check back soon for new Time Machine events</p>
+        </div>
+      )}
     </div>
   );
 }

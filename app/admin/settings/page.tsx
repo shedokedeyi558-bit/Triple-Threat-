@@ -91,7 +91,7 @@ export default function SettingsPage() {
     setSeeding(true);
     setError("");
     try {
-      const _res = await adminApi.seedTestData();
+      await adminApi.seedTestData();
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
       window.location.reload();

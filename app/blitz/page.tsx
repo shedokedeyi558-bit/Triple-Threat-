@@ -5,109 +5,95 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { useApp } from "@/context/AppContext";
 import { blitzApi, type BlitzTournament, ApiError } from "@/lib/api";
-import { BottomNavigation } from "@/components/ui/BottomNavigation";
-import { Wallet, Zap, Users, Clock } from "lucide-react";
-import Link from "next/link";
+import { Zap, Users, Clock } from "lucide-react";
 
 function StatusBadge({ status }: { status: BlitzTournament["status"] }) {
   const config = {
-    registration: { label: "Registration", color: "bg-blue-500/20 text-blue-400 border-blue-500/30" },
-    active: { label: "Active", color: "bg-neon/20 text-neon border-neon/40" },
-    completed: { label: "Completed", color: "bg-gray-500/20 text-gray-400 border-gray-500/30" },
-    draft: { label: "Draft", color: "bg-gray-700/20 text-gray-500 border-gray-700/30" },
-    scoring: { label: "Scoring", color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" },
+    registration: { label: "Open", color: "bg-blue-500/20 text-blue-400 border-blue-500/30" },
+    active:        { label: "Live", color: "bg-neon/20 text-neon border-neon/30" },
+    completed:     { label: "Ended", color: "bg-gray-700/30 text-gray-500 border-gray-700/30" },
+    draft:         { label: "Soon", color: "bg-gray-700/20 text-gray-600 border-gray-700/20" },
+    scoring:       { label: "Scoring", color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" },
   };
-  const c = config[status];
+  const c = config[status] ?? config.draft;
   return (
-    <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-widest border ${c.color}`}>
+    <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider border ${c.color}`}>
       {c.label}
     </span>
   );
 }
 
-function formatCountdown(target: string): string {
-  const now = new Date();
-  const end = new Date(target);
-  const diffMs = end.getTime() - now.getTime();
-  if (diffMs <= 0) return "Ended";
-  const hours = Math.floor(diffMs / 3600000);
-  const mins = Math.floor((diffMs % 3600000) / 60000);
-  if (hours > 24) {
-    const days = Math.floor(hours / 24);
-    return `${days}d ${hours % 24}h`;
-  }
-  return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+function formatCountdown(target: string) {
+  const diff = new Date(target).getTime() - Date.now();
+  if (diff <= 0) return "Now";
+  const h = Math.floor(diff / 3600000);
+  const m = Math.floor((diff % 3600000) / 60000);
+  if (h > 48) return `${Math.floor(h / 24)}d`;
+  if (h > 0) return `${h}h ${m}m`;
+  return `${m}m`;
 }
 
 function TournamentCard({ t }: { t: BlitzTournament }) {
   const router = useRouter();
-  const isActive = t.status === "active";
   const isReg = t.status === "registration";
+  const isActive = t.status === "active";
   const isCompleted = t.status === "completed";
-
-  const countdown = isReg
-    ? `Starts in ${formatCountdown(t.tournament_start)}`
-    : isActive
-    ? `Ends in ${formatCountdown(t.tournament_end)}`
-    : null;
-
-  const ctaLabel = isReg
-    ? "Register"
-    : isActive
-    ? "Play Now"
-    : isCompleted
-    ? "View Results"
-    : "View";
 
   return (
     <motion.button
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      whileTap={{ scale: 0.98 }}
+      whileHover={{ y: -2 }}
+      whileTap={{ scale: 0.99 }}
       onClick={() => router.push(`/blitz/${t.id}`)}
-      className="w-full bg-[#141414] border border-[#1E1E1E] rounded-2xl p-4 text-left space-y-3 hover:border-neon/30 transition-colors"
+      className="w-full bg-[#111] border border-[#1E1E1E] rounded-2xl p-5 text-left space-y-4 hover:border-neon/30 transition-all"
     >
+      {/* Header */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <Zap size={14} className="text-neon flex-shrink-0" />
+          <div className="flex items-center gap-2 mb-1.5">
+            <Zap size={15} className="text-neon flex-shrink-0" />
             <h3 className="text-white font-black text-lg leading-tight truncate">{t.title}</h3>
           </div>
           {t.description && (
-            <p className="text-gray-500 text-xs leading-relaxed">{t.description}</p>
+            <p className="text-gray-500 text-xs leading-relaxed line-clamp-2">{t.description}</p>
           )}
         </div>
         <StatusBadge status={t.status} />
       </div>
 
+      {/* Stats */}
       <div className="grid grid-cols-3 gap-2">
-        <div className="bg-[#0A0A0A] rounded-lg p-2">
-          <p className="text-[10px] text-gray-500 mb-0.5">Entry</p>
-          <p className="text-neon font-bold text-sm">₦{t.entry_fee.toLocaleString()}</p>
+        <div className="bg-[#0A0A0A] rounded-xl p-3 text-center">
+          <p className="text-[10px] text-gray-600 mb-1 uppercase tracking-wide">Entry</p>
+          <p className="text-neon font-black text-base">₦{t.entry_fee.toLocaleString()}</p>
         </div>
-        <div className="bg-[#0A0A0A] rounded-lg p-2">
-          <p className="text-[10px] text-gray-500 mb-0.5">Prize Pool</p>
-          <p className="text-white font-bold text-sm">₦{t.prize_pool.toLocaleString()}</p>
+        <div className="bg-[#0A0A0A] rounded-xl p-3 text-center">
+          <p className="text-[10px] text-gray-600 mb-1 uppercase tracking-wide">Prize Pool</p>
+          <p className="text-white font-black text-base">₦{t.prize_pool.toLocaleString()}</p>
         </div>
-        <div className="bg-[#0A0A0A] rounded-lg p-2">
-          <p className="text-[10px] text-gray-500 mb-0.5">Players</p>
-          <p className="text-white font-bold text-sm flex items-center gap-1">
-            <Users size={12} />
-            {t.total_registered}
+        <div className="bg-[#0A0A0A] rounded-xl p-3 text-center">
+          <p className="text-[10px] text-gray-600 mb-1 uppercase tracking-wide">Players</p>
+          <p className="text-white font-bold text-base flex items-center justify-center gap-1">
+            <Users size={12} />{t.total_registered}
           </p>
         </div>
       </div>
 
-      {countdown && (
-        <div className="flex items-center gap-1.5 text-xs text-gray-400">
+      {/* Footer */}
+      <div className="flex items-center justify-between pt-1">
+        <div className="flex items-center gap-1.5 text-xs text-gray-500">
           <Clock size={12} />
-          {countdown}
+          {isReg && `Starts in ${formatCountdown(t.tournament_start)}`}
+          {isActive && `Ends in ${formatCountdown(t.tournament_end)}`}
+          {isCompleted && "Tournament ended"}
         </div>
-      )}
-
-      <div className="pt-2">
-        <div className="w-full py-2.5 bg-neon/10 border border-neon/40 rounded-lg text-neon font-bold text-sm text-center">
-          {ctaLabel}
+        <div className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-colors ${
+          isCompleted
+            ? "bg-[#1A1A1A] text-gray-500"
+            : "bg-neon/10 text-neon border border-neon/20"
+        }`}>
+          {isReg ? "Register →" : isActive ? "Play Now →" : isCompleted ? "View Results →" : "View →"}
         </div>
       </div>
     </motion.button>
@@ -122,23 +108,12 @@ export default function BlitzLobbyPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (!state.isAuthenticated) {
-      router.push("/auth");
-      return;
-    }
-    fetchTournaments();
+    if (!state.isAuthenticated) { router.push("/auth"); return; }
+    blitzApi.getAll()
+      .then((res) => setTournaments(res.tournaments))
+      .catch((err) => { if (err instanceof ApiError) setError(err.message); })
+      .finally(() => setLoading(false));
   }, [state.isAuthenticated, router]);
-
-  const fetchTournaments = async () => {
-    try {
-      const res = await blitzApi.getAll();
-      setTournaments(res.tournaments);
-    } catch (err) {
-      if (err instanceof ApiError) setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   if (!state.isAuthenticated) return null;
 
@@ -146,93 +121,45 @@ export default function BlitzLobbyPage() {
   const registration = tournaments.filter((t) => t.status === "registration");
   const completed = tournaments.filter((t) => t.status === "completed");
 
-  return (
-    <main className="min-h-screen bg-[#0A0A0A] text-white pb-28">
-      <header className="sticky top-0 z-40 bg-[#0A0A0A]/90 backdrop-blur-md border-b border-[#1A1A1A] px-4 py-4">
-        <div className="max-w-lg mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Zap size={24} className="text-neon" />
-            <span className="font-black text-2xl uppercase tracking-tight text-white">BLITZ</span>
-          </div>
-          <Link
-            href="/wallet"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#141414] border border-[#222] text-neon font-bold text-sm hover:border-neon/40 transition-colors"
-          >
-            <Wallet size={14} />
-            ₦{state.player?.balance.toLocaleString() ?? "0"}
-          </Link>
-        </div>
-      </header>
-
-      <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
-        {error && (
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="text-red-400 text-sm bg-red-900/10 border border-red-900/30 rounded-xl p-3"
-          >
-            {error}
-          </motion.p>
-        )}
-
-        {loading ? (
-          <div className="space-y-3">
-            {[1, 2].map((i) => (
-              <div key={i} className="bg-[#141414] border border-[#1E1E1E] rounded-2xl p-4 h-40 animate-pulse" />
-            ))}
-          </div>
-        ) : (
-          <>
-            {active.length > 0 && (
-              <section>
-                <h2 className="text-white font-bold text-sm uppercase tracking-widest text-gray-400 mb-3">
-                  Active Tournaments
-                </h2>
-                <div className="space-y-3">
-                  {active.map((t) => (
-                    <TournamentCard key={t.id} t={t} />
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {registration.length > 0 && (
-              <section>
-                <h2 className="text-white font-bold text-sm uppercase tracking-widest text-gray-400 mb-3">
-                  Registration Open
-                </h2>
-                <div className="space-y-3">
-                  {registration.map((t) => (
-                    <TournamentCard key={t.id} t={t} />
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {completed.length > 0 && (
-              <section>
-                <h2 className="text-white font-bold text-sm uppercase tracking-widest text-gray-400 mb-3">
-                  Completed
-                </h2>
-                <div className="space-y-3">
-                  {completed.map((t) => (
-                    <TournamentCard key={t.id} t={t} />
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {tournaments.length === 0 && (
-              <div className="bg-[#141414] border border-[#1E1E1E] rounded-2xl p-12 text-center">
-                <Zap size={48} className="text-gray-700 mx-auto mb-3" />
-                <p className="text-gray-600 text-sm">No tournaments available right now</p>
-              </div>
-            )}
-          </>
-        )}
+  const Section = ({ title, items }: { title: string; items: BlitzTournament[] }) => (
+    <section className="space-y-3">
+      <h2 className="text-[11px] text-gray-500 uppercase tracking-widest font-bold">{title}</h2>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+        {items.map((t) => <TournamentCard key={t.id} t={t} />)}
       </div>
+    </section>
+  );
 
-      <BottomNavigation />
-    </main>
+  return (
+    <div className="max-w-5xl mx-auto px-4 lg:px-8 py-6 space-y-8">
+
+      {error && (
+        <p className="text-red-400 text-sm bg-red-900/10 border border-red-900/30 rounded-xl p-3">{error}</p>
+      )}
+
+      {loading ? (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="bg-[#111] border border-[#1E1E1E] rounded-2xl p-5 h-44 animate-pulse" />
+          ))}
+        </div>
+      ) : (
+        <>
+          {active.length > 0 && <Section title="Live Now" items={active} />}
+          {registration.length > 0 && <Section title="Registration Open" items={registration} />}
+          {completed.length > 0 && <Section title="Completed" items={completed} />}
+
+          {tournaments.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-24 text-center">
+              <div className="w-16 h-16 rounded-2xl bg-[#141414] border border-[#1E1E1E] flex items-center justify-center mb-4">
+                <Zap size={28} className="text-gray-700" />
+              </div>
+              <p className="text-gray-500 font-semibold">No tournaments right now</p>
+              <p className="text-gray-700 text-sm mt-1">Check back soon for new Blitz events</p>
+            </div>
+          )}
+        </>
+      )}
+    </div>
   );
 }
