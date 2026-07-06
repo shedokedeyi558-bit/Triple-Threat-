@@ -6,7 +6,6 @@ import { removeToken } from "@/lib/api";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { LogOut, Wallet, Shield, FileText, ChevronRight, User, Phone, Trophy, Zap } from "lucide-react";
-import { BottomNavigation } from "@/components/ui/BottomNavigation";
 
 export default function ProfilePage() {
   const { state, dispatch } = useApp();
@@ -26,20 +25,7 @@ export default function ProfilePage() {
     : player?.phone?.slice(-2) ?? "??";
 
   return (
-    <main className="min-h-screen bg-[#0A0A0A] text-white pb-28">
-      {/* Header */}
-      <header className="sticky top-0 z-40 bg-[#0A0A0A]/90 backdrop-blur-md border-b border-[#1A1A1A] px-6 py-4">
-        <div className="max-w-2xl mx-auto flex items-center justify-between">
-          <span className="font-black text-xl uppercase tracking-tight">
-            <span className="text-white">BIT</span>
-            <span className="text-neon">LYFE</span>
-          </span>
-          <Link href="/play" className="text-sm text-gray-500 hover:text-white transition-colors font-medium">
-            ← Back to Play
-          </Link>
-        </div>
-      </header>
-
+    <div className="text-white">
       <div className="max-w-2xl mx-auto px-6 py-8 space-y-6">
 
         {/* Hero card */}
@@ -167,8 +153,6 @@ export default function ProfilePage() {
         </p>
 
       </div>
-
-      <BottomNavigation />
-    </main>
+    </div>
   );
 }

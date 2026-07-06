@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { AppProvider } from "@/context/AppContext";
-import { BottomNavigation } from "@/components/ui/BottomNavigation";
+import { AppShell } from "@/components/ui/AppShell";
 
 export const metadata: Metadata = {
   title: "BitLyfe — Play Smart. Win Real.",
@@ -37,8 +37,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body className="bg-bg text-white antialiased">
         <AppProvider>
-          {children}
-          <BottomNavigation />
+          <AppShell>
+            {children}
+          </AppShell>
         </AppProvider>
       </body>
     </html>
