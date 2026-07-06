@@ -12,7 +12,6 @@ import {
 const links = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/blitz", label: "Blitz", icon: Zap },
-  { href: "/admin/games/create", label: "Create Game", icon: Plus },
   { href: "/admin/players", label: "Players", icon: Users },
   { href: "/admin/withdrawals", label: "Withdrawals", icon: CreditCard },
   { href: "/admin/analytics", label: "Analytics", icon: BarChart2 },
