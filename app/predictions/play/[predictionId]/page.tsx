@@ -24,6 +24,8 @@ export default function PredictionPlayPage() {
   const [result, setResult] = useState<{ won: boolean; correctAnswer: string; prize: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  // Only show errors from submit actions, not from initial load checks
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!state.isAuthenticated) {
@@ -76,14 +78,14 @@ export default function PredictionPlayPage() {
 
   const handleSubmit = async (answer: string) => {
     setSubmitting(true);
-    setError(null);
+    setSubmitError(null);
     try {
       await predictionsApi.submit(predictionId, answer);
       dispatch({ type: "SET_PREDICTION_ANSWER", answer });
       setUserAnswer(answer);
       setPageState("locked");
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Failed to submit prediction");
+      setSubmitError(err instanceof ApiError ? err.message : "Failed to submit prediction");
     } finally {
       setSubmitting(false);
     }
@@ -108,7 +110,18 @@ export default function PredictionPlayPage() {
           <span className="text-sm text-[#888]">Time Machine</span>
         </div>
 
-        {error && (
+        {submitError && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 mb-6 flex gap-3 items-start"
+          >
+            <AlertCircle size={20} className="text-red-500 flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-red-400">{submitError}</p>
+          </motion.div>
+        )}
+
+        {error && pageState === "error" && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}

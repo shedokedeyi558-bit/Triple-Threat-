@@ -49,7 +49,7 @@ export default function PredictionPlay({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-28">
       {/* Question */}
       <div>
         <p className="text-xs text-[#888] uppercase tracking-tight font-bold">
