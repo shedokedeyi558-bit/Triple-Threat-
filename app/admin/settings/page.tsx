@@ -49,8 +49,6 @@ export default function SettingsPage() {
     try {
       const res = await adminApi.updateSettings({
         min_withdrawal: settings.min_withdrawal,
-        max_daily_plays: settings.max_daily_plays,
-        new_user_bonus: settings.new_user_bonus,
         auto_approve_withdrawals: settings.auto_approve_withdrawals,
         auto_approve_limit: settings.auto_approve_limit,
         payout_bank_name: settings.payout_bank_name,
@@ -94,29 +92,9 @@ export default function SettingsPage() {
 
         {/* Game Rules */}
         <Section title="Game Rules">
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="Min withdrawal (₦)">
-              <input type="number" value={settings.min_withdrawal}
-                onChange={(e) => update("min_withdrawal", Number(e.target.value))} className={inp} />
-            </Field>
-            <Field label="Max daily plays per user">
-              <input type="number" value={settings.max_daily_plays}
-                onChange={(e) => update("max_daily_plays", Number(e.target.value))} className={inp} />
-            </Field>
-          </div>
-          <Field label="New user bonus (₦)">
-            <div className="flex gap-2">
-              {[0, 200, 500].map((v) => (
-                <button key={v} onClick={() => update("new_user_bonus", v)}
-                  className={`flex-1 py-2.5 rounded-xl border text-sm font-semibold transition-all ${
-                    settings.new_user_bonus === v
-                      ? "border-neon bg-neon/10 text-neon"
-                      : "border-[#1E1E1E] text-gray-500 hover:border-neon/30"
-                  }`}>
-                  {v === 0 ? "None" : `₦${v}`}
-                </button>
-              ))}
-            </div>
+          <Field label="Min withdrawal (₦)">
+            <input type="number" value={settings.min_withdrawal}
+              onChange={(e) => update("min_withdrawal", Number(e.target.value))} className={inp} />
           </Field>
         </Section>
 
