@@ -252,7 +252,10 @@ function PredictionWaiting({ answer }: { answer: string }) {
 
       <div className="bg-[#111] border border-neon/20 rounded-2xl p-5 text-center">
         <p className="text-[11px] text-gray-500 uppercase tracking-widest font-bold mb-2">Your Prediction</p>
-        <p className="text-neon font-black text-3xl">{answer || "—"}</p>
+        {answer
+          ? <p className="text-neon font-black text-3xl">{answer}</p>
+          : <p className="text-gray-600 text-sm italic">Your answer was submitted in a previous session</p>
+        }
       </div>
 
       <div className="bg-[#111] border border-[#1E1E1E] rounded-2xl p-5 space-y-4">
@@ -368,8 +371,12 @@ export default function PredictionPlayPage() {
 
       setPrediction(found);
 
-      // If locked, show waiting state
+      // If locked, try to restore player's previously submitted answer
       if (found.status === "locked" || new Date(found.countdown_end) < new Date()) {
+        try {
+          const myAnswer = await predictionsApi.getMyAnswer(predictionId);
+          setUserAnswer(myAnswer.answer);
+        } catch { /* not submitted yet */ }
         setPageState("locked");
         return;
       }

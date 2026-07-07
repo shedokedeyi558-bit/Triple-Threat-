@@ -557,6 +557,11 @@ export const predictionsApi = {
     request<PredictionResultResponse>(`/api/predictions/result/${predictionId}`, {
       token: getToken(),
     }),
+
+  getMyAnswer: (predictionId: string) =>
+    request<{ answer: string; submitted_at: string }>(`/api/predictions/my-answer/${predictionId}`, {
+      token: getToken(),
+    }),
 };
 
 // ─── BLITZ ───────────────────────────────────────────────────────────────────
