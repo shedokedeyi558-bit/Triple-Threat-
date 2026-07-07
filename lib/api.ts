@@ -5,12 +5,8 @@
  */
 
 const getBaseUrl = () => {
-  if (typeof window === "undefined") {
-    // Server-side
-    return process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-  }
-  // Client-side - use Next.js API routes as default, fallback to external backend
-  return ""; // Empty string means use relative paths (same origin)
+  // Always use the backend URL directly — both server-side and client-side
+  return process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 };
 
 const BASE_URL = getBaseUrl();
