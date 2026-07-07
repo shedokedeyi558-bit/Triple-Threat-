@@ -142,20 +142,24 @@ export default function SettingsPage() {
         </Section>
 
         {/* Payout Account — spans full width */}
-        <Section title="Payout Account">
-          <Field label="Bank name">
-            <input type="text" placeholder="e.g. Opay" value={settings.payout_bank_name}
-              onChange={(e) => update("payout_bank_name", e.target.value)} className={inp} />
-          </Field>
-          <Field label="Account name">
-            <input type="text" placeholder="e.g. BITLYFE Games" value={settings.payout_account_name}
-              onChange={(e) => update("payout_account_name", e.target.value)} className={inp} />
-          </Field>
-          <Field label="Account number">
-            <input type="tel" placeholder="10-digit number" value={settings.payout_account_number}
-              onChange={(e) => update("payout_account_number", e.target.value)} className={inp} />
-          </Field>
-        </Section>
+        <div className="md:col-span-2">
+          <Section title="Payout Account">
+            <div className="grid md:grid-cols-3 gap-4">
+              <Field label="Bank name">
+                <input type="text" placeholder="e.g. Opay" value={settings.payout_bank_name}
+                  onChange={(e) => update("payout_bank_name", e.target.value)} className={inp} />
+              </Field>
+              <Field label="Account name">
+                <input type="text" placeholder="e.g. BITLYFE Games" value={settings.payout_account_name}
+                  onChange={(e) => update("payout_account_name", e.target.value)} className={inp} />
+              </Field>
+              <Field label="Account number">
+                <input type="tel" placeholder="10-digit number" value={settings.payout_account_number}
+                  onChange={(e) => update("payout_account_number", e.target.value)} className={inp} />
+              </Field>
+            </div>
+          </Section>
+        </div>
 
       </div>
 
