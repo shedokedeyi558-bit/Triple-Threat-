@@ -381,6 +381,23 @@ export default function PredictionPlayPage() {
         return;
       }
 
+      // Check if player already entered (but hasn't submitted yet)
+      // getMyAnswer returns 404 if not participated at all
+      try {
+        const myAnswer = await predictionsApi.getMyAnswer(predictionId);
+        // Already submitted — show locked state
+        setUserAnswer(myAnswer.answer);
+        setPageState("locked");
+        return;
+      } catch (err) {
+        if (err instanceof ApiError && err.status !== 404) {
+          // Entered but not submitted yet → go to submit step
+          setPageState("submit");
+          return;
+        }
+        // 404 = not entered at all → show detail/enter
+      }
+
       setPageState("detail");
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to load prediction");
