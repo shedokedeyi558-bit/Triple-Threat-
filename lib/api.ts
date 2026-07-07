@@ -823,11 +823,7 @@ export const adminApi = {
       method: "PUT", body: data, token: getAdminToken(),
     }),
 
-  // Kill switch — backend toggles automatically, no body needed
-  toggleKillSwitch: () =>
-    request<{ gameKillSwitch: boolean; message: string }>("/api/admin/kill-switch", {
-      method: "POST", token: getAdminToken(),
-    }),
+  // Kill switch removed (no longer needed)
 
   // Analytics
   getRevenueAnalytics: (period: "hourly" | "daily" = "daily", days = 7) =>
@@ -959,11 +955,7 @@ export const adminApi = {
       token: getAdminToken(), params: { period },
     }),
 
-  seedTestData: () =>
-    request<{ success: boolean; data: { packs_created: number; predictions_created: number; blitz_created: number; message: string } }>(
-      "/api/admin/seed",
-      { method: "POST", token: getAdminToken() }
-    ),
+  // Seed removed (no longer needed)
 
   // Predictions management
   getPrediction: (id: string) =>
