@@ -298,7 +298,7 @@ function EmptyState({ text }: { text: string }) {
 
 // ─── Main ──────────────────────────────────────────────────────────────────────
 export default function PlayPage() {
-  const { state, dispatch } = useApp();
+  const { state } = useApp();
   const router = useRouter();
   const [packs, setPacks] = useState<PillPack[]>([]);
   const [predictions, setPredictions] = useState<PredictionData[]>([]);
@@ -332,8 +332,7 @@ export default function PlayPage() {
   }, []);
 
   const handleEnterPrediction = (p: PredictionData) => {
-    if (!state.player || state.player.balance < p.fee) { setError("Insufficient balance. Please deposit."); return; }
-    dispatch({ type: "SELECT_PREDICTION", prediction: p });
+    // Navigate to detail page — enter & pay happens there
     router.push(`/predictions/play/${p.id}`);
   };
 
