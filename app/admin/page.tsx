@@ -8,7 +8,7 @@ import { CreateGameModal } from "@/components/admin/CreateGameModal";
 import { CreatePillPackForm } from "@/components/admin/CreatePillPackForm";
 import { CreateTimeMachineForm } from "@/components/admin/CreateTimeMachineForm";
 import {
-  Users, TrendingUp, DollarSign, AlertCircle,
+  Users, AlertCircle,
   Plus, Clock, ArrowRight, ShieldAlert, Zap,
 } from "lucide-react";
 
@@ -90,20 +90,6 @@ export default function AdminDashboard() {
 
   const statCards = stats ? [
     {
-      icon: <DollarSign size={14} className="text-neon" />,
-      label: "Revenue Today",
-      value: `₦${stats.revenueToday.toLocaleString()}`,
-      sub: `₦${stats.payoutsToday.toLocaleString()} paid out`,
-      color: "text-neon",
-    },
-    {
-      icon: <TrendingUp size={14} className="text-yellow-400" />,
-      label: "Profit Today",
-      value: `₦${stats.profitToday.toLocaleString()}`,
-      sub: `${stats.playsToday} plays today`,
-      color: "text-yellow-400",
-    },
-    {
       icon: <Users size={14} className="text-blue-400" />,
       label: "Total Players",
       value: stats.totalPlayers.toLocaleString(),
@@ -144,11 +130,11 @@ export default function AdminDashboard() {
 
       {/* Stats */}
       {loading ? (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {[1,2,3,4].map((i) => <div key={i} className="bg-[#141414] border border-[#1E1E1E] rounded-2xl p-4 h-20 animate-pulse" />)}
+        <div className="grid grid-cols-2 gap-3">
+          {[1,2].map((i) => <div key={i} className="bg-[#141414] border border-[#1E1E1E] rounded-2xl p-4 h-20 animate-pulse" />)}
         </div>
       ) : (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 gap-3">
           {statCards.map((card, i) => (
             <motion.div
               key={i}
