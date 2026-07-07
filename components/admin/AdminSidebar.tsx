@@ -6,12 +6,11 @@ import { useAdmin } from "@/context/AdminContext";
 import { removeAdminToken } from "@/lib/api";
 import {
   LayoutDashboard, Users, CreditCard,
-  BarChart2, Settings, LogOut, X, Plus, Zap
+  BarChart2, Settings, LogOut, X, Plus
 } from "lucide-react";
 
 const links = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/admin/blitz", label: "Blitz", icon: Zap },
   { href: "/admin/players", label: "Players", icon: Users },
   { href: "/admin/withdrawals", label: "Withdrawals", icon: CreditCard },
   { href: "/admin/analytics", label: "Analytics", icon: BarChart2 },

@@ -175,7 +175,7 @@ export default function AdminDashboard() {
         <div className="bg-[#141414] border border-[#1E1E1E] rounded-2xl p-4">
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-black text-white text-sm">Pill Packs</h2>
-            <Link href="/admin/blitz" className="text-[11px] text-neon flex items-center gap-1 hover:underline">
+            <Link href="/admin/pills" className="text-[11px] text-neon flex items-center gap-1 hover:underline">
               Manage <ArrowRight size={11} />
             </Link>
           </div>
