@@ -1,220 +1,254 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import {
-  AreaChart, Area, XAxis, YAxis, Tooltip,
-  ResponsiveContainer, BarChart, Bar, CartesianGrid,
-} from "recharts";
-import { adminApi, type AdminStats, ApiError } from "@/lib/api";
-import { Loader2, TrendingUp, DollarSign, Gamepad2, Users } from "lucide-react";
+import { adminApi, ApiError } from "@/lib/api";
+import { Loader2, TrendingUp, DollarSign, Users, Gamepad2, ArrowDownCircle, ArrowUpCircle, Clock, CheckCircle, XCircle, AlertCircle } from "lucide-react";
+import { motion } from "framer-motion";
 
-type Range = "today" | "week" | "month";
+type Period = "today" | "7days" | "30days";
 
-function StatCard({ label, value, sub, color }: { label: string; value: string; sub: string; color: string }) {
+interface Overview {
+  money: { total_revenue: number; total_payouts: number; net_profit: number; pending_withdrawal_value: number };
+  players: { total_registered: number; new_this_period: number; active_this_period: number };
+  games: { pills_played: number; predictions_entered: number; blitz_registrations: number; total_plays: number };
+  withdrawals: { total_requested: number; total_approved: number; total_pending: number; total_rejected: number };
+}
+
+function StatCard({
+  icon, label, value, sub, color = "text-white", highlight = false,
+}: {
+  icon: React.ReactNode; label: string; value: string; sub?: string; color?: string; highlight?: boolean;
+}) {
   return (
-    <div className="bg-[#141414] border border-[#1E1E1E] rounded-2xl p-4">
-      <p className="text-[11px] text-gray-500 mb-1 uppercase tracking-wider">{label}</p>
-      <p className={`text-xl font-black ${color}`}>{value}</p>
-      <p className="text-[11px] text-gray-600 mt-1">{sub}</p>
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className={`rounded-2xl p-5 border ${highlight ? "bg-neon/5 border-neon/20" : "bg-[#111] border-[#1E1E1E]"}`}
+    >
+      <div className="flex items-center gap-2 mb-3">
+        <div className="w-8 h-8 rounded-xl bg-[#1A1A1A] flex items-center justify-center flex-shrink-0">
+          {icon}
+        </div>
+        <p className="text-[11px] text-gray-500 uppercase tracking-widest font-bold">{label}</p>
+      </div>
+      <p className={`font-black text-2xl ${color}`}>{value}</p>
+      {sub && <p className="text-gray-600 text-xs mt-1">{sub}</p>}
+    </motion.div>
+  );
+}
+
+function SectionHeader({ title, sub }: { title: string; sub: string }) {
+  return (
+    <div className="mb-4">
+      <h2 className="text-white font-black text-base">{title}</h2>
+      <p className="text-gray-600 text-xs mt-0.5">{sub}</p>
     </div>
   );
 }
 
 export default function AnalyticsPage() {
-  const [range, setRange] = useState<Range>("week");
-  const [revenue, setRevenue] = useState<{ period: string; revenue: number; payouts: number; profit: number; plays: number }[]>([]);
-  const [activity, setActivity] = useState<{ hour: string; plays: number }[]>([]);
-  const [stats, setStats] = useState<AdminStats | null>(null);
+  const [period, setPeriod] = useState<Period>("7days");
+  const [overview, setOverview] = useState<Overview | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const rangeParams: Record<Range, { period: "hourly" | "daily"; days: number }> = {
-    today: { period: "hourly", days: 1 },
-    week: { period: "daily", days: 7 },
-    month: { period: "daily", days: 30 },
-  };
-
-  const fetchData = useCallback(async (r: Range) => {
+  const fetchData = useCallback(async (p: Period) => {
     setLoading(true);
     setError("");
-    const { period, days } = rangeParams[r];
     try {
-      const [revRes, actRes, statsRes] = await Promise.all([
-        adminApi.getRevenueAnalytics(period, days),
-        adminApi.getActivityAnalytics(),
-        adminApi.getStats(),
-      ]);
-      setRevenue(revRes.revenue ?? []);
-      setActivity(actRes.activity ?? []);
-      setStats(statsRes);
+      const res = await adminApi.getAnalyticsOverview(p);
+      setOverview(res as unknown as Overview);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to load analytics");
     } finally {
       setLoading(false);
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
-  useEffect(() => { fetchData(range); }, [range, fetchData]);
+  useEffect(() => { fetchData(period); }, [period, fetchData]);
 
-  const totalRevenue = revenue.reduce((s, r) => s + r.revenue, 0);
-  const totalPayouts = revenue.reduce((s, r) => s + r.payouts, 0);
-  const netProfit = totalRevenue - totalPayouts;
-  const totalPlays = revenue.reduce((s, r) => s + r.plays, 0);
-  const margin = totalRevenue > 0 ? Math.round((netProfit / totalRevenue) * 100) : 0;
-
-  const xFormatter = (v: string) =>
-    range === "today" ? v.slice(11, 16) : v.slice(5);
-
-  // Build 24-slot activity heatmap
-  const heatmap = Array.from({ length: 24 }, (_, i) => {
-    const match = activity.find((a) => {
-      const h = new Date(a.hour).getHours();
-      return h === i;
-    });
-    return { hour: i, plays: match?.plays ?? 0 };
-  });
-  const maxPlays = Math.max(...heatmap.map((h) => h.plays), 1);
-
-  const inputCls = "w-full bg-[#0A0A0A] border border-[#1E1E1E] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-neon/60";
+  const periodLabel = period === "today" ? "Today" : period === "7days" ? "Last 7 Days" : "Last 30 Days";
+  const margin = overview && overview.money.total_revenue > 0
+    ? Math.round((overview.money.net_profit / overview.money.total_revenue) * 100)
+    : 0;
+  const withdrawalApprovalRate = overview && overview.withdrawals.total_requested > 0
+    ? Math.round((overview.withdrawals.total_approved / overview.withdrawals.total_requested) * 100)
+    : 100;
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-8 max-w-6xl">
+
+      {/* Header + period toggle */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-black text-white">Analytics</h1>
-          <p className="text-gray-500 text-sm mt-0.5">Revenue and performance</p>
+          <p className="text-gray-500 text-sm mt-0.5">{periodLabel} overview</p>
         </div>
-        <div className="flex bg-[#141414] border border-[#1E1E1E] p-1 rounded-xl gap-1">
-          {(["today", "week", "month"] as Range[]).map((r) => (
+        <div className="flex bg-[#111] border border-[#1E1E1E] p-1 rounded-xl gap-1">
+          {(["today", "7days", "30days"] as Period[]).map((p) => (
             <button
-              key={r}
-              onClick={() => setRange(r)}
-              className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                range === r ? "bg-neon text-black" : "text-gray-400 hover:text-white"
+              key={p}
+              onClick={() => setPeriod(p)}
+              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+                period === p ? "bg-neon text-black" : "text-gray-400 hover:text-white"
               }`}
             >
-              {r === "today" ? "Today" : r === "week" ? "7 Days" : "30 Days"}
+              {p === "today" ? "Today" : p === "7days" ? "7 Days" : "30 Days"}
             </button>
           ))}
         </div>
       </div>
 
       {error && (
-        <div className="text-red-400 text-sm bg-red-900/10 border border-red-900/30 rounded-xl p-3">{error}</div>
+        <div className="bg-red-900/10 border border-red-800/30 rounded-xl p-3 text-red-400 text-sm flex gap-2">
+          <AlertCircle size={15} className="flex-shrink-0 mt-0.5" /> {error}
+        </div>
       )}
 
       {loading ? (
-        <div className="flex justify-center py-16">
+        <div className="flex justify-center py-20">
           <Loader2 size={28} className="text-neon animate-spin" />
         </div>
-      ) : (
-        <>
-          {/* Summary cards — pulled from live stats */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            <StatCard
-              label="Revenue"
-              value={`₦${totalRevenue.toLocaleString()}`}
-              sub={`${totalPlays} plays`}
-              color="text-neon"
-            />
-            <StatCard
-              label="Payouts"
-              value={`₦${totalPayouts.toLocaleString()}`}
-              sub={`${totalRevenue > 0 ? Math.round((totalPayouts / totalRevenue) * 100) : 0}% of revenue`}
-              color="text-orange-400"
-            />
-            <StatCard
-              label="Net Profit"
-              value={`₦${netProfit.toLocaleString()}`}
-              sub={`${margin}% margin`}
-              color="text-yellow-400"
-            />
-            <StatCard
-              label="Total Players"
-              value={stats?.totalPlayers.toLocaleString() ?? "—"}
-              sub="Registered accounts"
-              color="text-blue-400"
-            />
-          </div>
+      ) : overview ? (
+        <div className="space-y-8">
 
-          {/* Revenue chart */}
-          {revenue.length > 0 ? (
-            <div className="bg-[#141414] border border-[#1E1E1E] rounded-2xl p-5">
-              <h3 className="text-sm font-bold text-white mb-5">Revenue vs Payouts</h3>
-              <ResponsiveContainer width="100%" height={200}>
-                <AreaChart data={revenue} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#00FF66" stopOpacity={0.25} />
-                      <stop offset="95%" stopColor="#00FF66" stopOpacity={0} />
-                    </linearGradient>
-                    <linearGradient id="payGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#FF8800" stopOpacity={0.2} />
-                      <stop offset="95%" stopColor="#FF8800" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1E1E1E" />
-                  <XAxis dataKey="period" tick={{ fill: "#555", fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={xFormatter} />
-                  <YAxis tick={{ fill: "#555", fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(v) => `₦${(v / 1000).toFixed(0)}k`} />
-                  <Tooltip
-                    contentStyle={{ background: "#141414", border: "1px solid #1E1E1E", borderRadius: 10, fontSize: 12 }}
-                    formatter={(v: number) => [`₦${v.toLocaleString()}`, ""]}
-                    labelFormatter={xFormatter}
-                  />
-                  <Area type="monotone" dataKey="revenue" stroke="#00FF66" strokeWidth={2} fill="url(#revGrad)" name="Revenue" />
-                  <Area type="monotone" dataKey="payouts" stroke="#FF8800" strokeWidth={2} fill="url(#payGrad)" name="Payouts" />
-                </AreaChart>
-              </ResponsiveContainer>
+          {/* ── MONEY ── */}
+          <section>
+            <SectionHeader title="Money" sub="Revenue collected, paid out, and profit" />
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <StatCard
+                icon={<DollarSign size={15} className="text-neon" />}
+                label="Total Revenue"
+                value={`₦${overview.money.total_revenue.toLocaleString()}`}
+                sub="Entry fees collected"
+                color="text-neon"
+                highlight
+              />
+              <StatCard
+                icon={<ArrowUpCircle size={15} className="text-orange-400" />}
+                label="Total Payouts"
+                value={`₦${overview.money.total_payouts.toLocaleString()}`}
+                sub="Paid to winners"
+                color="text-orange-400"
+              />
+              <StatCard
+                icon={<TrendingUp size={15} className="text-blue-400" />}
+                label="Net Profit"
+                value={`₦${overview.money.net_profit.toLocaleString()}`}
+                sub={`${margin}% margin`}
+                color={overview.money.net_profit >= 0 ? "text-blue-400" : "text-red-400"}
+              />
+              <StatCard
+                icon={<Clock size={15} className="text-yellow-400" />}
+                label="Pending Payouts"
+                value={`₦${overview.money.pending_withdrawal_value.toLocaleString()}`}
+                sub="Owed to players"
+                color={overview.money.pending_withdrawal_value > 0 ? "text-yellow-400" : "text-gray-500"}
+              />
             </div>
-          ) : (
-            <div className="bg-[#141414] border border-[#1E1E1E] rounded-2xl p-8 text-center">
-              <TrendingUp size={32} className="text-gray-700 mx-auto mb-2" />
-              <p className="text-gray-600 text-sm">No revenue data for this period yet</p>
-            </div>
-          )}
+          </section>
 
-          {/* Plays per period */}
-          {revenue.length > 0 && (
-            <div className="bg-[#141414] border border-[#1E1E1E] rounded-2xl p-5">
-              <h3 className="text-sm font-bold text-white mb-5">Plays per period</h3>
-              <ResponsiveContainer width="100%" height={160}>
-                <BarChart data={revenue} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1E1E1E" />
-                  <XAxis dataKey="period" tick={{ fill: "#555", fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={xFormatter} />
-                  <YAxis tick={{ fill: "#555", fontSize: 10 }} axisLine={false} tickLine={false} />
-                  <Tooltip
-                    contentStyle={{ background: "#141414", border: "1px solid #1E1E1E", borderRadius: 10, fontSize: 12 }}
-                  />
-                  <Bar dataKey="plays" fill="#00FF66" radius={[4, 4, 0, 0]} name="Plays" />
-                </BarChart>
-              </ResponsiveContainer>
+          {/* ── PLAYERS ── */}
+          <section>
+            <SectionHeader title="Players" sub="Growth and activity" />
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              <StatCard
+                icon={<Users size={15} className="text-white" />}
+                label="Total Registered"
+                value={overview.players.total_registered.toLocaleString()}
+                sub="All time"
+                color="text-white"
+              />
+              <StatCard
+                icon={<ArrowDownCircle size={15} className="text-neon" />}
+                label="New Players"
+                value={overview.players.new_this_period.toLocaleString()}
+                sub={`Joined in ${periodLabel.toLowerCase()}`}
+                color="text-neon"
+              />
+              <StatCard
+                icon={<Gamepad2 size={15} className="text-purple-400" />}
+                label="Active Players"
+                value={overview.players.active_this_period.toLocaleString()}
+                sub={`Played in ${periodLabel.toLowerCase()}`}
+                color="text-purple-400"
+              />
             </div>
-          )}
+          </section>
 
-          {/* Peak hours heatmap */}
-          <div className="bg-[#141414] border border-[#1E1E1E] rounded-2xl p-5">
-            <h3 className="text-sm font-bold text-white mb-4">Peak hours (24h activity)</h3>
-            <div className="flex gap-1">
-              {heatmap.map(({ hour, plays }) => (
-                <div key={hour} className="flex-1 flex flex-col items-center gap-1.5">
-                  <div
-                    className="w-full rounded-sm"
-                    style={{
-                      background: `rgba(0,255,102,${Math.max(0.05, plays / maxPlays).toFixed(2)})`,
-                      height: 32,
-                    }}
-                    title={`${hour}:00 — ${plays} plays`}
-                  />
-                  {hour % 6 === 0 && (
-                    <span className="text-[9px] text-gray-600">{hour}h</span>
-                  )}
-                </div>
-              ))}
+          {/* ── GAMES ── */}
+          <section>
+            <SectionHeader title="Game Activity" sub="How players are engaging" />
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <StatCard
+                icon={<span className="text-base">💊</span>}
+                label="Pills Played"
+                value={overview.games.pills_played.toLocaleString()}
+                sub="Individual pills opened"
+                color="text-white"
+              />
+              <StatCard
+                icon={<Clock size={15} className="text-purple-400" />}
+                label="Predictions Entered"
+                value={overview.games.predictions_entered.toLocaleString()}
+                sub="Time Machine entries"
+                color="text-purple-400"
+              />
+              <StatCard
+                icon={<span className="text-base">⚡</span>}
+                label="Blitz Registrations"
+                value={overview.games.blitz_registrations.toLocaleString()}
+                sub="Tournament sign-ups"
+                color="text-white"
+              />
+              <StatCard
+                icon={<TrendingUp size={15} className="text-neon" />}
+                label="Total Plays"
+                value={overview.games.total_plays.toLocaleString()}
+                sub="All game types combined"
+                color="text-neon"
+                highlight
+              />
             </div>
-            <p className="text-[11px] text-gray-600 mt-3">Brighter = more activity</p>
-          </div>
-        </>
-      )}
+          </section>
+
+          {/* ── WITHDRAWALS ── */}
+          <section>
+            <SectionHeader title="Withdrawals" sub="Player payout requests" />
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <StatCard
+                icon={<ArrowUpCircle size={15} className="text-gray-400" />}
+                label="Total Requested"
+                value={overview.withdrawals.total_requested.toLocaleString()}
+                sub="All requests"
+                color="text-white"
+              />
+              <StatCard
+                icon={<CheckCircle size={15} className="text-neon" />}
+                label="Approved"
+                value={overview.withdrawals.total_approved.toLocaleString()}
+                sub={`${withdrawalApprovalRate}% approval rate`}
+                color="text-neon"
+              />
+              <StatCard
+                icon={<Clock size={15} className="text-yellow-400" />}
+                label="Pending"
+                value={overview.withdrawals.total_pending.toLocaleString()}
+                sub={overview.withdrawals.total_pending > 0 ? "Needs attention" : "All clear"}
+                color={overview.withdrawals.total_pending > 0 ? "text-yellow-400" : "text-gray-500"}
+              />
+              <StatCard
+                icon={<XCircle size={15} className="text-red-400" />}
+                label="Rejected"
+                value={overview.withdrawals.total_rejected.toLocaleString()}
+                sub="Declined requests"
+                color={overview.withdrawals.total_rejected > 0 ? "text-red-400" : "text-gray-500"}
+              />
+            </div>
+          </section>
+
+        </div>
+      ) : null}
     </div>
   );
 }

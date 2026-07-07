@@ -951,6 +951,18 @@ export const adminApi = {
       token: getAdminToken()
     }),
 
+  // Analytics overview
+  getAnalyticsOverview: (period: "today" | "7days" | "30days") =>
+    request<{
+      period: string;
+      money: { total_revenue: number; total_payouts: number; net_profit: number; pending_withdrawal_value: number };
+      players: { total_registered: number; new_this_period: number; active_this_period: number };
+      games: { pills_played: number; predictions_entered: number; blitz_registrations: number; total_plays: number };
+      withdrawals: { total_requested: number; total_approved: number; total_pending: number; total_rejected: number };
+    }>(`/api/admin/analytics/overview`, {
+      token: getAdminToken(), params: { period },
+    }),
+
   seedTestData: () =>
     request<{ success: boolean; data: { packs_created: number; predictions_created: number; blitz_created: number; message: string } }>(
       "/api/admin/seed",
