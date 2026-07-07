@@ -94,7 +94,11 @@ export default function AnalyticsPage() {
       const res = await adminApi.getAnalyticsOverview(period as any);
       setOverview(res as unknown as Overview);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Failed to load analytics");
+      if (err instanceof ApiError && err.status === 401) {
+        setError("Session expired. Please log out and log back in to the admin panel.");
+      } else {
+        setError(err instanceof ApiError ? err.message : "Failed to load analytics");
+      }
     } finally {
       setLoading(false);
     }

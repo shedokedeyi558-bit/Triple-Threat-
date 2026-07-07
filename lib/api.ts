@@ -952,7 +952,7 @@ export const adminApi = {
     }),
 
   // Analytics overview
-  getAnalyticsOverview: (period: "today" | "7days" | "30days") =>
+  getAnalyticsOverview: (period: string) =>
     request<{
       period: string;
       money: { total_revenue: number; total_payouts: number; net_profit: number; pending_withdrawal_value: number };
