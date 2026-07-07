@@ -169,11 +169,10 @@ function PredictionCard({ prediction, onEnter }: { prediction: PredictionData; o
     <motion.button
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      whileHover={locked ? {} : { y: -2 }}
-      whileTap={locked ? {} : { scale: 0.98 }}
-      onClick={() => !locked && onEnter(prediction)}
-      disabled={locked}
-      className="w-full bg-[#111] border border-[#1E1E1E] rounded-2xl p-4 text-left space-y-3 hover:border-neon/20 transition-all disabled:opacity-60"
+      whileHover={{ y: -2 }}
+      whileTap={{ scale: 0.98 }}
+      onClick={() => onEnter(prediction)}
+      className="w-full bg-[#111] border border-[#1E1E1E] rounded-2xl p-4 text-left space-y-3 hover:border-neon/20 transition-all"
     >
       <div>
         <div className="flex items-center gap-2 mb-1.5">
@@ -210,8 +209,7 @@ function PredictionCard({ prediction, onEnter }: { prediction: PredictionData; o
         <div className="flex items-center justify-end">
           <span className="text-neon text-xs font-bold flex items-center gap-1">Predict <ChevronRight size={12} /></span>
         </div>
-      )}
-    </motion.button>
+      )}    </motion.button>
   );
 }
 
