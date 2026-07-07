@@ -175,8 +175,8 @@ export default function AdminPredictionDetailPage() {
               </div>
               <h1 className="text-white font-black text-xl leading-tight">{prediction.question}</h1>
             </div>
-            <span className={`text-xs font-black px-3 py-1.5 rounded-lg flex-shrink-0 ${statusBadge(prediction.status)}`}>
-              {prediction.status.toUpperCase()}
+            <span className={`text-xs font-black px-3 py-1.5 rounded-lg flex-shrink-0 ${statusBadge(isLocked ? "locked" : prediction.status)}`}>
+              {isLocked && prediction.status === "active" ? "LOCKED" : prediction.status.toUpperCase()}
             </span>
           </div>
 
