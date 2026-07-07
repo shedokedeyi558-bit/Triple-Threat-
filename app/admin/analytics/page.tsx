@@ -68,7 +68,11 @@ export default function AnalyticsPage() {
 
   // Build period string for API
   const getPeriodParam = () => {
-    if (filterMode === "day") return `day:${selectedDay}`;
+    if (filterMode === "day") {
+      const today = new Date().toISOString().slice(0, 10);
+      if (selectedDay === today) return "today";
+      return `day:${selectedDay}`;
+    }
     return `month:${selectedMonth}`;
   };
 
@@ -117,6 +121,14 @@ export default function AnalyticsPage() {
         {/* Mode toggle */}
         <div className="flex bg-[#111] border border-[#1E1E1E] p-1 rounded-xl gap-1">
           <button
+            onClick={() => { setFilterMode("day"); setSelectedDay(new Date().toISOString().slice(0, 10)); }}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+              filterMode === "day" && selectedDay === new Date().toISOString().slice(0, 10) ? "bg-neon text-black" : "text-gray-400 hover:text-white"
+            }`}
+          >
+            Today
+          </button>
+          <button
             onClick={() => setFilterMode("month")}
             className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
               filterMode === "month" ? "bg-neon text-black" : "text-gray-400 hover:text-white"
@@ -127,10 +139,10 @@ export default function AnalyticsPage() {
           <button
             onClick={() => setFilterMode("day")}
             className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
-              filterMode === "day" ? "bg-neon text-black" : "text-gray-400 hover:text-white"
+              filterMode === "day" && selectedDay !== new Date().toISOString().slice(0, 10) ? "bg-neon text-black" : "text-gray-400 hover:text-white"
             }`}
           >
-            <Calendar size={12} /> Day
+            <Calendar size={12} /> Pick Day
           </button>
         </div>
 
