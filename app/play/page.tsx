@@ -8,7 +8,7 @@ import {
   pillsApi, predictionsApi, blitzApi,
   type PillPack, type PillPackPill, type PredictionData, type BlitzTournament, ApiError,
 } from "@/lib/api";
-import { Clock, ChevronRight, Users, Lock, Zap, Trophy, Timer, ArrowRight } from "lucide-react";
+import { Clock, ChevronRight, Users, Lock, Zap, Trophy, Timer, ArrowRight, Plus } from "lucide-react";
 import Link from "next/link";
 
 function pillGlow(color: string) {
@@ -111,7 +111,7 @@ function PredictionCard({ prediction, onClick }: { prediction: PredictionData; o
 
   const locked = prediction.status === "locked" || timeLeft <= 0;
   const h = Math.floor(timeLeft / 3600), m = Math.floor((timeLeft % 3600) / 60), s = timeLeft % 60;
-  const timeLabel = locked ? "Locked" : h > 0 ? `${h}h ${m}m` : m > 0 ? `${m}m ${s}s` : `${s}s`;
+  const timeLabel = locked ? "Predictions closed" : h > 0 ? `${h}h ${m}m left` : m > 0 ? `${m}m ${s}s left` : `${s}s left`;
   const fill = Math.min(100, Math.round((prediction.slots_filled / prediction.max_slots) * 100));
 
   return (
@@ -143,7 +143,7 @@ function PredictionCard({ prediction, onClick }: { prediction: PredictionData; o
 
       <div className="space-y-1.5">
         <div className="flex justify-between text-[10px] text-gray-600">
-          <span className="flex items-center gap-1"><Users size={9} /> {prediction.slots_filled} / {prediction.max_slots}</span>
+          <span className="flex items-center gap-1"><Users size={9} /> Slots filled: {prediction.slots_filled}/{prediction.max_slots}</span>
           <span>{fill}%</span>
         </div>
         <div className="h-1 bg-[#1A1A1A] rounded-full overflow-hidden">
@@ -280,6 +280,38 @@ export default function PlayPage() {
 
   const liveBlitz = blitz.filter((t) => t.status === "active" || t.status === "registration");
 
+  // Reusable empty state
+  const PillsEmpty = () => (
+    <div className="bg-[#111] border border-[#1E1E1E] rounded-2xl p-8 text-center space-y-2">
+      <motion.div animate={{ rotate: [0, -12, 12, -8, 0] }} transition={{ duration: 2.5, repeat: Infinity, repeatDelay: 4 }}
+        className="text-4xl mx-auto w-fit">💊</motion.div>
+      <p className="text-white font-bold text-sm mt-2">New packs drop regularly</p>
+      <p className="text-gray-600 text-xs">Fresh pills incoming — check back soon</p>
+      <Link href="/pills" className="inline-block mt-1 text-neon text-xs font-bold hover:underline">Browse packs →</Link>
+    </div>
+  );
+
+  const BlitzEmpty = ({ compact = false }: { compact?: boolean }) => (
+    <div className={`bg-[#111] border border-[#1E1E1E] rounded-2xl flex items-center justify-between ${compact ? "px-5 py-5" : "px-5 py-6"}`}>
+      <div>
+        <p className="text-gray-500 font-semibold text-sm">No active tournaments right now</p>
+        <p className="text-gray-700 text-xs mt-0.5">New Blitz events launch weekly</p>
+      </div>
+      <Link href="/blitz" className="text-neon text-xs font-bold flex items-center gap-1 hover:underline flex-shrink-0 ml-4">
+        Browse all <ArrowRight size={12} />
+      </Link>
+    </div>
+  );
+
+  const PredictionsEmpty = () => (
+    <div className="bg-[#111] border border-[#1E1E1E] rounded-2xl p-6 text-center space-y-1">
+      <p className="text-2xl">🔮</p>
+      <p className="text-white font-bold text-sm mt-1">No open predictions</p>
+      <p className="text-gray-600 text-xs">New events are added regularly</p>
+      <Link href="/time-machine" className="inline-block mt-1 text-neon text-xs font-bold hover:underline">See all →</Link>
+    </div>
+  );
+
   if (!state.isAuthenticated) return null;
 
   return (
@@ -295,7 +327,7 @@ export default function PlayPage() {
         </div>
       ) : (
         <>
-          {/* ── DESKTOP: Pills left (larger), Predictions + Blitz right ── */}
+          {/* ── DESKTOP ── */}
           <div className="hidden lg:grid lg:grid-cols-5 gap-6">
 
             {/* Pills — wider column */}
@@ -309,18 +341,13 @@ export default function PlayPage() {
                   See all <ChevronRight size={13} />
                 </Link>
               </div>
-              {packs.length === 0 ? (
-                <div className="bg-[#111] border border-[#1E1E1E] rounded-2xl p-10 text-center">
-                  <p className="text-gray-600 text-sm">No pill packs right now</p>
-                </div>
-              ) : (
+              {packs.length === 0 ? <PillsEmpty /> : (
                 <>
                   {packs.slice(0, 2).map((p) => (
                     <PillPackCard key={p.id} pack={p} onPillTap={(pack, pill) => setSheet({ pack, pill })} />
                   ))}
                   {packs.length > 2 && (
-                    <Link href="/pills"
-                      className="flex items-center justify-center gap-2 py-3 rounded-xl border border-[#1E1E1E] text-neon text-sm font-bold hover:bg-neon/5 transition-colors">
+                    <Link href="/pills" className="flex items-center justify-center gap-2 py-3 rounded-xl border border-[#1E1E1E] text-neon text-sm font-bold hover:bg-neon/5 transition-colors">
                       +{packs.length - 2} more packs <ArrowRight size={14} />
                     </Link>
                   )}
@@ -328,7 +355,7 @@ export default function PlayPage() {
               )}
             </div>
 
-            {/* Right column — Blitz + Predictions stacked */}
+            {/* Right column */}
             <div className="lg:col-span-3 space-y-6">
 
               {/* Blitz */}
@@ -340,21 +367,9 @@ export default function PlayPage() {
                   </div>
                   <Link href="/blitz" className="text-neon text-xs font-bold flex items-center gap-1 hover:underline">All <ChevronRight size={13} /></Link>
                 </div>
-                {liveBlitz.length === 0 ? (
-                  <div className="bg-[#111] border border-[#1E1E1E] rounded-2xl px-5 py-6 flex items-center justify-between">
-                    <div>
-                      <p className="text-gray-500 font-semibold text-sm">No active tournaments</p>
-                      <p className="text-gray-700 text-xs mt-0.5">Check back soon</p>
-                    </div>
-                    <Link href="/blitz" className="text-neon text-xs font-bold flex items-center gap-1 hover:underline">
-                      Browse all <ArrowRight size={12} />
-                    </Link>
-                  </div>
-                ) : (
+                {liveBlitz.length === 0 ? <BlitzEmpty /> : (
                   <div className="grid grid-cols-2 gap-3">
-                    {liveBlitz.map((t) => (
-                      <BlitzCard key={t.id} t={t} onClick={() => router.push(`/blitz/${t.id}`)} />
-                    ))}
+                    {liveBlitz.map((t) => <BlitzCard key={t.id} t={t} onClick={() => router.push(`/blitz/${t.id}`)} />)}
                   </div>
                 )}
               </div>
@@ -370,11 +385,7 @@ export default function PlayPage() {
                     See all <ChevronRight size={13} />
                   </Link>
                 </div>
-                {predictions.length === 0 ? (
-                  <div className="bg-[#111] border border-[#1E1E1E] rounded-2xl p-6 text-center">
-                    <p className="text-gray-600 text-sm">No active predictions right now</p>
-                  </div>
-                ) : (
+                {predictions.length === 0 ? <PredictionsEmpty /> : (
                   <>
                     <div className="grid grid-cols-2 gap-3">
                       {predictions.slice(0, 2).map((p) => (
@@ -382,8 +393,7 @@ export default function PlayPage() {
                       ))}
                     </div>
                     {predictions.length > 2 && (
-                      <Link href="/time-machine"
-                        className="mt-3 flex items-center justify-center gap-2 py-3 rounded-xl border border-[#1E1E1E] text-neon text-sm font-bold hover:bg-neon/5 transition-colors">
+                      <Link href="/time-machine" className="mt-3 flex items-center justify-center gap-2 py-3 rounded-xl border border-[#1E1E1E] text-neon text-sm font-bold hover:bg-neon/5 transition-colors">
                         +{predictions.length - 2} more predictions <ArrowRight size={14} />
                       </Link>
                     )}
@@ -393,29 +403,30 @@ export default function PlayPage() {
             </div>
           </div>
 
-          {/* ── MOBILE: stacked sections ── */}
+          {/* ── MOBILE ── */}
           <div className="lg:hidden space-y-8">
-
-            {/* Pills */}
             <section>
-              <div className="mb-4">
-                <h2 className="text-white font-black text-xl">Pill Packs</h2>
-                <p className="text-gray-500 text-xs mt-0.5">Pick a pill. Answer fast. Win instantly.</p>
-              </div>
-              {packs.length === 0 ? (
-                <div className="bg-[#111] border border-[#1E1E1E] rounded-2xl p-10 text-center">
-                  <p className="text-gray-600 text-sm">No pill packs right now</p>
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h2 className="text-white font-black text-xl">Pill Packs</h2>
+                  <p className="text-gray-500 text-xs mt-0.5">Pick a pill. Answer fast. Win instantly.</p>
                 </div>
-              ) : (
+                <Link href="/pills" className="text-neon text-xs font-bold flex items-center gap-1 hover:underline">See all <ChevronRight size={13} /></Link>
+              </div>
+              {packs.length === 0 ? <PillsEmpty /> : (
                 <div className="space-y-3">
-                  {packs.map((p) => (
+                  {packs.slice(0, 2).map((p) => (
                     <PillPackCard key={p.id} pack={p} onPillTap={(pack, pill) => setSheet({ pack, pill })} />
                   ))}
+                  {packs.length > 2 && (
+                    <Link href="/pills" className="flex items-center justify-center gap-2 py-3 rounded-xl border border-[#1E1E1E] text-neon text-sm font-bold hover:bg-neon/5 transition-colors">
+                      +{packs.length - 2} more <ArrowRight size={14} />
+                    </Link>
+                  )}
                 </div>
               )}
             </section>
 
-            {/* Blitz */}
             <section>
               <div className="flex items-center justify-between mb-4">
                 <div>
@@ -424,33 +435,31 @@ export default function PlayPage() {
                 </div>
                 <Link href="/blitz" className="text-neon text-xs font-bold flex items-center gap-1 hover:underline">All <ChevronRight size={13} /></Link>
               </div>
-              {liveBlitz.length === 0 ? (
-                <div className="bg-[#111] border border-[#1E1E1E] rounded-2xl px-5 py-6 flex items-center justify-between">
-                  <p className="text-gray-500 text-sm">No active tournaments</p>
-                  <Link href="/blitz" className="text-neon text-xs font-bold flex items-center gap-1">Browse <ArrowRight size={12} /></Link>
-                </div>
-              ) : (
+              {liveBlitz.length === 0 ? <BlitzEmpty compact /> : (
                 <div className="space-y-3">
                   {liveBlitz.map((t) => <BlitzCard key={t.id} t={t} onClick={() => router.push(`/blitz/${t.id}`)} />)}
                 </div>
               )}
             </section>
 
-            {/* Time Machine */}
             <section>
-              <div className="mb-4">
-                <h2 className="text-white font-black text-xl">Time Machine</h2>
-                <p className="text-gray-500 text-xs mt-0.5">Predict the outcome. Win big.</p>
-              </div>
-              {predictions.length === 0 ? (
-                <div className="bg-[#111] border border-[#1E1E1E] rounded-2xl p-6 text-center">
-                  <p className="text-gray-600 text-sm">No active predictions</p>
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h2 className="text-white font-black text-xl">Time Machine</h2>
+                  <p className="text-gray-500 text-xs mt-0.5">Predict the outcome. Win big.</p>
                 </div>
-              ) : (
+                <Link href="/time-machine" className="text-neon text-xs font-bold flex items-center gap-1 hover:underline">See all <ChevronRight size={13} /></Link>
+              </div>
+              {predictions.length === 0 ? <PredictionsEmpty /> : (
                 <div className="space-y-3">
-                  {predictions.map((p) => (
+                  {predictions.slice(0, 2).map((p) => (
                     <PredictionCard key={p.id} prediction={p} onClick={() => router.push(`/predictions/play/${p.id}`)} />
                   ))}
+                  {predictions.length > 2 && (
+                    <Link href="/time-machine" className="flex items-center justify-center gap-2 py-3 rounded-xl border border-[#1E1E1E] text-neon text-sm font-bold hover:bg-neon/5 transition-colors">
+                      +{predictions.length - 2} more <ArrowRight size={14} />
+                    </Link>
+                  )}
                 </div>
               )}
             </section>

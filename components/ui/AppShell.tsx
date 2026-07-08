@@ -100,6 +100,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           >
             <Wallet size={14} />
             ₦{state.player?.balance.toLocaleString() ?? "0"}
+            <span className="w-5 h-5 rounded-full bg-neon/20 border border-neon/30 flex items-center justify-center text-neon text-xs font-black ml-1">+</span>
           </Link>
         </header>
 
