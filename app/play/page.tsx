@@ -262,9 +262,10 @@ export default function PlayPage() {
         blitzApi.getAll(),
       ]);
       if (pR.status === "fulfilled") {
-        // Only show active packs that still have available pills
+        // Only show active packs — backend already filters for available pills
+        // but keep a client-side safety check
         const activePacks = (pR.value.packs ?? []).filter(
-          (pack) => pack.status === "active" && pack.pills.some((p) => p.status === "available")
+          (pack) => pack.status === "active"
         );
         setPacks(activePacks);
       }
