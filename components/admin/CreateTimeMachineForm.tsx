@@ -27,6 +27,7 @@ export function CreateTimeMachineForm({ isOpen, onClose, onSuccess }: CreateTime
     prize_per_winner: 2000 as number | "",
     max_slots: 50 as number | "",
     countdown_end: defaultCountdown(),
+    event_date: "",
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -54,6 +55,7 @@ export function CreateTimeMachineForm({ isOpen, onClose, onSuccess }: CreateTime
         prize_per_winner: config.prize_per_winner as number,
         max_slots: config.max_slots as number,
         countdown_end: config.countdown_end,
+        ...(config.event_date ? { event_date: config.event_date } : {}),
       } as any);
       onSuccess?.();
       onClose();
@@ -131,10 +133,17 @@ export function CreateTimeMachineForm({ isOpen, onClose, onSuccess }: CreateTime
               </div>
             </div>
             <div>
-              <label className="text-xs text-gray-400 mb-1 block">Countdown End *</label>
+              <label className="text-xs text-gray-400 mb-1 block">Prediction Lock-in Deadline *</label>
               <input type="datetime-local" value={config.countdown_end}
                 onChange={(e) => setConfig({ ...config, countdown_end: e.target.value })}
                 className="w-full bg-[#111] border border-[#2A2A2A] focus:border-neon rounded-lg px-3 py-2 text-sm text-white outline-none" />
+            </div>
+            <div>
+              <label className="text-xs text-gray-400 mb-1 block">Event Date (optional — when does it happen?)</label>
+              <input type="datetime-local" value={config.event_date}
+                onChange={(e) => setConfig({ ...config, event_date: e.target.value })}
+                className="w-full bg-[#111] border border-[#2A2A2A] focus:border-neon rounded-lg px-3 py-2 text-sm text-white outline-none" />
+              <p className="text-[10px] text-gray-600 mt-1">e.g. When the match kicks off</p>
             </div>
           </div>
         )}

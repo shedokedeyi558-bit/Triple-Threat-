@@ -52,12 +52,25 @@ function PredictionDetail({
     weekday: "long", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit",
   });
 
+  const eventDateLabel = prediction.event_date
+    ? new Date(prediction.event_date).toLocaleDateString("en-NG", {
+        weekday: "long", month: "long", day: "numeric",
+        hour: "2-digit", minute: "2-digit",
+      })
+    : null;
+
   return (
     <div className="space-y-5">
       {/* Question */}
       <div>
         <span className="text-[10px] font-black uppercase tracking-widest text-purple-400">{prediction.category}</span>
         <h1 className="text-white font-black text-2xl leading-tight mt-2">{prediction.question}</h1>
+        {eventDateLabel && (
+          <div className="flex items-center gap-2 mt-2 text-gray-400 text-xs">
+            <Clock size={12} className="text-purple-400" />
+            <span>Event: <span className="text-white font-semibold">{eventDateLabel}</span></span>
+          </div>
+        )}
       </div>
 
       {/* Countdown */}

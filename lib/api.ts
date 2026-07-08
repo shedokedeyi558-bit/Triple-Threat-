@@ -510,6 +510,7 @@ export interface PredictionData {
   slots_filled: number;
   max_slots: number;
   countdown_end: string;
+  event_date?: string;
   status: "active" | "locked" | "completed" | "cancelled";
 }
 

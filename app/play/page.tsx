@@ -108,6 +108,13 @@ function EventCard({ prediction, onClick }: { prediction: PredictionData; onClic
   const fill = Math.min(100, Math.round((prediction.slots_filled / prediction.max_slots) * 100));
   const accentColor = getCategoryColor(prediction.category);
 
+  const eventDateLabel = prediction.event_date
+    ? new Date(prediction.event_date).toLocaleDateString("en-NG", {
+        weekday: "short", month: "short", day: "numeric",
+        hour: "2-digit", minute: "2-digit",
+      })
+    : null;
+
   return (
     <motion.button
       initial={{ opacity: 0, y: 12 }}
@@ -150,6 +157,11 @@ function EventCard({ prediction, onClick }: { prediction: PredictionData; onClic
             <span className="font-black text-base text-neon">₦{prediction.fee.toLocaleString()}</span>
             <span className="text-gray-600">→</span>
             <span className="text-white font-bold">₦{prediction.prize_per_winner.toLocaleString()} /win</span>
+            {eventDateLabel && (
+              <span className="ml-auto text-[10px] text-gray-500 flex items-center gap-1 flex-shrink-0">
+                <Clock size={9} /> {eventDateLabel}
+              </span>
+            )}
           </div>
 
           {/* Fill bar */}
