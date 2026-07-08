@@ -300,18 +300,31 @@ export default function PlayPage() {
 
             {/* Pills — wider column */}
             <div className="lg:col-span-2 space-y-4">
-              <div className="mb-2">
-                <h2 className="text-white font-black text-xl">Pill Packs</h2>
-                <p className="text-gray-500 text-xs mt-0.5">Pick a pill. Answer fast. Win instantly.</p>
+              <div className="flex items-center justify-between mb-2">
+                <div>
+                  <h2 className="text-white font-black text-xl">Pill Packs</h2>
+                  <p className="text-gray-500 text-xs mt-0.5">Pick a pill. Answer fast. Win instantly.</p>
+                </div>
+                <Link href="/pills" className="text-neon text-xs font-bold flex items-center gap-1 hover:underline">
+                  See all <ChevronRight size={13} />
+                </Link>
               </div>
               {packs.length === 0 ? (
                 <div className="bg-[#111] border border-[#1E1E1E] rounded-2xl p-10 text-center">
                   <p className="text-gray-600 text-sm">No pill packs right now</p>
                 </div>
               ) : (
-                packs.map((p) => (
-                  <PillPackCard key={p.id} pack={p} onPillTap={(pack, pill) => setSheet({ pack, pill })} />
-                ))
+                <>
+                  {packs.slice(0, 2).map((p) => (
+                    <PillPackCard key={p.id} pack={p} onPillTap={(pack, pill) => setSheet({ pack, pill })} />
+                  ))}
+                  {packs.length > 2 && (
+                    <Link href="/pills"
+                      className="flex items-center justify-center gap-2 py-3 rounded-xl border border-[#1E1E1E] text-neon text-sm font-bold hover:bg-neon/5 transition-colors">
+                      +{packs.length - 2} more packs <ArrowRight size={14} />
+                    </Link>
+                  )}
+                </>
               )}
             </div>
 
@@ -348,20 +361,33 @@ export default function PlayPage() {
 
               {/* Time Machine */}
               <div>
-                <div className="mb-3">
-                  <h2 className="text-white font-black text-xl">Time Machine</h2>
-                  <p className="text-gray-500 text-xs mt-0.5">Predict the outcome. Win big.</p>
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <h2 className="text-white font-black text-xl">Time Machine</h2>
+                    <p className="text-gray-500 text-xs mt-0.5">Predict the outcome. Win big.</p>
+                  </div>
+                  <Link href="/time-machine" className="text-neon text-xs font-bold flex items-center gap-1 hover:underline">
+                    See all <ChevronRight size={13} />
+                  </Link>
                 </div>
                 {predictions.length === 0 ? (
                   <div className="bg-[#111] border border-[#1E1E1E] rounded-2xl p-6 text-center">
                     <p className="text-gray-600 text-sm">No active predictions right now</p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-2 gap-3">
-                    {predictions.map((p) => (
-                      <PredictionCard key={p.id} prediction={p} onClick={() => router.push(`/predictions/play/${p.id}`)} />
-                    ))}
-                  </div>
+                  <>
+                    <div className="grid grid-cols-2 gap-3">
+                      {predictions.slice(0, 2).map((p) => (
+                        <PredictionCard key={p.id} prediction={p} onClick={() => router.push(`/predictions/play/${p.id}`)} />
+                      ))}
+                    </div>
+                    {predictions.length > 2 && (
+                      <Link href="/time-machine"
+                        className="mt-3 flex items-center justify-center gap-2 py-3 rounded-xl border border-[#1E1E1E] text-neon text-sm font-bold hover:bg-neon/5 transition-colors">
+                        +{predictions.length - 2} more predictions <ArrowRight size={14} />
+                      </Link>
+                    )}
+                  </>
                 )}
               </div>
             </div>
