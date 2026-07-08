@@ -261,7 +261,13 @@ export default function PlayPage() {
         predictionsApi.getActive(),
         blitzApi.getAll(),
       ]);
-      if (pR.status === "fulfilled") setPacks(pR.value.packs ?? []);
+      if (pR.status === "fulfilled") {
+        // Only show active packs that still have available pills
+        const activePacks = (pR.value.packs ?? []).filter(
+          (pack) => pack.status === "active" && pack.pills.some((p) => p.status === "available")
+        );
+        setPacks(activePacks);
+      }
       if (predR.status === "fulfilled") setPredictions(predR.value.predictions ?? []);
       if (bR.status === "fulfilled") setBlitz(bR.value.tournaments ?? []);
     } catch (err) {
