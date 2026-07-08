@@ -11,7 +11,10 @@ interface PillPack {
   name: string;
   category: string;
   status: "active" | "inactive" | "draft";
-  pills: { id: string; color: string; status: string; entry_fee?: number; prize?: number }[];
+  pills: { id: string; color: string; status: string }[];
+  available_count?: number;
+  played_count?: number;
+  expired_count?: number;
 }
 
 const statusBadge = (s: string) => {
@@ -137,13 +140,13 @@ export default function AdminPillsPage() {
                 <div className="bg-[#111] rounded-xl p-2.5">
                   <p className="text-[10px] text-gray-600 mb-0.5">Available</p>
                   <p className="text-neon font-bold text-sm">
-                    {pack.pills.filter((p) => p.status === "available").length}
+                    {pack.available_count ?? pack.pills.filter((p) => p.status === "available").length}
                   </p>
                 </div>
                 <div className="bg-[#111] rounded-xl p-2.5">
                   <p className="text-[10px] text-gray-600 mb-0.5">Played</p>
                   <p className="text-gray-400 font-bold text-sm">
-                    {pack.pills.filter((p) => p.status === "played").length}
+                    {pack.played_count ?? pack.pills.filter((p) => p.status === "played").length}
                   </p>
                 </div>
               </div>
