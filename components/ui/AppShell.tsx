@@ -17,11 +17,22 @@ const navItems = [
 const SHELL_PATHS = ["/play", "/pills", "/blitz", "/wallet", "/profile", "/time-machine", "/predictions"];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const { state, dispatch } = useApp();
+  const { state, dispatch, hydrated } = useApp();
   const pathname = usePathname();
   const router = useRouter();
 
-  const showShell = state.isAuthenticated && SHELL_PATHS.some((p) => pathname.startsWith(p));
+  const isProtected = SHELL_PATHS.some((p) => pathname.startsWith(p));
+
+  // While rehydrating from localStorage, show nothing to prevent flash redirect
+  if (!hydrated && isProtected) {
+    return (
+      <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-neon/30 border-t-neon rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  const showShell = state.isAuthenticated && isProtected;
   if (!showShell) return <>{children}</>;
 
   const isActive = (href: string) => {

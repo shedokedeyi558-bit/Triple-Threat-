@@ -196,10 +196,12 @@ function appReducer(state: AppState, action: Action): AppState {
 const AppContext = createContext<{
   state: AppState;
   dispatch: React.Dispatch<Action>;
+  hydrated: boolean;
 } | null>(null);
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(appReducer, initialState);
+  const [hydrated, setHydrated] = React.useState(false);
 
   // Rehydrate from localStorage on mount
   useEffect(() => {
@@ -214,6 +216,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         localStorage.removeItem("tt_player");
       }
     }
+    setHydrated(true);
   }, []);
 
   // Persist player info whenever it changes
@@ -226,7 +229,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [state.player]);
 
   return (
-    <AppContext.Provider value={{ state, dispatch }}>
+    <AppContext.Provider value={{ state, dispatch, hydrated }}>
       {children}
     </AppContext.Provider>
   );
