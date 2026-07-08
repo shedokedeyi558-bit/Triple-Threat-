@@ -8,99 +8,92 @@ import {
   pillsApi, predictionsApi, blitzApi,
   type PillPack, type PillPackPill, type PredictionData, type BlitzTournament, ApiError,
 } from "@/lib/api";
-import { Clock, ChevronRight, Users, Lock, Zap, Trophy, Timer, ArrowRight, Plus } from "lucide-react";
+import { Clock, ChevronRight, Users, Lock, Zap, Timer, ArrowRight, Plus } from "lucide-react";
 import Link from "next/link";
+import { NotificationBell } from "@/components/ui/NotificationBell";
 
 function pillGlow(color: string) {
-  return { background: color, boxShadow: `0 0 18px ${color}60, 0 0 36px ${color}25` };
+  return { background: color, boxShadow: `0 0 24px ${color}70, 0 0 48px ${color}30` };
 }
 
-// ─── Pill bead ────────────────────────────────────────────────────────────────
-function PillBead({ pill, index, onTap }: { pill: PillPackPill; index: number; onTap: (p: PillPackPill) => void }) {
-  const played = pill.status === "played";
-  return (
-    <motion.button
-      initial={{ scale: 0, opacity: 0 }}
-      animate={{ scale: 1, opacity: played ? 0.3 : 1 }}
-      transition={{ delay: index * 0.07, type: "spring", stiffness: 300, damping: 20 }}
-      whileHover={played ? {} : { scale: 1.25 }}
-      whileTap={played ? {} : { scale: 0.85 }}
-      onClick={() => !played && onTap(pill)}
-      disabled={played}
-      className="relative flex-shrink-0 w-14 h-14 rounded-full flex items-center justify-center"
-      style={played ? { background: "#1A1A1A" } : pillGlow(pill.color)}
-    >
-      <span className="text-2xl select-none" style={{ filter: played ? "grayscale(1) opacity(0.4)" : "none" }}>💊</span>
-      {played && (
-        <div className="absolute inset-0 rounded-full flex items-center justify-center">
-          <span className="text-[11px] font-black text-gray-600">✓</span>
-        </div>
-      )}
-      {!played && (
-        <motion.span
-          className="absolute inset-0 rounded-full pointer-events-none"
-          animate={{ scale: [1, 1.7, 1], opacity: [0.5, 0, 0.5] }}
-          transition={{ duration: 2.8, repeat: Infinity, ease: "easeInOut", delay: index * 0.5 }}
-          style={{ border: `2px solid ${pill.color}` }}
-        />
-      )}
-    </motion.button>
-  );
-}
+const categoryColor: Record<string, string> = {
+  Football: "#00FF66", Basketball: "#FF8800", Cricket: "#00CFFF",
+  Crypto: "#8B5CF6", Politics: "#EC4899", Entertainment: "#FFD700",
+  Technology: "#00CFFF", Science: "#00FF66", Food: "#FF6B9D",
+  Lifestyle: "#FF8800", "General Knowledge": "#8B5CF6",
+};
+const getCategoryColor = (cat: string) => categoryColor[cat] ?? "#00FF66";
 
-// ─── Pill Pack card ───────────────────────────────────────────────────────────
-function PillPackCard({ pack, onPillTap }: { pack: PillPack; onPillTap: (pack: PillPack, pill: PillPackPill) => void }) {
-  const available = pack.pills.filter((p) => p.status === "available").length;
+// ─── Pill Pack Card — large hero style ────────────────────────────────────────
+function PillPackCard({ pack, onTap }: { pack: PillPack; onTap: (pack: PillPack, pill: PillPackPill) => void }) {
+  const available = pack.pills.filter((p) => p.status === "available");
   const entry = pack.pills[0]?.price ?? 0;
   const prize = pack.pills[0]?.prize ?? 0;
+  const mainColor = available[0]?.color ?? "#8B5CF6";
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      className="group relative bg-[#111] border border-[#1E1E1E] rounded-2xl p-5 hover:border-neon/30 transition-all duration-300 overflow-hidden"
+      className="relative rounded-2xl overflow-hidden cursor-pointer group"
+      style={{ background: `linear-gradient(135deg, #111 60%, ${mainColor}18)` }}
+      onClick={() => available[0] && onTap(pack, available[0])}
     >
-      {/* Subtle glow on hover */}
-      <div className="absolute inset-0 bg-neon/[0.02] opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl pointer-events-none" />
+      <div className="absolute inset-0 border border-[#1E1E1E] group-hover:border-opacity-60 rounded-2xl transition-all"
+        style={{ borderColor: `${mainColor}30` }} />
 
-      <div className="flex items-start justify-between mb-5">
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-600 mb-1">{pack.category}</p>
-          <h3 className="text-white font-black text-xl">{pack.name}</h3>
-        </div>
-        <span className={`text-[10px] font-black px-2.5 py-1 rounded-lg ${
-          available > 0 ? "bg-neon/10 text-neon border border-neon/20" : "bg-[#1A1A1A] text-gray-600"
-        }`}>
-          {available}/{pack.pills.length} left
-        </span>
-      </div>
-
-      {/* Pills */}
-      <div className="flex gap-3 items-center mb-5 min-h-[56px]">
-        {pack.pills.map((pill, i) => (
-          <PillBead key={pill.id} pill={pill} index={i} onTap={(p) => onPillTap(pack, p)} />
-        ))}
-      </div>
-
-      <div className="flex items-center justify-between pt-4 border-t border-[#1A1A1A]">
-        <div className="flex gap-5">
+      <div className="p-5">
+        {/* Top: name + available count */}
+        <div className="flex items-start justify-between mb-4">
           <div>
-            <p className="text-[10px] text-gray-600 mb-0.5">Entry</p>
-            <p className="text-neon font-black">₦{entry.toLocaleString()}</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: mainColor }}>
+              {pack.category}
+            </p>
+            <h3 className="text-white font-black text-2xl leading-tight">{pack.name}</h3>
           </div>
-          <div>
-            <p className="text-[10px] text-gray-600 mb-0.5">Win up to</p>
-            <p className="text-white font-black">₦{prize.toLocaleString()}</p>
-          </div>
+          <span className="text-[10px] font-black px-2.5 py-1 rounded-lg border"
+            style={{ color: mainColor, borderColor: `${mainColor}40`, background: `${mainColor}15` }}>
+            {available.length}/{pack.pills.length} left
+          </span>
         </div>
-        <p className="text-[11px] text-gray-600 italic">Tap any pill</p>
+
+        {/* Pill visual — hero size */}
+        <div className="flex items-center justify-center py-4 relative">
+          <motion.div
+            animate={{ y: [0, -8, 0] }}
+            transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+            className="text-[80px] select-none drop-shadow-2xl"
+            style={{ filter: `drop-shadow(0 0 20px ${mainColor}80)` }}
+          >
+            💊
+          </motion.div>
+          {/* Subtle glow behind */}
+          <div className="absolute w-32 h-32 rounded-full blur-3xl pointer-events-none"
+            style={{ background: `${mainColor}20` }} />
+        </div>
+
+        {/* Bottom: price info + tap hint */}
+        <div className="flex items-center justify-between mt-2 pt-4 border-t"
+          style={{ borderColor: `${mainColor}20` }}>
+          <div className="flex gap-5">
+            <div>
+              <p className="text-[10px] text-gray-600 mb-0.5 uppercase tracking-wide">Entry</p>
+              <p className="font-black text-white">₦{entry.toLocaleString()}</p>
+            </div>
+            <div>
+              <p className="text-[10px] text-gray-600 mb-0.5 uppercase tracking-wide">Win up to</p>
+              <p className="font-black" style={{ color: mainColor }}>₦{prize.toLocaleString()}</p>
+            </div>
+          </div>
+          <span className="text-[11px] text-gray-600 italic">Tap to play</span>
+        </div>
       </div>
     </motion.div>
   );
 }
 
-// ─── Prediction card ──────────────────────────────────────────────────────────
-function PredictionCard({ prediction, onClick }: { prediction: PredictionData; onClick: () => void }) {
+// ─── Prediction / Event Card ──────────────────────────────────────────────────
+function EventCard({ prediction, onClick }: { prediction: PredictionData; onClick: () => void }) {
   const [timeLeft, setTimeLeft] = useState(0);
   useEffect(() => {
     const tick = () => setTimeLeft(Math.max(0, Math.floor((new Date(prediction.countdown_end).getTime() - Date.now()) / 1000)));
@@ -111,122 +104,191 @@ function PredictionCard({ prediction, onClick }: { prediction: PredictionData; o
 
   const locked = prediction.status === "locked" || timeLeft <= 0;
   const h = Math.floor(timeLeft / 3600), m = Math.floor((timeLeft % 3600) / 60), s = timeLeft % 60;
-  const timeLabel = locked ? "Predictions closed" : h > 0 ? `${h}h ${m}m left` : m > 0 ? `${m}m ${s}s left` : `${s}s left`;
+  const timeLabel = locked ? "Closed" : h > 0 ? `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}` : `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
   const fill = Math.min(100, Math.round((prediction.slots_filled / prediction.max_slots) * 100));
+  const accentColor = getCategoryColor(prediction.category);
 
   return (
     <motion.button
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      whileHover={{ y: -3 }}
-      whileTap={{ scale: 0.98 }}
+      whileHover={{ x: 2 }}
+      whileTap={{ scale: 0.99 }}
       onClick={onClick}
-      className="w-full text-left bg-[#111] border border-[#1E1E1E] rounded-2xl p-5 hover:border-purple-500/30 transition-all group"
+      className="w-full text-left bg-[#111] border border-[#1E1E1E] rounded-2xl overflow-hidden hover:border-opacity-60 transition-all"
+      style={{ borderColor: `${accentColor}20` }}
     >
-      <div className="flex items-start justify-between gap-3 mb-3">
-        <div className="flex items-center gap-2">
-          <span className="text-[10px] font-black uppercase tracking-widest text-purple-400">{prediction.category}</span>
-          <span className={`flex items-center gap-1 text-[10px] font-semibold ${locked ? "text-orange-400" : "text-gray-500"}`}>
-            {locked ? <Lock size={9} /> : <Timer size={9} />} {timeLabel}
-          </span>
-        </div>
-        <ArrowRight size={14} className="text-gray-600 group-hover:text-purple-400 flex-shrink-0 mt-0.5 transition-colors" />
-      </div>
+      {/* Colored left accent bar */}
+      <div className="flex">
+        <div className="w-1 flex-shrink-0 rounded-l-2xl" style={{ background: accentColor }} />
+        <div className="flex-1 p-4">
+          <div className="flex items-start justify-between gap-3 mb-2">
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-1.5">
+                <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: accentColor }}>
+                  {prediction.category}
+                </span>
+                {locked && (
+                  <span className="flex items-center gap-0.5 text-[10px] text-orange-400 font-semibold">
+                    <Lock size={9} /> Closed
+                  </span>
+                )}
+              </div>
+              <p className="text-white font-bold text-sm leading-snug line-clamp-2">{prediction.question}</p>
+            </div>
+            {/* Countdown */}
+            <div className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg flex-shrink-0 ${
+              locked ? "bg-orange-900/20 text-orange-400" : "bg-[#1A1A1A] text-neon"
+            }`}>
+              {!locked && <Clock size={10} />}
+              <span className="text-[11px] font-black tabular-nums">{timeLabel}</span>
+            </div>
+          </div>
 
-      <p className="text-white font-bold text-sm leading-snug mb-4 line-clamp-2">{prediction.question}</p>
+          {/* Entry + prize */}
+          <div className="flex items-center gap-2 mb-3 text-xs">
+            <span className="font-black text-base text-neon">₦{prediction.fee.toLocaleString()}</span>
+            <span className="text-gray-600">→</span>
+            <span className="text-white font-bold">₦{prediction.prize_per_winner.toLocaleString()} /win</span>
+          </div>
 
-      <div className="flex items-center gap-3 text-xs mb-3">
-        <span className="text-neon font-black text-base">₦{prediction.fee.toLocaleString()}</span>
-        <span className="text-gray-600">→</span>
-        <span className="text-white font-bold">₦{prediction.prize_per_winner.toLocaleString()} /win</span>
-      </div>
-
-      <div className="space-y-1.5">
-        <div className="flex justify-between text-[10px] text-gray-600">
-          <span className="flex items-center gap-1"><Users size={9} /> Slots filled: {prediction.slots_filled}/{prediction.max_slots}</span>
-          <span>{fill}%</span>
-        </div>
-        <div className="h-1 bg-[#1A1A1A] rounded-full overflow-hidden">
-          <motion.div className="h-full bg-purple-500 rounded-full"
-            initial={{ width: 0 }} animate={{ width: `${fill}%` }} transition={{ duration: 0.8 }} />
+          {/* Fill bar */}
+          <div className="space-y-1">
+            <div className="flex justify-between text-[10px] text-gray-600">
+              <span><Users size={9} className="inline mr-1" />Participation</span>
+              <span className="font-bold" style={{ color: fill > 70 ? accentColor : undefined }}>{fill}% Full</span>
+            </div>
+            <div className="h-1.5 bg-[#1A1A1A] rounded-full overflow-hidden">
+              <motion.div className="h-full rounded-full"
+                style={{ background: accentColor }}
+                initial={{ width: 0 }} animate={{ width: `${fill}%` }} transition={{ duration: 0.8 }} />
+            </div>
+          </div>
         </div>
       </div>
     </motion.button>
   );
 }
 
-// ─── Blitz card ───────────────────────────────────────────────────────────────
-function BlitzCard({ t, onClick }: { t: BlitzTournament; onClick: () => void }) {
+// ─── Blitz Featured Card ───────────────────────────────────────────────────────
+function BlitzFeaturedCard({ t, onClick }: { t: BlitzTournament; onClick: () => void }) {
   const isLive = t.status === "active";
   return (
     <motion.button
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      whileHover={{ y: -3 }}
       whileTap={{ scale: 0.98 }}
       onClick={onClick}
-      className="w-full text-left bg-[#111] border border-[#1E1E1E] rounded-2xl p-5 hover:border-neon/30 transition-all group"
+      className="w-full text-left rounded-2xl overflow-hidden bg-[#111] border border-[#1E1E1E] hover:border-neon/30 transition-all"
     >
-      <div className="flex items-start justify-between gap-2 mb-3">
-        <div className="flex items-center gap-2">
-          <Zap size={14} className="text-neon flex-shrink-0" />
-          <p className="text-white font-black truncate">{t.title}</p>
-        </div>
-        <span className={`text-[10px] font-black px-2 py-0.5 rounded flex-shrink-0 ${
-          isLive ? "bg-neon/20 text-neon" : "bg-blue-500/20 text-blue-400"
-        }`}>{isLive ? "LIVE" : "OPEN"}</span>
+      {/* Banner area */}
+      <div className="relative h-28 bg-gradient-to-br from-[#0D1A0D] via-[#111] to-[#0A0F0A] flex items-center justify-center overflow-hidden">
+        <div className="absolute inset-0 opacity-20"
+          style={{ background: "radial-gradient(ellipse at center, #00FF66 0%, transparent 70%)" }} />
+        <motion.div
+          animate={{ scale: [1, 1.05, 1] }}
+          transition={{ duration: 3, repeat: Infinity }}
+          className="text-6xl select-none z-10">⚡</motion.div>
+        {isLive && (
+          <div className="absolute top-3 left-3 flex items-center gap-1.5 bg-red-500/90 px-2.5 py-1 rounded-lg">
+            <motion.div animate={{ opacity: [1, 0, 1] }} transition={{ duration: 1, repeat: Infinity }}
+              className="w-1.5 h-1.5 rounded-full bg-white" />
+            <span className="text-white text-[10px] font-black">LIVE</span>
+          </div>
+        )}
       </div>
-      <div className="flex items-center gap-4 text-sm">
-        <span className="text-neon font-black">₦{t.entry_fee.toLocaleString()}</span>
-        <span className="text-gray-500">Pool: ₦{t.prize_pool.toLocaleString()}</span>
-        <span className="text-gray-600 flex items-center gap-1"><Users size={11} />{t.total_registered}</span>
+      {/* Info */}
+      <div className="p-4">
+        <div className="flex items-start justify-between gap-3 mb-3">
+          <div>
+            <p className="text-white font-black text-lg leading-tight">{t.title}</p>
+            <p className="text-gray-500 text-xs mt-0.5 flex items-center gap-1">
+              <Clock size={10} /> {isLive ? "Ends" : "Starts"} soon
+            </p>
+          </div>
+          <div className="text-right flex-shrink-0">
+            <p className="text-[10px] text-gray-600 uppercase tracking-wide">Prize Pool</p>
+            <p className="text-neon font-black text-xl">₦{t.prize_pool.toLocaleString()}</p>
+          </div>
+        </div>
+        <motion.div whileTap={{ scale: 0.97 }}
+          className="w-full py-3 rounded-xl bg-neon text-black font-black text-sm flex items-center justify-center gap-2"
+          style={{ boxShadow: "0 0 20px #00FF6640" }}>
+          ENTRY: ₦{t.entry_fee.toLocaleString()} ▶
+        </motion.div>
       </div>
     </motion.button>
   );
 }
 
-// ─── Pill confirm sheet ───────────────────────────────────────────────────────
+// ─── Blitz compact row ─────────────────────────────────────────────────────────
+function BlitzRow({ t, onClick }: { t: BlitzTournament; onClick: () => void }) {
+  return (
+    <motion.button
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      whileTap={{ scale: 0.98 }}
+      onClick={onClick}
+      className="w-full flex items-center gap-3 bg-[#111] border border-[#1E1E1E] rounded-xl px-4 py-3 hover:border-neon/20 transition-colors"
+    >
+      <div className="w-9 h-9 rounded-xl bg-neon/10 flex items-center justify-center flex-shrink-0">
+        <Zap size={16} className="text-neon" />
+      </div>
+      <div className="flex-1 min-w-0 text-left">
+        <p className="text-white font-bold text-sm truncate">{t.title}</p>
+        <p className="text-gray-600 text-xs">₦{t.prize_pool.toLocaleString()} pool</p>
+      </div>
+      <button className="px-3 py-1.5 rounded-lg bg-neon/10 border border-neon/30 text-neon text-xs font-bold flex-shrink-0">
+        Join
+      </button>
+    </motion.button>
+  );
+}
+
+// ─── Pill confirm sheet ────────────────────────────────────────────────────────
 function PillSheet({ pack, pill, onConfirm, onClose, balance }: {
   pack: PillPack; pill: PillPackPill; onConfirm: () => void; onClose: () => void; balance: number;
 }) {
   const canAfford = balance >= pill.price;
+  const mainColor = pill.color;
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       className="fixed inset-0 z-50 flex items-end lg:items-center justify-center" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
       <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
         transition={{ type: "spring", stiffness: 340, damping: 32 }}
         onClick={(e) => e.stopPropagation()}
-        className="relative w-full lg:max-w-sm bg-[#111] border border-[#1E1E1E] lg:rounded-2xl rounded-t-3xl px-6 py-8 space-y-5">
+        className="relative w-full lg:max-w-sm rounded-t-3xl lg:rounded-2xl px-6 py-8 space-y-5"
+        style={{ background: `linear-gradient(160deg, #111 70%, ${mainColor}12)` }}>
         <div className="w-10 h-1 bg-[#333] rounded-full mx-auto lg:hidden" />
-        <div className="flex flex-col items-center gap-4">
-          <motion.div animate={{ rotate: [-8, 8, -8, 0] }} transition={{ duration: 0.6 }}
-            className="w-20 h-20 rounded-full flex items-center justify-center text-5xl"
-            style={pillGlow(pill.color)}>💊</motion.div>
+        <div className="flex flex-col items-center gap-3">
+          <motion.div animate={{ y: [0, -10, 0] }} transition={{ duration: 1.5, repeat: Infinity }}
+            className="text-7xl select-none"
+            style={{ filter: `drop-shadow(0 0 30px ${mainColor}90)` }}>💊</motion.div>
           <div className="text-center">
-            <p className="text-white font-black text-xl">{pack.name}</p>
+            <p className="text-white font-black text-2xl">{pack.name}</p>
             <p className="text-gray-500 text-sm">{pack.category}</p>
           </div>
         </div>
         <div className="grid grid-cols-2 gap-3">
-          <div className="bg-[#1A1A1A] rounded-xl p-4 text-center">
-            <p className="text-[11px] text-gray-500 mb-1">Entry</p>
-            <p className="text-neon font-black text-xl">₦{pill.price.toLocaleString()}</p>
+          <div className="rounded-xl p-4 text-center" style={{ background: `${mainColor}10`, border: `1px solid ${mainColor}30` }}>
+            <p className="text-[11px] text-gray-500 mb-1">Entry Fee</p>
+            <p className="font-black text-xl" style={{ color: mainColor }}>₦{pill.price.toLocaleString()}</p>
           </div>
-          <div className="bg-[#1A1A1A] rounded-xl p-4 text-center">
+          <div className="bg-[#1A1A1A] border border-[#222] rounded-xl p-4 text-center">
             <p className="text-[11px] text-gray-500 mb-1">Win up to</p>
             <p className="text-white font-black text-xl">₦{pill.prize.toLocaleString()}</p>
           </div>
         </div>
         {!canAfford && (
           <p className="text-center text-red-400 text-sm">
-            Insufficient balance. <Link href="/wallet" className="text-neon underline">Deposit</Link>
+            Insufficient balance. <Link href="/wallet" className="underline" style={{ color: mainColor }}>Add funds</Link>
           </p>
         )}
         <div className="space-y-3">
           <motion.button whileTap={{ scale: 0.97 }} onClick={onConfirm} disabled={!canAfford}
-            className="w-full py-4 bg-neon text-black font-black text-lg rounded-xl disabled:opacity-40"
-            style={canAfford ? { boxShadow: "0 0 24px #00FF6640" } : {}}>
+            className="w-full py-4 font-black text-black text-lg rounded-xl disabled:opacity-40"
+            style={{ background: mainColor, boxShadow: `0 0 30px ${mainColor}50` }}>
             Take This Pill
           </motion.button>
           <button onClick={onClose} className="w-full py-3 text-gray-500 text-sm font-semibold">Cancel</button>
@@ -236,7 +298,7 @@ function PillSheet({ pack, pill, onConfirm, onClose, balance }: {
   );
 }
 
-// ─── Main ─────────────────────────────────────────────────────────────────────
+// ─── Main ──────────────────────────────────────────────────────────────────────
 export default function PlayPage() {
   const { state } = useApp();
   const router = useRouter();
@@ -261,14 +323,7 @@ export default function PlayPage() {
         predictionsApi.getActive(),
         blitzApi.getAll(),
       ]);
-      if (pR.status === "fulfilled") {
-        // Only show active packs — backend already filters for available pills
-        // but keep a client-side safety check
-        const activePacks = (pR.value.packs ?? []).filter(
-          (pack) => pack.status === "active"
-        );
-        setPacks(activePacks);
-      }
+      if (pR.status === "fulfilled") setPacks((pR.value.packs ?? []).filter((p) => p.status === "active"));
       if (predR.status === "fulfilled") setPredictions(predR.value.predictions ?? []);
       if (bR.status === "fulfilled") setBlitz(bR.value.tournaments ?? []);
     } catch (err) {
@@ -279,193 +334,149 @@ export default function PlayPage() {
   }, []);
 
   const liveBlitz = blitz.filter((t) => t.status === "active" || t.status === "registration");
-
-  // Reusable empty state
-  const PillsEmpty = () => (
-    <div className="bg-[#111] border border-[#1E1E1E] rounded-2xl p-8 text-center space-y-2">
-      <motion.div animate={{ rotate: [0, -12, 12, -8, 0] }} transition={{ duration: 2.5, repeat: Infinity, repeatDelay: 4 }}
-        className="text-4xl mx-auto w-fit">💊</motion.div>
-      <p className="text-white font-bold text-sm mt-2">New packs drop regularly</p>
-      <p className="text-gray-600 text-xs">Fresh pills incoming — check back soon</p>
-      <Link href="/pills" className="inline-block mt-1 text-neon text-xs font-bold hover:underline">Browse packs →</Link>
-    </div>
-  );
-
-  const BlitzEmpty = ({ compact = false }: { compact?: boolean }) => (
-    <div className={`bg-[#111] border border-[#1E1E1E] rounded-2xl flex items-center justify-between ${compact ? "px-5 py-5" : "px-5 py-6"}`}>
-      <div>
-        <p className="text-gray-500 font-semibold text-sm">No active tournaments right now</p>
-        <p className="text-gray-700 text-xs mt-0.5">New Blitz events launch weekly</p>
-      </div>
-      <Link href="/blitz" className="text-neon text-xs font-bold flex items-center gap-1 hover:underline flex-shrink-0 ml-4">
-        Browse all <ArrowRight size={12} />
-      </Link>
-    </div>
-  );
-
-  const PredictionsEmpty = () => (
-    <div className="bg-[#111] border border-[#1E1E1E] rounded-2xl p-6 text-center space-y-1">
-      <p className="text-2xl">🔮</p>
-      <p className="text-white font-bold text-sm mt-1">No open predictions</p>
-      <p className="text-gray-600 text-xs">New events are added regularly</p>
-      <Link href="/time-machine" className="inline-block mt-1 text-neon text-xs font-bold hover:underline">See all →</Link>
-    </div>
-  );
+  const featuredBlitz = liveBlitz[0];
+  const otherBlitz = liveBlitz.slice(1);
 
   if (!state.isAuthenticated) return null;
 
   return (
-    <div className="px-4 lg:px-8 py-6">
-      {error && (
-        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-          className="text-red-400 text-sm bg-red-900/10 border border-red-900/30 rounded-xl p-3 mb-5">{error}</motion.p>
-      )}
-
-      {loading ? (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {[1, 2, 3].map((i) => <div key={i} className="bg-[#111] border border-[#1E1E1E] rounded-2xl h-64 animate-pulse" />)}
+    <div className="min-h-full">
+      {/* ── APP HEADER ── (custom — overrides AppShell top bar on mobile) */}
+      <header className="sticky top-0 z-40 bg-[#0A0A0A]/95 backdrop-blur-md border-b border-[#1A1A1A] px-4 lg:px-8 py-3 lg:hidden">
+        <div className="flex items-center justify-between">
+          <span className="font-black text-xl uppercase tracking-tight">
+            <span className="text-white">BIT</span><span className="text-neon">LYFE</span>
+          </span>
+          <div className="flex items-center gap-2">
+            <Link href="/wallet"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#141414] border border-[#1E1E1E] text-neon font-bold text-sm hover:border-neon/40 transition-colors">
+              ₦{state.player?.balance.toLocaleString() ?? "0"}
+              <span className="w-4 h-4 rounded-full bg-neon/20 border border-neon/30 flex items-center justify-center text-neon text-[10px] font-black">+</span>
+            </Link>
+            <NotificationBell />
+          </div>
         </div>
-      ) : (
-        <>
-          {/* ── DESKTOP ── */}
-          <div className="hidden lg:grid lg:grid-cols-5 gap-6">
+      </header>
 
-            {/* Pills — wider column */}
-            <div className="lg:col-span-2 space-y-4">
-              <div className="flex items-center justify-between mb-2">
+      <div className="px-4 lg:px-8 py-5 space-y-8 pb-28">
+        {error && (
+          <p className="text-red-400 text-sm bg-red-900/10 border border-red-900/30 rounded-xl p-3">{error}</p>
+        )}
+
+        {loading ? (
+          <div className="space-y-6">
+            {[200, 160, 180].map((h, i) => (
+              <div key={i} className="bg-[#111] border border-[#1E1E1E] rounded-2xl animate-pulse" style={{ height: h }} />
+            ))}
+          </div>
+        ) : (
+          <>
+            {/* ── DAILY PILLS ── */}
+            <section>
+              <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h2 className="text-white font-black text-xl">Pill Packs</h2>
-                  <p className="text-gray-500 text-xs mt-0.5">Pick a pill. Answer fast. Win instantly.</p>
+                  <h2 className="text-white font-black text-2xl">Daily Pills</h2>
+                  <p className="text-gray-500 text-xs mt-0.5">Take your shot at glory</p>
                 </div>
-                <Link href="/pills" className="text-neon text-xs font-bold flex items-center gap-1 hover:underline">
-                  See all <ChevronRight size={13} />
+                <Link href="/pills" className="text-neon text-xs font-black uppercase tracking-wide flex items-center gap-1 hover:underline">
+                  SEE ALL <ChevronRight size={13} />
                 </Link>
               </div>
-              {packs.length === 0 ? <PillsEmpty /> : (
-                <>
-                  {packs.slice(0, 2).map((p) => (
-                    <PillPackCard key={p.id} pack={p} onPillTap={(pack, pill) => setSheet({ pack, pill })} />
-                  ))}
-                  {packs.length > 2 && (
-                    <Link href="/pills" className="flex items-center justify-center gap-2 py-3 rounded-xl border border-[#1E1E1E] text-neon text-sm font-bold hover:bg-neon/5 transition-colors">
-                      +{packs.length - 2} more packs <ArrowRight size={14} />
-                    </Link>
-                  )}
-                </>
+
+              {packs.length === 0 ? (
+                <div className="bg-[#111] border border-[#1E1E1E] rounded-2xl p-8 text-center">
+                  <motion.div animate={{ rotate: [0, -12, 12, -8, 0] }} transition={{ duration: 2.5, repeat: Infinity, repeatDelay: 4 }}
+                    className="text-5xl mx-auto w-fit mb-3">💊</motion.div>
+                  <p className="text-white font-bold">New packs drop regularly</p>
+                  <p className="text-gray-600 text-xs mt-1">Fresh pills incoming — check back soon</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  {packs.slice(0, 4).map((p) => {
+                    const avail = p.pills.filter((pl) => pl.status === "available");
+                    return (
+                      <PillPackCard key={p.id} pack={p} onTap={(pack, pill) => setSheet({ pack, pill })} />
+                    );
+                  })}
+                </div>
               )}
-            </div>
+              {packs.length > 4 && (
+                <Link href="/pills" className="mt-3 flex items-center justify-center gap-2 py-3 rounded-xl border border-[#1E1E1E] text-neon text-sm font-bold hover:bg-neon/5 transition-colors">
+                  +{packs.length - 4} more packs <ArrowRight size={14} />
+                </Link>
+              )}
+            </section>
 
-            {/* Right column */}
-            <div className="lg:col-span-3 space-y-6">
-
-              {/* Blitz */}
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <div>
-                    <h2 className="text-white font-black text-xl flex items-center gap-2"><Zap size={18} className="text-neon" /> Blitz</h2>
-                    <p className="text-gray-500 text-xs mt-0.5">Speed quiz tournaments.</p>
-                  </div>
-                  <Link href="/blitz" className="text-neon text-xs font-bold flex items-center gap-1 hover:underline">All <ChevronRight size={13} /></Link>
-                </div>
-                {liveBlitz.length === 0 ? <BlitzEmpty /> : (
-                  <div className="grid grid-cols-2 gap-3">
-                    {liveBlitz.map((t) => <BlitzCard key={t.id} t={t} onClick={() => router.push(`/blitz/${t.id}`)} />)}
-                  </div>
-                )}
-              </div>
-
-              {/* Time Machine */}
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <div>
-                    <h2 className="text-white font-black text-xl">Time Machine</h2>
-                    <p className="text-gray-500 text-xs mt-0.5">Predict the outcome. Win big.</p>
-                  </div>
-                  <Link href="/time-machine" className="text-neon text-xs font-bold flex items-center gap-1 hover:underline">
-                    See all <ChevronRight size={13} />
-                  </Link>
-                </div>
-                {predictions.length === 0 ? <PredictionsEmpty /> : (
-                  <>
-                    <div className="grid grid-cols-2 gap-3">
-                      {predictions.slice(0, 2).map((p) => (
-                        <PredictionCard key={p.id} prediction={p} onClick={() => router.push(`/predictions/play/${p.id}`)} />
-                      ))}
-                    </div>
-                    {predictions.length > 2 && (
-                      <Link href="/time-machine" className="mt-3 flex items-center justify-center gap-2 py-3 rounded-xl border border-[#1E1E1E] text-neon text-sm font-bold hover:bg-neon/5 transition-colors">
-                        +{predictions.length - 2} more predictions <ArrowRight size={14} />
-                      </Link>
-                    )}
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* ── MOBILE ── */}
-          <div className="lg:hidden space-y-8">
+            {/* ── UPCOMING EVENTS (Time Machine) ── */}
             <section>
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h2 className="text-white font-black text-xl">Pill Packs</h2>
-                  <p className="text-gray-500 text-xs mt-0.5">Pick a pill. Answer fast. Win instantly.</p>
+                  <h2 className="text-white font-black text-2xl">Upcoming Events</h2>
+                  <p className="text-gray-500 text-xs mt-0.5">Predict. Win big.</p>
                 </div>
-                <Link href="/pills" className="text-neon text-xs font-bold flex items-center gap-1 hover:underline">See all <ChevronRight size={13} /></Link>
+                <Link href="/time-machine" className="text-neon text-xs font-black uppercase tracking-wide flex items-center gap-1 hover:underline">
+                  SEE ALL <ChevronRight size={13} />
+                </Link>
               </div>
-              {packs.length === 0 ? <PillsEmpty /> : (
+
+              {predictions.length === 0 ? (
+                <div className="bg-[#111] border border-[#1E1E1E] rounded-2xl p-6 text-center">
+                  <p className="text-3xl mb-2">🔮</p>
+                  <p className="text-white font-bold text-sm">No open predictions</p>
+                  <p className="text-gray-600 text-xs mt-1">New events added regularly</p>
+                </div>
+              ) : (
                 <div className="space-y-3">
-                  {packs.slice(0, 2).map((p) => (
-                    <PillPackCard key={p.id} pack={p} onPillTap={(pack, pill) => setSheet({ pack, pill })} />
+                  {predictions.slice(0, 3).map((p) => (
+                    <EventCard key={p.id} prediction={p} onClick={() => router.push(`/predictions/play/${p.id}`)} />
                   ))}
-                  {packs.length > 2 && (
-                    <Link href="/pills" className="flex items-center justify-center gap-2 py-3 rounded-xl border border-[#1E1E1E] text-neon text-sm font-bold hover:bg-neon/5 transition-colors">
-                      +{packs.length - 2} more <ArrowRight size={14} />
+                  {predictions.length > 3 && (
+                    <Link href="/time-machine" className="flex items-center justify-center gap-2 py-3 rounded-xl border border-[#1E1E1E] text-neon text-sm font-bold hover:bg-neon/5 transition-colors">
+                      +{predictions.length - 3} more events <ArrowRight size={14} />
                     </Link>
                   )}
                 </div>
               )}
             </section>
 
+            {/* ── LIVE BLITZ ── */}
             <section>
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h2 className="text-white font-black text-xl flex items-center gap-2"><Zap size={18} className="text-neon" /> Blitz</h2>
+                  <h2 className="text-white font-black text-2xl flex items-center gap-2">
+                    <Zap size={20} className="text-neon" /> Live Blitz
+                  </h2>
                   <p className="text-gray-500 text-xs mt-0.5">Speed quiz tournaments.</p>
                 </div>
-                <Link href="/blitz" className="text-neon text-xs font-bold flex items-center gap-1 hover:underline">All <ChevronRight size={13} /></Link>
+                <Link href="/blitz" className="text-neon text-xs font-black uppercase tracking-wide flex items-center gap-1 hover:underline">
+                  SEE ALL <ChevronRight size={13} />
+                </Link>
               </div>
-              {liveBlitz.length === 0 ? <BlitzEmpty compact /> : (
-                <div className="space-y-3">
-                  {liveBlitz.map((t) => <BlitzCard key={t.id} t={t} onClick={() => router.push(`/blitz/${t.id}`)} />)}
-                </div>
-              )}
-            </section>
 
-            <section>
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h2 className="text-white font-black text-xl">Time Machine</h2>
-                  <p className="text-gray-500 text-xs mt-0.5">Predict the outcome. Win big.</p>
+              {liveBlitz.length === 0 ? (
+                <div className="bg-[#111] border border-[#1E1E1E] rounded-2xl px-5 py-6 flex items-center justify-between">
+                  <div>
+                    <p className="text-gray-500 font-semibold text-sm">No active tournaments</p>
+                    <p className="text-gray-700 text-xs mt-0.5">New Blitz events launch weekly</p>
+                  </div>
+                  <Link href="/blitz" className="text-neon text-xs font-bold flex items-center gap-1 hover:underline flex-shrink-0 ml-4">
+                    Browse all <ArrowRight size={12} />
+                  </Link>
                 </div>
-                <Link href="/time-machine" className="text-neon text-xs font-bold flex items-center gap-1 hover:underline">See all <ChevronRight size={13} /></Link>
-              </div>
-              {predictions.length === 0 ? <PredictionsEmpty /> : (
+              ) : (
                 <div className="space-y-3">
-                  {predictions.slice(0, 2).map((p) => (
-                    <PredictionCard key={p.id} prediction={p} onClick={() => router.push(`/predictions/play/${p.id}`)} />
-                  ))}
-                  {predictions.length > 2 && (
-                    <Link href="/time-machine" className="flex items-center justify-center gap-2 py-3 rounded-xl border border-[#1E1E1E] text-neon text-sm font-bold hover:bg-neon/5 transition-colors">
-                      +{predictions.length - 2} more <ArrowRight size={14} />
-                    </Link>
+                  {featuredBlitz && (
+                    <BlitzFeaturedCard t={featuredBlitz} onClick={() => router.push(`/blitz/${featuredBlitz.id}`)} />
                   )}
+                  {otherBlitz.map((t) => (
+                    <BlitzRow key={t.id} t={t} onClick={() => router.push(`/blitz/${t.id}`)} />
+                  ))}
                 </div>
               )}
             </section>
-          </div>
-        </>
-      )}
+          </>
+        )}
+      </div>
 
       <AnimatePresence>
         {sheet && (

@@ -974,3 +974,28 @@ export const adminApi = {
       { method: "POST", body: { correct_answer: correctAnswer }, token: getAdminToken() }
     ),
 };
+
+// ─── NOTIFICATIONS ────────────────────────────────────────────────────────────
+
+export interface Notification {
+  id: string;
+  type: "win" | "loss" | "new_event" | "withdrawal_approved" | "withdrawal_rejected" | "blitz_starting" | "prediction_result";
+  title: string;
+  message: string;
+  read: boolean;
+  created_at: string;
+}
+
+export const notificationsApi = {
+  getAll: () =>
+    request<{ notifications: Notification[]; unread_count: number }>("/api/notifications", {
+      token: getToken(),
+    }),
+
+  markRead: (id?: string) =>
+    request<{ message: string }>("/api/notifications/read", {
+      method: "PUT",
+      body: id ? { id } : {},
+      token: getToken(),
+    }),
+};
