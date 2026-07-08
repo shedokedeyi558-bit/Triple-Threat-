@@ -3,16 +3,14 @@
 import { useApp } from "@/context/AppContext";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { Gamepad2, Wallet, User, LogOut, Pill, Clock } from "lucide-react";
+import { Gamepad2, Wallet, User, LogOut } from "lucide-react";
 import { removeToken } from "@/lib/api";
 import { useRouter } from "next/navigation";
 
 const navItems = [
-  { href: "/play",         label: "Play",         icon: Gamepad2 },
-  { href: "/pills",        label: "Pill Packs",   icon: Pill },
-  { href: "/time-machine", label: "Time Machine", icon: Clock },
-  { href: "/wallet",       label: "Wallet",       icon: Wallet },
-  { href: "/profile",      label: "Profile",      icon: User },
+  { href: "/play",    label: "Play",    icon: Gamepad2 },
+  { href: "/wallet",  label: "Wallet",  icon: Wallet },
+  { href: "/profile", label: "Profile", icon: User },
 ];
 
 // Pages that should show the app shell (player-facing)
@@ -27,7 +25,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   if (!showShell) return <>{children}</>;
 
   const isActive = (href: string) => {
-    if (href === "/play") return pathname === "/play";
+    if (href === "/play") return pathname === "/play" || pathname.startsWith("/pills") || pathname.startsWith("/time-machine") || pathname.startsWith("/predictions") || pathname.startsWith("/blitz");
     return pathname.startsWith(href);
   };
 
