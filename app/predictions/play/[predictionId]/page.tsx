@@ -360,6 +360,22 @@ export default function PredictionPlayPage() {
     init();
   }, [state.isAuthenticated, predictionId]); // eslint-disable-line
 
+  // Poll for result every 10s when in locked state
+  useEffect(() => {
+    if (pageState !== "locked") return;
+    const poll = async () => {
+      try {
+        const res = await predictionsApi.getResult(predictionId);
+        if (res?.correctAnswer) {
+          setResult({ won: res.won, correctAnswer: res.correctAnswer, prize: res.prize || 0 });
+          setPageState("result");
+        }
+      } catch { /* not revealed yet */ }
+    };
+    const id = setInterval(poll, 10000); // check every 10 seconds
+    return () => clearInterval(id);
+  }, [pageState, predictionId]);
+
   const init = async () => {
     try {
       // Check if answer already revealed

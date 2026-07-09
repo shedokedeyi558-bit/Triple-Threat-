@@ -119,10 +119,8 @@ function EventCard({ prediction, onClick }: { prediction: PredictionData; onClic
     <motion.button
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      whileHover={{ x: 2 }}
-      whileTap={{ scale: 0.99 }}
       onClick={onClick}
-      className="w-full text-left bg-[#111] border border-[#1E1E1E] rounded-2xl overflow-hidden hover:border-opacity-60 transition-all"
+      className="w-full text-left bg-[#111] border border-[#1E1E1E] rounded-2xl overflow-hidden hover:border-opacity-60 transition-all active:scale-[0.99]"
       style={{ borderColor: `${accentColor}20` }}
     >
       {/* Colored left accent bar */}
