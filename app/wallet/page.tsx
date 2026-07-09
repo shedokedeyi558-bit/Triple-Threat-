@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useApp } from "@/context/AppContext";
-import { ArrowDownLeft, ArrowUpRight, Loader2, TrendingUp } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, Loader2 } from "lucide-react";
 import { walletApi, ApiError, type ApiTransaction } from "@/lib/api";
 import Link from "next/link";
 
@@ -111,39 +111,14 @@ export default function WalletPage() {
 
   const balance = state.player?.balance ?? 0;
 
-  // Stats from transactions
-  const totalDeposited = transactions.filter(t => t.type === "deposit" || t.type === "deposit_settled").reduce((s, t) => s + t.amount, 0);
-  const totalWon = transactions.filter(t => t.type === "prize").reduce((s, t) => s + t.amount, 0);
-
   return (
     <div className="px-4 lg:px-8 py-6">
 
-      {/* ── BALANCE + STATS ROW ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
-        {/* Main balance */}
-        <div className="lg:col-span-1 relative bg-gradient-to-br from-[#141414] to-[#0D0D0D] border border-[#1E1E1E] rounded-2xl p-6 overflow-hidden">
-          <div className="absolute top-0 right-0 w-40 h-40 bg-neon/5 rounded-full blur-3xl pointer-events-none" />
-          <p className="text-[11px] text-gray-500 uppercase tracking-widest font-bold mb-1">Available Balance</p>
-          <p className="text-neon font-black text-5xl">₦{balance.toLocaleString()}</p>
-        </div>
-
-        {/* Quick stats */}
-        <div className="lg:col-span-2 grid grid-cols-2 gap-4">
-          <div className="bg-[#111] border border-[#1E1E1E] rounded-2xl p-5">
-            <div className="flex items-center gap-2 mb-2">
-              <ArrowDownLeft size={15} className="text-blue-400" />
-              <p className="text-[11px] text-gray-500 uppercase tracking-widest font-bold">Total Deposited</p>
-            </div>
-            <p className="text-white font-black text-2xl">₦{totalDeposited.toLocaleString()}</p>
-          </div>
-          <div className="bg-[#111] border border-[#1E1E1E] rounded-2xl p-5">
-            <div className="flex items-center gap-2 mb-2">
-              <TrendingUp size={15} className="text-neon" />
-              <p className="text-[11px] text-gray-500 uppercase tracking-widest font-bold">Total Won</p>
-            </div>
-            <p className="text-neon font-black text-2xl">₦{totalWon.toLocaleString()}</p>
-          </div>
-        </div>
+      {/* ── BALANCE ── */}
+      <div className="relative bg-gradient-to-br from-[#141414] to-[#0D0D0D] border border-[#1E1E1E] rounded-2xl p-5 mb-6 overflow-hidden">
+        <div className="absolute top-0 right-0 w-40 h-40 bg-neon/5 rounded-full blur-3xl pointer-events-none" />
+        <p className="text-[11px] text-gray-500 uppercase tracking-widest font-bold mb-1">Available Balance</p>
+        <p className="text-neon font-black text-4xl">₦{balance.toLocaleString()}</p>
       </div>
 
       {/* ── MAIN CONTENT: Actions + History ── */}
