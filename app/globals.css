@@ -1,10 +1,23 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600&family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Mono:wght@500&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
+  /* New color tokens */
+  --bg-base: #0B0E14;
+  --bg-card: #12161F;
+  --text-primary: #F2EFE9;
+  --text-secondary: #8A93A6;
+  --accent-amber: #E8A33D;
+  --accent-indigo: #4C6FFF;
+  --accent-violet: #7C6FE8;
+  --border-subtle: #2A3040;
+  --border-hairline: #1C2130;
+  
+  /* Legacy tokens for compatibility */
   --neon: #00FF66;
   --gold: #FFD700;
   --bg: #0A0A0A;
@@ -21,11 +34,27 @@ html {
 }
 
 body {
-  background-color: var(--bg);
-  color: #ffffff;
-  font-family: 'Inter', system-ui, sans-serif;
+  background-color: var(--bg-base);
+  color: var(--text-primary);
+  font-family: 'IBM Plex Sans', system-ui, sans-serif;
   min-height: 100dvh;
   overscroll-behavior: none;
+}
+
+/* Font families */
+.font-headline {
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  font-weight: 600;
+}
+
+.font-subheadline {
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  font-weight: 500;
+}
+
+.font-mono {
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: 500;
 }
 
 /* Scrollbar */

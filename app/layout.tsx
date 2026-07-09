@@ -29,13 +29,19 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: "#0A0A0A",
+  themeColor: "#0B0E14",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className="bg-bg text-white antialiased">
+      <head>
+        <link
+          href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600&family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Mono:wght@500&display=swap"
+          rel="stylesheet"
+        />
+      </head>
+      <body className="bg-bg text-white antialiased" style={{ backgroundColor: "var(--bg-base)", color: "var(--text-primary)" }}>
         <AppProvider>
           <AppShell>
             {children}
