@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useApp } from "@/context/AppContext";
 import { authApi, setToken, ApiError } from "@/lib/api";
-import { Logo } from "@/components/ui/Logo";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { AlertCircle, Loader, Check, ArrowLeft, ArrowRight, Eye, EyeOff } from "lucide-react";
@@ -72,27 +71,69 @@ export default function SignInPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] text-white flex flex-col">
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-[#0A0A0A]/80 backdrop-blur-lg border-b border-[#2A2A2A] px-4 py-4">
-        <div className="max-w-md mx-auto grid grid-cols-3 items-center">
-          <Link href="/" className="hover:opacity-80 transition-opacity justify-self-start">
-            <ArrowLeft size={24} className="text-gray-400 hover:text-white" />
-          </Link>
-          <Link href="/" className="hover:opacity-80 transition-opacity justify-self-center">
-            <Logo size="sm" />
-          </Link>
-          <div />
+    <div className="min-h-screen bg-[--bg-base] text-white flex flex-col lg:flex-row" style={{ backgroundColor: "var(--bg-base)" }}>
+      {/* Mobile Top Bar */}
+      <div className="lg:hidden sticky top-0 z-50 flex items-center gap-3 px-4 py-4 border-b" style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-base)" }}>
+        <Link href="/" className="hover:opacity-80 transition-opacity">
+          <ArrowLeft size={20} style={{ color: "var(--text-secondary)" }} />
+        </Link>
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4" style={{ backgroundColor: "var(--accent-amber)" }}></div>
+          <span className="font-headline text-sm font-semibold" style={{ color: "var(--text-primary)" }}>bitlyfe</span>
         </div>
-      </header>
+      </div>
 
-      {/* Main Content */}
-      <div className="flex-1 flex items-center justify-center px-4 py-12">
+      {/* Desktop Left Panel */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5 }}
+        className="hidden lg:flex w-[45%] flex-col justify-between p-12 border-r" 
+        style={{ backgroundColor: "var(--bg-card)", borderColor: "var(--border-hairline)" }}
+      >
+        {/* Logo */}
+        <div className="flex items-center gap-2">
+          <div className="w-5 h-5" style={{ backgroundColor: "var(--accent-amber)" }}></div>
+          <span className="font-headline text-base font-semibold" style={{ color: "var(--text-primary)" }}>bitlyfe</span>
+        </div>
+
+        {/* Center Content */}
+        <div className="space-y-8">
+          <div className="font-mono text-xs tracking-widest" style={{ color: "var(--accent-amber)" }}>
+            REAL STAKES, REAL FAST
+          </div>
+
+          <div>
+            <h2 className="font-headline text-3xl font-semibold leading-tight mb-6" style={{ color: "var(--text-primary)" }}>
+              Pick up right where you left off.
+            </h2>
+            
+            <div className="space-y-3">
+              {[
+                { label: "Pills", color: "var(--accent-indigo)" },
+                { label: "Time Machine", color: "var(--accent-violet)" },
+                { label: "Blitz", color: "var(--accent-amber)" },
+              ].map((item) => (
+                <div key={item.label} className="flex items-center gap-3">
+                  <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: item.color }}></div>
+                  <span className="text-sm" style={{ color: "var(--text-secondary)" }}>{item.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <p className="text-xs" style={{ color: "var(--text-secondary)" }}>© 2026 bitlyfe</p>
+      </motion.div>
+
+      {/* Right Panel / Mobile Content */}
+      <div className="flex-1 flex items-center justify-center px-4 py-8 lg:py-12 lg:pr-12">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
-          className="w-full max-w-md"
+          className="w-full max-w-sm"
         >
           <AnimatePresence mode="wait">
             {step === "credentials" && (
@@ -105,11 +146,11 @@ export default function SignInPage() {
               >
                 {/* Heading */}
                 <div>
-                  <h1 className="text-3xl sm:text-4xl font-black tracking-tight mb-2">
+                  <h1 className="font-headline text-2xl lg:text-3xl font-semibold" style={{ color: "var(--text-primary)" }}>
                     Welcome back.
                   </h1>
-                  <p className="text-gray-400 text-sm">
-                    Enter your phone and password to pick up where you left off.
+                  <p className="text-sm mt-2" style={{ color: "var(--text-secondary)" }}>
+                    Enter your phone and password to continue.
                   </p>
                 </div>
 
@@ -120,9 +161,10 @@ export default function SignInPage() {
                       initial={{ opacity: 0, y: -8 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -8 }}
-                      className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 flex gap-3 items-start"
+                      className="border rounded-lg p-3 flex gap-3 items-start"
+                      style={{ borderColor: "var(--border-subtle)", backgroundColor: "rgba(239, 68, 68, 0.05)" }}
                     >
-                      <AlertCircle size={18} className="text-red-500 flex-shrink-0 mt-0.5" />
+                      <AlertCircle size={16} className="text-red-500 flex-shrink-0 mt-0.5" />
                       <p className="text-sm text-red-400">{error}</p>
                     </motion.div>
                   )}
@@ -132,18 +174,19 @@ export default function SignInPage() {
                 <form onSubmit={handleSignIn} className="space-y-4">
                   {/* Phone */}
                   <div>
-                    <label className="block text-sm font-semibold mb-2 text-gray-300">
+                    <label className="block text-xs font-semibold mb-2 uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>
                       Phone Number
                     </label>
-                    <div className="flex items-center gap-2 bg-[#1A1A1A] border border-[#2A2A2A] rounded-lg px-4 py-3 focus-within:border-neon transition-colors">
-                      <span className="text-gray-500 text-sm font-medium">+234</span>
+                    <div className="flex items-center gap-2 border rounded-lg px-4 py-3 focus-within:border-opacity-100 transition-colors" style={{ borderColor: "var(--border-subtle)", backgroundColor: "var(--bg-card)" }}>
+                      <span className="font-mono text-sm" style={{ color: "var(--text-secondary)" }}>+234</span>
                       <input
                         type="tel"
                         placeholder="801 234 5678"
                         value={phone}
                         onChange={(e) => handlePhoneChange(e.target.value)}
                         maxLength={10}
-                        className="flex-1 bg-transparent outline-none text-white placeholder-gray-600"
+                        className="flex-1 bg-transparent outline-none text-base" 
+                        style={{ color: "var(--text-primary)" }}
                         autoComplete="tel"
                       />
                     </div>
@@ -151,22 +194,24 @@ export default function SignInPage() {
 
                   {/* Password */}
                   <div>
-                    <label className="block text-sm font-semibold mb-2 text-gray-300">
+                    <label className="block text-xs font-semibold mb-2 uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>
                       Password
                     </label>
-                    <div className="flex items-center gap-2 bg-[#1A1A1A] border border-[#2A2A2A] rounded-lg px-4 py-3 focus-within:border-neon transition-colors">
+                    <div className="flex items-center gap-2 border rounded-lg px-4 py-3 focus-within:border-opacity-100 transition-colors" style={{ borderColor: "var(--border-subtle)", backgroundColor: "var(--bg-card)" }}>
                       <input
                         type={showPassword ? "text" : "password"}
                         placeholder="Your password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="flex-1 bg-transparent outline-none text-white placeholder-gray-600"
+                        className="flex-1 bg-transparent outline-none text-base"
+                        style={{ color: "var(--text-primary)" }}
                         autoComplete="current-password"
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="text-gray-500 hover:text-gray-300 transition-colors flex-shrink-0"
+                        className="transition-colors flex-shrink-0"
+                        style={{ color: "var(--text-secondary)" }}
                         tabIndex={-1}
                       >
                         {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -178,26 +223,30 @@ export default function SignInPage() {
                   <button
                     type="submit"
                     disabled={loading || phone.length !== 10 || password.length < 6}
-                    className="w-full py-4 bg-neon text-black font-bold rounded-lg hover:bg-neon/90 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2 text-base mt-2"
+                    className="w-full py-3 font-semibold rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity flex items-center justify-center gap-2 mt-6"
+                    style={{
+                      backgroundColor: loading || phone.length !== 10 || password.length < 6 ? "var(--border-subtle)" : "var(--accent-amber)",
+                      color: loading || phone.length !== 10 || password.length < 6 ? "var(--text-muted)" : "#412402",
+                    }}
                   >
                     {loading ? (
                       <>
-                        <Loader size={20} className="animate-spin" />
+                        <Loader size={18} className="animate-spin" />
                         Signing in...
                       </>
                     ) : (
                       <>
-                        Sign In <ArrowRight size={20} />
+                        Sign In <ArrowRight size={18} />
                       </>
                     )}
                   </button>
                 </form>
 
                 {/* Footer links */}
-                <div className="text-center space-y-2 border-t border-[#2A2A2A] pt-6">
-                  <p className="text-xs text-gray-500">
+                <div className="text-center border-t pt-6" style={{ borderColor: "var(--border-hairline)" }}>
+                  <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
                     New player?{" "}
-                    <Link href="/auth" className="text-neon hover:underline font-semibold">
+                    <Link href="/auth" className="font-semibold hover:underline" style={{ color: "var(--accent-amber)" }}>
                       Create an account
                     </Link>
                   </p>
@@ -217,14 +266,15 @@ export default function SignInPage() {
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   transition={{ delay: 0.1, type: "spring", stiffness: 200 }}
-                  className="w-20 h-20 bg-neon/10 border border-neon/30 rounded-full flex items-center justify-center mx-auto"
+                  className="w-16 h-16 rounded-full flex items-center justify-center mx-auto"
+                  style={{ backgroundColor: "rgba(232, 163, 61, 0.1)", borderColor: "var(--accent-amber)" }}
                 >
-                  <Check size={36} className="text-neon" />
+                  <Check size={32} style={{ color: "var(--accent-amber)" }} />
                 </motion.div>
 
                 <div>
-                  <h2 className="text-2xl font-black mb-1">You&apos;re in.</h2>
-                  <p className="text-gray-400 text-sm">Taking you to the games...</p>
+                  <h2 className="font-headline text-xl font-semibold mb-1" style={{ color: "var(--text-primary)" }}>You&apos;re in.</h2>
+                  <p className="text-sm" style={{ color: "var(--text-secondary)" }}>Taking you to the games...</p>
                 </div>
 
                 <div className="flex gap-1.5 justify-center">
@@ -233,7 +283,8 @@ export default function SignInPage() {
                       key={i}
                       animate={{ scale: [1, 1.5, 1], opacity: [0.5, 1, 0.5] }}
                       transition={{ delay: i * 0.15, duration: 0.8, repeat: Infinity }}
-                      className="w-2 h-2 bg-neon rounded-full"
+                      className="w-2 h-2 rounded-full"
+                      style={{ backgroundColor: "var(--accent-amber)" }}
                     />
                   ))}
                 </div>

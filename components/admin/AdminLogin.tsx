@@ -3,19 +3,22 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAdmin } from "@/context/AdminContext";
-import { Lock, Mail, ArrowLeft } from "lucide-react";
+import { ArrowLeft, AlertCircle, Loader, ArrowRight, Eye, EyeOff, Lock, Shield } from "lucide-react";
 import { authApi, setAdminToken, ApiError } from "@/lib/api";
 import Link from "next/link";
+import { motion, AnimatePresence } from "framer-motion";
 
 export function AdminLogin() {
   const router = useRouter();
   const { dispatch: adminDispatch } = useAdmin();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const handleLogin = async () => {
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (!email || !password) {
       setError("Please fill in all fields");
       return;
@@ -38,82 +41,162 @@ export function AdminLogin() {
   };
 
   return (
-    <div className="min-h-dvh bg-black flex flex-col">
-      {/* Header with back button */}
-      <header className="sticky top-0 z-50 bg-black/80 backdrop-blur-lg border-b border-gray-800 px-5 py-4">
-        <div className="grid grid-cols-3 items-center">
-          <Link href="/" className="hover:opacity-80 transition-opacity justify-self-start">
-            <ArrowLeft size={24} className="text-gray-400 hover:text-white" />
-          </Link>
-          <div className="font-black uppercase tracking-tight text-xl leading-none text-center justify-self-center">
-            <span className="text-white">BIT</span>
-            <span className="text-neon neon-text-glow">LYFE</span>
+    <div className="min-h-screen bg-[--bg-base] text-white flex flex-col lg:flex-row" style={{ backgroundColor: "var(--bg-base)" }}>
+      {/* Mobile Top Bar */}
+      <div className="lg:hidden sticky top-0 z-50 flex items-center gap-3 px-4 py-4 border-b" style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-base)" }}>
+        <Link href="/" className="hover:opacity-80 transition-opacity">
+          <ArrowLeft size={20} style={{ color: "var(--text-secondary)" }} />
+        </Link>
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4" style={{ backgroundColor: "var(--accent-indigo)" }}></div>
+          <span className="font-headline text-sm font-semibold" style={{ color: "var(--text-primary)" }}>bitlyfe admin</span>
+        </div>
+      </div>
+
+      {/* Desktop Left Panel - Indigo Accent */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5 }}
+        className="hidden lg:flex w-[45%] flex-col justify-between p-12 border-r"
+        style={{ backgroundColor: "var(--bg-card)", borderColor: "var(--border-hairline)" }}
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-5 h-5 flex items-center justify-center rounded" style={{ backgroundColor: "var(--accent-indigo)" }}>
+            <Lock size={12} className="text-white" />
           </div>
-          <div />
-        </div>
-      </header>
-
-      {/* Login form */}
-      <div className="flex-1 flex items-center justify-center px-5">
-      <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
-          <div className="text-gray-400 text-sm">Admin Panel</div>
+          <span className="font-headline text-base font-semibold" style={{ color: "var(--text-primary)" }}>Admin</span>
         </div>
 
-        <div className="bg-gray-950 border border-gray-800 rounded-2xl p-6 space-y-4">
+        <div className="space-y-8">
+          <div className="font-mono text-xs tracking-widest" style={{ color: "var(--accent-indigo)" }}>
+            RESTRICTED ACCESS
+          </div>
+
           <div>
-            <label className="text-sm text-gray-400 mb-1.5 block">Email</label>
-            <div className="relative">
-              <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500" />
+            <h2 className="font-headline text-3xl font-semibold leading-tight" style={{ color: "var(--text-primary)" }}>
+              Admin sign in.
+            </h2>
+          </div>
+        </div>
+
+        <p className="text-xs" style={{ color: "var(--text-secondary)" }}>© 2026 bitlyfe</p>
+      </motion.div>
+
+      {/* Right Panel / Mobile Content */}
+      <div className="flex-1 flex items-center justify-center px-4 py-8 lg:py-12 lg:pr-12">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="w-full max-w-sm space-y-6"
+        >
+          <div className="space-y-2">
+            <h1 className="font-headline text-2xl lg:text-3xl font-semibold" style={{ color: "var(--text-primary)" }}>
+              Admin sign in.
+            </h1>
+            <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+              Enter your credentials to access the admin panel.
+            </p>
+          </div>
+
+          {/* Error */}
+          <AnimatePresence>
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                className="border rounded-lg p-3 flex gap-3 items-start"
+                style={{ borderColor: "var(--border-subtle)", backgroundColor: "rgba(239, 68, 68, 0.05)" }}
+              >
+                <AlertCircle size={16} className="text-red-500 flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-red-400">{error}</p>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Form */}
+          <form onSubmit={handleLogin} className="space-y-4">
+            {/* Email */}
+            <div>
+              <label className="block text-xs font-semibold mb-2 uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>
+                Email
+              </label>
               <input
                 type="email"
-                placeholder="admin@example.com"
+                placeholder="admin@bitlyfe.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleLogin()}
-                className="w-full bg-gray-900 border border-gray-800 focus:border-neon rounded-xl pl-10 pr-4 py-3 text-white placeholder-gray-600 text-sm outline-none transition-colors"
+                className="w-full border rounded-lg px-4 py-3 outline-none transition-colors text-base"
+                style={{ borderColor: "var(--border-subtle)", backgroundColor: "var(--bg-card)", color: "var(--text-primary)" }}
               />
             </div>
+
+            {/* Password */}
+            <div>
+              <label className="block text-xs font-semibold mb-2 uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>
+                Password
+              </label>
+              <div className="flex items-center gap-2 border rounded-lg px-4 py-3 focus-within:border-opacity-100 transition-colors" style={{ borderColor: "var(--border-subtle)", backgroundColor: "var(--bg-card)" }}>
+                <input
+                  type={showPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="flex-1 bg-transparent outline-none text-base"
+                  style={{ color: "var(--text-primary)" }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="transition-colors flex-shrink-0"
+                  style={{ color: "var(--text-secondary)" }}
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+            </div>
+
+            {/* Submit */}
+            <button
+              type="submit"
+              disabled={loading || !email || !password}
+              className="w-full py-3 font-semibold rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity flex items-center justify-center gap-2 mt-6"
+              style={{
+                backgroundColor: loading || !email || !password ? "var(--border-subtle)" : "var(--accent-indigo)",
+                color: loading || !email || !password ? "var(--text-muted)" : "white",
+              }}
+            >
+              {loading ? (
+                <>
+                  <Loader size={18} className="animate-spin" />
+                  Signing in...
+                </>
+              ) : (
+                <>
+                  Sign In <ArrowRight size={18} />
+                </>
+              )}
+            </button>
+          </form>
+
+          {/* Security Note */}
+          <div className="border rounded-lg p-3 flex gap-2 items-start" style={{ borderColor: "var(--border-subtle)", backgroundColor: "var(--bg-card)" }}>
+            <Shield size={14} className="flex-shrink-0 mt-0.5" style={{ color: "var(--text-muted)" }} />
+            <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+              Restricted access. Sessions expire after 30 minutes of inactivity.
+            </p>
           </div>
 
-          <div>
-            <label className="text-sm text-gray-400 mb-1.5 block">Password</label>
-            <div className="relative">
-              <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500" />
-              <input
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleLogin()}
-                className="w-full bg-gray-900 border border-gray-800 focus:border-neon rounded-xl pl-10 pr-4 py-3 text-white placeholder-gray-600 text-sm outline-none transition-colors"
-              />
-            </div>
+          {/* Back Link */}
+          <div className="text-center border-t pt-4" style={{ borderColor: "var(--border-hairline)" }}>
+            <Link href="/" className="text-xs font-semibold hover:underline" style={{ color: "var(--accent-indigo)" }}>
+              Back to home
+            </Link>
           </div>
-
-          {error && (
-            <div className="text-red-400 text-sm bg-red-900/20 border border-red-900/40 rounded-xl p-3">
-              {error}
-            </div>
-          )}
-
-          <button
-            onClick={handleLogin}
-            disabled={loading}
-            className="w-full py-3 bg-neon text-black font-semibold rounded-lg hover:bg-neon/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-          >
-            {loading ? (
-              <span className="animate-spin border-2 border-black border-t-transparent rounded-full w-5 h-5" />
-            ) : (
-              "Login to Admin"
-            )}
-          </button>
-        </div>
-
-        <p className="text-center text-gray-500 text-xs mt-6">
-          Admin login only. Unauthorized access attempts will be logged.
-        </p>
-      </div>
+        </motion.div>
       </div>
     </div>
   );
