@@ -19,11 +19,31 @@ function formatTime(ms: number): string {
   return `${mins}m ${secs}s`;
 }
 
-const positionColors: Record<number, { bg: string; text: string; border: string; label: string }> = {
-  1: { bg: "bg-yellow-500/10", text: "text-yellow-400", border: "border-yellow-500/40", label: "#FFD700" },
-  2: { bg: "bg-gray-400/10", text: "text-gray-300", border: "border-gray-400/40", label: "#C0C0C0" },
-  3: { bg: "bg-orange-700/10", text: "text-orange-400", border: "border-orange-700/40", label: "#CD7F32" },
-};
+function resultBadge(position: number, prizeType?: string, amount?: number) {
+  if (position === 1) {
+    return {
+      label: "🏆 WINNER",
+      bg: "bg-yellow-500/10",
+      text: "text-yellow-400",
+      border: "border-yellow-500/40",
+    };
+  } else if (position <= 3) {
+    return {
+      label: position === 2 ? "🥈 2ND" : "🥉 3RD",
+      bg: "bg-gray-400/10",
+      text: "text-gray-300",
+      border: "border-gray-400/40",
+    };
+  } else if (prizeType === "ticket") {
+    return {
+      label: "🎟️ FREE TICKET",
+      bg: "bg-purple-500/10",
+      text: "text-purple-400",
+      border: "border-purple-500/40",
+    };
+  }
+  return null;
+}
 
 export default function BlitzResultsPage() {
   const { state } = useApp();
@@ -144,7 +164,7 @@ export default function BlitzResultsPage() {
               <h2 className="text-gray-500 text-xs font-bold uppercase tracking-widest">Leaderboard</h2>
               {result.leaderboard.slice(0, 10).map((entry, i) => {
                 const isMe = result.my_position === entry.position;
-                const topStyle = positionColors[entry.position];
+                const badge = resultBadge(entry.position, entry.prize_type, entry.amount);
                 const delay = Math.min(i * 0.06, 0.5);
 
                 return (
@@ -156,8 +176,8 @@ export default function BlitzResultsPage() {
                     className={`flex items-center gap-3 p-3.5 rounded-xl border ${
                       isMe
                         ? "bg-neon/10 border-neon/40"
-                        : topStyle
-                        ? `${topStyle.bg} ${topStyle.border}`
+                        : badge
+                        ? `${badge.bg} ${badge.border}`
                         : "bg-[#141414] border-[#1E1E1E]"
                     }`}
                   >
@@ -165,16 +185,18 @@ export default function BlitzResultsPage() {
                       className={`w-7 h-7 rounded-full flex items-center justify-center font-black text-xs flex-shrink-0 ${
                         isMe ? "bg-neon text-black" : "bg-[#0A0A0A] text-gray-400"
                       }`}
-                      style={topStyle && !isMe ? { color: topStyle.label } : {}}
                     >
                       {entry.position}
                     </div>
 
                     <div className="flex-1 min-w-0">
-                      <p className={`font-bold text-sm ${isMe ? "text-neon" : "text-white"}`}>
-                        {maskPhone(entry.player_phone)}
-                        {isMe && <span className="text-[10px] text-neon/60 ml-1">(you)</span>}
-                      </p>
+                      <div className="flex items-center gap-2">
+                        <p className={`font-bold text-sm ${isMe ? "text-neon" : "text-white"}`}>
+                          {maskPhone(entry.player_phone)}
+                          {isMe && <span className="text-[10px] text-neon/60">(you)</span>}
+                        </p>
+                        {badge && <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${badge.text}`}>{badge.label}</span>}
+                      </div>
                       <p className="text-gray-500 text-xs">{formatTime(entry.total_time_ms)}</p>
                     </div>
 

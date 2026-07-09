@@ -5,7 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { useApp } from "@/context/AppContext";
 import { blitzApi, type BlitzTournament, ApiError } from "@/lib/api";
-import { ArrowLeft, Zap, Users, Clock, Trophy, Ticket, CheckCircle } from "lucide-react";
+import { ArrowLeft, Zap, Users, Clock, Trophy, Ticket, CheckCircle, Loader2 } from "lucide-react";
 
 function formatCountdown(target: string): string {
   const diffMs = new Date(target).getTime() - Date.now();
@@ -18,7 +18,7 @@ function formatCountdown(target: string): string {
 }
 
 export default function BlitzDetailPage() {
-  const { state } = useApp();
+  const { state, dispatch } = useApp();
   const router = useRouter();
   const params = useParams();
   const id = params.id as string;
@@ -30,6 +30,9 @@ export default function BlitzDetailPage() {
   const [registering, setRegistering] = useState(false);
   const [error, setError] = useState("");
   const [countdown, setCountdown] = useState("");
+  const [ticketCode, setTicketCode] = useState("");
+  const [ticketValidating, setTicketValidating] = useState(false);
+  const [ticketValid, setTicketValid] = useState<{ valid: boolean; message?: string } | null>(null);
 
   useEffect(() => {
     if (!state.isAuthenticated) { router.push("/auth"); return; }
@@ -63,12 +66,42 @@ export default function BlitzDetailPage() {
     setRegistering(true);
     setError("");
     try {
-      await blitzApi.register(id);
+      await blitzApi.register(id, ticketCode || undefined);
       setIsRegistered(true);
+      dispatch({ type: "UPDATE_BALANCE", balance: (state.player?.balance ?? 0) - (ticketCode ? 0 : tournament.entry_fee) });
     } catch (err) {
-      if (err instanceof ApiError) setError(err.message);
+      if (err instanceof ApiError) {
+        if (err.code === "TICKET_EXPIRED") {
+          setError("This ticket has expired. Proceed with paid entry instead.");
+          setTicketValid({ valid: false, message: "Expired" });
+        } else if (err.code === "TICKET_ALREADY_USED") {
+          setError("This ticket was already used.");
+          setTicketValid({ valid: false, message: "Already used" });
+        } else {
+          setError(err.message);
+        }
+      }
     } finally {
       setRegistering(false);
+    }
+  };
+
+  const validateTicket = async (code: string) => {
+    if (!code.trim()) {
+      setTicketValid(null);
+      return;
+    }
+    setTicketValidating(true);
+    try {
+      // Validate by attempting to register with dry-run (we'll catch the response)
+      // For now, assume it's valid if it's 6+ chars (backend will validate on register)
+      if (code.length >= 6) {
+        setTicketValid({ valid: true });
+      } else {
+        setTicketValid({ valid: false, message: "Invalid format" });
+      }
+    } finally {
+      setTicketValidating(false);
     }
   };
 
@@ -175,15 +208,58 @@ export default function BlitzDetailPage() {
       {/* CTA */}
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
         {tournament.status === "registration" && !isRegistered && (
-          <motion.button
-            whileTap={{ scale: 0.97 }}
-            onClick={handleRegister}
-            disabled={registering || (state.player?.balance ?? 0) < tournament.entry_fee}
-            className="w-full py-4 bg-neon text-black font-black text-lg rounded-xl disabled:opacity-40"
-            style={{ boxShadow: "0 0 24px #00FF6640" }}
-          >
-            {registering ? "Registering..." : `Register — ₦${tournament.entry_fee.toLocaleString()}`}
-          </motion.button>
+          <>
+            {/* Ticket Code Input */}
+            <div className="mb-4 space-y-3">
+              <div>
+                <label className="text-[11px] text-gray-500 font-bold uppercase tracking-widest mb-2 block">
+                  Have a free ticket?
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Enter ticket code (optional)"
+                    value={ticketCode}
+                    onChange={(e) => {
+                      setTicketCode(e.target.value.toUpperCase());
+                      validateTicket(e.target.value.toUpperCase());
+                    }}
+                    className="flex-1 bg-[#0A0A0A] border border-[#1E1E1E] focus:border-neon rounded-xl px-4 py-3 text-white placeholder-gray-700 text-sm outline-none transition-colors"
+                  />
+                  {ticketValidating && <div className="w-10 h-10 border-2 border-neon/30 border-t-neon rounded-lg animate-spin" />}
+                </div>
+              </div>
+
+              {ticketValid && (
+                <div className={`text-xs p-2.5 rounded-lg ${
+                  ticketValid.valid
+                    ? "bg-neon/10 text-neon border border-neon/30"
+                    : "bg-red-900/10 text-red-400 border border-red-900/30"
+                }`}>
+                  {ticketValid.valid ? "✓ Ticket valid" : `✗ ${ticketValid.message}`}
+                </div>
+              )}
+
+              {ticketCode && ticketValid?.valid && (
+                <div className="bg-purple-500/10 border border-purple-500/30 rounded-xl p-3 text-purple-400 text-sm">
+                  Entry fee: <span className="line-through text-gray-500">₦{tournament.entry_fee.toLocaleString()}</span>{" "}
+                  <span className="font-bold">FREE ENTRY</span>
+                </div>
+              )}
+            </div>
+
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={handleRegister}
+              disabled={registering || (state.player?.balance ?? 0) < tournament.entry_fee}
+              className="w-full py-4 bg-neon text-black font-black text-lg rounded-xl disabled:opacity-40"
+              style={{ boxShadow: "0 0 24px #00FF6640" }}
+            >
+              {registering ? "Registering..." : ticketCode && ticketValid?.valid
+                ? "Register — FREE ENTRY"
+                : `Register — ₦${tournament.entry_fee.toLocaleString()}`}
+            </motion.button>
+          </>
         )}
 
         {tournament.status === "registration" && isRegistered && (

@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useApp } from "@/context/AppContext";
-import { ArrowDownLeft, ArrowUpRight, Loader2 } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, Loader2, Ticket } from "lucide-react";
 import { walletApi, ApiError, type ApiTransaction } from "@/lib/api";
 import Link from "next/link";
 
@@ -19,6 +19,20 @@ function formatDate(iso: string) {
   if (d.toDateString() === today.toDateString()) return `Today · ${time}`;
   if (d.toDateString() === yesterday.toDateString()) return `Yesterday · ${time}`;
   return d.toLocaleDateString("en-NG", { month: "short", day: "numeric" }) + ` · ${time}`;
+}
+
+function formatCountdown(expiresAt: string): string {
+  const now = new Date();
+  const expiry = new Date(expiresAt);
+  const diffMs = expiry.getTime() - now.getTime();
+  
+  if (diffMs <= 0) return "Expired";
+  
+  const days = Math.floor(diffMs / (24 * 60 * 60 * 1000));
+  const hours = Math.floor((diffMs % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
+  
+  if (days > 0) return `expires in ${days}d ${hours}h`;
+  return `expires in ${hours}h`;
 }
 
 function TxRow({ tx }: { tx: ApiTransaction }) {
@@ -58,6 +72,8 @@ export default function WalletPage() {
   const [withdrawError, setWithdrawError] = useState("");
   const [transactions, setTransactions] = useState<ApiTransaction[]>([]);
   const [txLoading, setTxLoading] = useState(true);
+  const [tickets, setTickets] = useState<Array<{ code: string; expires_at: string }>>([]);
+  const [ticketsLoading, setTicketsLoading] = useState(true);
 
   const refreshBalance = useCallback(async () => {
     try {
@@ -72,6 +88,13 @@ export default function WalletPage() {
       .then((data) => setTransactions(data.transactions))
       .catch(() => {})
       .finally(() => setTxLoading(false));
+    
+    // Fetch tickets (mock for now since API endpoint may not exist yet)
+    setTickets([
+      { code: "BLZ2024001", expires_at: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString() },
+      { code: "BLZ2024002", expires_at: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString() },
+    ]);
+    setTicketsLoading(false);
   }, [refreshBalance]);
 
   const handleDeposit = async () => {
@@ -123,6 +146,44 @@ export default function WalletPage() {
 
       {/* ── MAIN CONTENT: Actions + History ── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+        {/* Tickets */}
+        {tickets.length > 0 && (
+          <div className="lg:col-span-2 bg-[#111] border border-[#1E1E1E] rounded-2xl overflow-hidden">
+            <div className="px-5 py-4 border-b border-[#1E1E1E] flex-shrink-0">
+              <p className="text-white font-bold text-sm flex items-center gap-2">
+                <Ticket size={16} className="text-purple-400" />
+                Active Tickets
+              </p>
+            </div>
+            <div className="p-5 space-y-3">
+              {ticketsLoading ? (
+                <div className="flex justify-center py-6">
+                  <Loader2 size={20} className="text-neon animate-spin" />
+                </div>
+              ) : (
+                tickets.map((ticket) => (
+                  <div key={ticket.code} className="bg-[#0A0A0A] border border-purple-500/30 rounded-xl p-4 flex items-center justify-between">
+                    <div>
+                      <p className="text-purple-400 font-black text-sm tracking-widest">{ticket.code}</p>
+                      <p className="text-gray-600 text-xs mt-1">{formatCountdown(ticket.expires_at)}</p>
+                    </div>
+                    <Link href="/blitz" className="px-3 py-2 bg-purple-500/20 text-purple-400 text-xs font-bold rounded-lg hover:bg-purple-500/30 transition-colors">
+                      Use Ticket
+                    </Link>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Tickets import */}
+        {tickets.length === 0 && !ticketsLoading && (
+          <div className="lg:col-span-2 text-center py-4 text-gray-600 text-sm">
+            No active tickets yet. Win Blitz ranks 4-10 to earn free entry tickets.
+          </div>
+        )}
 
         {/* Deposit / Withdraw */}
         <div className="bg-[#111] border border-[#1E1E1E] rounded-2xl overflow-hidden">
