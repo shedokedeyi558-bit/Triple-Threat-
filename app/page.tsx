@@ -56,9 +56,9 @@ export default function LandingPage() {
 
           {/* Desktop Nav */}
           <div className="hidden md:flex items-center gap-8">
-            <Link href="#" className="text-sm" style={{ color: "var(--text-secondary)" }}>Games</Link>
-            <Link href="#" className="text-sm" style={{ color: "var(--text-secondary)" }}>How it works</Link>
-            <Link href="#" className="text-sm" style={{ color: "var(--text-secondary)" }}>Stats</Link>
+            <Link href="#games" className="text-sm" style={{ color: "var(--text-secondary)" }}>Games</Link>
+            <Link href="#how-it-works" className="text-sm" style={{ color: "var(--text-secondary)" }}>How it works</Link>
+            <Link href="/blitz" className="text-sm" style={{ color: "var(--text-secondary)" }}>Leaderboard</Link>
           </div>
 
           {/* Desktop Login Button */}
@@ -94,9 +94,9 @@ export default function LandingPage() {
             className="md:hidden border-t px-4 py-4 space-y-4"
             style={{ borderColor: "var(--border-hairline)" }}
           >
-            <Link href="#" className="block text-sm" style={{ color: "var(--text-secondary)" }}>Games</Link>
-            <Link href="#" className="block text-sm" style={{ color: "var(--text-secondary)" }}>How it works</Link>
-            <Link href="#" className="block text-sm" style={{ color: "var(--text-secondary)" }}>Stats</Link>
+            <Link href="#games" className="block text-sm" style={{ color: "var(--text-secondary)" }}>Games</Link>
+            <Link href="#how-it-works" className="block text-sm" style={{ color: "var(--text-secondary)" }}>How it works</Link>
+            <Link href="/blitz" className="block text-sm" style={{ color: "var(--text-secondary)" }}>Leaderboard</Link>
             <Link href="/signin" className="block text-sm font-medium" style={{ color: "var(--accent-amber)" }}>Log in</Link>
           </motion.div>
         )}
@@ -141,7 +141,7 @@ export default function LandingPage() {
                   Play now <ArrowRight size={16} />
                 </Link>
                 <Link
-                  href="#"
+                  href="#how-it-works"
                   className="flex items-center justify-center px-6 py-3 font-medium text-sm border rounded-lg transition-colors"
                   style={{
                     borderColor: "var(--border-subtle)",
@@ -222,23 +222,165 @@ export default function LandingPage() {
               </div>
             ))}
           </motion.div>
-
-          {/* Stats Row */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.5 }}
-            className="mt-16 pt-6 border-t"
-            style={{ borderColor: "var(--border-hairline)" }}
-          >
-            <div className="flex flex-col sm:flex-row justify-between gap-8 sm:gap-0">
-              <StatItem label="Active Players" value="2,847" />
-              <StatItem label="Games This Month" value="3,429" />
-              <StatItem label="Total Paid Out" value="₦847,000" />
-            </div>
-          </motion.div>
         </div>
       </section>
+      <section className="px-4 sm:px-6 lg:px-8 py-16 lg:py-20 border-t" style={{ borderColor: "var(--border-hairline)" }}>
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="font-headline text-2xl sm:text-3xl" style={{ color: "var(--text-primary)" }}>
+              Three steps to start playing
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
+            {[
+              {
+                number: "1",
+                title: "Fund your wallet",
+                description: "Add funds via Paystack. Takes seconds.",
+              },
+              {
+                number: "2",
+                title: "Pick your mode",
+                description: "Pills for instant wins. Predictions for strategy. Blitz for tournaments.",
+              },
+              {
+                number: "3",
+                title: "Play and cash out",
+                description: "Win instantly or wait for results. Withdraw to your bank anytime.",
+              },
+            ].map((step, idx) => (
+              <motion.div
+                key={step.number}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.1 }}
+                viewport={{ once: true }}
+                className="rounded-xl p-6 border"
+                style={{
+                  backgroundColor: "var(--bg-card)",
+                  borderColor: "var(--border-subtle)",
+                }}
+              >
+                <div
+                  className="w-8 h-8 rounded-full flex items-center justify-center font-headline font-semibold text-xs mb-4"
+                  style={{
+                    backgroundColor: "var(--accent-amber)",
+                    color: "#000",
+                  }}
+                >
+                  {step.number}
+                </div>
+                <h3 className="font-headline font-semibold text-base mb-2" style={{ color: "var(--text-primary)" }}>
+                  {step.title}
+                </h3>
+                <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+                  {step.description}
+                </p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="border-t px-4 sm:px-6 lg:px-8 py-12" style={{ borderColor: "var(--border-hairline)" }}>
+        <div className="max-w-7xl mx-auto">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-8">
+            {/* Logo Column */}
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-4 h-4" style={{ backgroundColor: "var(--accent-amber)" }}></div>
+                <span className="font-headline text-sm font-semibold" style={{ color: "var(--text-primary)" }}>bitlyfe</span>
+              </div>
+              <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                Real stakes, real fast
+              </p>
+            </div>
+
+            {/* Games Column */}
+            <div>
+              <h4 className="font-headline font-semibold text-xs mb-4 uppercase tracking-wider" style={{ color: "var(--text-primary)" }}>
+                Games
+              </h4>
+              <ul className="space-y-2">
+                <li>
+                  <Link href="/pills" className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                    Pills
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/time-machine" className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                    Time Machine
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/blitz" className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                    Blitz
+                  </Link>
+                </li>
+              </ul>
+            </div>
+
+            {/* Info Column */}
+            <div>
+              <h4 className="font-headline font-semibold text-xs mb-4 uppercase tracking-wider" style={{ color: "var(--text-primary)" }}>
+                Info
+              </h4>
+              <ul className="space-y-2">
+                <li>
+                  <Link href="#how-it-works" className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                    How it works
+                  </Link>
+                </li>
+                <li>
+                  <Link href="#" className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                    Leaderboard
+                  </Link>
+                </li>
+                <li>
+                  <Link href="#" className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                    Support
+                  </Link>
+                </li>
+              </ul>
+            </div>
+
+            {/* Legal Column */}
+            <div>
+              <h4 className="font-headline font-semibold text-xs mb-4 uppercase tracking-wider" style={{ color: "var(--text-primary)" }}>
+                Legal
+              </h4>
+              <ul className="space-y-2">
+                <li>
+                  <Link href="#" className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                    Terms
+                  </Link>
+                </li>
+                <li>
+                  <Link href="#" className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                    Privacy
+                  </Link>
+                </li>
+                <li>
+                  <Link href="#" className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                    Responsible play
+                  </Link>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          {/* Bottom Bar */}
+          <div className="border-t pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs" style={{ borderColor: "var(--border-hairline)", color: "var(--text-secondary)" }}>
+            <span>© 2026 bitlyfe</span>
+            <span>Payments secured by Paystack</span>
+            <Link href="/admin" className="hover:underline">
+              Admin
+            </Link>
+          </div>
+        </div>
+      </footer>
     </main>
   );
 }

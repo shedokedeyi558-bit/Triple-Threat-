@@ -19,32 +19,6 @@ function formatTime(ms: number): string {
   return `${mins}m ${secs}s`;
 }
 
-function resultBadge(position: number, prizeType?: string, amount?: number) {
-  if (position === 1) {
-    return {
-      label: "🏆 WINNER",
-      bg: "bg-yellow-500/10",
-      text: "text-yellow-400",
-      border: "border-yellow-500/40",
-    };
-  } else if (position <= 3) {
-    return {
-      label: position === 2 ? "🥈 2ND" : "🥉 3RD",
-      bg: "bg-gray-400/10",
-      text: "text-gray-300",
-      border: "border-gray-400/40",
-    };
-  } else if (prizeType === "ticket") {
-    return {
-      label: "🎟️ FREE TICKET",
-      bg: "bg-purple-500/10",
-      text: "text-purple-400",
-      border: "border-purple-500/40",
-    };
-  }
-  return null;
-}
-
 export default function BlitzResultsPage() {
   const { state } = useApp();
   const router = useRouter();
@@ -162,10 +136,20 @@ export default function BlitzResultsPage() {
 
             <div className="space-y-2">
               <h2 className="text-gray-500 text-xs font-bold uppercase tracking-widest">Leaderboard</h2>
-              {result.leaderboard.slice(0, 10).map((entry, i) => {
+            {result.leaderboard.slice(0, 10).map((entry, i) => {
                 const isMe = result.my_position === entry.position;
-                const badge = resultBadge(entry.position, entry.prize_type, entry.amount);
                 const delay = Math.min(i * 0.06, 0.5);
+                
+                // Determine badge based on actual prize_type from backend
+                let badgeStyle = null;
+                let badgeLabel = null;
+                if (entry.position === 1 && entry.prize_type === "cash") {
+                  badgeStyle = "bg-yellow-500/10 border-yellow-500/40";
+                  badgeLabel = "WINNER";
+                } else if (entry.prize_type === "free_ticket") {
+                  badgeStyle = "bg-purple-500/10 border-purple-500/40";
+                  badgeLabel = "FREE TICKET";
+                }
 
                 return (
                   <motion.div
@@ -176,8 +160,8 @@ export default function BlitzResultsPage() {
                     className={`flex items-center gap-3 p-3.5 rounded-xl border ${
                       isMe
                         ? "bg-neon/10 border-neon/40"
-                        : badge
-                        ? `${badge.bg} ${badge.border}`
+                        : badgeStyle
+                        ? badgeStyle
                         : "bg-[#141414] border-[#1E1E1E]"
                     }`}
                   >
@@ -195,7 +179,13 @@ export default function BlitzResultsPage() {
                           {maskPhone(entry.player_phone)}
                           {isMe && <span className="text-[10px] text-neon/60">(you)</span>}
                         </p>
-                        {badge && <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${badge.text}`}>{badge.label}</span>}
+                        {badgeLabel && (
+                          <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
+                            badgeLabel === "WINNER" ? "text-yellow-400" : "text-purple-400"
+                          }`}>
+                            {badgeLabel}
+                          </span>
+                        )}
                       </div>
                       <p className="text-gray-500 text-xs">{formatTime(entry.total_time_ms)}</p>
                     </div>
