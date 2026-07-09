@@ -251,7 +251,41 @@ function PredictionSubmit({
 }
 
 // ─── Locked / Waiting state ────────────────────────────────────────────────────
-function PredictionWaiting({ answer }: { answer: string }) {
+function PredictionWaiting({
+  answer,
+  predictionId,
+  setResult,
+  setPageState,
+}: {
+  answer: string;
+  predictionId: string;
+  setResult: React.Dispatch<React.SetStateAction<Result | null>>;
+  setPageState: React.Dispatch<React.SetStateAction<PageState>>;
+}) {
+  const [checking, setChecking] = useState(false);
+
+  const handleCheckResult = async () => {
+    setChecking(true);
+    try {
+      const res = await predictionsApi.getResult(predictionId);
+      if (res?.correctAnswer) {
+        setResult({ won: res.won, correctAnswer: res.correctAnswer, prize: res.prize || 0 });
+        setPageState("result");
+      } else {
+        alert("Result not available yet — check back soon");
+      }
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 404) {
+        alert("Result not available yet — check back soon");
+      } else {
+        console.error("Failed to check result:", err);
+        alert("Error checking result — please try again");
+      }
+    } finally {
+      setChecking(false);
+    }
+  };
+
   return (
     <div className="space-y-5">
       <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
@@ -293,22 +327,12 @@ function PredictionWaiting({ answer }: { answer: string }) {
           Come back after the event to see if you won. You&apos;ll see the result on this page.
         </p>
         <button
-          onClick={async () => {
-            try {
-              const res = await predictionsApi.getResult(predictionId);
-              if (res?.correctAnswer) {
-                setResult({ won: res.won, correctAnswer: res.correctAnswer, prize: res.prize || 0 });
-                setPageState("result");
-              } else {
-                alert("Result not available yet — check back soon");
-              }
-            } catch {
-              alert("Result not available yet — check back soon");
-            }
-          }}
-          className="mt-3 text-neon text-xs font-bold hover:underline block mx-auto"
+          onClick={handleCheckResult}
+          disabled={checking}
+          className="mt-3 text-neon text-xs font-bold hover:underline block mx-auto disabled:opacity-50 flex items-center justify-center gap-1"
         >
-          Check result now →
+          {checking ? <Loader2 size={12} className="animate-spin" /> : null}
+          {checking ? "Checking..." : "Check result now →"}
         </button>
       </div>
     </div>
@@ -539,7 +563,12 @@ export default function PredictionPlayPage() {
 
         {pageState === "locked" && (
           <motion.div key="locked" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
-            <PredictionWaiting answer={userAnswer || ""} />
+            <PredictionWaiting
+              answer={userAnswer || ""}
+              predictionId={predictionId}
+              setResult={setResult}
+              setPageState={setPageState}
+            />
           </motion.div>
         )}
 
