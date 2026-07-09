@@ -292,6 +292,24 @@ function PredictionWaiting({ answer }: { answer: string }) {
         <p className="text-orange-300/80 text-xs leading-relaxed">
           Come back after the event to see if you won. You&apos;ll see the result on this page.
         </p>
+        <button
+          onClick={async () => {
+            try {
+              const res = await predictionsApi.getResult(predictionId);
+              if (res?.correctAnswer) {
+                setResult({ won: res.won, correctAnswer: res.correctAnswer, prize: res.prize || 0 });
+                setPageState("result");
+              } else {
+                alert("Result not available yet — check back soon");
+              }
+            } catch {
+              alert("Result not available yet — check back soon");
+            }
+          }}
+          className="mt-3 text-neon text-xs font-bold hover:underline block mx-auto"
+        >
+          Check result now →
+        </button>
       </div>
     </div>
   );
@@ -370,9 +388,17 @@ export default function PredictionPlayPage() {
           setResult({ won: res.won, correctAnswer: res.correctAnswer, prize: res.prize || 0 });
           setPageState("result");
         }
-      } catch { /* not revealed yet */ }
+      } catch (err) {
+        // If error is NOT a 404, something else went wrong — log it
+        if (err instanceof ApiError && err.status !== 404) {
+          console.error("Result poll error:", err.message);
+        }
+        // 404 = not revealed yet, keep polling
+      }
     };
-    const id = setInterval(poll, 10000); // check every 10 seconds
+    // Check immediately on mount
+    poll();
+    const id = setInterval(poll, 10000);
     return () => clearInterval(id);
   }, [pageState, predictionId]);
 
