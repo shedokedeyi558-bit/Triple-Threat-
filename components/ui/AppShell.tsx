@@ -49,70 +49,82 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <div className="flex min-h-screen bg-[#0A0A0A]">
+    <div className="flex min-h-screen bg-[--bg-base]" style={{ backgroundColor: "var(--bg-base)" }}>
 
-      {/* ── SIDEBAR — desktop only ── */}
-      <aside className="hidden lg:flex flex-col fixed left-0 top-0 bottom-0 w-60 bg-[#0D0D0D] border-r border-[#1A1A1A] z-40">
+      {/* ── ICON RAIL — desktop only ── */}
+      <aside className="hidden lg:flex flex-col fixed left-0 top-0 bottom-0 w-16 bg-[--bg-card] border-r" style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-card)" }} z-40>
         {/* Logo */}
-        <div className="px-6 py-6 border-b border-[#1A1A1A]">
-          <Link href="/play" className="font-black text-2xl uppercase tracking-tight leading-none">
-            <span className="text-white">BIT</span>
-            <span className="text-neon">LYFE</span>
+        <div className="px-3 py-6 border-b flex items-center justify-center" style={{ borderColor: "var(--border-hairline)" }}>
+          <Link href="/play" className="w-8 h-8 flex items-center justify-center rounded-lg" style={{ backgroundColor: "var(--accent-amber)" }}>
+            <span className="text-xs font-black text-black">B</span>
           </Link>
-          <p className="text-gray-600 text-xs mt-1">Play Smart. Win Real.</p>
         </div>
 
         {/* Nav links */}
-        <nav className="flex-1 px-3 py-4 space-y-1">
+        <nav className="flex-1 px-2 py-4 space-y-4 flex flex-col items-center">
           {navItems.map(({ href, label, icon: Icon }) => {
             const active = isActive(href);
             return (
               <Link
                 key={href}
                 href={href}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
-                  active
-                    ? "bg-neon/10 text-neon border border-neon/20"
-                    : "text-gray-400 hover:text-white hover:bg-[#1A1A1A]"
-                }`}
+                className="w-10 h-10 flex items-center justify-center rounded-lg transition-all relative group"
+                style={{
+                  backgroundColor: active ? "var(--accent-amber)" : "transparent",
+                  color: active ? "#000" : "var(--text-secondary)",
+                  borderLeft: active ? "3px solid var(--accent-amber)" : "3px solid transparent",
+                }}
+                title={label}
               >
                 <Icon size={18} />
-                {label}
+                {/* Tooltip on hover */}
+                <div className="absolute left-12 bg-black px-2 py-1 rounded text-xs font-semibold whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" style={{ color: "var(--text-primary)" }}>
+                  {label}
+                </div>
               </Link>
             );
           })}
         </nav>
 
         {/* Logout */}
-        <div className="px-3 pb-6 border-t border-[#1A1A1A] pt-4">
+        <div className="px-2 pb-6">
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-gray-500 hover:text-red-400 hover:bg-red-900/10 transition-all"
+            className="w-10 h-10 flex items-center justify-center rounded-lg transition-all text-red-600 hover:bg-red-900/20 relative group"
+            title="Log out"
           >
             <LogOut size={16} />
-            Log Out
+            <div className="absolute left-12 bg-black px-2 py-1 rounded text-xs font-semibold whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" style={{ color: "var(--text-primary)" }}>
+              Log out
+            </div>
           </button>
         </div>
       </aside>
 
       {/* ── MAIN CONTENT ── */}
-      <div className="flex-1 lg:ml-60 flex flex-col min-h-screen">
+      <div className="flex-1 lg:ml-16 flex flex-col min-h-screen">
         {/* Top bar — desktop */}
-        <header className="hidden lg:flex sticky top-0 z-30 bg-[#0A0A0A]/90 backdrop-blur-md border-b border-[#1A1A1A] px-8 py-4 items-center justify-between">
+        <header className="hidden lg:flex sticky top-0 z-30 bg-[--bg-base]/90 backdrop-blur-md border-b px-8 py-4 items-center justify-between" style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-base)" }}>
           <div>
-            <h1 className="text-white font-black text-lg capitalize">
+            <h1 className="font-headline text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
               {navItems.find((n) => isActive(n.href))?.label ?? "BitLyfe"}
             </h1>
           </div>
-          <Link
-            href="/wallet"
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#141414] border border-[#1E1E1E] text-neon font-bold text-sm hover:border-neon/40 transition-colors"
-          >
-            <Wallet size={14} />
-            ₦{state.player?.balance.toLocaleString() ?? "0"}
-            <span className="w-5 h-5 rounded-full bg-neon/20 border border-neon/30 flex items-center justify-center text-neon text-xs font-black ml-1">+</span>
-          </Link>
-          <NotificationBell />
+          <div className="flex items-center gap-4">
+            <Link
+              href="/wallet"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors"
+              style={{ borderColor: "var(--border-subtle)", backgroundColor: "var(--bg-card)" }}
+            >
+              <span className="font-mono font-semibold text-sm" style={{ color: "var(--accent-amber)" }}>
+                ₦{state.player?.balance.toLocaleString() ?? "0"}
+              </span>
+              <button className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0" style={{ backgroundColor: "var(--accent-amber)", color: "#000" }}>
+                +
+              </button>
+            </Link>
+            <NotificationBell />
+          </div>
         </header>
 
         {/* Page content */}
@@ -121,18 +133,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </main>
       </div>
 
-      {/* ── BOTTOM NAV — mobile only ── */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-[#0A0A0A] border-t border-[#1A1A1A] z-40">
-        <div className="flex items-center justify-around h-16 px-2">
+      {/* ── BOTTOM TAB NAV — mobile only ── */}
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 border-t px-0" style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-base)" }} z-40>
+        <div className="flex items-center justify-around h-16">
           {navItems.map(({ href, label, icon: Icon }) => {
             const active = isActive(href);
             return (
               <Link
                 key={href}
                 href={href}
-                className={`flex flex-col items-center justify-center gap-1 py-2 px-3 rounded-xl transition-colors ${
-                  active ? "text-neon" : "text-gray-500 hover:text-white"
-                }`}
+                className="flex flex-col items-center justify-center gap-1 py-2 px-3 rounded-lg transition-colors flex-1"
+                style={{
+                  color: active ? "var(--accent-amber)" : "var(--text-muted)",
+                }}
               >
                 <Icon size={20} />
                 <span className="text-[10px] font-semibold">{label}</span>
