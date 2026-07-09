@@ -30,7 +30,7 @@ export function removeAdminToken() { localStorage.removeItem("tt_admin_token"); 
 // ─── Core fetch wrapper ───────────────────────────────────────────────────────
 
 export class ApiError extends Error {
-  constructor(message: string, public status: number) {
+  constructor(message: string, public status: number, public code?: string) {
     super(message);
   }
 }
@@ -71,7 +71,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   }));
 
   if (!res.ok || !json.success) {
-    throw new ApiError(json.error || `Request failed (${res.status})`, res.status);
+    throw new ApiError(json.error || `Request failed (${res.status})`, res.status, json.code);
   }
 
   return json.data as T;

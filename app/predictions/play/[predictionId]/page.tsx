@@ -256,11 +256,13 @@ function PredictionWaiting({
   predictionId,
   setResult,
   setPageState,
+  onNotParticipant,
 }: {
   answer: string;
   predictionId: string;
   setResult: React.Dispatch<React.SetStateAction<Result | null>>;
   setPageState: React.Dispatch<React.SetStateAction<PageState>>;
+  onNotParticipant?: () => void;
 }) {
   const [checking, setChecking] = useState(false);
 
@@ -276,7 +278,16 @@ function PredictionWaiting({
       }
     } catch (err) {
       if (err instanceof ApiError && err.status === 404) {
-        alert("Result not available yet — check back soon");
+        if (err.code === "NOT_PARTICIPANT") {
+          // Not a participant — show error and call callback
+          alert("You didn't enter this prediction");
+          onNotParticipant?.();
+        } else if (err.code === "NOT_REVEALED") {
+          // Result not revealed yet
+          alert("Result not available yet — check back soon");
+        } else {
+          alert("Result not available yet — check back soon");
+        }
       } else {
         console.error("Failed to check result:", err);
         alert("Error checking result — please try again");
@@ -396,6 +407,7 @@ export default function PredictionPlayPage() {
   const [error, setError] = useState<string | null>(null);
   const [entering, setEntering] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [notParticipant, setNotParticipant] = useState(false);
 
   useEffect(() => {
     if (!state.isAuthenticated) { router.push("/auth"); return; }
@@ -404,7 +416,7 @@ export default function PredictionPlayPage() {
 
   // Poll for result every 10s when in locked state
   useEffect(() => {
-    if (pageState !== "locked") return;
+    if (pageState !== "locked" || notParticipant) return;
     const poll = async () => {
       try {
         const res = await predictionsApi.getResult(predictionId);
@@ -413,18 +425,28 @@ export default function PredictionPlayPage() {
           setPageState("result");
         }
       } catch (err) {
-        // If error is NOT a 404, something else went wrong — log it
-        if (err instanceof ApiError && err.status !== 404) {
+        if (err instanceof ApiError && err.status === 404) {
+          if (err.code === "NOT_PARTICIPANT") {
+            // Not a participant — stop polling and show error
+            console.warn("Player is not a participant in this prediction");
+            setNotParticipant(true);
+            setError("You didn't enter this prediction");
+            setPageState("error");
+          }
+          // NOT_REVEALED — keep polling
+          else if (err.code === "NOT_REVEALED") {
+            // Silent — keep polling
+          }
+        } else if (err instanceof ApiError && err.status !== 404) {
           console.error("Result poll error:", err.message);
         }
-        // 404 = not revealed yet, keep polling
       }
     };
     // Check immediately on mount
     poll();
     const id = setInterval(poll, 10000);
     return () => clearInterval(id);
-  }, [pageState, predictionId]);
+  }, [pageState, predictionId, notParticipant]);
 
   const init = async () => {
     try {
@@ -568,6 +590,7 @@ export default function PredictionPlayPage() {
               predictionId={predictionId}
               setResult={setResult}
               setPageState={setPageState}
+              onNotParticipant={() => setNotParticipant(true)}
             />
           </motion.div>
         )}
