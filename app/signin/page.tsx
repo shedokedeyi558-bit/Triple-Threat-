@@ -88,9 +88,19 @@ export default function SignInPage() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5 }}
-        className="hidden lg:flex w-[45%] flex-col justify-between p-12 border-r" 
+        className="hidden lg:flex w-[45%] flex-col justify-between p-12 border-r relative" 
         style={{ backgroundColor: "var(--bg-card)", borderColor: "var(--border-hairline)" }}
       >
+        {/* Back button */}
+        <button
+          onClick={() => window.history.back()}
+          className="absolute top-12 left-12 p-2 rounded-lg transition-colors hover:opacity-70"
+          style={{ color: "var(--text-secondary)" }}
+          title="Go back"
+        >
+          <ArrowLeft size={20} />
+        </button>
+
         {/* Logo */}
         <div className="flex items-center gap-2">
           <div className="w-5 h-5" style={{ backgroundColor: "var(--accent-amber)" }}></div>
@@ -223,10 +233,12 @@ export default function SignInPage() {
                   <button
                     type="submit"
                     disabled={loading || phone.length !== 10 || password.length < 6}
-                    className="w-full py-3 font-semibold rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity flex items-center justify-center gap-2 mt-6"
+                    className="w-full py-3 font-semibold rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2 mt-6"
                     style={{
-                      backgroundColor: loading || phone.length !== 10 || password.length < 6 ? "var(--border-subtle)" : "var(--accent-amber)",
-                      color: loading || phone.length !== 10 || password.length < 6 ? "var(--text-muted)" : "#412402",
+                      backgroundColor: loading || phone.length !== 10 || password.length < 6 ? "var(--text-muted)" : "var(--accent-amber)",
+                      color: loading || phone.length !== 10 || password.length < 6 ? "var(--bg-base)" : "#412403",
+                      cursor: loading || phone.length !== 10 || password.length < 6 ? "not-allowed" : "pointer",
+                      opacity: loading || phone.length !== 10 || password.length < 6 ? 0.5 : 1,
                     }}
                   >
                     {loading ? (

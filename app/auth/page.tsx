@@ -132,9 +132,19 @@ export default function AuthPage() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5 }}
-        className="hidden lg:flex w-[45%] flex-col justify-between p-12 border-r"
+        className="hidden lg:flex w-[45%] flex-col justify-between p-12 border-r relative"
         style={{ backgroundColor: "var(--bg-card)", borderColor: "var(--border-hairline)" }}
       >
+        {/* Back button */}
+        <button
+          onClick={() => window.history.back()}
+          className="absolute top-12 left-12 p-2 rounded-lg transition-colors hover:opacity-70"
+          style={{ color: "var(--text-secondary)" }}
+          title="Go back"
+        >
+          <ArrowLeft size={20} />
+        </button>
+
         <div className="flex items-center gap-2">
           <div className="w-5 h-5" style={{ backgroundColor: "var(--accent-amber)" }}></div>
           <span className="font-headline text-base font-semibold" style={{ color: "var(--text-primary)" }}>bitlyfe</span>
@@ -241,10 +251,12 @@ export default function AuthPage() {
                 <button
                   type="submit"
                   disabled={loading || phone.length !== 10}
-                  className="w-full py-3 font-semibold rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity flex items-center justify-center gap-2 mt-6"
+                  className="w-full py-3 font-semibold rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2 mt-6"
                   style={{
-                    backgroundColor: loading || phone.length !== 10 ? "var(--border-subtle)" : "var(--accent-amber)",
-                    color: loading || phone.length !== 10 ? "var(--text-muted)" : "#412402",
+                    backgroundColor: loading || phone.length !== 10 ? "var(--text-muted)" : "var(--accent-amber)",
+                    color: loading || phone.length !== 10 ? "var(--bg-base)" : "#412403",
+                    cursor: loading || phone.length !== 10 ? "not-allowed" : "pointer",
+                    opacity: loading || phone.length !== 10 ? 0.5 : 1,
                   }}
                 >
                   {loading ? (
@@ -316,10 +328,12 @@ export default function AuthPage() {
                 <button
                   type="submit"
                   disabled={loading || password.length < 6 || !checkbox}
-                  className="w-full py-3 font-semibold rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity flex items-center justify-center gap-2 mt-6"
+                  className="w-full py-3 font-semibold rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2 mt-6"
                   style={{
-                    backgroundColor: loading || password.length < 6 || !checkbox ? "var(--border-subtle)" : "var(--accent-amber)",
-                    color: loading || password.length < 6 || !checkbox ? "var(--text-muted)" : "#412402",
+                    backgroundColor: loading || password.length < 6 || !checkbox ? "var(--text-muted)" : "var(--accent-amber)",
+                    color: loading || password.length < 6 || !checkbox ? "var(--bg-base)" : "#412403",
+                    cursor: loading || password.length < 6 || !checkbox ? "not-allowed" : "pointer",
+                    opacity: loading || password.length < 6 || !checkbox ? 0.5 : 1,
                   }}
                 >
                   {loading ? (
@@ -381,10 +395,12 @@ export default function AuthPage() {
                 <button
                   type="submit"
                   disabled={loading || otp.length !== 6}
-                  className="w-full py-3 font-semibold rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity flex items-center justify-center gap-2 mt-6"
+                  className="w-full py-3 font-semibold rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2 mt-6"
                   style={{
-                    backgroundColor: loading || otp.length !== 6 ? "var(--border-subtle)" : "var(--accent-amber)",
-                    color: loading || otp.length !== 6 ? "var(--text-muted)" : "#412403",
+                    backgroundColor: loading || otp.length !== 6 ? "var(--text-muted)" : "var(--accent-amber)",
+                    color: loading || otp.length !== 6 ? "var(--bg-base)" : "#412403",
+                    cursor: loading || otp.length !== 6 ? "not-allowed" : "pointer",
+                    opacity: loading || otp.length !== 6 ? 0.5 : 1,
                   }}
                 >
                   {loading ? (

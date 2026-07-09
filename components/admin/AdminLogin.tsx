@@ -58,9 +58,19 @@ export function AdminLogin() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5 }}
-        className="hidden lg:flex w-[45%] flex-col justify-between p-12 border-r"
+        className="hidden lg:flex w-[45%] flex-col justify-between p-12 border-r relative"
         style={{ backgroundColor: "var(--bg-card)", borderColor: "var(--border-hairline)" }}
       >
+        {/* Back button */}
+        <button
+          onClick={() => window.history.back()}
+          className="absolute top-12 left-12 p-2 rounded-lg transition-colors hover:opacity-70"
+          style={{ color: "var(--text-secondary)" }}
+          title="Go back"
+        >
+          <ArrowLeft size={20} />
+        </button>
+
         <div className="flex items-center gap-3">
           <div className="w-5 h-5 flex items-center justify-center rounded" style={{ backgroundColor: "var(--accent-indigo)" }}>
             <Lock size={12} className="text-white" />
@@ -163,10 +173,12 @@ export function AdminLogin() {
             <button
               type="submit"
               disabled={loading || !email || !password}
-              className="w-full py-3 font-semibold rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity flex items-center justify-center gap-2 mt-6"
+              className="w-full py-3 font-semibold rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2 mt-6"
               style={{
-                backgroundColor: loading || !email || !password ? "var(--border-subtle)" : "var(--accent-indigo)",
-                color: loading || !email || !password ? "var(--text-muted)" : "white",
+                backgroundColor: loading || !email || !password ? "var(--text-muted)" : "var(--accent-indigo)",
+                color: loading || !email || !password ? "var(--bg-base)" : "white",
+                cursor: loading || !email || !password ? "not-allowed" : "pointer",
+                opacity: loading || !email || !password ? 0.5 : 1,
               }}
             >
               {loading ? (
