@@ -1000,3 +1000,31 @@ export const notificationsApi = {
       token: getToken(),
     }),
 };
+
+// ─── PLAYER ───────────────────────────────────────────────────────────────────
+
+export interface SpendSummary {
+  spent_this_week: number;
+  plays_today: number;
+  plays_this_week: number;
+}
+
+export interface PlayLimits {
+  daily_limit: number | null;
+  weekly_limit: number | null;
+}
+
+export const playerApi = {
+  getSpendSummary: () =>
+    request<SpendSummary>("/api/player/spend-summary", { token: getToken() }),
+
+  setPlayLimits: (daily_limit: number | null, weekly_limit: number | null) =>
+    request<{ message: string; limits: PlayLimits }>("/api/player/limits", {
+      method: "PUT",
+      body: { daily_limit, weekly_limit },
+      token: getToken(),
+    }),
+
+  getPlayLimits: () =>
+    request<{ limits: PlayLimits }>("/api/player/limits", { token: getToken() }),
+};
