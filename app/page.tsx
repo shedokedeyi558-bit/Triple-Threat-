@@ -29,17 +29,17 @@ export default function LandingPage() {
     },
     {
       title: "Time Machine",
-      description: "Strategic predictions with countdowns",
+      description: "Predict the outcome, lock it in before time runs out",
       accent: "violet",
       accentColor: "var(--accent-violet)",
       priceRange: "₦500 → ₦2,000",
     },
     {
       title: "Blitz",
-      description: "Top 3 split the pool",
+      description: "Live tournaments — outscore everyone, outrun the clock",
       accent: "amber",
       accentColor: "var(--accent-amber)",
-      priceRange: "Variable",
+      priceRange: "Winner takes 40%",
     },
   ];
 
