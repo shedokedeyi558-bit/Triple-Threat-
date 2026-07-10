@@ -8,7 +8,7 @@ import {
   XCircle, AlertCircle, Calendar, ChevronDown,
 } from "lucide-react";
 
-type FilterMode = "day" | "month";
+type FilterMode = "today" | "month";
 
 interface Overview {
   money: { total_revenue: number; total_payouts: number; net_profit: number; pending_withdrawal_value: number };
@@ -56,7 +56,6 @@ function getMonthOptions() {
 
 export default function AnalyticsPage() {
   const [filterMode, setFilterMode] = useState<FilterMode>("month");
-  const [selectedDay, setSelectedDay] = useState(() => new Date().toISOString().slice(0, 10));
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
@@ -67,17 +66,13 @@ export default function AnalyticsPage() {
   const monthOptions = getMonthOptions();
 
   const getPeriodParam = () => {
-    if (filterMode === "day") {
-      const today = new Date().toISOString().slice(0, 10);
-      if (selectedDay === today) return "today";
-      return `day:${selectedDay}`;
-    }
+    if (filterMode === "today") return "today";
     return `month:${selectedMonth}`;
   };
 
   const getPeriodLabel = () => {
-    if (filterMode === "day") {
-      return new Date(selectedDay + "T00:00:00").toLocaleDateString("en-NG", {
+    if (filterMode === "today") {
+      return new Date().toLocaleDateString("en-NG", {
         weekday: "long", month: "long", day: "numeric", year: "numeric",
       });
     }
@@ -99,7 +94,7 @@ export default function AnalyticsPage() {
     } finally {
       setLoading(false);
     }
-  }, [filterMode, selectedDay, selectedMonth]); // eslint-disable-line
+  }, [filterMode, selectedMonth]); // eslint-disable-line
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -119,44 +114,34 @@ export default function AnalyticsPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          {/* Mode buttons */}
+          {/* Mode toggle: Today | Month */}
           <div className="flex bg-[#111] border border-[#1E1E1E] p-1 rounded-xl gap-1">
             <button
-              onClick={() => { setFilterMode("day"); setSelectedDay(new Date().toISOString().slice(0, 10)); }}
+              onClick={() => setFilterMode("today")}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                filterMode === "day" && selectedDay === new Date().toISOString().slice(0, 10)
-                  ? "bg-neon text-black" : "text-gray-400 hover:text-white"
+                filterMode === "today"
+                  ? "bg-[#4C6FFF] text-[#042C53]"
+                  : "text-gray-400 hover:text-white"
               }`}
             >Today</button>
             <button
               onClick={() => setFilterMode("month")}
               className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                filterMode === "month" ? "bg-neon text-black" : "text-gray-400 hover:text-white"
+                filterMode === "month"
+                  ? "bg-[#4C6FFF] text-[#042C53]"
+                  : "text-gray-400 hover:text-white"
               }`}
             ><Calendar size={11} /> Month</button>
-            <button
-              onClick={() => setFilterMode("day")}
-              className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                filterMode === "day" && selectedDay !== new Date().toISOString().slice(0, 10)
-                  ? "bg-neon text-black" : "text-gray-400 hover:text-white"
-              }`}
-            ><Calendar size={11} /> Day</button>
           </div>
 
           {filterMode === "month" && (
             <div className="relative">
               <select value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)}
-                className="appearance-none bg-[#111] border border-[#1E1E1E] rounded-xl pl-3 pr-8 py-2 text-white text-xs font-semibold outline-none focus:border-neon/40 cursor-pointer">
+                className="appearance-none bg-[#111] border border-[#1E1E1E] rounded-xl pl-3 pr-8 py-2 text-white text-xs font-semibold outline-none focus:border-[#4C6FFF]/40 cursor-pointer">
                 {monthOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
               <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
             </div>
-          )}
-
-          {filterMode === "day" && (
-            <input type="date" value={selectedDay} max={new Date().toISOString().slice(0, 10)}
-              onChange={(e) => setSelectedDay(e.target.value)}
-              className="bg-[#111] border border-[#1E1E1E] rounded-xl px-3 py-2 text-white text-xs font-semibold outline-none focus:border-neon/40" />
           )}
         </div>
       </div>
