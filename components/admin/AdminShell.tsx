@@ -4,57 +4,129 @@ import { useState } from "react";
 import { useAdmin } from "@/context/AdminContext";
 import { AdminSidebar } from "./AdminSidebar";
 import { AdminLogin } from "./AdminLogin";
-import { Menu } from "lucide-react";
+import { Menu, X } from "lucide-react";
+import Link from "next/link";
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const { state } = useAdmin();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   if (!state.isAuthenticated) {
     return <AdminLogin />;
   }
 
   return (
-    <div className="min-h-dvh bg-bg flex">
-      {/* Desktop sidebar */}
-      <div className="hidden md:flex w-56 flex-col flex-shrink-0">
+    <div className="min-h-dvh flex" style={{ backgroundColor: "var(--bg-base)" }}>
+      {/* ── DESKTOP SIDEBAR ── */}
+      <aside className="hidden lg:flex flex-col fixed left-0 top-0 bottom-0 w-56 border-r" style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-card)" }}>
         <AdminSidebar />
-      </div>
+      </aside>
 
-      {/* Mobile sidebar overlay */}
-      {sidebarOpen && (
-        <div className="fixed inset-0 z-50 md:hidden flex">
-          <div
-            className="absolute inset-0 bg-black/60"
-            onClick={() => setSidebarOpen(false)}
-          />
-          <div className="relative z-10 w-64">
-            <AdminSidebar onClose={() => setSidebarOpen(false)} />
-          </div>
-        </div>
-      )}
-
-      {/* Main content */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* Mobile topbar */}
-        <div className="md:hidden flex items-center gap-3 px-4 py-3 border-b border-[#1E1E1E] bg-bg">
-          <button
-            onClick={() => setSidebarOpen(true)}
-            className="p-2 rounded-xl hover:bg-card text-gray-400"
-            aria-label="Open menu"
-          >
-            <Menu size={22} />
-          </button>
-          <span className="font-black uppercase tracking-tight text-lg leading-none">
-            <span className="text-white">BIT</span>
-            <span className="text-neon neon-text-glow">LYFE</span>
+      {/* ── MAIN CONTENT ── */}
+      <div className="flex-1 lg:ml-56 flex flex-col min-h-screen">
+        {/* Mobile top bar */}
+        <header className="lg:hidden flex items-center gap-3 px-4 py-4 border-b" style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-base)" }}>
+          <Link href="/admin" className="w-8 h-8 flex items-center justify-center rounded-lg flex-shrink-0" style={{ backgroundColor: "var(--accent-indigo)" }}>
+            <span className="text-xs font-black text-white">⚙</span>
+          </Link>
+          <span className="font-headline text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+            bitlyfe admin
           </span>
-        </div>
+          <div className="flex-1" />
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="p-2 rounded-lg transition-colors"
+            style={{
+              color: "var(--text-secondary)",
+            }}
+            aria-label="Toggle menu"
+          >
+            {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+          </button>
+        </header>
 
-        <main className="flex-1 overflow-auto p-4 md:p-8">
+        {/* Mobile menu dropdown */}
+        {mobileMenuOpen && (
+          <div className="lg:hidden border-b px-4 py-3 space-y-2" style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-base)" }}>
+            <Link
+              href="/admin/players"
+              className="block px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+              style={{ color: "var(--text-secondary)" }}
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Players
+            </Link>
+            <Link
+              href="/admin/withdrawals"
+              className="block px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+              style={{ color: "var(--text-secondary)" }}
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Withdrawals
+            </Link>
+            <Link
+              href="/admin/analytics"
+              className="block px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+              style={{ color: "var(--text-secondary)" }}
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Analytics
+            </Link>
+            <Link
+              href="/admin/settings"
+              className="block px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+              style={{ color: "var(--text-secondary)" }}
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Settings
+            </Link>
+          </div>
+        )}
+
+        {/* Page content */}
+        <main className="flex-1 overflow-auto p-4 lg:p-8 pb-20 lg:pb-8">
           {children}
         </main>
       </div>
+
+      {/* ── MOBILE BOTTOM TAB NAR ── */}
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 border-t px-0 h-16" style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-base)" }}>
+        <div className="flex items-center justify-around h-full">
+          <Link
+            href="/admin"
+            className="flex flex-col items-center justify-center gap-1 py-2 px-3 rounded-lg transition-colors flex-1"
+            style={{ color: "var(--text-secondary)" }}
+          >
+            <span className="text-lg">🏠</span>
+            <span className="text-[10px] font-semibold">Home</span>
+          </Link>
+          <Link
+            href="/admin/players"
+            className="flex flex-col items-center justify-center gap-1 py-2 px-3 rounded-lg transition-colors flex-1"
+            style={{ color: "var(--text-secondary)" }}
+          >
+            <span className="text-lg">👥</span>
+            <span className="text-[10px] font-semibold">Players</span>
+          </Link>
+          <Link
+            href="/admin/withdrawals"
+            className="flex flex-col items-center justify-center gap-1 py-2 px-3 rounded-lg transition-colors flex-1"
+            style={{ color: "var(--text-secondary)" }}
+          >
+            <span className="text-lg">💸</span>
+            <span className="text-[10px] font-semibold">Withdraw</span>
+          </Link>
+          <Link
+            href="/admin/analytics"
+            className="flex flex-col items-center justify-center gap-1 py-2 px-3 rounded-lg transition-colors flex-1"
+            style={{ color: "var(--text-secondary)" }}
+          >
+            <span className="text-lg">📊</span>
+            <span className="text-[10px] font-semibold">Stats</span>
+          </Link>
+        </div>
+      </nav>
     </div>
   );
 }

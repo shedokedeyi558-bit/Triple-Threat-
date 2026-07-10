@@ -4,12 +4,11 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { adminApi, type AdminStats, type BlitzTournament, ApiError } from "@/lib/api";
-import { CreateGameModal } from "@/components/admin/CreateGameModal";
 import { CreatePillPackForm } from "@/components/admin/CreatePillPackForm";
 import { CreateTimeMachineForm } from "@/components/admin/CreateTimeMachineForm";
 import {
-  Users, AlertCircle,
-  Plus, Clock, ArrowRight, ShieldAlert, Zap,
+  Users, AlertCircle, Banknote, Gamepad2,
+  ChevronRight, Package, Clock, Zap,
 } from "lucide-react";
 
 interface RecentPack {
@@ -30,14 +29,14 @@ interface RecentPrediction {
   countdown_end: string;
 }
 
-const badge = (s: string) => {
+const statusBadge = (s: string) => {
   switch (s) {
-    case "active":       return "bg-neon/15 text-neon";
+    case "active":       return "bg-[#4C6FFF]/15 text-[#4C6FFF]";
     case "registration": return "bg-blue-500/20 text-blue-400";
     case "completed":    return "bg-gray-800 text-gray-400";
     case "locked":       return "bg-orange-900/20 text-orange-400";
     case "scoring":      return "bg-yellow-500/20 text-yellow-400";
-    default:             return "bg-[#222] text-gray-500";
+    default:             return "text-[--text-muted]";
   }
 };
 
@@ -48,7 +47,6 @@ export default function AdminDashboard() {
   const [blitz, setBlitz] = useState<BlitzTournament[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [showCreateModal, setShowCreateModal] = useState(false);
   const [showPillForm, setShowPillForm] = useState(false);
   const [showTimeMachineForm, setShowTimeMachineForm] = useState(false);
 
@@ -88,235 +86,435 @@ export default function AdminDashboard() {
     })();
   }, []);
 
-  const statCards = stats ? [
-    {
-      icon: <Users size={14} className="text-blue-400" />,
-      label: "Total Players",
-      value: stats.totalPlayers.toLocaleString(),
-      sub: "Registered accounts",
-      color: "text-white",
-    },
-    {
-      icon: <ShieldAlert size={14} className="text-orange-400" />,
-      label: "Pending Withdrawals",
-      value: stats.pendingWithdrawals.toString(),
-      sub: stats.pendingWithdrawals > 0 ? "Needs attention" : "All clear",
-      color: stats.pendingWithdrawals > 0 ? "text-orange-400" : "text-gray-300",
-    },
-  ] : [];
-
   return (
-    <div className="space-y-6">
-
+    <div className="space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-black text-white">Dashboard</h1>
-          <p className="text-gray-500 text-sm mt-0.5">Live overview</p>
-        </div>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="flex items-center gap-2 px-4 py-2.5 bg-neon text-black font-bold rounded-xl hover:bg-neon/90 transition-colors text-sm"
-        >
-          <Plus size={15} /> Create Game
-        </button>
+      <div>
+        <h1 className="font-headline text-2xl font-semibold" style={{ color: "var(--text-primary)" }}>
+          Dashboard
+        </h1>
+        <p className="text-sm mt-1" style={{ color: "var(--text-secondary)" }}>
+          Live overview
+        </p>
       </div>
 
       {error && (
-        <div className="bg-red-900/20 border border-red-800/40 rounded-xl p-3 text-red-400 text-sm flex items-center gap-2">
-          <AlertCircle size={14} className="flex-shrink-0" /> {error}
+        <div className="rounded-xl p-4 border flex items-center gap-3" style={{ backgroundColor: "var(--bg-card)", borderColor: "var(--border-subtle)", color: "var(--text-secondary)" }}>
+          <AlertCircle size={16} className="flex-shrink-0" />
+          <span className="text-sm">{error}</span>
         </div>
       )}
 
-      {/* Stats */}
+      {/* Stats Row - 4 Cards */}
       {loading ? (
-        <div className="grid grid-cols-2 gap-3">
-          {[1,2].map((i) => <div key={i} className="bg-[#141414] border border-[#1E1E1E] rounded-2xl p-4 h-20 animate-pulse" />)}
-        </div>
-      ) : (
-        <div className="grid grid-cols-2 gap-3">
-          {statCards.map((card, i) => (
-            <motion.div
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div
               key={i}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.06 }}
-              className="bg-[#141414] border border-[#1E1E1E] rounded-2xl p-4"
-            >
-              <div className="flex items-center gap-2 mb-2">
-                {card.icon}
-                <span className="text-[10px] text-gray-500 font-medium uppercase tracking-wider">{card.label}</span>
-              </div>
-              <p className={`text-xl font-black ${card.color}`}>{card.value}</p>
-              <p className="text-[11px] text-gray-600 mt-1">{card.sub}</p>
-            </motion.div>
+              className="rounded-xl p-4 border animate-pulse"
+              style={{ backgroundColor: "var(--bg-card)", borderColor: "var(--border-hairline)" }}
+            />
           ))}
         </div>
-      )}
+      ) : stats ? (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Players - Indigo */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0 }}
+            className="rounded-xl p-4 border"
+            style={{ backgroundColor: "var(--bg-card)", borderColor: "var(--border-hairline)" }}
+          >
+            <div className="flex items-center gap-2 mb-3">
+              <Users size={14} style={{ color: "var(--accent-indigo)" }} />
+              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>
+                Players
+              </span>
+            </div>
+            <p className="font-mono text-xl font-bold" style={{ color: "var(--text-primary)" }}>
+              {stats.totalPlayers.toLocaleString()}
+            </p>
+          </motion.div>
 
-      {/* 3-column game sections */}
-      <div className="grid lg:grid-cols-3 gap-4">
+          {/* Revenue - Amber */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.05 }}
+            className="rounded-xl p-4 border"
+            style={{ backgroundColor: "var(--bg-card)", borderColor: "var(--border-hairline)" }}
+          >
+            <div className="flex items-center gap-2 mb-3">
+              <Banknote size={14} style={{ color: "var(--accent-amber)" }} />
+              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>
+                Revenue Today
+              </span>
+            </div>
+            <p className="font-mono text-xl font-bold" style={{ color: "var(--text-primary)" }}>
+              ₦{stats.revenueToday.toLocaleString()}
+            </p>
+          </motion.div>
 
-        {/* Pill Packs */}
-        <div className="bg-[#141414] border border-[#1E1E1E] rounded-2xl p-4">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="font-black text-white text-sm">Pill Packs</h2>
-            <Link href="/admin/pills" className="text-[11px] text-neon flex items-center gap-1 hover:underline">
-              Manage <ArrowRight size={11} />
-            </Link>
+          {/* Pending Withdrawals - Amber */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="rounded-xl p-4 border"
+            style={{ backgroundColor: "var(--bg-card)", borderColor: "var(--border-hairline)" }}
+          >
+            <div className="flex items-center gap-2 mb-3">
+              <AlertCircle size={14} style={{ color: "var(--accent-amber)" }} />
+              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>
+                Pending Withdrawals
+              </span>
+            </div>
+            <p className="font-mono text-xl font-bold" style={{ color: "var(--text-primary)" }}>
+              {stats.pendingWithdrawals}
+            </p>
+          </motion.div>
+
+          {/* Active Games - Violet */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
+            className="rounded-xl p-4 border"
+            style={{ backgroundColor: "var(--bg-card)", borderColor: "var(--border-hairline)" }}
+          >
+            <div className="flex items-center gap-2 mb-3">
+              <Gamepad2 size={14} style={{ color: "var(--accent-violet)" }} />
+              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>
+                Active Games
+              </span>
+            </div>
+            <p className="font-mono text-xl font-bold" style={{ color: "var(--text-primary)" }}>
+              {(blitz.length + predictions.length + packs.length).toString()}
+            </p>
+          </motion.div>
+        </div>
+      ) : null}
+
+      {/* Game Summary Cards */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Pill Packs - Indigo (Desktop) */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="rounded-xl p-4 border hidden lg:block"
+          style={{
+            backgroundColor: "var(--bg-card)",
+            borderColor: "var(--border-hairline)",
+            borderLeft: "3px solid var(--accent-indigo)",
+          }}
+        >
+          <div className="flex items-center gap-2 mb-4">
+            <Package size={14} style={{ color: "var(--accent-indigo)" }} />
+            <h2 className="font-headline font-semibold text-sm" style={{ color: "var(--text-primary)" }}>
+              Pill Packs
+            </h2>
           </div>
           {loading ? (
-            <div className="space-y-2">{[1,2].map((i) => <div key={i} className="h-12 bg-[#1A1A1A] rounded-xl animate-pulse" />)}</div>
+            <div className="space-y-2">
+              {[1, 2].map((i) => <div key={i} className="h-8 rounded animate-pulse" style={{ backgroundColor: "var(--bg-base)" }} />)}
+            </div>
           ) : packs.length === 0 ? (
-            <div className="py-6 text-center">
-              <p className="text-gray-600 text-xs">No packs yet</p>
-              <button onClick={() => setShowCreateModal(true)} className="text-[11px] text-neon mt-1 inline-block hover:underline">Create →</button>
+            <div className="py-8 text-center">
+              <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                No packs yet
+              </p>
+              <button
+                onClick={() => setShowPillForm(true)}
+                className="text-xs font-semibold mt-3 inline-block"
+                style={{ color: "var(--accent-indigo)" }}
+              >
+                + create pack
+              </button>
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-2 mb-4">
               {packs.map((pack) => (
-                <div key={pack.id} className="flex items-center justify-between bg-[#0E0E0E] border border-[#1E1E1E] rounded-xl px-3 py-2.5">
+                <div
+                  key={pack.id}
+                  className="flex items-center justify-between p-2 rounded-lg"
+                  style={{ backgroundColor: "var(--bg-base)" }}
+                >
                   <div className="flex items-center gap-2 min-w-0">
-                    <div className="flex gap-0.5 flex-shrink-0">
-                      {pack.pills.slice(0, 4).map((p) => (
-                        <span key={p.id} className="w-2.5 h-2.5 rounded-full" style={{ background: p.color, opacity: p.status === "played" ? 0.3 : 1 }} />
+                    <div className="flex gap-0.5">
+                      {pack.pills.slice(0, 3).map((p) => (
+                        <span
+                          key={p.id}
+                          className="w-2 h-2 rounded-full"
+                          style={{ background: p.color, opacity: p.status === "played" ? 0.3 : 1 }}
+                        />
                       ))}
                     </div>
-                    <p className="text-xs font-semibold text-white truncate">{pack.name}</p>
+                    <p className="text-xs font-semibold truncate" style={{ color: "var(--text-primary)" }}>
+                      {pack.name}
+                    </p>
                   </div>
-                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded flex-shrink-0 ml-1 ${badge(pack.status)}`}>
+                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded flex-shrink-0 ml-1 ${statusBadge(pack.status)}`}>
                     {pack.status}
                   </span>
                 </div>
               ))}
             </div>
           )}
-        </div>
+          <Link
+            href="/admin/pills"
+            className="text-xs font-semibold block text-center py-2 rounded-lg transition-colors"
+            style={{ color: "var(--accent-indigo)", backgroundColor: "var(--accent-indigo)" + "15" }}
+          >
+            Manage all packs
+          </Link>
+        </motion.div>
 
-        {/* Time Machine */}
-        <div className="bg-[#141414] border border-[#1E1E1E] rounded-2xl p-4">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="font-black text-white text-sm">Time Machine</h2>
-            <button onClick={() => setShowCreateModal(true)} className="text-[11px] text-neon flex items-center gap-1 hover:underline">
-              Create <ArrowRight size={11} />
-            </button>
+        {/* Time Machine - Violet (Desktop) */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25 }}
+          className="rounded-xl p-4 border hidden lg:block"
+          style={{
+            backgroundColor: "var(--bg-card)",
+            borderColor: "var(--border-hairline)",
+            borderLeft: "3px solid var(--accent-violet)",
+          }}
+        >
+          <div className="flex items-center gap-2 mb-4">
+            <Clock size={14} style={{ color: "var(--accent-violet)" }} />
+            <h2 className="font-headline font-semibold text-sm" style={{ color: "var(--text-primary)" }}>
+              Time Machine
+            </h2>
           </div>
           {loading ? (
-            <div className="space-y-2">{[1,2].map((i) => <div key={i} className="h-12 bg-[#1A1A1A] rounded-xl animate-pulse" />)}</div>
+            <div className="space-y-2">
+              {[1, 2].map((i) => <div key={i} className="h-8 rounded animate-pulse" style={{ backgroundColor: "var(--bg-base)" }} />)}
+            </div>
           ) : predictions.length === 0 ? (
-            <div className="py-6 text-center">
-              <p className="text-gray-600 text-xs">No predictions yet</p>
-              <button onClick={() => setShowCreateModal(true)} className="text-[11px] text-neon mt-1 inline-block hover:underline">Create →</button>
+            <div className="py-8 text-center">
+              <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                No predictions yet
+              </p>
+              <button
+                onClick={() => setShowTimeMachineForm(true)}
+                className="text-xs font-semibold mt-3 inline-block"
+                style={{ color: "var(--accent-violet)" }}
+              >
+                + create prediction
+              </button>
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-2 mb-4">
               {predictions.map((pred) => {
                 const diffH = Math.max(0, Math.floor((new Date(pred.countdown_end).getTime() - Date.now()) / 3600000));
                 return (
-                  <Link
+                  <div
                     key={pred.id}
-                    href={`/admin/predictions/${pred.id}`}
-                    className="flex items-center justify-between bg-[#0E0E0E] border border-[#1E1E1E] rounded-xl px-3 py-2.5 hover:border-neon/20 transition-colors"
+                    className="flex items-center justify-between p-2 rounded-lg"
+                    style={{ backgroundColor: "var(--bg-base)" }}
                   >
                     <div className="min-w-0 flex-1">
-                      <p className="text-xs font-semibold text-white truncate">{pred.title}</p>
+                      <p className="text-xs font-semibold truncate" style={{ color: "var(--text-primary)" }}>
+                        {pred.title}
+                      </p>
                       <div className="flex items-center gap-2 mt-0.5">
-                        <span className="text-[10px] text-gray-600 flex items-center gap-1">
-                          <Users size={9} /> {pred.slots_filled}/{pred.max_slots}
+                        <span className="text-[9px]" style={{ color: "var(--text-muted)" }}>
+                          {pred.slots_filled}/{pred.max_slots}
                         </span>
                         {pred.status === "active" && (
-                          <span className="text-[10px] text-orange-400 flex items-center gap-1">
-                            <Clock size={9} /> {diffH}h
+                          <span className="text-[9px] font-semibold" style={{ color: "var(--accent-amber)" }}>
+                            {diffH}h
                           </span>
                         )}
                       </div>
                     </div>
-                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded flex-shrink-0 ml-1 ${badge(pred.status)}`}>
+                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded flex-shrink-0 ml-1 ${statusBadge(pred.status)}`}>
                       {pred.status}
                     </span>
-                  </Link>
+                  </div>
                 );
               })}
             </div>
           )}
-        </div>
+          <Link
+            href="/admin/predictions"
+            className="text-xs font-semibold block text-center py-2 rounded-lg transition-colors"
+            style={{ color: "var(--accent-violet)", backgroundColor: "var(--accent-violet)" + "15" }}
+          >
+            Manage all predictions
+          </Link>
+        </motion.div>
 
-        {/* Blitz */}
-        <div className="bg-[#141414] border border-[#1E1E1E] rounded-2xl p-4">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="font-black text-white text-sm flex items-center gap-1.5">
-              <Zap size={14} className="text-neon" /> Blitz
+        {/* Blitz - Amber (Desktop) */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="rounded-xl p-4 border hidden lg:block"
+          style={{
+            backgroundColor: "var(--bg-card)",
+            borderColor: "var(--border-hairline)",
+            borderLeft: "3px solid var(--accent-amber)",
+          }}
+        >
+          <div className="flex items-center gap-2 mb-4">
+            <Zap size={14} style={{ color: "var(--accent-amber)" }} />
+            <h2 className="font-headline font-semibold text-sm" style={{ color: "var(--text-primary)" }}>
+              Blitz
             </h2>
-            <Link href="/admin/blitz" className="text-[11px] text-neon flex items-center gap-1 hover:underline">
-              Manage <ArrowRight size={11} />
-            </Link>
           </div>
           {loading ? (
-            <div className="space-y-2">{[1,2].map((i) => <div key={i} className="h-12 bg-[#1A1A1A] rounded-xl animate-pulse" />)}</div>
+            <div className="space-y-2">
+              {[1, 2].map((i) => <div key={i} className="h-8 rounded animate-pulse" style={{ backgroundColor: "var(--bg-base)" }} />)}
+            </div>
           ) : blitz.length === 0 ? (
-            <div className="py-6 text-center">
-              <p className="text-gray-600 text-xs">No active tournaments</p>
-              <Link href="/admin/blitz/create" className="text-[11px] text-neon mt-1 inline-block">Create →</Link>
+            <div className="py-8 text-center">
+              <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                No active tournaments
+              </p>
+              <Link
+                href="/admin/blitz/create"
+                className="text-xs font-semibold mt-3 inline-block"
+                style={{ color: "var(--accent-amber)" }}
+              >
+                + create tournament
+              </Link>
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-2 mb-4">
               {blitz.map((t) => (
-                <Link
+                <div
                   key={t.id}
-                  href="/admin/blitz"
-                  className="flex items-center justify-between bg-[#0E0E0E] border border-[#1E1E1E] rounded-xl px-3 py-2.5 hover:border-neon/20 transition-colors"
+                  className="flex items-center justify-between p-2 rounded-lg"
+                  style={{ backgroundColor: "var(--bg-base)" }}
                 >
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs font-semibold text-white truncate">{t.title}</p>
+                    <p className="text-xs font-semibold truncate" style={{ color: "var(--text-primary)" }}>
+                      {t.title}
+                    </p>
                     <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-[10px] text-gray-600 flex items-center gap-1">
-                        <Users size={9} /> {t.total_registered}
+                      <span className="text-[9px]" style={{ color: "var(--text-muted)" }}>
+                        {t.total_registered} players
                       </span>
-                      <span className="text-[10px] text-neon font-semibold">₦{t.prize_pool.toLocaleString()}</span>
+                      <span className="text-[9px] font-semibold" style={{ color: "var(--accent-amber)" }}>
+                        ₦{t.prize_pool.toLocaleString()}
+                      </span>
                     </div>
                   </div>
-                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded flex-shrink-0 ml-1 ${badge(t.status)}`}>
+                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded flex-shrink-0 ml-1 ${statusBadge(t.status)}`}>
                     {t.status}
                   </span>
-                </Link>
+                </div>
               ))}
             </div>
           )}
-        </div>
-      </div>
-
-      {/* Quick Actions */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {[
-          { label: "Create Blitz", href: "/admin/blitz/create", color: "border-neon/30 text-neon hover:bg-neon/10" },
-          { label: "Withdrawals", href: "/admin/withdrawals", color: "border-orange-700/30 text-orange-400 hover:bg-orange-900/10" },
-          { label: "Players", href: "/admin/players", color: "border-blue-700/30 text-blue-400 hover:bg-blue-900/10" },
-          { label: "Analytics", href: "/admin/analytics", color: "border-yellow-700/30 text-yellow-400 hover:bg-yellow-900/10" },
-        ].map((a) => (
           <Link
-            key={a.href}
-            href={a.href}
-            className={`py-3 rounded-xl border text-center text-sm font-semibold transition-colors ${a.color}`}
+            href="/admin/blitz"
+            className="text-xs font-semibold block text-center py-2 rounded-lg transition-colors"
+            style={{ color: "var(--accent-amber)", backgroundColor: "var(--accent-amber)" + "15" }}
           >
-            {a.label}
+            Manage all tournaments
           </Link>
-        ))}
+        </motion.div>
+
+        {/* Mobile: Pill Packs */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="lg:hidden rounded-xl p-4 border"
+          style={{
+            backgroundColor: "var(--bg-card)",
+            borderColor: "var(--border-hairline)",
+            borderLeft: "3px solid var(--accent-indigo)",
+          }}
+        >
+          <Link
+            href="/admin/pills"
+            className="flex items-center justify-between"
+          >
+            <div className="flex items-center gap-2">
+              <Package size={14} style={{ color: "var(--accent-indigo)" }} />
+              <div>
+                <h2 className="font-headline font-semibold text-sm" style={{ color: "var(--text-primary)" }}>
+                  Pill Packs
+                </h2>
+                <p className="text-xs mt-0.5" style={{ color: "var(--text-secondary)" }}>
+                  {packs.length > 0 ? `${packs.length} active` : "No packs yet"}
+                </p>
+              </div>
+            </div>
+            <ChevronRight size={16} style={{ color: "var(--text-muted)" }} />
+          </Link>
+        </motion.div>
+
+        {/* Mobile: Time Machine */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25 }}
+          className="lg:hidden rounded-xl p-4 border"
+          style={{
+            backgroundColor: "var(--bg-card)",
+            borderColor: "var(--border-hairline)",
+            borderLeft: "3px solid var(--accent-violet)",
+          }}
+        >
+          <Link
+            href="/admin/predictions"
+            className="flex items-center justify-between"
+          >
+            <div className="flex items-center gap-2">
+              <Clock size={14} style={{ color: "var(--accent-violet)" }} />
+              <div>
+                <h2 className="font-headline font-semibold text-sm" style={{ color: "var(--text-primary)" }}>
+                  Time Machine
+                </h2>
+                <p className="text-xs mt-0.5" style={{ color: "var(--text-secondary)" }}>
+                  {predictions.length > 0 ? `${predictions.length} active` : "No predictions yet"}
+                </p>
+              </div>
+            </div>
+            <ChevronRight size={16} style={{ color: "var(--text-muted)" }} />
+          </Link>
+        </motion.div>
+
+        {/* Mobile: Blitz */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="lg:hidden rounded-xl p-4 border"
+          style={{
+            backgroundColor: "var(--bg-card)",
+            borderColor: "var(--border-hairline)",
+            borderLeft: "3px solid var(--accent-amber)",
+          }}
+        >
+          <Link
+            href="/admin/blitz"
+            className="flex items-center justify-between"
+          >
+            <div className="flex items-center gap-2">
+              <Zap size={14} style={{ color: "var(--accent-amber)" }} />
+              <div>
+                <h2 className="font-headline font-semibold text-sm" style={{ color: "var(--text-primary)" }}>
+                  Blitz
+                </h2>
+                <p className="text-xs mt-0.5" style={{ color: "var(--text-secondary)" }}>
+                  {blitz.length > 0 ? `${blitz.length} active` : "No tournaments yet"}
+                </p>
+              </div>
+            </div>
+            <ChevronRight size={16} style={{ color: "var(--text-muted)" }} />
+          </Link>
+        </motion.div>
       </div>
 
       {/* Modals */}
-      <CreateGameModal
-        isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
-        onSelectType={(type) => {
-          setShowCreateModal(false);
-          if (type === "pill_pack") {
-            setShowPillForm(true);
-          } else {
-            setShowTimeMachineForm(true);
-          }
-        }}
-      />
-
       <CreatePillPackForm
         isOpen={showPillForm}
         onClose={() => setShowPillForm(false)}
