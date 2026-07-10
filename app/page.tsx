@@ -58,7 +58,7 @@ export default function LandingPage() {
           <div className="hidden md:flex items-center gap-8">
             <Link href="#games" className="text-sm" style={{ color: "var(--text-secondary)" }}>Games</Link>
             <Link href="#how-it-works" className="text-sm" style={{ color: "var(--text-secondary)" }}>How it works</Link>
-            <Link href="/blitz" className="text-sm" style={{ color: "var(--text-secondary)" }}>Leaderboard</Link>
+            <Link href="/leaderboard" className="text-sm" style={{ color: "var(--text-secondary)" }}>Leaderboard</Link>
           </div>
 
           {/* Desktop Login Button */}
@@ -96,7 +96,7 @@ export default function LandingPage() {
           >
             <Link href="#games" className="block text-sm" style={{ color: "var(--text-secondary)" }}>Games</Link>
             <Link href="#how-it-works" className="block text-sm" style={{ color: "var(--text-secondary)" }}>How it works</Link>
-            <Link href="/blitz" className="block text-sm" style={{ color: "var(--text-secondary)" }}>Leaderboard</Link>
+            <Link href="/leaderboard" className="block text-sm" style={{ color: "var(--text-secondary)" }}>Leaderboard</Link>
             <Link href="/signin" className="block text-sm font-medium" style={{ color: "var(--accent-amber)" }}>Log in</Link>
           </motion.div>
         )}
@@ -329,17 +329,17 @@ export default function LandingPage() {
               </h4>
               <ul className="space-y-2">
                 <li>
-                  <Link href="#how-it-works" className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                  <Link href="/#how-it-works" className="text-xs" style={{ color: "var(--text-secondary)" }}>
                     How it works
                   </Link>
                 </li>
                 <li>
-                  <Link href="#" className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                  <Link href="/leaderboard" className="text-xs" style={{ color: "var(--text-secondary)" }}>
                     Leaderboard
                   </Link>
                 </li>
                 <li>
-                  <Link href="#" className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                  <Link href="/support" className="text-xs" style={{ color: "var(--text-secondary)" }}>
                     Support
                   </Link>
                 </li>
@@ -353,17 +353,17 @@ export default function LandingPage() {
               </h4>
               <ul className="space-y-2">
                 <li>
-                  <Link href="#" className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                  <Link href="/terms" className="text-xs" style={{ color: "var(--text-secondary)" }}>
                     Terms
                   </Link>
                 </li>
                 <li>
-                  <Link href="#" className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                  <Link href="/privacy" className="text-xs" style={{ color: "var(--text-secondary)" }}>
                     Privacy
                   </Link>
                 </li>
                 <li>
-                  <Link href="#" className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                  <Link href="/responsible-play" className="text-xs" style={{ color: "var(--text-secondary)" }}>
                     Responsible play
                   </Link>
                 </li>

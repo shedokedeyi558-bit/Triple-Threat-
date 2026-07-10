@@ -17,7 +17,7 @@ export default function TermsPage() {
             className="mb-8"
           >
             <h1 className="text-4xl sm:text-5xl font-bold text-white mb-4">Terms of Service</h1>
-            <p className="text-gray-400 text-lg">Last updated: January 2026</p>
+            <p className="text-gray-400 text-lg">Last updated: July 2026</p>
           </motion.div>
 
           <motion.div
@@ -26,101 +26,73 @@ export default function TermsPage() {
             transition={{ delay: 0.1 }}
             className="prose prose-invert prose-lg max-w-none space-y-8"
           >
-            {/* Skill-Based Competition */}
+            {/* Overview */}
             <section className="bg-gray-950/50 border border-gray-800 rounded-xl p-6">
-              <h2 className="text-2xl font-bold text-white mb-4">1. Skill-Based Competition</h2>
               <p className="text-gray-300 leading-relaxed">
-                BitLyfe is a skill-based quiz platform where winners are determined by correct answers to questions, not by chance. Your success depends on your knowledge, reasoning ability, and decision-making skills.
+                BitLyfe is a skill-and-prediction gaming platform built as a student project. By creating an account, you agree to the following terms:
               </p>
             </section>
 
             {/* Eligibility */}
             <section className="bg-gray-950/50 border border-gray-800 rounded-xl p-6">
-              <h2 className="text-2xl font-bold text-white mb-4">2. Eligibility (18+)</h2>
-              <p className="text-gray-300 leading-relaxed mb-4">
-                You must be at least 18 years old to use BitLyfe. By creating an account, you confirm that you meet this age requirement and have the legal capacity to enter into this agreement.
-              </p>
+              <h2 className="text-2xl font-bold text-white mb-4">Eligibility</h2>
               <p className="text-gray-300 leading-relaxed">
-                Minors are strictly prohibited from participating. We reserve the right to verify your age at any time and suspend accounts that violate this policy.
+                You must be 18 or older to deposit funds or participate in paid games.
               </p>
             </section>
 
-            {/* Entry Fees & Prizes */}
+            {/* How the Games Work */}
             <section className="bg-gray-950/50 border border-gray-800 rounded-xl p-6">
-              <h2 className="text-2xl font-bold text-white mb-4">3. Entry Fees & Prizes</h2>
+              <h2 className="text-2xl font-bold text-white mb-4">How the Games Work</h2>
               <p className="text-gray-300 leading-relaxed mb-4">
-                Each door or challenge requires an entry fee to participate. Entry fees are clearly displayed before you commit to play. Prize amounts vary by door difficulty and game type.
+                Pills, Time Machine, and Blitz are described in full on our How It Works page. Entry fees and prizes are clearly shown before you commit to any game.
               </p>
-              <p className="text-gray-300 leading-relaxed mb-4">
-                BitLyfe retains a 20% platform fee from prize pools to cover operational costs. The remaining 80% is distributed to winners.
-              </p>
+              <Link href="/#how-it-works" className="text-neon hover:text-neon/80 underline inline-block">
+                View How It Works →
+              </Link>
+            </section>
+
+            {/* Payments */}
+            <section className="bg-gray-950/50 border border-gray-800 rounded-xl p-6">
+              <h2 className="text-2xl font-bold text-white mb-4">Payments</h2>
               <p className="text-gray-300 leading-relaxed">
-                All fees and prizes are displayed in Nigerian Naira (₦). Entry fees are non-refundable once you submit an answer.
+                Deposits and withdrawals are processed through Paystack. This platform is currently operating in test mode as part of an academic project; no real transactions are being processed at this time.
               </p>
             </section>
 
-            {/* Payment & Withdrawals */}
+            {/* Fair Play */}
             <section className="bg-gray-950/50 border border-gray-800 rounded-xl p-6">
-              <h2 className="text-2xl font-bold text-white mb-4">4. Payment & Withdrawals</h2>
-              <p className="text-gray-300 leading-relaxed mb-4">
-                You can fund your wallet using credit/debit cards, bank transfers, or mobile money (OPay, PalmPay, etc.). All payments are processed securely through Paystack.
-              </p>
-              <p className="text-gray-300 leading-relaxed mb-4">
-                Winnings are credited to your wallet immediately. You can withdraw funds to your Nigerian bank account at any time, subject to a minimum withdrawal amount.
-              </p>
+              <h2 className="text-2xl font-bold text-white mb-4">Fair Play</h2>
               <p className="text-gray-300 leading-relaxed">
-                Withdrawals are typically processed within 24 hours. We reserve the right to verify your identity before processing large withdrawals or unusual activity.
+                Attempting to exploit bugs, use multiple accounts to gain unfair advantage, or interfere with other players' ability to play fairly may result in account suspension.
               </p>
             </section>
 
-            {/* Fair Play Policy */}
+            {/* Account Balance */}
             <section className="bg-gray-950/50 border border-gray-800 rounded-xl p-6">
-              <h2 className="text-2xl font-bold text-white mb-4">5. Fair Play Policy</h2>
-              <p className="text-gray-300 leading-relaxed mb-4">
-                BitLyfe is committed to fair play. Cheating, collusion, use of bots or automated tools, or any form of manipulation is strictly prohibited and will result in immediate account suspension.
-              </p>
-              <p className="text-gray-300 leading-relaxed mb-4">
-                Each question has a time limit. Answers submitted after the timer expires will not be accepted.
-              </p>
+              <h2 className="text-2xl font-bold text-white mb-4">Account Balance</h2>
               <p className="text-gray-300 leading-relaxed">
-                We use automated systems and manual reviews to detect suspicious activity. If we determine you have violated our fair play policy, we may forfeit your winnings and ban your account.
+                Your wallet balance reflects funds available for entry fees and prizes. We aim to process withdrawal requests promptly, subject to admin review.
               </p>
             </section>
 
-            {/* Limitation of Liability */}
+            {/* Changes */}
             <section className="bg-gray-950/50 border border-gray-800 rounded-xl p-6">
-              <h2 className="text-2xl font-bold text-white mb-4">6. Limitation of Liability</h2>
-              <p className="text-gray-300 leading-relaxed mb-4">
-                BitLyfe is provided &quot;as is&quot; without warranties of any kind. We do not guarantee uninterrupted or error-free service.
-              </p>
-              <p className="text-gray-300 leading-relaxed mb-4">
-                We are not liable for losses resulting from technical failures, incorrect questions, payment processor errors, or force majeure events.
-              </p>
+              <h2 className="text-2xl font-bold text-white mb-4">Changes</h2>
               <p className="text-gray-300 leading-relaxed">
-                Your total liability is limited to the amount you have deposited into your wallet. We are not responsible for indirect, consequential, or punitive damages.
+                These terms may be updated as the platform evolves. Continued use after changes means you accept the update.
               </p>
             </section>
 
             {/* Contact */}
             <section className="bg-gray-950/50 border border-gray-800 rounded-xl p-6">
-              <h2 className="text-2xl font-bold text-white mb-4">7. Contact</h2>
+              <h2 className="text-2xl font-bold text-white mb-4">Contact</h2>
               <p className="text-gray-300 leading-relaxed mb-4">
-                If you have questions about these Terms of Service, please contact us:
+                Questions about these terms can be sent through our Support page.
               </p>
-              <p className="text-[#00FF66] font-semibold">
-                Email:{" "}
-                <a href="mailto:support@bitlyfe.com" className="underline hover:text-[#00FF66]/80 transition-colors">
-                  support@bitlyfe.com
-                </a>
-              </p>
-            </section>
-
-            {/* Updates to Terms */}
-            <section className="bg-gray-950/50 border border-gray-800 rounded-xl p-6">
-              <h2 className="text-2xl font-bold text-white mb-4">Changes to These Terms</h2>
-              <p className="text-gray-300 leading-relaxed">
-                We may update these Terms from time to time. Changes will be posted on this page with an updated &quot;Last updated&quot; date. Continued use of BitLyfe after changes constitutes acceptance of the new Terms.
-              </p>
+              <Link href="/support" className="text-neon hover:text-neon/80 underline inline-block">
+                Go to Support →
+              </Link>
             </section>
           </motion.div>
 
