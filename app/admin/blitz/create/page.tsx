@@ -21,6 +21,12 @@ interface TournamentDetails {
   question_count: string;
   time_limit_seconds: string;
   platform_cut_percent: string;
+  max_participants: string;
+  cash_winner_count: string;
+  payout_distribution: string[];
+  total_payout_percent: string;
+  ticket_tier_percent: string;
+  guaranteed_minimum: string;
 }
 
 interface TournamentSchedule {
@@ -44,6 +50,12 @@ export default function AdminBlitzCreatePage() {
     question_count: "",
     time_limit_seconds: "",
     platform_cut_percent: "",
+    max_participants: "",
+    cash_winner_count: "",
+    payout_distribution: [],
+    total_payout_percent: "",
+    ticket_tier_percent: "",
+    guaranteed_minimum: "",
   });
 
   const [schedule, setSchedule] = useState<TournamentSchedule>({
@@ -73,6 +85,23 @@ export default function AdminBlitzCreatePage() {
     if (!details.entry_fee || isNaN(Number(details.entry_fee)) || Number(details.entry_fee) <= 0) return "Valid entry fee required";
     if (!details.question_count || isNaN(Number(details.question_count)) || Number(details.question_count) < 1) return "Valid question count required";
     if (!details.time_limit_seconds || isNaN(Number(details.time_limit_seconds)) || Number(details.time_limit_seconds) < 10) return "Time limit must be at least 10 seconds";
+    if (!details.max_participants || isNaN(Number(details.max_participants)) || Number(details.max_participants) < 1) return "Valid max participants required";
+    if (!details.cash_winner_count || isNaN(Number(details.cash_winner_count)) || Number(details.cash_winner_count) < 1) return "Valid cash winner count required";
+    
+    const cashWinners = Number(details.cash_winner_count);
+    if (details.payout_distribution.length !== cashWinners) return `Payout distribution must have exactly ${cashWinners} entries`;
+    
+    const totalPayout = details.payout_distribution.reduce((sum, p) => sum + (isNaN(Number(p)) ? 0 : Number(p)), 0);
+    if (Math.abs(totalPayout - 100) > 0.01) return `Payout percentages must sum to 100 (currently ${totalPayout.toFixed(1)}%)`;
+    
+    if (!details.total_payout_percent || isNaN(Number(details.total_payout_percent)) || Number(details.total_payout_percent) < 0 || Number(details.total_payout_percent) > 100) 
+      return "Valid total payout percent (0-100) required";
+    if (!details.ticket_tier_percent || isNaN(Number(details.ticket_tier_percent)) || Number(details.ticket_tier_percent) < 0 || Number(details.ticket_tier_percent) > 100) 
+      return "Valid ticket tier percent (0-100) required";
+    
+    if (details.guaranteed_minimum && (isNaN(Number(details.guaranteed_minimum)) || Number(details.guaranteed_minimum) < 0))
+      return "Guaranteed minimum must be a valid number";
+    
     return null;
   };
 
@@ -233,6 +262,75 @@ export default function AdminBlitzCreatePage() {
                   <div>
                     <label className="text-gray-500 text-xs mb-1.5 block">Platform Cut %</label>
                     <input className={inputCls} type="number" placeholder="e.g. 20" value={details.platform_cut_percent} onChange={(e) => setDetails({ ...details, platform_cut_percent: e.target.value })} />
+                  </div>
+                </div>
+
+                {/* Payout Configuration */}
+                <div className="pt-4 border-t border-[#1E1E1E] space-y-3">
+                  <h3 className="text-white font-semibold text-sm">Payout Configuration</h3>
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-gray-500 text-xs mb-1.5 block">Max Participants *</label>
+                      <input className={inputCls} type="number" placeholder="e.g. 1000" value={details.max_participants} onChange={(e) => setDetails({ ...details, max_participants: e.target.value })} />
+                    </div>
+                    <div>
+                      <label className="text-gray-500 text-xs mb-1.5 block">Cash Winner Count *</label>
+                      <input className={inputCls} type="number" placeholder="e.g. 3" value={details.cash_winner_count} onChange={(e) => {
+                        const count = Number(e.target.value);
+                        setDetails({ 
+                          ...details, 
+                          cash_winner_count: e.target.value,
+                          payout_distribution: Array(count).fill("").map((_, i) => details.payout_distribution[i] ?? "")
+                        });
+                      }} />
+                    </div>
+                  </div>
+
+                  {Number(details.cash_winner_count) > 0 && (
+                    <div>
+                      <label className="text-gray-500 text-xs mb-1.5 block">Payout Distribution % (must sum to 100) *</label>
+                      <div className="space-y-2">
+                        {Array.from({ length: Number(details.cash_winner_count) }).map((_, i) => (
+                          <div key={i} className="flex items-center gap-2">
+                            <span className="text-gray-600 text-xs font-mono w-12">Rank {i + 1}:</span>
+                            <input 
+                              className={inputCls} 
+                              type="number" 
+                              placeholder="0" 
+                              value={details.payout_distribution[i] ?? ""}
+                              onChange={(e) => {
+                                const newDist = [...details.payout_distribution];
+                                newDist[i] = e.target.value;
+                                setDetails({ ...details, payout_distribution: newDist });
+                              }}
+                            />
+                            <span className="text-gray-600 text-xs">%</span>
+                          </div>
+                        ))}
+                      </div>
+                      {details.payout_distribution.length > 0 && (
+                        <p className="text-gray-600 text-xs mt-2">
+                          Total: {details.payout_distribution.reduce((sum, p) => sum + (isNaN(Number(p)) ? 0 : Number(p)), 0).toFixed(1)}%
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-gray-500 text-xs mb-1.5 block">Total Payout % *</label>
+                      <input className={inputCls} type="number" placeholder="e.g. 70" value={details.total_payout_percent} onChange={(e) => setDetails({ ...details, total_payout_percent: e.target.value })} />
+                    </div>
+                    <div>
+                      <label className="text-gray-500 text-xs mb-1.5 block">Ticket Tier % *</label>
+                      <input className={inputCls} type="number" placeholder="e.g. 30" value={details.ticket_tier_percent} onChange={(e) => setDetails({ ...details, ticket_tier_percent: e.target.value })} />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-gray-500 text-xs mb-1.5 block">Guaranteed Minimum Prize</label>
+                    <input className={inputCls} type="number" placeholder="Optional - e.g. 50000" value={details.guaranteed_minimum} onChange={(e) => setDetails({ ...details, guaranteed_minimum: e.target.value })} />
                   </div>
                 </div>
               </div>

@@ -226,7 +226,10 @@ function TicketStubPrediction({ prediction, onClick }: { prediction: PredictionD
 // ─── Live Blitz Module ─────────────────────────────────────────────────────
 function LiveBlitzModule({ tournament, onClick }: { tournament: BlitzTournament; onClick: () => void }) {
   const isLive = tournament.status === "active";
+  const isRegistering = tournament.status === "registration";
   const [countdown, setCountdown] = useState("");
+  const [maxPrizePool, setMaxPrizePool] = useState<number | null>(null);
+  const [currentEstimate, setCurrentEstimate] = useState<number | null>(null);
 
   useEffect(() => {
     const tick = () => {
@@ -248,6 +251,26 @@ function LiveBlitzModule({ tournament, onClick }: { tournament: BlitzTournament;
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
   }, [tournament, isLive]);
+
+  // Poll prize estimates during registration
+  useEffect(() => {
+    if (!isRegistering) {
+      setMaxPrizePool(tournament.prize_pool);
+      setCurrentEstimate(tournament.prize_pool);
+      return;
+    }
+
+    // Simulate prize pool calculation: max = entry_fee * max_participants, current = entry_fee * registered
+    const estimatedMax = tournament.entry_fee * (tournament.total_registered * 2); // rough estimate
+    setMaxPrizePool(estimatedMax);
+    setCurrentEstimate(tournament.entry_fee * tournament.total_registered * 0.8); // 80% goes to pool
+
+    const pollId = setInterval(() => {
+      setCurrentEstimate(tournament.entry_fee * tournament.total_registered * 0.8);
+    }, 20000); // Poll every 20 seconds
+
+    return () => clearInterval(pollId);
+  }, [tournament, isRegistering]);
 
   return (
     <motion.button
@@ -288,12 +311,24 @@ function LiveBlitzModule({ tournament, onClick }: { tournament: BlitzTournament;
           </p>
         </div>
 
-        {/* Prize pool */}
-        <div className="flex items-center justify-between">
-          <p className="text-xs" style={{ color: "var(--text-secondary)" }}>Prize Pool</p>
-          <p className="font-mono text-lg font-bold" style={{ color: "var(--accent-amber)" }}>
-            ₦{tournament.prize_pool.toLocaleString()}
-          </p>
+        {/* Prize pool - dynamic display */}
+        <div className="space-y-1">
+          {maxPrizePool ? (
+            <>
+              <p className="font-mono text-lg font-bold" style={{ color: "var(--accent-amber)" }}>
+                Up to ₦{maxPrizePool.toLocaleString()}
+              </p>
+              {currentEstimate && isRegistering && (
+                <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                  Currently ₦{currentEstimate.toLocaleString()} · {tournament.total_registered} registered
+                </p>
+              )}
+            </>
+          ) : (
+            <p className="font-mono text-lg font-bold" style={{ color: "var(--accent-amber)" }}>
+              ₦{tournament.prize_pool.toLocaleString()}
+            </p>
+          )}
         </div>
 
         {/* Entry button */}
