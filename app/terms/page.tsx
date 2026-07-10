@@ -64,7 +64,7 @@ export default function TermsPage() {
             <section className="bg-gray-950/50 border border-gray-800 rounded-xl p-6">
               <h2 className="text-2xl font-bold text-white mb-4">Fair Play</h2>
               <p className="text-gray-300 leading-relaxed">
-                Attempting to exploit bugs, use multiple accounts to gain unfair advantage, or interfere with other players' ability to play fairly may result in account suspension.
+                Attempting to exploit bugs, use multiple accounts to gain unfair advantage, or interfere with other players&apos; ability to play fairly may result in account suspension.
               </p>
             </section>
 

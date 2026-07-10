@@ -48,26 +48,26 @@ export default function PrivacyPage() {
                 </li>
                 <li className="flex gap-3">
                   <span className="text-neon flex-shrink-0">•</span>
-                  <span><strong>Game participation:</strong> Which games you've played, answers submitted, winnings earned</span>
+                  <span><strong>Game participation:</strong> Which games you&apos;ve played, answers submitted, winnings earned</span>
                 </li>
               </ul>
             </section>
 
             {/* What We Don't Do */}
             <section className="bg-gray-950/50 border border-gray-800 rounded-xl p-6">
-              <h2 className="text-2xl font-bold text-white mb-4">What We Don't Do</h2>
+              <h2 className="text-2xl font-bold text-white mb-4">What We Don&apos;t Do</h2>
               <ul className="text-gray-300 leading-relaxed space-y-3">
                 <li className="flex gap-3">
                   <span className="text-neon flex-shrink-0">•</span>
-                  <span>We don't sell your data to third parties.</span>
+                  <span>We don&apos;t sell your data to third parties.</span>
                 </li>
                 <li className="flex gap-3">
                   <span className="text-neon flex-shrink-0">•</span>
-                  <span>We don't share your phone number publicly — leaderboards and activity feeds show masked identifiers only.</span>
+                  <span>We don&apos;t share your phone number publicly — leaderboards and activity feeds show masked identifiers only.</span>
                 </li>
                 <li className="flex gap-3">
                   <span className="text-neon flex-shrink-0">•</span>
-                  <span>We don't use your data for marketing or profiling beyond operating the platform.</span>
+                  <span>We don&apos;t use your data for marketing or profiling beyond operating the platform.</span>
                 </li>
               </ul>
             </section>

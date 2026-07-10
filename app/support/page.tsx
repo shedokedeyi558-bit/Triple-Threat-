@@ -28,7 +28,7 @@ const faqs: FAQItem[] = [
         <a href="mailto:support@bitlyfe.com" className="text-neon hover:text-neon/80 underline">
           support@bitlyfe.com
         </a>
-        . Include details about what happened and we'll investigate right away.
+        . Include details about what happened and we&apos;ll investigate right away.
       </>
     ),
   },
@@ -117,9 +117,9 @@ export default function SupportPage() {
             transition={{ delay: 0.2 }}
             className="bg-gradient-to-br from-gray-950/50 to-gray-950/30 border border-gray-800 rounded-xl p-8 text-center"
           >
-            <h2 className="text-2xl font-bold text-white mb-4">Can't find what you need?</h2>
+            <h2 className="text-2xl font-bold text-white mb-4">Can&apos;t find what you need?</h2>
             <p className="text-gray-300 mb-6">
-              Send us an email and we'll get back to you as soon as possible.
+              Send us an email and we&apos;ll get back to you as soon as possible.
             </p>
             <a
               href="mailto:support@bitlyfe.com"
