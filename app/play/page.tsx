@@ -8,7 +8,7 @@ import {
   pillsApi, predictionsApi, blitzApi,
   type PillPack, type PillPackPill, type PredictionData, type BlitzTournament, ApiError,
 } from "@/lib/api";
-import { Clock, ChevronRight, Users, Lock, Zap, Timer, ArrowRight, Plus, Pill, Wand2 } from "lucide-react";
+import { Clock, ChevronRight, Users, Lock, Zap, Timer, ArrowRight, Plus, Package, Wand2, AlertCircle } from "lucide-react";
 import Link from "next/link";
 import { NotificationBell } from "@/components/ui/NotificationBell";
 
@@ -19,6 +19,29 @@ const categoryColor: Record<string, string> = {
   Lifestyle: "#FF8800", "General Knowledge": "#8B5CF6",
 };
 const getCategoryColor = (cat: string) => categoryColor[cat] ?? "#4C6FFF";
+
+// ─── Segment Filter ───────────────────────────────────────────────────────
+function SegmentFilter({ active, onChange }: { active: "All" | "Pills" | "Predictions" | "Blitz"; onChange: (v: "All" | "Pills" | "Predictions" | "Blitz") => void }) {
+  const segments: Array<"All" | "Pills" | "Predictions" | "Blitz"> = ["All", "Pills", "Predictions", "Blitz"];
+  return (
+    <div className="flex gap-2">
+      {segments.map((seg) => (
+        <button
+          key={seg}
+          onClick={() => onChange(seg)}
+          className="px-4 py-2 rounded-lg text-sm font-semibold transition-all"
+          style={{
+            backgroundColor: active === seg ? "var(--accent-indigo)" : "transparent",
+            color: active === seg ? "#000" : "var(--text-secondary)",
+            border: active === seg ? "none" : "1px solid var(--border-subtle)",
+          }}
+        >
+          {seg}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 // ─── Right Now Banner ──────────────────────────────────────────────────────
 function RightNowBanner({ upcoming }: { upcoming?: { type: 'blitz' | 'pill' | 'prediction'; title: string; timeMs: number } }) {
@@ -68,6 +91,45 @@ function RightNowBanner({ upcoming }: { upcoming?: { type: 'blitz' | 'pill' | 'p
   );
 }
 
+// ─── Pack Card (Shows pack, not individual pills) ────────────────────────────
+function PackCard({ pack, onClick }: { pack: PillPack; onClick: () => void }) {
+  const accentColor = getCategoryColor(pack.category);
+  const minPrice = Math.min(...pack.pills.map(p => p.price));
+  const maxPrice = Math.max(...pack.pills.map(p => p.price));
+  
+  return (
+    <motion.button
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      onClick={onClick}
+      className="flex-shrink-0 w-56 rounded-lg p-4 border transition-all text-left"
+      style={{
+        borderColor: accentColor,
+        backgroundColor: "var(--bg-card)",
+        borderWidth: "1.5px",
+      }}
+    >
+      <div className="flex items-start justify-between gap-3 mb-3">
+        <div className="flex-1">
+          <h3 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+            {pack.name}
+          </h3>
+          <p className="text-xs mt-1" style={{ color: "var(--text-secondary)" }}>
+            {pack.pills.length} pills inside
+          </p>
+        </div>
+        <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: accentColor }}></div>
+      </div>
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-mono" style={{ color: "var(--text-muted)" }}>
+          ₦{minPrice.toLocaleString()}–{maxPrice.toLocaleString()}
+        </p>
+        <ArrowRight size={14} style={{ color: accentColor }} />
+      </div>
+    </motion.button>
+  );
+}
+
 // ─── Pill Chip (Horizontal Scroll) ────────────────────────────────────────
 function PillChip({ pack, pill, onClick }: { pack: PillPack; pill: PillPackPill; onClick: () => void }) {
   const accentColor = getCategoryColor(pack.category);
@@ -94,9 +156,7 @@ function PillChip({ pack, pill, onClick }: { pack: PillPack; pill: PillPackPill;
         </>
       ) : (
         <>
-          <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm" style={{ backgroundColor: accentColor }}>
-            💊
-          </div>
+          <Package size={16} style={{ backgroundColor: accentColor, color: "#fff", borderRadius: "50%", padding: "4px" }} />
           <p className="text-xs font-mono font-bold" style={{ color: "var(--accent-amber)" }}>₦{pill.price}</p>
         </>
       )}
@@ -262,8 +322,8 @@ function PillSheet({ pack, pill, onConfirm, onClose, balance }: {
         style={{ backgroundColor: "var(--bg-card)" }}>
         <div className="w-10 h-1 bg-[#333] rounded-full mx-auto lg:hidden" />
         <div className="flex flex-col items-center gap-3">
-          <div className="w-12 h-12 rounded-full flex items-center justify-center text-3xl" style={{ backgroundColor: accentColor }}>
-            💊
+          <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: accentColor }}>
+            <Package size={24} style={{ color: "#fff" }} />
           </div>
           <div className="text-center">
             <p className="font-headline font-semibold text-lg" style={{ color: "var(--text-primary)" }}>{pack.name}</p>
@@ -308,6 +368,8 @@ export default function PlayPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [sheet, setSheet] = useState<{ pack: PillPack; pill: PillPackPill } | null>(null);
+  const [filter, setFilter] = useState<"All" | "Pills" | "Predictions" | "Blitz">("All");
+  const [selectedPackId, setSelectedPackId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!state.isAuthenticated) { router.push("/auth"); return; }
@@ -333,22 +395,29 @@ export default function PlayPage() {
     }
   }, []);
 
-  const upcomingItem = packs[0]?.pills?.[0] || predictions[0] || blitz[0];
+  const showPills = filter === "All" || filter === "Pills";
+  const showPredictions = filter === "All" || filter === "Predictions";
+  const showBlitz = filter === "All" || filter === "Blitz";
+
   const liveBlitz = blitz.filter((t) => t.status === "active" || t.status === "registration");
   const featuredBlitz = liveBlitz[0];
+
+  const selectedPack = selectedPackId ? packs.find(p => p.id === selectedPackId) : null;
 
   if (!state.isAuthenticated) return null;
 
   return (
     <div className="min-h-full" style={{ backgroundColor: "var(--bg-base)" }}>
-      {/* Mobile header moved to AppShell */}
-
-      <div className="px-4 sm:px-6 lg:px-8 py-6 space-y-8 pb-28">
+      <div className="px-4 sm:px-6 lg:px-8 py-6 space-y-6 pb-28">
         {error && (
-          <p className="text-red-400 text-sm border rounded-lg p-3" style={{ borderColor: "var(--border-subtle)", backgroundColor: "rgba(239, 68, 68, 0.05)" }}>
+          <div className="flex items-center gap-2 text-red-400 text-sm border rounded-lg p-3" style={{ borderColor: "var(--border-subtle)", backgroundColor: "rgba(239, 68, 68, 0.05)" }}>
+            <AlertCircle size={16} className="flex-shrink-0" />
             {error}
-          </p>
+          </div>
         )}
+
+        {/* Segment Filter */}
+        <SegmentFilter active={filter} onChange={setFilter} />
 
         {loading ? (
           <div className="space-y-6">
@@ -358,140 +427,174 @@ export default function PlayPage() {
           </div>
         ) : (
           <>
-            {/* Right Now Banner */}
-            {(packs[0]?.pills?.[0] || predictions[0] || blitz[0]) && (
-              <RightNowBanner
-                upcoming={{
-                  type: 'blitz',
-                  title: 'Next tournament or event',
-                  timeMs: Date.now() + 300000,
-                }}
-              />
-            )}
-
-            {/* ── DAILY PILLS (horizontal chip scroll) ── */}
-            <section>
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <Pill size={18} style={{ color: "var(--accent-indigo)" }} />
-                  <div>
-                    <h2 className="font-headline font-semibold text-lg" style={{ color: "var(--text-primary)" }}>Daily Pills</h2>
+            {/* ── DAILY PILLS (pack cards) ── */}
+            {showPills && (
+              <section>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <Package size={18} style={{ color: "var(--accent-indigo)" }} />
+                    <div>
+                      <h2 className="font-headline font-semibold text-lg" style={{ color: "var(--text-primary)" }}>
+                        {packs.length > 0 ? `${packs.length} packs live` : "Daily Pills"}
+                      </h2>
+                    </div>
                   </div>
-                </div>
-                <Link href="/pills" className="text-xs font-semibold" style={{ color: "var(--text-secondary)" }}>
-                  see all
-                </Link>
-              </div>
-
-              {packs.length === 0 ? (
-                <div className="rounded-lg px-6 py-8 text-center border" style={{ borderColor: "var(--border-subtle)", backgroundColor: "var(--bg-card)" }}>
-                  <p className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>New packs drop regularly</p>
-                  <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>Fresh pills incoming — check back soon</p>
-                </div>
-              ) : (
-                <div className="overflow-x-auto pb-2 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8">
-                  <div className="flex gap-3">
-                    {packs.map((pack) =>
-                      pack.pills.map((pill) => (
-                        <PillChip
-                          key={pill.id}
-                          pack={pack}
-                          pill={pill}
-                          onClick={() => setSheet({ pack, pill })}
-                        />
-                      ))
-                    )}
-                  </div>
-                </div>
-              )}
-            </section>
-
-            {/* ── TIME MACHINE (ticket stub predictions) ── */}
-            <section>
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <Wand2 size={18} style={{ color: "var(--accent-violet)" }} />
-                  <div>
-                    <h2 className="font-headline font-semibold text-lg" style={{ color: "var(--text-primary)" }}>Time Machine</h2>
-                  </div>
-                </div>
-                <Link href="/time-machine" className="text-xs font-semibold" style={{ color: "var(--text-secondary)" }}>
-                  see all
-                </Link>
-              </div>
-
-              {predictions.length === 0 ? (
-                <div className="rounded-lg px-6 py-8 text-center border-2" style={{ borderColor: "var(--accent-violet)", backgroundColor: "var(--bg-card)" }}>
-                  <div className="relative h-10 w-10 mx-auto mb-3 flex items-center justify-center">🔮</div>
-                  <p className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>No open predictions</p>
-                  <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>New events added regularly</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {predictions.slice(0, 4).map((p) => (
-                    <TicketStubPrediction
-                      key={p.id}
-                      prediction={p}
-                      onClick={() => router.push(`/predictions/play/${p.id}`)}
-                    />
-                  ))}
-                  {predictions.length > 4 && (
-                    <Link href="/time-machine" className="flex items-center justify-center gap-2 py-3 rounded-lg border text-sm font-semibold" style={{ borderColor: "var(--border-subtle)", color: "var(--accent-violet)" }}>
-                      +{predictions.length - 4} more <ArrowRight size={14} />
-                    </Link>
-                  )}
-                </div>
-              )}
-            </section>
-
-            {/* ── LIVE BLITZ ── */}
-            <section>
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <Zap size={18} style={{ color: "var(--accent-amber)" }} />
-                  <h2 className="font-headline font-semibold text-lg" style={{ color: "var(--text-primary)" }}>Live Blitz</h2>
-                </div>
-                <Link href="/blitz" className="text-xs font-semibold" style={{ color: "var(--text-secondary)" }}>
-                  see all
-                </Link>
-              </div>
-
-              {liveBlitz.length === 0 ? (
-                <div className="rounded-lg px-6 py-6 flex items-center justify-between border" style={{ borderColor: "var(--border-subtle)", backgroundColor: "var(--bg-card)" }}>
-                  <div>
-                    <p className="font-semibold text-sm" style={{ color: "var(--text-secondary)" }}>No active tournaments</p>
-                    <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>New Blitz events launch weekly</p>
-                  </div>
-                  <Link href="/blitz" className="text-xs font-semibold flex items-center gap-1 flex-shrink-0 ml-4" style={{ color: "var(--accent-amber)" }}>
-                    Browse <ArrowRight size={12} />
+                  <Link href="/pills" className="text-xs font-semibold" style={{ color: "var(--text-secondary)" }}>
+                    see all
                   </Link>
                 </div>
-              ) : (
-                <div className="space-y-4">
-                  {featuredBlitz && (
-                    <LiveBlitzModule
-                      tournament={featuredBlitz}
-                      onClick={() => router.push(`/blitz/${featuredBlitz.id}`)}
-                    />
-                  )}
-                  {liveBlitz.slice(1).map((t) => (
-                    <div key={t.id} className="rounded-lg px-4 py-3 flex items-center justify-between border" style={{ borderColor: "var(--border-subtle)", backgroundColor: "var(--bg-card)" }}>
-                      <div className="flex-1">
-                        <p className="font-semibold text-sm" style={{ color: "var(--text-primary)" }}>{t.title}</p>
-                        <p className="text-xs mt-0.5" style={{ color: "var(--text-secondary)" }}>₦{t.prize_pool.toLocaleString()} pool</p>
-                      </div>
+
+                {selectedPack ? (
+                  <>
+                    <div className="flex items-center gap-2 mb-4">
                       <button
-                        onClick={() => router.push(`/blitz/${t.id}`)}
-                        className="px-3 py-2 text-xs font-semibold rounded-lg"
-                        style={{ backgroundColor: "var(--accent-amber)", color: "#000" }}
+                        onClick={() => setSelectedPackId(null)}
+                        className="p-2 rounded-lg hover:bg-card"
+                        style={{ color: "var(--text-secondary)" }}
                       >
-                        Join
+                        <ChevronRight size={16} style={{ transform: "rotate(180deg)" }} />
                       </button>
+                      <h3 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+                        {selectedPack.name}
+                      </h3>
                     </div>
-                  ))}
+                    <div className="overflow-x-auto pb-2 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8">
+                      <div className="flex gap-3">
+                        {selectedPack.pills.map((pill) => (
+                          <PillChip
+                            key={pill.id}
+                            pack={selectedPack}
+                            pill={pill}
+                            onClick={() => setSheet({ pack: selectedPack, pill })}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    {packs.length === 0 ? (
+                      <div className="rounded-lg px-6 py-8 text-center border flex items-center justify-center gap-3" style={{ borderColor: "var(--border-subtle)", backgroundColor: "var(--bg-card)" }}>
+                        <Clock size={16} style={{ color: "var(--text-muted)" }} />
+                        <div>
+                          <p className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>No packs live</p>
+                          <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>Next pack in [time]</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="overflow-x-auto pb-2 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8">
+                        <div className="flex gap-3">
+                          {packs.map((pack) => (
+                            <PackCard
+                              key={pack.id}
+                              pack={pack}
+                              onClick={() => setSelectedPackId(pack.id)}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+              </section>
+            )}
+
+            {/* ── TIME MACHINE (ticket stub predictions) ── */}
+            {showPredictions && (
+              <section>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <Wand2 size={18} style={{ color: "var(--accent-violet)" }} />
+                    <div>
+                      <h2 className="font-headline font-semibold text-lg" style={{ color: "var(--text-primary)" }}>
+                        {predictions.length > 0 ? `${predictions.length} open` : "Time Machine"}
+                      </h2>
+                    </div>
+                  </div>
+                  <Link href="/time-machine" className="text-xs font-semibold" style={{ color: "var(--text-secondary)" }}>
+                    see all
+                  </Link>
                 </div>
-              )}
-            </section>
+
+                {predictions.length === 0 ? (
+                  <div className="rounded-lg px-6 py-8 text-center border-2 flex items-center justify-center gap-3" style={{ borderColor: "var(--accent-violet)", backgroundColor: "var(--bg-card)" }}>
+                    <Wand2 size={16} style={{ color: "var(--accent-violet)" }} />
+                    <div>
+                      <p className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>No open predictions</p>
+                      <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>New events added regularly</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {predictions.slice(0, 4).map((p) => (
+                      <TicketStubPrediction
+                        key={p.id}
+                        prediction={p}
+                        onClick={() => router.push(`/predictions/play/${p.id}`)}
+                      />
+                    ))}
+                    {predictions.length > 4 && (
+                      <Link href="/time-machine" className="flex items-center justify-center gap-2 py-3 rounded-lg border text-sm font-semibold" style={{ borderColor: "var(--border-subtle)", color: "var(--accent-violet)" }}>
+                        +{predictions.length - 4} more <ArrowRight size={14} />
+                      </Link>
+                    )}
+                  </div>
+                )}
+              </section>
+            )}
+
+            {/* ── LIVE BLITZ ── */}
+            {showBlitz && (
+              <section>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <Zap size={18} style={{ color: "var(--accent-amber)" }} />
+                    <h2 className="font-headline font-semibold text-lg" style={{ color: "var(--text-primary)" }}>
+                      {liveBlitz.length > 0 ? `${liveBlitz.length} upcoming` : "Live Blitz"}
+                    </h2>
+                  </div>
+                  <Link href="/blitz" className="text-xs font-semibold" style={{ color: "var(--text-secondary)" }}>
+                    see all
+                  </Link>
+                </div>
+
+                {liveBlitz.length === 0 ? (
+                  <div className="rounded-lg px-6 py-6 flex items-center justify-between border" style={{ borderColor: "var(--border-subtle)", backgroundColor: "var(--bg-card)" }}>
+                    <div>
+                      <p className="font-semibold text-sm" style={{ color: "var(--text-secondary)" }}>No active tournaments</p>
+                      <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>New Blitz events launch weekly</p>
+                    </div>
+                    <Link href="/blitz" className="text-xs font-semibold flex items-center gap-1 flex-shrink-0 ml-4" style={{ color: "var(--accent-amber)" }}>
+                      Browse <ArrowRight size={12} />
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {featuredBlitz && (
+                      <LiveBlitzModule
+                        tournament={featuredBlitz}
+                        onClick={() => router.push(`/blitz/${featuredBlitz.id}`)}
+                      />
+                    )}
+                    {liveBlitz.slice(1).map((t) => (
+                      <div key={t.id} className="rounded-lg px-4 py-3 flex items-center justify-between border" style={{ borderColor: "var(--border-subtle)", backgroundColor: "var(--bg-card)" }}>
+                        <div className="flex-1">
+                          <p className="font-semibold text-sm" style={{ color: "var(--text-primary)" }}>{t.title}</p>
+                          <p className="text-xs mt-0.5" style={{ color: "var(--text-secondary)" }}>₦{t.prize_pool.toLocaleString()} pool</p>
+                        </div>
+                        <button
+                          onClick={() => router.push(`/blitz/${t.id}`)}
+                          className="px-3 py-2 text-xs font-semibold rounded-lg flex-shrink-0 ml-3"
+                          style={{ backgroundColor: "var(--accent-amber)", color: "#000" }}
+                        >
+                          Join
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+            )}
           </>
         )}
       </div>
