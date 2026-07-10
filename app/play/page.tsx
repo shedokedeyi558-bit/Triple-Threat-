@@ -5,10 +5,10 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useApp } from "@/context/AppContext";
 import {
-  pillsApi, predictionsApi, blitzApi,
+  pillsApi, predictionsApi, blitzApi, playerApi,
   type PillPack, type PillPackPill, type PredictionData, type BlitzTournament, ApiError,
 } from "@/lib/api";
-import { Clock, ChevronRight, Users, Lock, Zap, Timer, ArrowRight, Plus, Package, Wand2, AlertCircle } from "lucide-react";
+import { Clock, ChevronRight, Users, Lock, Zap, Timer, ArrowRight, Plus, Package, Wand2, AlertCircle, X } from "lucide-react";
 import Link from "next/link";
 import { NotificationBell } from "@/components/ui/NotificationBell";
 
@@ -344,8 +344,21 @@ function LiveBlitzModule({ tournament, onClick }: { tournament: BlitzTournament;
 function PillSheet({ pack, pill, onConfirm, onClose, balance }: {
   pack: PillPack; pill: PillPackPill; onConfirm: () => void; onClose: () => void; balance: number;
 }) {
+  const [error, setError] = useState("");
   const canAfford = balance >= pill.price;
   const accentColor = getCategoryColor(pack.category);
+  
+  const handleConfirm = async () => {
+    setError("");
+    try {
+      onConfirm();
+    } catch (err) {
+      if (err instanceof ApiError && err.message.includes("LIMIT_REACHED")) {
+        setError("You've reached your set limit for this period.");
+      }
+    }
+  };
+  
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       className="fixed inset-0 z-50 flex items-end lg:items-center justify-center" onClick={onClose}>
@@ -380,8 +393,13 @@ function PillSheet({ pack, pill, onConfirm, onClose, balance }: {
             Insufficient balance. <Link href="/wallet" className="underline font-semibold">Add funds</Link>
           </p>
         )}
+        {error && (
+          <p className="text-center text-red-400 text-sm">
+            {error} <Link href="/profile" className="underline font-semibold">Adjust limits</Link>
+          </p>
+        )}
         <div className="space-y-3">
-          <button onClick={onConfirm} disabled={!canAfford}
+          <button onClick={handleConfirm} disabled={!canAfford}
             className="w-full py-3 font-semibold rounded-lg text-sm disabled:opacity-40 transition-opacity"
             style={{ backgroundColor: accentColor, color: "#000" }}>
             Take This Pill
@@ -405,6 +423,9 @@ export default function PlayPage() {
   const [sheet, setSheet] = useState<{ pack: PillPack; pill: PillPackPill } | null>(null);
   const [filter, setFilter] = useState<"All" | "Pills" | "Predictions" | "Blitz">("All");
   const [selectedPackId, setSelectedPackId] = useState<string | null>(null);
+  const [playsToday, setPlaysToday] = useState(0);
+  const [showRapidPlayNudge, setShowRapidPlayNudge] = useState(false);
+  const [nudgeDismissedInSession, setNudgeDismissedInSession] = useState(false);
 
   useEffect(() => {
     if (!state.isAuthenticated) { router.push("/auth"); return; }
@@ -415,20 +436,29 @@ export default function PlayPage() {
 
   const fetchAll = useCallback(async () => {
     try {
-      const [pR, predR, bR] = await Promise.allSettled([
+      const [pR, predR, bR, spendR] = await Promise.allSettled([
         pillsApi.getPacks(),
         predictionsApi.getActive(),
         blitzApi.getAll(),
+        playerApi.getSpendSummary(),
       ]);
       if (pR.status === "fulfilled") setPacks((pR.value.packs ?? []).filter((p) => p.status === "active"));
       if (predR.status === "fulfilled") setPredictions(predR.value.predictions ?? []);
       if (bR.status === "fulfilled") setBlitz(bR.value.tournaments ?? []);
+      
+      // Check plays today and show nudge if > 5
+      if (spendR.status === "fulfilled") {
+        setPlaysToday(spendR.value.plays_today ?? 0);
+        if ((spendR.value.plays_today ?? 0) > 5 && !nudgeDismissedInSession && !showRapidPlayNudge) {
+          setShowRapidPlayNudge(true);
+        }
+      }
     } catch (err) {
       if (err instanceof ApiError) setError(err.message);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [nudgeDismissedInSession, showRapidPlayNudge]);
 
   const showPills = filter === "All" || filter === "Pills";
   const showPredictions = filter === "All" || filter === "Predictions";
@@ -453,6 +483,33 @@ export default function PlayPage() {
 
         {/* Segment Filter */}
         <SegmentFilter active={filter} onChange={setFilter} />
+
+        {/* Rapid-play nudge toast */}
+        <AnimatePresence>
+          {showRapidPlayNudge && !nudgeDismissedInSession && (
+            <motion.div
+              initial={{ opacity: 0, y: -12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -12 }}
+              className="flex items-center justify-between rounded-lg px-4 py-3 border"
+              style={{ backgroundColor: "rgba(232, 163, 61, 0.1)", borderColor: "var(--accent-amber)" }}
+            >
+              <div className="flex items-center gap-3 flex-1">
+                <AlertCircle size={16} style={{ color: "var(--accent-amber)" }} className="flex-shrink-0" />
+                <p className="text-sm" style={{ color: "var(--text-primary)" }}>
+                  You've played {playsToday} times today. Consider <Link href="/profile" className="font-semibold underline">setting a limit</Link> to take breaks.
+                </p>
+              </div>
+              <button
+                onClick={() => setNudgeDismissedInSession(true)}
+                className="ml-2 p-1 hover:opacity-70 transition-opacity flex-shrink-0"
+                style={{ color: "var(--accent-amber)" }}
+              >
+                <X size={16} />
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {loading ? (
           <div className="space-y-6">

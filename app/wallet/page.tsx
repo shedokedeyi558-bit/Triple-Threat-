@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useApp } from "@/context/AppContext";
 import { ArrowDownLeft, ArrowUpRight, Loader2, Ticket } from "lucide-react";
-import { walletApi, ApiError, type ApiTransaction } from "@/lib/api";
+import { walletApi, playerApi, ApiError, type ApiTransaction } from "@/lib/api";
 import Link from "next/link";
 
 const quickAmounts = [500, 1000, 2000, 5000];
@@ -74,6 +74,7 @@ export default function WalletPage() {
   const [txLoading, setTxLoading] = useState(true);
   const [tickets, setTickets] = useState<Array<{ code: string; expires_at: string }>>([]);
   const [ticketsLoading, setTicketsLoading] = useState(true);
+  const [spendSummary, setSpendSummary] = useState<{ spent_this_week: number; plays_today: number } | null>(null);
 
   const refreshBalance = useCallback(async () => {
     try {
@@ -88,6 +89,11 @@ export default function WalletPage() {
       .then((data) => setTransactions(data.transactions))
       .catch(() => {})
       .finally(() => setTxLoading(false));
+    
+    // Fetch spend summary
+    playerApi.getSpendSummary()
+      .then((data) => setSpendSummary(data))
+      .catch(() => {});
     
     // Fetch tickets (mock for now since API endpoint may not exist yet)
     setTickets([
@@ -141,6 +147,13 @@ export default function WalletPage() {
       <div className="rounded-2xl p-5 mb-6 border" style={{ backgroundColor: "var(--bg-card)", borderColor: "var(--border-subtle)" }}>
         <p className="text-[11px] font-bold mb-1 uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>Available Balance</p>
         <p className="font-black text-4xl font-mono" style={{ color: "var(--text-primary)" }}>₦{balance.toLocaleString()}</p>
+        
+        {/* Spend summary stat line */}
+        {spendSummary && (
+          <p className="text-xs mt-3 pt-3 border-t" style={{ color: "var(--text-secondary)", borderColor: "var(--border-subtle)" }}>
+            This week: ₦{spendSummary.spent_this_week.toLocaleString()} across {spendSummary.plays_today} plays
+          </p>
+        )}
       </div>
 
       {/* ── MAIN CONTENT: 2-column layout on desktop ── */}
