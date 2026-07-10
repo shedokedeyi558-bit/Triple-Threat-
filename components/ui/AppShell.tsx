@@ -3,6 +3,7 @@
 import { useApp } from "@/context/AppContext";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { Gamepad2, Wallet, User, LogOut } from "lucide-react";
 import { removeToken } from "@/lib/api";
 import { useRouter } from "next/navigation";
@@ -54,9 +55,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* ── ICON RAIL — desktop only ── */}
       <aside className="hidden lg:flex flex-col fixed left-0 top-0 bottom-0 w-16 bg-[--bg-card] border-r" style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-card)" }} z-40>
         {/* Logo */}
-        <div className="px-3 py-6 border-b flex items-center justify-center" style={{ borderColor: "var(--border-hairline)" }}>
-          <Link href="/play" className="w-8 h-8 flex items-center justify-center rounded-lg" style={{ backgroundColor: "var(--accent-amber)" }}>
-            <span className="text-xs font-black text-black">B</span>
+        <div className="px-3 py-5 border-b flex items-center justify-center" style={{ borderColor: "var(--border-hairline)" }}>
+          <Link href="/play" className="flex items-center justify-center w-8 h-8">
+            <Image src="/bitlyfe-mark.svg" alt="BitLyfe" width={28} height={28} priority />
           </Link>
         </div>
 

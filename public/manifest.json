@@ -1,11 +1,11 @@
 {
-  "name": "BITLYFE - Earn Real Money with Skills",
-  "short_name": "BITLYFE",
-  "description": "Test your skills, answer questions, win real money. Play games and compete in live challenges.",
+  "name": "BitLyfe — Play Smart. Win Real.",
+  "short_name": "BitLyfe",
+  "description": "Real-money trivia and prediction platform. Pick a pill, predict the future, win real Naira.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0A0A0A",
-  "theme_color": "#00FF66",
+  "background_color": "#0B0E14",
+  "theme_color": "#0B0E14",
   "orientation": "portrait",
   "icons": [
     {

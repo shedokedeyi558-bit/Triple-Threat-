@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAdmin } from "@/context/AdminContext";
 import { removeAdminToken } from "@/lib/api";
+import Image from "next/image";
 import {
   LayoutDashboard, Users, CreditCard,
   BarChart2, Settings, LogOut, Package, Clock, Zap
@@ -57,11 +58,14 @@ export function AdminSidebar({ onClose }: { onClose?: () => void }) {
     <div className="h-full flex flex-col p-4">
       {/* Logo */}
       <div className="flex items-center gap-3 px-3 py-4 mb-6 border-b" style={{ borderColor: "var(--border-hairline)" }}>
-        <div
-          className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-          style={{ backgroundColor: "var(--accent-indigo)" }}
-        >
-          <span className="text-xs font-black text-white">⚙</span>
+        <div className="w-8 h-8 flex items-center justify-center flex-shrink-0">
+          <Image
+            src="/bitlyfe-mark.svg"
+            alt="BitLyfe"
+            width={28}
+            height={28}
+            style={{ filter: "brightness(0) saturate(100%) invert(35%) sepia(80%) saturate(1000%) hue-rotate(210deg) brightness(1.1)" }}
+          />
         </div>
         <div>
           <div className="font-headline text-sm font-semibold" style={{ color: "var(--text-primary)" }}>

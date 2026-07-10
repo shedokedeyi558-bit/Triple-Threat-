@@ -50,7 +50,7 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
           {/* Logo */}
           <div className="flex items-center gap-2">
-            <div className="w-5 h-5" style={{ backgroundColor: "var(--accent-amber)" }}></div>
+            <img src="/bitlyfe-mark.svg" alt="BitLyfe" width={20} height={20} />
             <span className="font-headline text-base font-semibold" style={{ color: "var(--text-primary)" }}>bitlyfe</span>
           </div>
 
@@ -290,7 +290,7 @@ export default function LandingPage() {
             {/* Logo Column */}
             <div>
               <div className="flex items-center gap-2 mb-3">
-                <div className="w-4 h-4" style={{ backgroundColor: "var(--accent-amber)" }}></div>
+                <img src="/bitlyfe-mark.svg" alt="BitLyfe" width={16} height={16} />
                 <span className="font-headline text-sm font-semibold" style={{ color: "var(--text-primary)" }}>bitlyfe</span>
               </div>
               <p className="text-xs" style={{ color: "var(--text-secondary)" }}>

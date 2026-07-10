@@ -7,6 +7,7 @@ import { authApi, setToken, ApiError } from "@/lib/api";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { AlertCircle, Loader, Check, ArrowLeft, ArrowRight, Eye, EyeOff } from "lucide-react";
+import Image from "next/image";
 
 type SignInStep = "credentials" | "success";
 
@@ -78,7 +79,7 @@ export default function SignInPage() {
           <ArrowLeft size={20} style={{ color: "var(--text-secondary)" }} />
         </Link>
         <div className="flex items-center gap-2">
-          <div className="w-4 h-4" style={{ backgroundColor: "var(--accent-amber)" }}></div>
+          <img src="/bitlyfe-mark.svg" alt="BitLyfe" width={16} height={16} />
           <span className="font-headline text-sm font-semibold" style={{ color: "var(--text-primary)" }}>bitlyfe</span>
         </div>
       </div>
@@ -93,7 +94,7 @@ export default function SignInPage() {
       >
         {/* Logo */}
         <div className="flex items-center gap-2">
-          <div className="w-5 h-5" style={{ backgroundColor: "var(--accent-amber)" }}></div>
+          <img src="/bitlyfe-mark.svg" alt="BitLyfe" width={20} height={20} />
           <span className="font-headline text-base font-semibold" style={{ color: "var(--text-primary)" }}>bitlyfe</span>
         </div>
 

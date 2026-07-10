@@ -6,6 +6,7 @@ import { AdminSidebar } from "./AdminSidebar";
 import { AdminLogin } from "./AdminLogin";
 import { Menu, X } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const { state } = useAdmin();
@@ -27,8 +28,14 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       <div className="flex-1 lg:ml-56 flex flex-col min-h-screen">
         {/* Mobile top bar */}
         <header className="lg:hidden flex items-center gap-3 px-4 py-4 border-b" style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-base)" }}>
-          <Link href="/admin" className="w-8 h-8 flex items-center justify-center rounded-lg flex-shrink-0" style={{ backgroundColor: "var(--accent-indigo)" }}>
-            <span className="text-xs font-black text-white">⚙</span>
+          <Link href="/admin" className="w-8 h-8 flex items-center justify-center flex-shrink-0">
+            <Image
+              src="/bitlyfe-mark.svg"
+              alt="BitLyfe"
+              width={28}
+              height={28}
+              style={{ filter: "brightness(0) saturate(100%) invert(35%) sepia(80%) saturate(1000%) hue-rotate(210deg) brightness(1.1)" }}
+            />
           </Link>
           <span className="font-headline text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
             bitlyfe admin

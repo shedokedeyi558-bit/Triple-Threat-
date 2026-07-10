@@ -6,6 +6,7 @@ import { useAdmin } from "@/context/AdminContext";
 import { ArrowLeft, AlertCircle, Loader, ArrowRight, Eye, EyeOff, Lock, Shield } from "lucide-react";
 import { authApi, setAdminToken, ApiError } from "@/lib/api";
 import Link from "next/link";
+import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 
 export function AdminLogin() {
@@ -48,7 +49,13 @@ export function AdminLogin() {
           <ArrowLeft size={20} style={{ color: "var(--text-secondary)" }} />
         </Link>
         <div className="flex items-center gap-2">
-          <div className="w-4 h-4" style={{ backgroundColor: "var(--accent-indigo)" }}></div>
+          <Image
+            src="/bitlyfe-mark.svg"
+            alt="BitLyfe"
+            width={16}
+            height={16}
+            style={{ filter: "brightness(0) saturate(100%) invert(35%) sepia(80%) saturate(1000%) hue-rotate(210deg) brightness(1.1)" }}
+          />
           <span className="font-headline text-sm font-semibold" style={{ color: "var(--text-primary)" }}>bitlyfe admin</span>
         </div>
       </div>
@@ -62,9 +69,13 @@ export function AdminLogin() {
         style={{ backgroundColor: "var(--bg-card)", borderColor: "var(--border-hairline)" }}
       >
         <div className="flex items-center gap-3">
-          <div className="w-5 h-5 flex items-center justify-center rounded" style={{ backgroundColor: "var(--accent-indigo)" }}>
-            <Lock size={12} className="text-white" />
-          </div>
+          <Image
+            src="/bitlyfe-mark.svg"
+            alt="BitLyfe"
+            width={20}
+            height={20}
+            style={{ filter: "brightness(0) saturate(100%) invert(35%) sepia(80%) saturate(1000%) hue-rotate(210deg) brightness(1.1)" }}
+          />
           <span className="font-headline text-base font-semibold" style={{ color: "var(--text-primary)" }}>Admin</span>
         </div>
 
