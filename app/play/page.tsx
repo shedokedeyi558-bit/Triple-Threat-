@@ -497,7 +497,7 @@ export default function PlayPage() {
               <div className="flex items-center gap-3 flex-1">
                 <AlertCircle size={16} style={{ color: "var(--accent-amber)" }} className="flex-shrink-0" />
                 <p className="text-sm" style={{ color: "var(--text-primary)" }}>
-                  You've played {playsToday} times today. Consider <Link href="/profile" className="font-semibold underline">setting a limit</Link> to take breaks.
+                  You&apos;ve played {playsToday} times today. Consider <Link href="/profile" className="font-semibold underline">setting a limit</Link> to take breaks.
                 </p>
               </div>
               <button

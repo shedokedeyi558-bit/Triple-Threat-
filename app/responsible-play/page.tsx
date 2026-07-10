@@ -30,7 +30,7 @@ export default function ResponsiblePlayPage() {
           <Heart size={24} style={{ color: "var(--accent-amber)" }} />
           <h1 className="text-3xl font-black" style={{ color: "var(--text-primary)" }}>Responsible Play</h1>
         </div>
-        <p style={{ color: "var(--text-secondary)" }}>We're committed to fostering a safe, enjoyable gaming experience. These tools help you stay in control.</p>
+        <p style={{ color: "var(--text-secondary)" }}>We&apos;re committed to fostering a safe, enjoyable gaming experience. These tools help you stay in control.</p>
       </motion.div>
 
       {/* Content grid */}
@@ -51,7 +51,7 @@ export default function ResponsiblePlayPage() {
             <div>
               <h2 className="font-bold text-lg mb-2" style={{ color: "var(--text-primary)" }}>Why Set Limits?</h2>
               <p className="text-sm leading-relaxed" style={{ color: "var(--text-secondary)" }}>
-                Setting daily or weekly spending limits helps you manage your gameplay responsibly. When you reach your limit, you'll be gently reminded and won't be able to play until the next period. This keeps your entertainment enjoyable and within your budget.
+                Setting daily or weekly spending limits helps you manage your gameplay responsibly. When you reach your limit, you&apos;ll be gently reminded and won&apos;t be able to play until the next period. This keeps your entertainment enjoyable and within your budget.
               </p>
             </div>
           </div>
@@ -101,7 +101,7 @@ export default function ResponsiblePlayPage() {
             <div>
               <h2 className="font-bold text-lg mb-2" style={{ color: "var(--text-primary)" }}>Need Support?</h2>
               <p className="text-sm leading-relaxed mb-3" style={{ color: "var(--text-secondary)" }}>
-                If you're struggling with excessive play or feel your gambling is getting out of control, please reach out for support. Many resources are available.
+                If you&apos;re struggling with excessive play or feel your gambling is getting out of control, please reach out for support. Many resources are available.
               </p>
               <div className="space-y-2">
                 <p className="text-xs" style={{ color: "var(--text-muted)" }}>
