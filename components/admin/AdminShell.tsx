@@ -52,41 +52,44 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           </button>
         </header>
 
-        {/* Mobile menu dropdown */}
+        {/* Mobile menu dropdown — only items NOT in the bottom tab bar */}
         {mobileMenuOpen && (
-          <div className="lg:hidden border-b px-4 py-3 space-y-2" style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-base)" }}>
+          <div className="lg:hidden border-b px-4 py-3 space-y-1" style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-base)" }}>
+            <p className="text-[10px] font-semibold uppercase tracking-widest px-3 pb-1" style={{ color: "var(--text-muted)" }}>Games</p>
             <Link
-              href="/admin/players"
+              href="/admin/pills"
               className="block px-3 py-2 rounded-lg text-sm font-medium transition-colors"
               style={{ color: "var(--text-secondary)" }}
               onClick={() => setMobileMenuOpen(false)}
             >
-              Players
+              💊 Pill Packs
             </Link>
             <Link
-              href="/admin/withdrawals"
+              href="/admin/predictions"
               className="block px-3 py-2 rounded-lg text-sm font-medium transition-colors"
               style={{ color: "var(--text-secondary)" }}
               onClick={() => setMobileMenuOpen(false)}
             >
-              Withdrawals
+              🕐 Time Machine
             </Link>
             <Link
-              href="/admin/analytics"
+              href="/admin/blitz"
               className="block px-3 py-2 rounded-lg text-sm font-medium transition-colors"
               style={{ color: "var(--text-secondary)" }}
               onClick={() => setMobileMenuOpen(false)}
             >
-              Analytics
+              ⚡ Blitz
             </Link>
-            <Link
-              href="/admin/settings"
-              className="block px-3 py-2 rounded-lg text-sm font-medium transition-colors"
-              style={{ color: "var(--text-secondary)" }}
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Settings
-            </Link>
+            <div className="pt-2 border-t" style={{ borderColor: "var(--border-hairline)" }}>
+              <Link
+                href="/admin/settings"
+                className="block px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+                style={{ color: "var(--text-secondary)" }}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                ⚙️ Settings
+              </Link>
+            </div>
           </div>
         )}
 

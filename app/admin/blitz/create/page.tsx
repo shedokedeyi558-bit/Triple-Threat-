@@ -187,7 +187,11 @@ export default function AdminBlitzCreatePage() {
     }
   };
 
-  const inputCls = "w-full bg-[#0A0A0A] border border-[#1E1E1E] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-neon/60 placeholder-gray-700";
+  const inputCls = "w-full border rounded-xl px-4 py-3 text-sm focus:outline-none transition-colors placeholder-gray-600"
+    + " focus:border-[#4C6FFF]/60"
+    + " [background-color:var(--bg-base)] [border-color:var(--border-subtle)] [color:var(--text-primary)]";
+
+  const labelCls = "block text-[10px] font-bold uppercase tracking-widest mb-1.5";
 
   return (
     <div className="min-h-screen bg-[#0A0A0A] text-white p-4 lg:p-6">
@@ -208,11 +212,14 @@ export default function AdminBlitzCreatePage() {
               {[1, 2, 3].map((s) => (
                 <div
                   key={s}
-                  className={`h-1 rounded-full transition-all ${s <= step ? "bg-neon" : "bg-[#1E1E1E]"}`}
-                  style={{ width: s <= step ? 24 : 12 }}
+                  className="h-1 rounded-full transition-all"
+                  style={{
+                    backgroundColor: s <= step ? "var(--accent-indigo)" : "var(--border-subtle)",
+                    width: s <= step ? 24 : 12,
+                  }}
                 />
               ))}
-              <span className="text-gray-500 text-xs ml-1">Step {step}/3</span>
+              <span className="text-xs ml-1" style={{ color: "var(--text-muted)" }}>Step {step}/3</span>
             </div>
           </div>
         </div>
@@ -234,111 +241,117 @@ export default function AdminBlitzCreatePage() {
               initial={{ opacity: 0, x: 30 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -30 }}
-              className="bg-[#141414] border border-[#1E1E1E] rounded-2xl p-5 space-y-4"
+              className="border rounded-2xl p-5 space-y-5"
+              style={{ borderColor: "var(--border-subtle)", backgroundColor: "var(--bg-card)" }}
             >
-              <h2 className="text-white font-bold text-base">Tournament Details</h2>
-              <div className="space-y-3">
-                <div>
-                  <label className="text-gray-500 text-xs mb-1.5 block">Title *</label>
-                  <input className={inputCls} placeholder="e.g. Weekend Blitz #1" value={details.title} onChange={(e) => setDetails({ ...details, title: e.target.value })} />
-                </div>
-                <div>
-                  <label className="text-gray-500 text-xs mb-1.5 block">Description</label>
-                  <textarea className={inputCls + " resize-none"} rows={2} placeholder="Optional description..." value={details.description} onChange={(e) => setDetails({ ...details, description: e.target.value })} />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
+              {/* ── Tournament Details ── */}
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-widest mb-4" style={{ color: "var(--text-muted)" }}>Tournament Details</p>
+                <div className="space-y-4">
                   <div>
-                    <label className="text-gray-500 text-xs mb-1.5 block">Entry Fee (₦) *</label>
-                    <input className={inputCls} type="number" placeholder="" value={details.entry_fee} onChange={(e) => setDetails({ ...details, entry_fee: e.target.value })} />
+                    <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Title *</label>
+                    <input className={inputCls} placeholder="e.g. Weekend Blitz #1" value={details.title} onChange={(e) => setDetails({ ...details, title: e.target.value })} />
                   </div>
                   <div>
-                    <label className="text-gray-500 text-xs mb-1.5 block">Question Count *</label>
-                    <input className={inputCls} type="number" placeholder="" value={details.question_count} onChange={(e) => setDetails({ ...details, question_count: e.target.value })} />
+                    <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Description</label>
+                    <textarea className={inputCls + " resize-none"} rows={2} placeholder="Optional description..." value={details.description} onChange={(e) => setDetails({ ...details, description: e.target.value })} />
                   </div>
-                  <div>
-                    <label className="text-gray-500 text-xs mb-1.5 block">Time Limit (seconds) *</label>
-                    <input className={inputCls} type="number" placeholder="" value={details.time_limit_seconds} onChange={(e) => setDetails({ ...details, time_limit_seconds: e.target.value })} />
-                  </div>
-                  <div>
-                    <label className="text-gray-500 text-xs mb-1.5 block">Platform Cut %</label>
-                    <input className={inputCls} type="number" placeholder="e.g. 20" value={details.platform_cut_percent} onChange={(e) => setDetails({ ...details, platform_cut_percent: e.target.value })} />
-                  </div>
-                </div>
-
-                {/* Payout Configuration */}
-                <div className="pt-4 border-t border-[#1E1E1E] space-y-3">
-                  <h3 className="text-white font-semibold text-sm">Payout Configuration</h3>
-                  
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="text-gray-500 text-xs mb-1.5 block">Max Participants *</label>
-                      <input className={inputCls} type="number" placeholder="e.g. 1000" value={details.max_participants} onChange={(e) => setDetails({ ...details, max_participants: e.target.value })} />
+                      <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Entry Fee (₦) *</label>
+                      <input className={inputCls} type="number" placeholder="e.g. 500" value={details.entry_fee} onChange={(e) => setDetails({ ...details, entry_fee: e.target.value })} />
                     </div>
                     <div>
-                      <label className="text-gray-500 text-xs mb-1.5 block">Cash Winner Count *</label>
-                      <input className={inputCls} type="number" placeholder="e.g. 3" value={details.cash_winner_count} onChange={(e) => {
-                        const count = Number(e.target.value);
-                        setDetails({ 
-                          ...details, 
-                          cash_winner_count: e.target.value,
-                          payout_distribution: Array(count).fill("").map((_, i) => details.payout_distribution[i] ?? "")
-                        });
-                      }} />
-                    </div>
-                  </div>
-
-                  {Number(details.cash_winner_count) > 0 && (
-                    <div>
-                      <label className="text-gray-500 text-xs mb-1.5 block">Payout Distribution % (must sum to 100) *</label>
-                      <div className="space-y-2">
-                        {Array.from({ length: Number(details.cash_winner_count) }).map((_, i) => (
-                          <div key={i} className="flex items-center gap-2">
-                            <span className="text-gray-600 text-xs font-mono w-12">Rank {i + 1}:</span>
-                            <input 
-                              className={inputCls} 
-                              type="number" 
-                              placeholder="0" 
-                              value={details.payout_distribution[i] ?? ""}
-                              onChange={(e) => {
-                                const newDist = [...details.payout_distribution];
-                                newDist[i] = e.target.value;
-                                setDetails({ ...details, payout_distribution: newDist });
-                              }}
-                            />
-                            <span className="text-gray-600 text-xs">%</span>
-                          </div>
-                        ))}
-                      </div>
-                      {details.payout_distribution.length > 0 && (
-                        <p className="text-gray-600 text-xs mt-2">
-                          Total: {details.payout_distribution.reduce((sum, p) => sum + (isNaN(Number(p)) ? 0 : Number(p)), 0).toFixed(1)}%
-                        </p>
-                      )}
-                    </div>
-                  )}
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-gray-500 text-xs mb-1.5 block">Total Payout % *</label>
-                      <input className={inputCls} type="number" placeholder="e.g. 70" value={details.total_payout_percent} onChange={(e) => setDetails({ ...details, total_payout_percent: e.target.value })} />
+                      <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Question Count *</label>
+                      <input className={inputCls} type="number" placeholder="e.g. 10" value={details.question_count} onChange={(e) => setDetails({ ...details, question_count: e.target.value })} />
                     </div>
                     <div>
-                      <label className="text-gray-500 text-xs mb-1.5 block">Ticket Tier % *</label>
-                      <input className={inputCls} type="number" placeholder="e.g. 30" value={details.ticket_tier_percent} onChange={(e) => setDetails({ ...details, ticket_tier_percent: e.target.value })} />
+                      <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Time Limit (sec) *</label>
+                      <input className={inputCls} type="number" placeholder="e.g. 300" value={details.time_limit_seconds} onChange={(e) => setDetails({ ...details, time_limit_seconds: e.target.value })} />
                     </div>
-                  </div>
-
-                  <div>
-                    <label className="text-gray-500 text-xs mb-1.5 block">Guaranteed Minimum Prize</label>
-                    <input className={inputCls} type="number" placeholder="Optional - e.g. 50000" value={details.guaranteed_minimum} onChange={(e) => setDetails({ ...details, guaranteed_minimum: e.target.value })} />
+                    <div>
+                      <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Platform Cut %</label>
+                      <input className={inputCls} type="number" placeholder="e.g. 20" value={details.platform_cut_percent} onChange={(e) => setDetails({ ...details, platform_cut_percent: e.target.value })} />
+                    </div>
                   </div>
                 </div>
               </div>
+
+              {/* ── Payout Configuration ── */}
+              <div className="pt-4 border-t space-y-4" style={{ borderColor: "var(--border-hairline)" }}>
+                <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>Payout Configuration</p>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Max Participants *</label>
+                    <input className={inputCls} type="number" placeholder="e.g. 1000" value={details.max_participants} onChange={(e) => setDetails({ ...details, max_participants: e.target.value })} />
+                  </div>
+                  <div>
+                    <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Cash Winners *</label>
+                    <input className={inputCls} type="number" placeholder="e.g. 3" value={details.cash_winner_count} onChange={(e) => {
+                      const count = Number(e.target.value);
+                      setDetails({
+                        ...details,
+                        cash_winner_count: e.target.value,
+                        payout_distribution: Array(count).fill("").map((_, i) => details.payout_distribution[i] ?? "")
+                      });
+                    }} />
+                  </div>
+                </div>
+
+                {Number(details.cash_winner_count) > 0 && (
+                  <div>
+                    <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Payout Distribution % (must sum to 100) *</label>
+                    <div className="space-y-2">
+                      {Array.from({ length: Number(details.cash_winner_count) }).map((_, i) => (
+                        <div key={i} className="flex items-center gap-2">
+                          <span className="text-xs font-mono w-14 flex-shrink-0" style={{ color: "var(--text-muted)" }}>Rank {i + 1}</span>
+                          <input
+                            className={inputCls}
+                            type="number"
+                            placeholder="0"
+                            value={details.payout_distribution[i] ?? ""}
+                            onChange={(e) => {
+                              const newDist = [...details.payout_distribution];
+                              newDist[i] = e.target.value;
+                              setDetails({ ...details, payout_distribution: newDist });
+                            }}
+                          />
+                          <span className="text-xs flex-shrink-0" style={{ color: "var(--text-muted)" }}>%</span>
+                        </div>
+                      ))}
+                    </div>
+                    {details.payout_distribution.length > 0 && (
+                      <p className="text-xs mt-2" style={{ color: "var(--text-muted)" }}>
+                        Total: {details.payout_distribution.reduce((sum, p) => sum + (isNaN(Number(p)) ? 0 : Number(p)), 0).toFixed(1)}%
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Total Payout % *</label>
+                    <input className={inputCls} type="number" placeholder="e.g. 70" value={details.total_payout_percent} onChange={(e) => setDetails({ ...details, total_payout_percent: e.target.value })} />
+                  </div>
+                  <div>
+                    <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Ticket Tier % *</label>
+                    <input className={inputCls} type="number" placeholder="e.g. 30" value={details.ticket_tier_percent} onChange={(e) => setDetails({ ...details, ticket_tier_percent: e.target.value })} />
+                  </div>
+                </div>
+
+                <div>
+                  <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Guaranteed Min Prize</label>
+                  <input className={inputCls} type="number" placeholder="Optional — e.g. 50000" value={details.guaranteed_minimum} onChange={(e) => setDetails({ ...details, guaranteed_minimum: e.target.value })} />
+                </div>
+              </div>
+
               <button
                 onClick={handleStep1Next}
-                className="w-full py-3.5 bg-neon text-black font-black rounded-xl text-sm"
+                className="w-full py-3.5 font-black rounded-xl text-sm transition-opacity hover:opacity-90"
+                style={{ backgroundColor: "var(--accent-indigo)", color: "white" }}
               >
-                Next: Schedule
+                Next: Schedule →
               </button>
             </motion.div>
           )}
@@ -349,28 +362,30 @@ export default function AdminBlitzCreatePage() {
               initial={{ opacity: 0, x: 30 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -30 }}
-              className="bg-[#141414] border border-[#1E1E1E] rounded-2xl p-5 space-y-4"
+              className="border rounded-2xl p-5 space-y-5"
+              style={{ borderColor: "var(--border-subtle)", backgroundColor: "var(--bg-card)" }}
             >
-              <h2 className="text-white font-bold text-base">Schedule</h2>
-              <div className="space-y-3">
+              <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>Schedule</p>
+              <div className="space-y-4">
                 <div>
-                  <label className="text-gray-500 text-xs mb-1.5 block">Registration Opens *</label>
+                  <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Registration Opens *</label>
                   <input className={inputCls} type="datetime-local" value={schedule.registration_start} onChange={(e) => setSchedule({ ...schedule, registration_start: e.target.value })} />
                 </div>
                 <div>
-                  <label className="text-gray-500 text-xs mb-1.5 block">Tournament Starts *</label>
+                  <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Tournament Starts *</label>
                   <input className={inputCls} type="datetime-local" value={schedule.tournament_start} onChange={(e) => setSchedule({ ...schedule, tournament_start: e.target.value })} />
                 </div>
                 <div>
-                  <label className="text-gray-500 text-xs mb-1.5 block">Tournament Ends *</label>
+                  <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Tournament Ends *</label>
                   <input className={inputCls} type="datetime-local" value={schedule.tournament_end} onChange={(e) => setSchedule({ ...schedule, tournament_end: e.target.value })} />
                 </div>
               </div>
               <button
                 onClick={handleStep2Next}
-                className="w-full py-3.5 bg-neon text-black font-black rounded-xl text-sm"
+                className="w-full py-3.5 font-black rounded-xl text-sm transition-opacity hover:opacity-90"
+                style={{ backgroundColor: "var(--accent-indigo)", color: "white" }}
               >
-                Next: Add Questions
+                Next: Add Questions →
               </button>
             </motion.div>
           )}

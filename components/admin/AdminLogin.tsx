@@ -52,8 +52,8 @@ export function AdminLogin() {
           <Image
             src="/bitlyfe-mark.svg"
             alt="BitLyfe"
-            width={16}
-            height={16}
+            width={24}
+            height={24}
           />
           <span className="font-headline text-sm font-semibold" style={{ color: "var(--text-primary)" }}>bitlyfe admin</span>
         </div>
@@ -71,8 +71,8 @@ export function AdminLogin() {
           <Image
             src="/bitlyfe-mark.svg"
             alt="BitLyfe"
-            width={20}
-            height={20}
+            width={28}
+            height={28}
           />
           <span className="font-headline text-base font-semibold" style={{ color: "var(--text-primary)" }}>Admin</span>
         </div>
@@ -172,12 +172,12 @@ export function AdminLogin() {
             <button
               type="submit"
               disabled={loading || !email || !password}
-              className="w-full py-3 font-semibold rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2 mt-6"
+              className="w-full py-3 font-semibold rounded-lg transition-all flex items-center justify-center gap-2 mt-6"
               style={{
-                backgroundColor: loading || !email || !password ? "var(--text-muted)" : "var(--accent-indigo)",
-                color: loading || !email || !password ? "var(--bg-base)" : "white",
+                backgroundColor: "var(--accent-indigo)",
+                color: "white",
                 cursor: loading || !email || !password ? "not-allowed" : "pointer",
-                opacity: loading || !email || !password ? 0.5 : 1,
+                opacity: !email || !password ? 0.45 : 1,
               }}
             >
               {loading ? (

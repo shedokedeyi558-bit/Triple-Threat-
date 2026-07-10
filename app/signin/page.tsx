@@ -79,7 +79,7 @@ export default function SignInPage() {
           <ArrowLeft size={20} style={{ color: "var(--text-secondary)" }} />
         </Link>
         <div className="flex items-center gap-2">
-          <img src="/bitlyfe-mark.svg" alt="BitLyfe" width={16} height={16} />
+          <img src="/bitlyfe-mark.svg" alt="BitLyfe" width={24} height={24} />
           <span className="font-headline text-sm font-semibold" style={{ color: "var(--text-primary)" }}>bitlyfe</span>
         </div>
       </div>
@@ -94,7 +94,7 @@ export default function SignInPage() {
       >
         {/* Logo */}
         <div className="flex items-center gap-2">
-          <img src="/bitlyfe-mark.svg" alt="BitLyfe" width={20} height={20} />
+          <img src="/bitlyfe-mark.svg" alt="BitLyfe" width={28} height={28} />
           <span className="font-headline text-base font-semibold" style={{ color: "var(--text-primary)" }}>bitlyfe</span>
         </div>
 
@@ -224,12 +224,12 @@ export default function SignInPage() {
                   <button
                     type="submit"
                     disabled={loading || phone.length !== 10 || password.length < 6}
-                    className="w-full py-3 font-semibold rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2 mt-6"
+                    className="w-full py-3 font-semibold rounded-lg transition-all flex items-center justify-center gap-2 mt-6"
                     style={{
-                      backgroundColor: loading || phone.length !== 10 || password.length < 6 ? "var(--text-muted)" : "var(--accent-amber)",
-                      color: loading || phone.length !== 10 || password.length < 6 ? "var(--bg-base)" : "#412403",
+                      backgroundColor: "var(--accent-amber)",
+                      color: "#412403",
                       cursor: loading || phone.length !== 10 || password.length < 6 ? "not-allowed" : "pointer",
-                      opacity: loading || phone.length !== 10 || password.length < 6 ? 0.5 : 1,
+                      opacity: phone.length !== 10 || password.length < 6 ? 0.45 : 1,
                     }}
                   >
                     {loading ? (

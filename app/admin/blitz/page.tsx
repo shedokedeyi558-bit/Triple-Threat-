@@ -79,114 +79,114 @@ export default function AdminBlitzPage() {
   if (!state.isAuthenticated) return null;
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] text-white p-4 lg:p-6">
-      <div className="max-w-4xl mx-auto space-y-5">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Zap size={22} className="text-neon" />
-            <h1 className="font-black text-2xl text-white">Blitz Tournaments</h1>
-          </div>
-          <button
-            onClick={() => router.push("/admin/blitz/create")}
-            className="flex items-center gap-2 px-4 py-2 bg-neon text-black font-bold text-sm rounded-xl hover:bg-neon/90 transition-colors"
-          >
-            <Plus size={16} />
-            Create Blitz
-          </button>
+    <div className="space-y-5 max-w-4xl">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Zap size={22} className="text-neon" />
+          <h1 className="font-black text-2xl text-white">Blitz Tournaments</h1>
         </div>
+        <button
+          onClick={() => router.push("/admin/blitz/create")}
+          className="flex items-center gap-2 px-4 py-2 font-bold text-sm rounded-xl hover:opacity-90 transition-opacity"
+          style={{ backgroundColor: "var(--accent-indigo)", color: "white" }}
+        >
+          <Plus size={16} />
+          Create Blitz
+        </button>
+      </div>
 
-        {error && (
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="text-red-400 text-sm bg-red-900/10 border border-red-900/30 rounded-xl p-3"
-          >
-            {error}
-          </motion.p>
+      {error && (
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="text-red-400 text-sm bg-red-900/10 border border-red-900/30 rounded-xl p-3"
+        >
+          {error}
+        </motion.p>
         )}
 
-        {loading ? (
-          <div className="space-y-3">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="bg-[#141414] border border-[#1E1E1E] rounded-xl p-4 h-20 animate-pulse" />
-            ))}
-          </div>
-        ) : tournaments.length === 0 ? (
-          <div className="bg-[#141414] border border-[#1E1E1E] rounded-2xl p-12 text-center">
-            <Zap size={40} className="text-gray-700 mx-auto mb-3" />
-            <p className="text-gray-500 text-sm">No blitz tournaments yet</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {tournaments.map((t, i) => (
-              <motion.div
-                key={t.id}
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.05 }}
-                className="bg-[#141414] border border-[#1E1E1E] rounded-xl p-4"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h3 className="text-white font-bold text-base truncate">{t.title}</h3>
-                      <StatusBadge status={t.status} />
-                    </div>
-                    <div className="flex items-center gap-4 text-xs text-gray-500 flex-wrap">
-                      <span className="text-neon font-semibold">₦{t.entry_fee.toLocaleString()} entry</span>
-                      <span>Pool: ₦{t.prize_pool.toLocaleString()}</span>
-                      <span className="flex items-center gap-1">
-                        <Users size={11} />
-                        {t.total_registered} registered
-                      </span>
-                      <span>{t.question_count} questions</span>
-                    </div>
+      {loading ? (
+        <div className="space-y-3">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="bg-[#141414] border border-[#1E1E1E] rounded-xl p-4 h-20 animate-pulse" />
+          ))}
+        </div>
+      ) : tournaments.length === 0 ? (
+        <div className="border rounded-2xl p-16 text-center" style={{ borderColor: "var(--border-subtle)", backgroundColor: "var(--bg-card)" }}>
+          <Zap size={40} className="mx-auto mb-3" style={{ color: "var(--text-muted)" }} />
+          <p className="text-sm font-semibold" style={{ color: "var(--text-secondary)" }}>No blitz tournaments yet</p>
+          <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>Create one with the button above</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {tournaments.map((t, i) => (
+            <motion.div
+              key={t.id}
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.05 }}
+              className="bg-[#141414] border border-[#1E1E1E] rounded-xl p-4"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="text-white font-bold text-base truncate">{t.title}</h3>
+                    <StatusBadge status={t.status} />
                   </div>
-
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    {t.status === "draft" && (
-                      <button
-                        onClick={() => router.push(`/admin/blitz/${t.id}/setup`)}
-                        className="px-3 py-1.5 text-xs font-bold bg-[#1E1E1E] border border-[#333] text-white rounded-lg hover:border-neon/40 transition-colors flex items-center gap-1"
-                      >
-                        Add Questions
-                        <ChevronRight size={12} />
-                      </button>
-                    )}
-                    {t.status === "registration" && (
-                      <button
-                        onClick={() => handleActivate(t.id)}
-                        disabled={actionLoading === t.id + ":activate"}
-                        className="px-3 py-1.5 text-xs font-bold bg-neon/10 border border-neon/40 text-neon rounded-lg hover:bg-neon/20 transition-colors disabled:opacity-50"
-                      >
-                        {actionLoading === t.id + ":activate" ? "..." : "Activate"}
-                      </button>
-                    )}
-                    {(t.status === "active" || t.status === "scoring") && (
-                      <button
-                        onClick={() => setConfirmScore(t.id)}
-                        disabled={actionLoading === t.id + ":score"}
-                        className="px-3 py-1.5 text-xs font-bold bg-yellow-500/10 border border-yellow-500/40 text-yellow-400 rounded-lg hover:bg-yellow-500/20 transition-colors disabled:opacity-50"
-                      >
-                        {actionLoading === t.id + ":score" ? "..." : "Score & Pay"}
-                      </button>
-                    )}
-                    {t.status === "completed" && (
-                      <button
-                        onClick={() => router.push(`/admin/blitz/${t.id}/leaderboard`)}
-                        className="px-3 py-1.5 text-xs font-bold bg-[#1E1E1E] border border-[#333] text-white rounded-lg hover:border-neon/40 transition-colors flex items-center gap-1"
-                      >
-                        <Trophy size={12} />
-                        Leaderboard
-                      </button>
-                    )}
+                  <div className="flex items-center gap-4 text-xs text-gray-500 flex-wrap">
+                    <span className="text-neon font-semibold">₦{t.entry_fee.toLocaleString()} entry</span>
+                    <span>Pool: ₦{t.prize_pool.toLocaleString()}</span>
+                    <span className="flex items-center gap-1">
+                      <Users size={11} />
+                      {t.total_registered} registered
+                    </span>
+                    <span>{t.question_count} questions</span>
                   </div>
                 </div>
-              </motion.div>
-            ))}
-          </div>
-        )}
-      </div>
+
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  {t.status === "draft" && (
+                    <button
+                      onClick={() => router.push(`/admin/blitz/${t.id}/setup`)}
+                      className="px-3 py-1.5 text-xs font-bold bg-[#1E1E1E] border border-[#333] text-white rounded-lg hover:border-neon/40 transition-colors flex items-center gap-1"
+                    >
+                      Add Questions
+                      <ChevronRight size={12} />
+                    </button>
+                  )}
+                  {t.status === "registration" && (
+                    <button
+                      onClick={() => handleActivate(t.id)}
+                      disabled={actionLoading === t.id + ":activate"}
+                      className="px-3 py-1.5 text-xs font-bold bg-neon/10 border border-neon/40 text-neon rounded-lg hover:bg-neon/20 transition-colors disabled:opacity-50"
+                    >
+                      {actionLoading === t.id + ":activate" ? "..." : "Activate"}
+                    </button>
+                  )}
+                  {(t.status === "active" || t.status === "scoring") && (
+                    <button
+                      onClick={() => setConfirmScore(t.id)}
+                      disabled={actionLoading === t.id + ":score"}
+                      className="px-3 py-1.5 text-xs font-bold bg-yellow-500/10 border border-yellow-500/40 text-yellow-400 rounded-lg hover:bg-yellow-500/20 transition-colors disabled:opacity-50"
+                    >
+                      {actionLoading === t.id + ":score" ? "..." : "Score & Pay"}
+                    </button>
+                  )}
+                  {t.status === "completed" && (
+                    <button
+                      onClick={() => router.push(`/admin/blitz/${t.id}/leaderboard`)}
+                      className="px-3 py-1.5 text-xs font-bold bg-[#1E1E1E] border border-[#333] text-white rounded-lg hover:border-neon/40 transition-colors flex items-center gap-1"
+                    >
+                      <Trophy size={12} />
+                      Leaderboard
+                    </button>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      )}
 
       {confirmScore && (
         <div

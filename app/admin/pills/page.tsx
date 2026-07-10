@@ -67,8 +67,9 @@ export default function AdminPillsPage() {
           <p className="text-gray-500 text-sm mt-0.5">Manage all pill pack games</p>
         </div>
         <button
-          onClick={() => router.push("/admin")}
-          className="flex items-center gap-2 px-4 py-2.5 bg-neon text-black font-bold rounded-xl hover:bg-neon/90 text-sm"
+          onClick={() => router.push("/admin/pills/create")}
+          className="flex items-center gap-2 px-4 py-2.5 font-bold rounded-xl hover:opacity-90 text-sm transition-opacity"
+          style={{ backgroundColor: "var(--accent-indigo)", color: "white" }}
         >
           <Plus size={15} /> Create New Pack
         </button>
@@ -86,10 +87,10 @@ export default function AdminPillsPage() {
         <div className="flex flex-col items-center justify-center py-24 text-center">
           <Package size={40} className="text-gray-700 mb-4" />
           <p className="text-gray-500 font-semibold">No pill packs yet</p>
-          <p className="text-gray-700 text-sm mt-1">Create your first pack from the dashboard</p>
-          <button onClick={() => router.push("/admin")}
-            className="mt-4 text-neon text-sm font-bold hover:underline">
-            Go to Dashboard →
+          <p className="text-gray-700 text-sm mt-1">Create your first pack to get started</p>
+          <button onClick={() => router.push("/admin/pills/create")}
+            className="mt-4 text-sm font-bold hover:underline" style={{ color: "var(--accent-indigo)" }}>
+            Create First Pack →
           </button>
         </div>
       ) : (

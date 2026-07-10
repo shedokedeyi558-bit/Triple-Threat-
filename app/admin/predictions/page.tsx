@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { adminApi, ApiError } from "@/lib/api";
-import { Users, Eye, Clock, AlertCircle } from "lucide-react";
+import { Users, Eye, Clock, AlertCircle, ArrowLeft, Plus } from "lucide-react";
 
 interface PredictionRow {
   id: string;
@@ -83,14 +83,32 @@ export default function AdminPredictionsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="font-headline text-2xl font-semibold" style={{ color: "var(--text-primary)" }}>
-            Time Machine
-          </h1>
-          <p className="text-sm mt-0.5" style={{ color: "var(--text-secondary)" }}>
-            Manage all predictions
-          </p>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => router.push("/admin")}
+            className="p-2 rounded-lg border transition-colors"
+            style={{ borderColor: "var(--border-subtle)", color: "var(--text-secondary)" }}
+            aria-label="Back to Dashboard"
+          >
+            <ArrowLeft size={16} />
+          </button>
+          <div>
+            <h1 className="font-headline text-2xl font-semibold" style={{ color: "var(--text-primary)" }}>
+              Time Machine
+            </h1>
+            <p className="text-sm mt-0.5" style={{ color: "var(--text-secondary)" }}>
+              Manage all predictions
+            </p>
+          </div>
         </div>
+        <button
+          onClick={() => router.push("/admin/predictions/create")}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-colors"
+          style={{ backgroundColor: "var(--accent-indigo)", color: "white" }}
+        >
+          <Plus size={15} />
+          Create
+        </button>
       </div>
 
       {error && (
