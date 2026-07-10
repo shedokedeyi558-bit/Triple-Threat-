@@ -54,7 +54,6 @@ export function AdminLogin() {
             alt="BitLyfe"
             width={16}
             height={16}
-            style={{ filter: "brightness(0) saturate(100%) invert(35%) sepia(80%) saturate(1000%) hue-rotate(210deg) brightness(1.1)" }}
           />
           <span className="font-headline text-sm font-semibold" style={{ color: "var(--text-primary)" }}>bitlyfe admin</span>
         </div>
@@ -74,7 +73,6 @@ export function AdminLogin() {
             alt="BitLyfe"
             width={20}
             height={20}
-            style={{ filter: "brightness(0) saturate(100%) invert(35%) sepia(80%) saturate(1000%) hue-rotate(210deg) brightness(1.1)" }}
           />
           <span className="font-headline text-base font-semibold" style={{ color: "var(--text-primary)" }}>Admin</span>
         </div>

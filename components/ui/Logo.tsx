@@ -28,7 +28,6 @@ export function Logo({ size = "md", variant = "full", admin = false }: LogoProps
           width={markSize}
           height={markSize}
           className="flex-shrink-0"
-          style={admin ? { filter: "brightness(0) saturate(100%) invert(35%) sepia(80%) saturate(1000%) hue-rotate(210deg) brightness(1.1)" } : {}}
           priority
         />
       )}

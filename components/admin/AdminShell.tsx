@@ -34,7 +34,6 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               alt="BitLyfe"
               width={28}
               height={28}
-              style={{ filter: "brightness(0) saturate(100%) invert(35%) sepia(80%) saturate(1000%) hue-rotate(210deg) brightness(1.1)" }}
             />
           </Link>
           <span className="font-headline text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
