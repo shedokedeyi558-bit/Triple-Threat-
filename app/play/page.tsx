@@ -550,8 +550,8 @@ export default function PlayPage() {
                         {selectedPack.name}
                       </h3>
                     </div>
-                    <div className="overflow-x-auto pb-2 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8">
-                      <div className="flex gap-3">
+                    <div className="overflow-x-auto pb-2" style={{ WebkitOverflowScrolling: "touch" }}>
+                      <div className="flex gap-3" style={{ minWidth: "min-content" }}>
                         {selectedPack.pills.map((pill) => (
                           <PillChip
                             key={pill.id}
@@ -574,8 +574,8 @@ export default function PlayPage() {
                         </div>
                       </div>
                     ) : (
-                      <div className="overflow-x-auto pb-2 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8">
-                        <div className="flex gap-3">
+                      <div className="overflow-x-auto pb-2" style={{ WebkitOverflowScrolling: "touch" }}>
+                        <div className="flex gap-3" style={{ minWidth: "min-content" }}>
                           {packs.map((pack) => (
                             <PackCard
                               key={pack.id}
