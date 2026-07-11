@@ -146,18 +146,18 @@ export default function CreatePillPackPage() {
       )}
 
       {/* Dev tools: category selector + count + fill button */}
-      <div className="space-y-2">
+      <div className="space-y-2 w-full">
         {/* Category chips */}
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="text-[10px] font-bold uppercase tracking-widest flex-shrink-0" style={{ color: "var(--text-muted)" }}>
-            Q category:
+        <div className="w-full flex items-center gap-1 flex-wrap">
+          <span className="text-[10px] font-bold uppercase tracking-widest flex-shrink-0 mr-0.5" style={{ color: "var(--text-muted)" }}>
+            Category:
           </span>
           {SAMPLE_CATEGORIES.map((cat) => (
             <button
               key={cat}
               type="button"
               onClick={() => setSampleCategory(cat)}
-              className="px-2 py-1 rounded-lg text-[10px] font-semibold border transition-all"
+              className="px-1.5 py-0.5 rounded-md text-[9px] font-semibold border transition-all flex-shrink-0"
               style={{
                 backgroundColor: sampleCategory === cat ? "rgba(76,111,255,0.15)" : "transparent",
                 borderColor: sampleCategory === cat ? "rgba(76,111,255,0.5)" : "var(--border-hairline)",
@@ -206,10 +206,10 @@ export default function CreatePillPackPage() {
               setFormOpen(false);
               setError("");
             }}
-            className="flex-1 py-2 rounded-xl text-xs font-semibold border transition-colors hover:opacity-80"
+            className="flex-1 py-2 rounded-xl text-xs font-semibold border transition-colors hover:opacity-80 truncate"
             style={{ borderColor: "var(--border-hairline)", color: "var(--text-muted)", backgroundColor: "transparent" }}
           >
-            Fill Test Data (dev only) · {sampleCategory}
+            Fill test data · {sampleCategory}
           </button>
         </div>
       </div>

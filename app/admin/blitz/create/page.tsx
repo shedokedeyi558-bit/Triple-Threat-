@@ -257,18 +257,18 @@ export default function AdminBlitzCreatePage() {
         )}
 
         {/* Dev tools: category selector + fill/generate buttons */}
-        <div className="space-y-2">
+        <div className="space-y-2 w-full">
           {/* Category chip selector */}
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-[10px] font-bold uppercase tracking-widest flex-shrink-0" style={{ color: "var(--text-muted)" }}>
-              Q category:
+          <div className="w-full flex items-center gap-1 flex-wrap">
+            <span className="text-[10px] font-bold uppercase tracking-widest flex-shrink-0 mr-0.5" style={{ color: "var(--text-muted)" }}>
+              Category:
             </span>
             {SAMPLE_CATEGORIES.map((cat) => (
               <button
                 key={cat}
                 type="button"
                 onClick={() => setSampleCategory(cat)}
-                className="px-2 py-1 rounded-lg text-[10px] font-semibold border transition-all"
+                className="px-1.5 py-0.5 rounded-md text-[9px] font-semibold border transition-all flex-shrink-0"
                 style={{
                   backgroundColor: sampleCategory === cat ? "rgba(76,111,255,0.15)" : "transparent",
                   borderColor: sampleCategory === cat ? "rgba(76,111,255,0.5)" : "var(--border-hairline)",
@@ -316,10 +316,10 @@ export default function AdminBlitzCreatePage() {
                 : { text: `Filled with ${count} ${sampleCategory} questions`, type: "success" }
               );
             }}
-            className="w-full py-2 rounded-xl text-xs font-semibold border transition-colors"
+            className="w-full py-2 rounded-xl text-xs font-semibold border transition-colors truncate"
             style={{ borderColor: "var(--border-hairline)", color: "var(--text-muted)", backgroundColor: "transparent" }}
           >
-            Fill Test Data (dev only) · {sampleCategory}
+            Fill test data · {sampleCategory}
           </button>
 
           {/* Generate — step 3 only */}
@@ -334,10 +334,10 @@ export default function AdminBlitzCreatePage() {
                 setNotice({ text: `Generated ${toAdd.length} ${sampleCategory} question${toAdd.length !== 1 ? "s" : ""}`, type: "success" });
               }}
               disabled={questions.length >= requiredCount}
-              className="w-full py-2 rounded-xl text-xs font-semibold border transition-colors disabled:opacity-50"
+              className="w-full py-2 rounded-xl text-xs font-semibold border transition-colors disabled:opacity-50 truncate"
               style={{ borderColor: "var(--border-hairline)", color: "var(--text-muted)", backgroundColor: "transparent" }}
             >
-              Generate {Math.max(0, requiredCount - questions.length)} {sampleCategory} questions
+              Generate {Math.max(0, requiredCount - questions.length)} · {sampleCategory}
             </button>
           )}
         </div>
