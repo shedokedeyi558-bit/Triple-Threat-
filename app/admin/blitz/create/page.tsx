@@ -20,7 +20,6 @@ interface TournamentDetails {
   entry_fee: string;
   question_count: string;
   time_limit_seconds: string;
-  platform_cut_percent: string;
   max_participants: string;
   cash_winner_count: string;
   payout_distribution: string[];
@@ -49,7 +48,6 @@ export default function AdminBlitzCreatePage() {
     entry_fee: "",
     question_count: "",
     time_limit_seconds: "",
-    platform_cut_percent: "",
     max_participants: "",
     cash_winner_count: "",
     payout_distribution: [],
@@ -94,10 +92,13 @@ export default function AdminBlitzCreatePage() {
     const totalPayout = details.payout_distribution.reduce((sum, p) => sum + (isNaN(Number(p)) ? 0 : Number(p)), 0);
     if (Math.abs(totalPayout - 100) > 0.01) return `Payout percentages must sum to 100 (currently ${totalPayout.toFixed(1)}%)`;
     
-    if (!details.total_payout_percent || isNaN(Number(details.total_payout_percent)) || Number(details.total_payout_percent) < 0 || Number(details.total_payout_percent) > 100) 
-      return "Valid total payout percent (0-100) required";
-    if (!details.ticket_tier_percent || isNaN(Number(details.ticket_tier_percent)) || Number(details.ticket_tier_percent) < 0 || Number(details.ticket_tier_percent) > 100) 
-      return "Valid ticket tier percent (0-100) required";
+    const totalPayoutPercent = isNaN(Number(details.total_payout_percent)) ? 0 : Number(details.total_payout_percent);
+    if (totalPayoutPercent < 1 || totalPayoutPercent > 100) 
+      return "Total payout percent must be 1-100";
+    
+    const ticketTierPercent = isNaN(Number(details.ticket_tier_percent)) ? 0 : Number(details.ticket_tier_percent);
+    if (ticketTierPercent < 0 || ticketTierPercent > 100) 
+      return "Ticket tier percent must be 0-100";
     
     if (details.guaranteed_minimum && (isNaN(Number(details.guaranteed_minimum)) || Number(details.guaranteed_minimum) < 0))
       return "Guaranteed minimum must be a valid number";
@@ -161,7 +162,6 @@ export default function AdminBlitzCreatePage() {
         registration_start: new Date(schedule.registration_start).toISOString(),
         tournament_start: new Date(schedule.tournament_start).toISOString(),
         tournament_end: new Date(schedule.tournament_end).toISOString(),
-        platform_cut_percent: details.platform_cut_percent ? Number(details.platform_cut_percent) : undefined,
       });
 
       const tournamentId = res.tournament.id;
@@ -247,7 +247,6 @@ export default function AdminBlitzCreatePage() {
               entry_fee: "500",
               question_count: "3",
               time_limit_seconds: "300",
-              platform_cut_percent: "20",
               max_participants: "100",
               cash_winner_count: "3",
               payout_distribution: ["50", "30", "20"],
@@ -273,6 +272,31 @@ export default function AdminBlitzCreatePage() {
         >
           Fill Test Data (dev only)
         </button>
+
+        {/* Generate sample questions button - only visible on step 3 */}
+        {step === 3 && (
+          <button
+            type="button"
+            onClick={() => {
+              const sampleQuestions: QuestionDraft[] = [
+                { question: "What is the capital of France?", format: "type_answer", options: [], correct_answer: "Paris" },
+                { question: "Which of these is a programming language?", format: "multiple_choice", options: ["TypeScript", "Banana", "Car", "Tree"], correct_answer: "TypeScript" },
+                { question: "What year did World War II end?", format: "type_answer", options: [], correct_answer: "1945" },
+                { question: "How many sides does a hexagon have?", format: "multiple_choice", options: ["4", "5", "6", "7"], correct_answer: "6" },
+                { question: "What is the largest planet in our solar system?", format: "type_answer", options: [], correct_answer: "Jupiter" },
+              ];
+              const needed = requiredCount - questions.length;
+              const toAdd = sampleQuestions.slice(0, Math.max(0, needed));
+              setQuestions((prev) => [...prev, ...toAdd]);
+              setError(`Generated ${toAdd.length} sample questions`);
+            }}
+            disabled={questions.length >= requiredCount}
+            className="w-full py-2 rounded-xl text-xs font-semibold border transition-colors disabled:opacity-50"
+            style={{ borderColor: "var(--border-hairline)", color: "var(--text-muted)", backgroundColor: "transparent" }}
+          >
+            Generate {Math.max(0, requiredCount - questions.length)} sample questions
+          </button>
+        )}
 
         <AnimatePresence mode="wait">
           {step === 1 && (
@@ -308,10 +332,6 @@ export default function AdminBlitzCreatePage() {
                     <div>
                       <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Time Limit (sec) *</label>
                       <input className={inputCls} type="number" placeholder="e.g. 300" value={details.time_limit_seconds} onChange={(e) => setDetails({ ...details, time_limit_seconds: e.target.value })} />
-                    </div>
-                    <div>
-                      <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Platform Cut %</label>
-                      <input className={inputCls} type="number" placeholder="e.g. 20" value={details.platform_cut_percent} onChange={(e) => setDetails({ ...details, platform_cut_percent: e.target.value })} />
                     </div>
                   </div>
                 </div>
@@ -383,6 +403,32 @@ export default function AdminBlitzCreatePage() {
                 <div>
                   <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Guaranteed Min Prize</label>
                   <input className={inputCls} type="number" placeholder="Optional — e.g. 50000" value={details.guaranteed_minimum} onChange={(e) => setDetails({ ...details, guaranteed_minimum: e.target.value })} />
+                </div>
+
+                {/* Live Payout Preview */}
+                <div className="mt-6 pt-4 border-t" style={{ borderColor: "var(--border-hairline)" }}>
+                  <p className="text-[10px] font-bold uppercase tracking-widest mb-3" style={{ color: "var(--text-muted)" }}>Payout Summary</p>
+                  <div className="rounded-xl p-3 space-y-2" style={{ backgroundColor: "rgba(76,111,255,0.08)", borderColor: "var(--border-hairline)", border: "1px solid" }}>
+                    <div className="flex justify-between text-xs">
+                      <span style={{ color: "var(--text-secondary)" }}>Cash pool:</span>
+                      <span className="font-mono font-semibold" style={{ color: "var(--accent-indigo)" }}>{details.total_payout_percent || "0"}% of revenue</span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span style={{ color: "var(--text-secondary)" }}>Ticket tier:</span>
+                      <span className="font-mono font-semibold" style={{ color: "var(--accent-violet)" }}>{details.ticket_tier_percent || "0"}% of remaining</span>
+                    </div>
+                    <div className="flex justify-between text-xs pt-2 border-t" style={{ borderColor: "var(--border-hairline)" }}>
+                      <span style={{ color: "var(--text-secondary)" }}>Platform keeps:</span>
+                      <span className="font-mono font-semibold" style={{ color: "var(--text-primary)" }}>
+                        {(100 - (isNaN(Number(details.total_payout_percent)) ? 0 : Number(details.total_payout_percent))).toFixed(0)}% of revenue
+                      </span>
+                    </div>
+                    {Number(details.total_payout_percent) > 90 && (
+                      <div className="mt-2 pt-2 border-t text-[10px]" style={{ borderColor: "var(--border-hairline)", color: "var(--accent-amber)" }}>
+                        ⚠ Less than 10% platform margin
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
