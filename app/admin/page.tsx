@@ -190,7 +190,7 @@ export default function AdminDashboard() {
               </span>
             </div>
             <p className="font-mono text-xl font-bold" style={{ color: "var(--text-primary)" }}>
-              {(blitz.length + predictions.length + packs.length).toString()}
+              {(blitz.length + predictions.length + packs.filter((p) => p.status === "active").length).toString()}
             </p>
           </motion.div>
         </div>
@@ -443,7 +443,10 @@ export default function AdminDashboard() {
                   Pill Packs
                 </h2>
                 <p className="text-xs mt-0.5" style={{ color: "var(--text-secondary)" }}>
-                  {packs.length > 0 ? `${packs.length} active` : "No packs yet"}
+                  {(() => {
+                    const activePacks = packs.filter((p) => p.status === "active");
+                    return activePacks.length > 0 ? `${activePacks.length} active` : "No active packs";
+                  })()}
                 </p>
               </div>
             </div>
