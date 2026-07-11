@@ -81,19 +81,19 @@ export default function AdminPredictionsPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
+    <div className="space-y-6 overflow-x-hidden">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0 flex-1">
           <button
             onClick={() => router.push("/admin")}
-            className="p-2 rounded-lg border transition-colors"
+            className="p-2 rounded-lg border transition-colors flex-shrink-0"
             style={{ borderColor: "var(--border-subtle)", color: "var(--text-secondary)" }}
             aria-label="Back to Dashboard"
           >
             <ArrowLeft size={16} />
           </button>
-          <div>
-            <h1 className="font-headline text-2xl font-semibold" style={{ color: "var(--text-primary)" }}>
+          <div className="min-w-0">
+            <h1 className="font-headline text-2xl font-semibold truncate" style={{ color: "var(--text-primary)" }}>
               Time Machine
             </h1>
             <p className="text-sm mt-0.5" style={{ color: "var(--text-secondary)" }}>
@@ -103,7 +103,7 @@ export default function AdminPredictionsPage() {
         </div>
         <button
           onClick={() => router.push("/admin/predictions/create")}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-colors"
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-colors flex-shrink-0"
           style={{ backgroundColor: "var(--accent-indigo)", color: "white" }}
         >
           <Plus size={15} />
