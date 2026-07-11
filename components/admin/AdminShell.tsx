@@ -41,13 +41,13 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               height={28}
             />
           </Link>
-          <span className="font-headline text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+          <span className="font-headline text-sm font-semibold min-w-0 truncate" style={{ color: "var(--text-primary)" }}>
             bitlyfe admin
           </span>
-          <div className="flex-1" />
+          <div className="flex-1 min-w-0" />
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="p-2 rounded-lg transition-colors"
+            className="p-2 rounded-lg transition-colors flex-shrink-0"
             style={{ color: "var(--text-secondary)" }}
             aria-label="Toggle menu"
           >
@@ -103,7 +103,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         )}
 
         {/* Page content */}
-        <main className="flex-1 overflow-auto p-4 lg:p-8 pb-20 lg:pb-8">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 lg:p-8 pb-20 lg:pb-8">
           {children}
         </main>
       </div>
