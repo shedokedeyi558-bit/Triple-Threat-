@@ -194,7 +194,7 @@ export default function AdminBlitzCreatePage() {
   const labelCls = "block text-[10px] font-bold uppercase tracking-widest mb-1.5";
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] text-white p-4 lg:p-6">
+    <div className="min-h-screen bg-[#0A0A0A] text-white p-4 lg:p-6 overflow-x-hidden">
       <div className="max-w-2xl mx-auto space-y-6">
         <div className="flex items-center gap-3">
           <button
@@ -487,7 +487,7 @@ export default function AdminBlitzCreatePage() {
               <div className="bg-[#141414] border border-[#1E1E1E] rounded-2xl p-5 space-y-4">
                 <div className="flex items-center justify-between">
                   <h2 className="text-white font-bold text-base">Add Questions</h2>
-                  <span className={`text-xs font-bold px-2 py-1 rounded-lg ${questions.length >= requiredCount ? "bg-neon/20 text-neon" : "bg-gray-700/20 text-gray-400"}`}>
+                  <span className={`text-xs font-bold px-2 py-1 rounded-lg ${questions.length >= requiredCount ? "bg-[#4C6FFF]/20 text-[#4C6FFF]" : "bg-gray-700/20 text-gray-400"}`}>
                     {questions.length}/{requiredCount}
                   </span>
                 </div>
@@ -511,11 +511,12 @@ export default function AdminBlitzCreatePage() {
                         <button
                           key={fmt}
                           onClick={() => setQDraft({ ...qDraft, format: fmt })}
-                          className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-colors ${
-                            qDraft.format === fmt
-                              ? "bg-neon/20 border-neon/60 text-neon"
-                              : "bg-[#0A0A0A] border-[#1E1E1E] text-gray-400"
-                          }`}
+                          className="flex-1 py-2 rounded-xl text-xs font-bold border transition-colors"
+                          style={{
+                            backgroundColor: qDraft.format === fmt ? "rgba(76,111,255,0.15)" : "#0A0A0A",
+                            borderColor: qDraft.format === fmt ? "rgba(76,111,255,0.5)" : "#1E1E1E",
+                            color: qDraft.format === fmt ? "var(--accent-indigo)" : "#9ca3af",
+                          }}
                         >
                           {fmt === "multiple_choice" ? "Multiple Choice" : "Type Answer"}
                         </button>
@@ -575,12 +576,12 @@ export default function AdminBlitzCreatePage() {
                       className="bg-[#141414] border border-[#1E1E1E] rounded-xl p-3 flex items-start justify-between gap-3"
                     >
                       <div className="flex items-start gap-2 flex-1 min-w-0">
-                        <span className="text-neon font-black text-sm flex-shrink-0 mt-0.5">Q{i + 1}</span>
+                        <span className="font-black text-sm flex-shrink-0 mt-0.5" style={{ color: "var(--accent-indigo)" }}>Q{i + 1}</span>
                         <div className="min-w-0">
                           <p className="text-white text-sm font-semibold truncate">{q.question}</p>
                           <p className="text-gray-500 text-xs mt-0.5 truncate">
                             {q.format === "multiple_choice" ? `MC · ${q.options.filter((o) => o).join(", ")}` : "Type answer"}
-                            {" · "}<span className="text-neon">✓ {q.correct_answer}</span>
+                            {" · "}<span style={{ color: "var(--accent-indigo)" }}>✓ {q.correct_answer}</span>
                           </p>
                         </div>
                       </div>
@@ -602,8 +603,8 @@ export default function AdminBlitzCreatePage() {
                   whileTap={{ scale: 0.97 }}
                   onClick={handlePublish}
                   disabled={loading}
-                  className="w-full py-4 bg-neon text-black font-black text-base rounded-xl disabled:opacity-50 flex items-center justify-center gap-2"
-                  style={{ boxShadow: "0 0 24px #00FF6644" }}
+                  className="w-full py-4 font-black text-base rounded-xl disabled:opacity-50 flex items-center justify-center gap-2 transition-opacity hover:opacity-90"
+                  style={{ backgroundColor: "var(--accent-indigo)", color: "white" }}
                 >
                   {loading ? (
                     <div className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin" />
