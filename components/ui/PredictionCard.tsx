@@ -46,15 +46,15 @@ export default function PredictionCard({ prediction, onEnter }: PredictionCardPr
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-2xl p-6 hover:border-[#00FF66] transition-colors"
+      className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-2xl p-6 hover:border-[#4C6FFF] transition-colors"
     >
       <div className="space-y-4">
         {/* Header */}
         <div>
-          <p className="text-xs text-[#888] uppercase tracking-tight font-bold">
+          <p className="text-xs uppercase tracking-tight font-bold" style={{ color: "var(--accent-violet)" }}>
             {prediction.category}
           </p>
-          <h3 className="text-lg font-bold mt-2 line-clamp-2">
+          <h3 className="text-lg font-bold mt-2 line-clamp-2" style={{ color: "var(--text-primary)" }}>
             {prediction.question}
           </h3>
         </div>
@@ -62,21 +62,23 @@ export default function PredictionCard({ prediction, onEnter }: PredictionCardPr
         {/* Stats Grid */}
         <div className="grid grid-cols-2 gap-3">
           <div className="bg-[#0A0A0A] border border-[#2A2A2A] rounded-xl p-3">
-            <p className="text-xs text-[#888] font-bold">Entry</p>
-            <p className="text-lg font-bold text-[#00FF66]">₦{prediction.fee}</p>
+            <p className="text-xs font-bold" style={{ color: "var(--text-muted)" }}>Entry</p>
+            <p className="text-lg font-bold font-mono" style={{ color: "var(--text-primary)" }}>₦{prediction.fee}</p>
           </div>
           <div className="bg-[#0A0A0A] border border-[#2A2A2A] rounded-xl p-3">
-            <p className="text-xs text-[#888] font-bold">Prize</p>
-            <p className="text-lg font-bold">₦{prediction.prize_per_winner}</p>
+            <p className="text-xs font-bold" style={{ color: "var(--text-muted)" }}>Prize</p>
+            <p className="text-lg font-bold font-mono" style={{ color: "var(--accent-amber)" }}>₦{prediction.prize_per_winner}</p>
           </div>
         </div>
 
         {/* Countdown */}
         <div className="bg-[#0A0A0A] border border-[#2A2A2A] rounded-xl p-3 flex items-center gap-2">
-          <Clock size={16} className="text-[#00FF66]" />
+          <Clock size={16} style={{ color: "var(--text-secondary)" }} />
           <div className="flex-1">
-            <p className="text-xs text-[#888] font-bold">Closes in</p>
-            <p className={`font-bold text-sm ${isLocked ? "text-red-500" : "text-white"}`}>
+            <p className="text-xs font-bold" style={{ color: "var(--text-muted)" }}>
+              {isLocked ? "Locked" : "Closes in"}
+            </p>
+            <p className="font-bold text-sm" style={{ color: isLocked ? "var(--accent-amber)" : "var(--text-primary)" }}>
               {formatTime(timeLeft)}
             </p>
           </div>
@@ -85,14 +87,15 @@ export default function PredictionCard({ prediction, onEnter }: PredictionCardPr
         {/* Slots Bar */}
         <div className="space-y-2">
           <div className="flex justify-between items-center text-xs">
-            <p className="text-[#888] font-bold">Slots</p>
-            <p className="text-white font-bold">
+            <p className="font-bold" style={{ color: "var(--text-muted)" }}>Slots</p>
+            <p className="font-bold" style={{ color: "var(--text-primary)" }}>
               {prediction.slots_filled}/{prediction.max_slots}
             </p>
           </div>
           <div className="bg-[#0A0A0A] border border-[#2A2A2A] rounded-full overflow-hidden h-2">
             <motion.div
-              className="h-full bg-[#00FF66]"
+              className="h-full"
+              style={{ backgroundColor: "var(--accent-indigo)" }}
               initial={{ width: 0 }}
               animate={{ width: `${fillPercentage}%` }}
               transition={{ duration: 0.5 }}
@@ -106,7 +109,11 @@ export default function PredictionCard({ prediction, onEnter }: PredictionCardPr
           disabled={isLocked}
           whileHover={{ scale: isLocked ? 1 : 1.02 }}
           whileTap={{ scale: isLocked ? 1 : 0.98 }}
-          className="w-full bg-[#00FF66] text-black font-bold uppercase tracking-tight rounded-xl py-3 min-h-12 hover:bg-[#00DD55] disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
+          className="w-full font-bold uppercase tracking-tight rounded-xl py-3 min-h-12 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
+          style={isLocked
+            ? { backgroundColor: "var(--bg-card)", color: "var(--text-muted)", border: "1px solid var(--border-subtle)" }
+            : { backgroundColor: "var(--accent-indigo)", color: "#fff" }
+          }
         >
           <TrendingUp size={18} />
           {isLocked ? "Locked" : "Enter"}

@@ -159,7 +159,7 @@ export default function AdminPillsPage() {
                 </div>
                 <div className="bg-[#111] rounded-xl p-2.5">
                   <p className="text-[10px] text-gray-600 mb-0.5">Available</p>
-                  <p className="text-neon font-bold text-sm">
+                  <p className="font-bold text-sm" style={{ color: "var(--accent-indigo)" }}>
                     {pack.available_count ?? pack.pills.filter((p) => p.status === "available").length}
                   </p>
                 </div>

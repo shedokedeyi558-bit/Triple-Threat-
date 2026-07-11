@@ -53,7 +53,7 @@ function PillPackCard({ pack, onPillTap }: { pack: PillPack; onPillTap: (pack: P
     <motion.div
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      className="group bg-[#111] border border-[#1E1E1E] rounded-2xl p-5 hover:border-neon/30 transition-all duration-300 overflow-hidden"
+      className="group bg-[#111] border border-[#1E1E1E] rounded-2xl p-5 hover:border-[#4C6FFF]/30 transition-all duration-300 overflow-hidden"
     >
       <div className="flex items-start justify-between mb-5">
         <div>
@@ -61,8 +61,14 @@ function PillPackCard({ pack, onPillTap }: { pack: PillPack; onPillTap: (pack: P
           <h3 className="text-white font-black text-xl">{pack.name}</h3>
         </div>
         <span className={`text-[10px] font-black px-2.5 py-1 rounded-lg ${
-          available > 0 ? "bg-neon/10 text-neon border border-neon/20" : "bg-[#1A1A1A] text-gray-600"
-        }`}>
+          available > 0
+            ? "border"
+            : "bg-[#1A1A1A] text-gray-600"
+        }`} style={available > 0 ? {
+          backgroundColor: "rgba(76,111,255,0.1)",
+          color: "var(--accent-indigo)",
+          borderColor: "rgba(76,111,255,0.2)",
+        } : {}}>
           {available}/{pack.pills.length} left
         </span>
       </div>
@@ -79,7 +85,7 @@ function PillPackCard({ pack, onPillTap }: { pack: PillPack; onPillTap: (pack: P
         <div className="flex gap-5">
           <div>
             <p className="text-[10px] text-gray-600 mb-0.5">Entry</p>
-            <p className="text-neon font-black">₦{entry.toLocaleString()}</p>
+            <p className="font-black font-mono" style={{ color: "var(--accent-amber)" }}>₦{entry.toLocaleString()}</p>
           </div>
           <div>
             <p className="text-[10px] text-gray-600 mb-0.5">Win up to</p>
