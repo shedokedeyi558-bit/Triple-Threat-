@@ -184,40 +184,40 @@ function TicketStubPrediction({ prediction, onClick }: { prediction: PredictionD
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       onClick={onClick}
-      className="relative w-full rounded-xl border px-4 py-4 text-left transition-all hover:border-opacity-100 overflow-visible"
-      style={{ borderColor: accentColor, backgroundColor: "var(--bg-card)", borderWidth: "1.5px" }}
+      className="w-full rounded-xl px-4 py-4 text-left transition-all border"
+      style={{
+        backgroundColor: "var(--bg-card)",
+        borderColor: accentColor,
+        borderWidth: "1px",
+        borderLeftWidth: "3px",
+      }}
     >
-      {/* Ticket stub cutouts - left */}
-      <div className="absolute -left-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full" style={{ backgroundColor: "var(--bg-base)" }}></div>
-      {/* Ticket stub cutouts - right */}
-      <div className="absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full" style={{ backgroundColor: "var(--bg-base)" }}></div>
+      {/* Top row: category + timer */}
+      <div className="flex items-center justify-between gap-2 mb-2">
+        <p className="text-[11px] font-mono font-bold uppercase tracking-widest" style={{ color: accentColor }}>
+          {prediction.category}
+        </p>
+        <p className="text-xs font-mono font-bold flex-shrink-0" style={{ color: locked ? "var(--text-muted)" : "var(--text-primary)" }}>
+          {timeLabel}
+        </p>
+      </div>
 
-      {/* Content — wrapped with overflow control on mobile */}
-      <div className="space-y-2 overflow-hidden">
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0 flex-1">
-            <p className="text-xs font-mono font-bold uppercase" style={{ color: accentColor }}>
-              {prediction.category}
-            </p>
-            <p className="text-sm font-semibold mt-1 line-clamp-2" style={{ color: "var(--text-primary)" }}>
-              {prediction.question}
-            </p>
-          </div>
-          <p className="text-xs font-mono font-bold flex-shrink-0" style={{ color: "var(--text-muted)" }}>
-            {timeLabel}
-          </p>
-        </div>
+      {/* Question */}
+      <p className="text-sm font-semibold leading-snug mb-3" style={{ color: "var(--text-primary)" }}>
+        {prediction.question}
+      </p>
 
-        <div className="h-px my-2" style={{ borderTop: `1px dashed ${accentColor}` }}></div>
+      {/* Dashed divider */}
+      <div className="mb-3" style={{ borderTop: `1px dashed ${accentColor}40` }}></div>
 
-        <div className="flex items-center justify-between text-xs">
-          <p className="font-mono font-bold" style={{ color: "var(--accent-amber)" }}>
-            ₦{prediction.fee.toLocaleString()}
-          </p>
-          <p className="font-mono font-bold" style={{ color: accentColor }}>
-            ₦{prediction.prize_per_winner.toLocaleString()}
-          </p>
-        </div>
+      {/* Bottom row: entry fee + prize */}
+      <div className="flex items-center justify-between text-xs">
+        <p className="font-mono font-bold" style={{ color: "var(--accent-amber)" }}>
+          ₦{prediction.fee.toLocaleString()}
+        </p>
+        <p className="font-mono font-bold" style={{ color: accentColor }}>
+          ₦{prediction.prize_per_winner.toLocaleString()}
+        </p>
       </div>
     </motion.button>
   );
