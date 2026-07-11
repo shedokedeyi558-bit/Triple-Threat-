@@ -135,7 +135,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </div>
 
       {/* ── BOTTOM TAB NAV — mobile only ── */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 border-t px-0" style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-base)" }} z-40>
+      {/* z-40 moved into className — was incorrectly on the JSX element as a bare attribute, so it never applied */}
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 border-t" style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-base)" }}>
         <div className="flex items-center justify-around h-16">
           {navItems.map(({ href, label, icon: Icon }) => {
             const active = isActive(href);

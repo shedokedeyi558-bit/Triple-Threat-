@@ -5,13 +5,12 @@ import { useEffect, useState } from "react";
 import { useApp } from "@/context/AppContext";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowRight, Menu, X } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { blitzApi, pillsApi, predictionsApi } from "@/lib/api";
 
 export default function LandingPage() {
   const { state } = useApp();
   const router = useRouter();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Live stats — fail silently, fallbacks always show
   const [liveStats, setLiveStats] = useState({
@@ -109,7 +108,7 @@ export default function LandingPage() {
           <div className="flex-1" />
 
           {/* Desktop Login Button */}
-          <div className="hidden md:flex items-center gap-4">
+          <div className="flex items-center gap-4">
             <Link
               href="/signin"
               className="px-4 py-2 text-sm font-medium border rounded-full transition-colors"
@@ -121,29 +120,7 @@ export default function LandingPage() {
               Log in
             </Link>
           </div>
-
-          {/* Mobile Menu Button */}
-          <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2"
-            style={{ color: "var(--text-secondary)" }}
-          >
-            {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-          </button>
         </div>
-
-        {/* Mobile Menu */}
-        {mobileMenuOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="md:hidden border-t px-4 py-4 space-y-4"
-            style={{ borderColor: "var(--border-hairline)" }}
-          >
-            <Link href="/signin" className="block text-sm font-medium" style={{ color: "var(--accent-amber)" }}>Log in</Link>
-          </motion.div>
-        )}
       </nav>
 
       {/* Hero Section */}

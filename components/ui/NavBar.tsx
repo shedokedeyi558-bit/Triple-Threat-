@@ -30,7 +30,7 @@ export function NavBar({ title, showWallet = true }: Props) {
         {showWallet && state.isAuthenticated && state.player && (
           <Link
             href="/wallet"
-            className="flex items-center gap-2 bg-gray-900 border border-gray-800 hover:border-[#00FF66]/40 rounded-xl px-4 py-2 text-sm font-semibold text-[#00FF66] transition-colors"
+            className="flex items-center gap-2 bg-gray-900 border border-gray-800 hover:border-[#00FF66]/40 rounded-xl px-4 py-2 text-sm font-semibold font-mono text-[#00FF66] transition-colors"
           >
             <Wallet size={16} />
             ₦{state.player.balance.toLocaleString()}
