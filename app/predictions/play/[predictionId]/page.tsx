@@ -51,11 +51,9 @@ function PredictionDetail({
   const lockDate = new Date(prediction.countdown_end).toLocaleDateString("en-NG", {
     weekday: "long", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit",
   });
-
   const eventDateLabel = prediction.event_date
     ? new Date(prediction.event_date).toLocaleDateString("en-NG", {
-        weekday: "long", month: "long", day: "numeric",
-        hour: "2-digit", minute: "2-digit",
+        weekday: "long", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit",
       })
     : null;
 
@@ -63,30 +61,38 @@ function PredictionDetail({
     <div className="space-y-5">
       {/* Question */}
       <div>
-        <span className="text-[10px] font-black uppercase tracking-widest text-purple-400">{prediction.category}</span>
-        <h1 className="text-white font-black text-2xl leading-tight mt-2">{prediction.question}</h1>
+        <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--accent-violet)" }}>
+          {prediction.category}
+        </span>
+        <h1 className="font-black text-2xl leading-tight mt-2" style={{ color: "var(--text-primary)" }}>
+          {prediction.question}
+        </h1>
         {eventDateLabel && (
-          <div className="flex items-center gap-2 mt-2 text-gray-400 text-xs">
-            <Clock size={12} className="text-purple-400" />
-            <span>Event: <span className="text-white font-semibold">{eventDateLabel}</span></span>
+          <div className="flex items-center gap-2 mt-2 text-xs" style={{ color: "var(--text-muted)" }}>
+            <Clock size={12} style={{ color: "var(--accent-violet)" }} />
+            <span>Event: <span className="font-semibold" style={{ color: "var(--text-primary)" }}>{eventDateLabel}</span></span>
           </div>
         )}
       </div>
 
       {/* Countdown */}
-      <div className={`rounded-2xl p-5 border flex items-center justify-between ${
-        countdown.expired ? "bg-orange-900/10 border-orange-700/30" : "bg-[#111] border-[#1E1E1E]"
-      }`}>
+      <div
+        className="rounded-2xl p-5 border flex items-center justify-between"
+        style={countdown.expired
+          ? { backgroundColor: "rgba(194,65,12,0.08)", borderColor: "rgba(194,65,12,0.25)" }
+          : { backgroundColor: "var(--bg-card)", borderColor: "var(--border-subtle)" }
+        }
+      >
         <div>
-          <p className="text-[11px] text-gray-500 uppercase tracking-widest font-bold mb-1">
+          <p className="text-[11px] uppercase tracking-widest font-bold mb-1" style={{ color: "var(--text-muted)" }}>
             {countdown.expired ? "Predictions Locked" : "Lock-in Deadline"}
           </p>
-          <p className="text-white font-bold text-sm">{lockDate}</p>
+          <p className="font-bold text-sm" style={{ color: "var(--text-primary)" }}>{lockDate}</p>
         </div>
         <div className="text-right">
           {countdown.expired
-            ? <Lock size={24} className="text-orange-400" />
-            : <p className="text-neon font-black text-2xl tabular-nums">{countdown.label}</p>
+            ? <Lock size={24} style={{ color: "var(--accent-amber)" }} />
+            : <p className="font-black text-2xl tabular-nums font-mono" style={{ color: "var(--accent-amber)" }}>{countdown.label}</p>
           }
         </div>
       </div>
@@ -94,55 +100,56 @@ function PredictionDetail({
       {/* Stats */}
       <div className="grid grid-cols-3 gap-3">
         {[
-          { label: "Entry Fee", value: `₦${prediction.fee?.toLocaleString()}`, color: "text-neon" },
-          { label: "Prize/Win", value: `₦${prediction.prize_per_winner?.toLocaleString()}`, color: "text-white" },
-          { label: "Players", value: `${prediction.slots_filled}/${prediction.max_slots}`, color: "text-white" },
+          { label: "Entry Fee", value: `₦${prediction.fee?.toLocaleString()}`, color: "var(--text-primary)" },
+          { label: "Prize/Win", value: `₦${prediction.prize_per_winner?.toLocaleString()}`, color: "var(--accent-amber)" },
+          { label: "Players", value: `${prediction.slots_filled}/${prediction.max_slots}`, color: "var(--text-primary)" },
         ].map((s) => (
-          <div key={s.label} className="bg-[#111] border border-[#1E1E1E] rounded-xl p-3 text-center">
-            <p className="text-[10px] text-gray-600 uppercase tracking-wide mb-1">{s.label}</p>
-            <p className={`font-black text-lg ${s.color}`}>{s.value}</p>
+          <div key={s.label} className="rounded-xl p-3 text-center border" style={{ backgroundColor: "var(--bg-card)", borderColor: "var(--border-hairline)" }}>
+            <p className="text-[10px] uppercase tracking-wide mb-1 font-bold" style={{ color: "var(--text-muted)" }}>{s.label}</p>
+            <p className="font-black text-lg font-mono" style={{ color: s.color }}>{s.value}</p>
           </div>
         ))}
       </div>
 
       {/* Participation bar */}
-      <div className="bg-[#111] border border-[#1E1E1E] rounded-xl p-4 space-y-2">
-        <div className="flex justify-between text-xs text-gray-500">
+      <div className="rounded-xl p-4 space-y-2 border" style={{ backgroundColor: "var(--bg-card)", borderColor: "var(--border-hairline)" }}>
+        <div className="flex justify-between text-xs" style={{ color: "var(--text-muted)" }}>
           <span className="flex items-center gap-1"><Users size={11} /> {prediction.slots_filled} joined</span>
           <span>{fill}% filled</span>
         </div>
-        <div className="h-2 bg-[#1A1A1A] rounded-full overflow-hidden">
+        <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: "var(--bg-base)" }}>
           <motion.div
-            className="h-full bg-neon rounded-full"
+            className="h-full rounded-full"
+            style={{ backgroundColor: "var(--accent-indigo)" }}
             initial={{ width: 0 }}
             animate={{ width: `${fill}%` }}
             transition={{ duration: 0.8 }}
           />
         </div>
-        <p className="text-[11px] text-gray-600">{prediction.max_slots - prediction.slots_filled} slots remaining</p>
+        <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>{prediction.max_slots - prediction.slots_filled} slots remaining</p>
       </div>
 
       {/* How it works */}
-      <div className="bg-[#111] border border-[#1E1E1E] rounded-2xl p-5 space-y-3">
-        <p className="text-[11px] text-gray-500 uppercase tracking-widest font-bold">How it works</p>
+      <div className="rounded-2xl p-5 space-y-3 border" style={{ backgroundColor: "var(--bg-card)", borderColor: "var(--border-hairline)" }}>
+        <p className="text-[11px] uppercase tracking-widest font-bold" style={{ color: "var(--text-muted)" }}>How it works</p>
         {[
-          { icon: <Timer size={14} className="text-blue-400" />, text: "Pay entry fee and submit your prediction before the deadline" },
-          { icon: <Lock size={14} className="text-orange-400" />, text: "Predictions lock when the countdown ends" },
-          { icon: <Trophy size={14} className="text-neon" />, text: "After the event, admin reveals the correct answer — winners get paid instantly" },
+          { icon: <Timer size={14} style={{ color: "var(--accent-indigo)" }} />, text: "Pay entry fee and submit your prediction before the deadline" },
+          { icon: <Lock size={14} style={{ color: "var(--accent-amber)" }} />, text: "Predictions lock when the countdown ends" },
+          { icon: <Trophy size={14} style={{ color: "var(--accent-amber)" }} />, text: "After the event, admin reveals the correct answer — winners get paid instantly" },
         ].map((item, i) => (
           <div key={i} className="flex items-start gap-3">
-            <div className="w-7 h-7 rounded-lg bg-[#1A1A1A] flex items-center justify-center flex-shrink-0 mt-0.5">
+            <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5" style={{ backgroundColor: "var(--bg-base)" }}>
               {item.icon}
             </div>
-            <p className="text-gray-400 text-xs leading-relaxed">{item.text}</p>
+            <p className="text-xs leading-relaxed" style={{ color: "var(--text-secondary)" }}>{item.text}</p>
           </div>
         ))}
       </div>
 
       {error && (
-        <div className="bg-red-900/10 border border-red-800/30 rounded-xl p-3 flex gap-2 items-start">
-          <AlertCircle size={15} className="text-red-400 flex-shrink-0 mt-0.5" />
-          <p className="text-red-400 text-sm">{error}</p>
+        <div className="rounded-xl p-3 flex gap-2 items-start border" style={{ backgroundColor: "rgba(239,68,68,0.06)", borderColor: "rgba(239,68,68,0.25)" }}>
+          <AlertCircle size={15} className="flex-shrink-0 mt-0.5" style={{ color: "#f87171" }} />
+          <p className="text-sm" style={{ color: "#f87171" }}>{error}</p>
         </div>
       )}
 
@@ -152,8 +159,8 @@ function PredictionDetail({
           whileTap={{ scale: 0.97 }}
           onClick={onEnter}
           disabled={entering}
-          className="w-full py-4 bg-neon text-black font-black text-base rounded-xl disabled:opacity-50 flex items-center justify-center gap-2"
-          style={{ boxShadow: "0 0 24px #00FF6630" }}
+          className="w-full py-4 font-black text-base rounded-xl disabled:opacity-50 flex items-center justify-center gap-2"
+          style={{ backgroundColor: "var(--accent-indigo)", color: "#fff" }}
         >
           {entering ? <Loader2 size={18} className="animate-spin" /> : null}
           {entering ? "Processing..." : `Enter & Pay ₦${prediction.fee?.toLocaleString()}`}
@@ -161,9 +168,9 @@ function PredictionDetail({
       )}
 
       {countdown.expired && (
-        <div className="w-full py-4 bg-[#111] border border-orange-700/30 rounded-xl text-center">
-          <p className="text-orange-400 font-bold text-sm">Predictions are locked for this event</p>
-          <p className="text-gray-600 text-xs mt-1">Waiting for admin to reveal the correct answer</p>
+        <div className="w-full py-4 rounded-xl text-center border" style={{ backgroundColor: "var(--bg-card)", borderColor: "rgba(194,65,12,0.3)" }}>
+          <p className="font-bold text-sm" style={{ color: "var(--accent-amber)" }}>Predictions are locked for this event</p>
+          <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>Waiting for admin to reveal the correct answer</p>
         </div>
       )}
     </div>
@@ -188,29 +195,38 @@ function PredictionSubmit({
   return (
     <div className="space-y-5">
       <div>
-        <span className="text-[10px] font-black uppercase tracking-widest text-purple-400">{prediction.category}</span>
-        <h1 className="text-white font-black text-2xl leading-tight mt-2">{prediction.question}</h1>
+        <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--accent-violet)" }}>
+          {prediction.category}
+        </span>
+        <h1 className="font-black text-2xl leading-tight mt-2" style={{ color: "var(--text-primary)" }}>
+          {prediction.question}
+        </h1>
       </div>
 
-      <div className="bg-neon/5 border border-neon/20 rounded-xl p-4 flex items-center gap-3">
-        <CheckCircle2 size={18} className="text-neon flex-shrink-0" />
-        <p className="text-neon text-sm font-semibold">Entry paid — now submit your prediction</p>
+      {/* Entry paid confirmation — indigo, not green */}
+      <div className="rounded-xl p-4 flex items-center gap-3 border" style={{ backgroundColor: "rgba(76,111,255,0.06)", borderColor: "rgba(76,111,255,0.2)" }}>
+        <CheckCircle2 size={18} className="flex-shrink-0" style={{ color: "var(--accent-indigo)" }} />
+        <p className="text-sm font-semibold" style={{ color: "var(--accent-indigo)" }}>Entry paid — now submit your prediction</p>
       </div>
 
-      <div className={`rounded-xl p-4 flex items-center justify-between ${
-        countdown.expired ? "bg-orange-900/10 border border-orange-700/30" : "bg-[#111] border border-[#1E1E1E]"
-      }`}>
-        <p className="text-gray-400 text-sm">{countdown.expired ? "Locked" : "Lock-in in"}</p>
+      <div
+        className="rounded-xl p-4 flex items-center justify-between border"
+        style={countdown.expired
+          ? { backgroundColor: "rgba(194,65,12,0.08)", borderColor: "rgba(194,65,12,0.25)" }
+          : { backgroundColor: "var(--bg-card)", borderColor: "var(--border-subtle)" }
+        }
+      >
+        <p className="text-sm" style={{ color: "var(--text-secondary)" }}>{countdown.expired ? "Locked" : "Lock-in in"}</p>
         {countdown.expired
-          ? <Lock size={16} className="text-orange-400" />
-          : <p className="text-neon font-black tabular-nums">{countdown.label}</p>
+          ? <Lock size={16} style={{ color: "var(--accent-amber)" }} />
+          : <p className="font-black tabular-nums font-mono" style={{ color: "var(--accent-amber)" }}>{countdown.label}</p>
         }
       </div>
 
       {!countdown.expired && (
         <>
           <div className="space-y-2">
-            <label className="text-[11px] text-gray-500 font-bold uppercase tracking-widest block">
+            <label className="text-[11px] font-bold uppercase tracking-widest block" style={{ color: "var(--text-muted)" }}>
               Your Prediction
             </label>
             <input
@@ -220,20 +236,21 @@ function PredictionSubmit({
               onChange={(e) => setAnswer(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter" && answer.trim() && !submitting) onSubmit(answer); }}
               autoFocus
-              className="w-full bg-[#0A0A0A] border border-[#1E1E1E] focus:border-neon rounded-xl px-4 py-4 text-white text-lg outline-none transition-colors placeholder:text-gray-700"
+              className="w-full rounded-xl px-4 py-4 text-lg outline-none transition-colors"
+              style={{ backgroundColor: "var(--bg-base)", border: "1px solid var(--border-subtle)", color: "var(--text-primary)" }}
             />
           </div>
 
           {error && (
-            <p className="text-red-400 text-sm bg-red-900/10 border border-red-900/30 rounded-xl p-3">{error}</p>
+            <p className="text-sm rounded-xl p-3" style={{ color: "#f87171", backgroundColor: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.25)" }}>{error}</p>
           )}
 
           <motion.button
             whileTap={{ scale: 0.97 }}
             onClick={() => onSubmit(answer)}
             disabled={!answer.trim() || submitting}
-            className="w-full py-4 bg-neon text-black font-black text-base rounded-xl disabled:opacity-40 flex items-center justify-center gap-2"
-            style={{ boxShadow: "0 0 20px #00FF6630" }}
+            className="w-full py-4 font-black text-base rounded-xl disabled:opacity-40 flex items-center justify-center gap-2"
+            style={{ backgroundColor: "var(--accent-indigo)", color: "#fff" }}
           >
             {submitting ? <Loader2 size={18} className="animate-spin" /> : null}
             {submitting ? "Locking in..." : "Lock In Prediction"}
@@ -242,8 +259,8 @@ function PredictionSubmit({
       )}
 
       {countdown.expired && (
-        <div className="bg-[#111] border border-orange-700/30 rounded-xl p-4 text-center">
-          <p className="text-orange-400 font-bold text-sm">Deadline passed — predictions are now locked</p>
+        <div className="rounded-xl p-4 text-center border" style={{ backgroundColor: "var(--bg-card)", borderColor: "rgba(194,65,12,0.25)" }}>
+          <p className="font-bold text-sm" style={{ color: "var(--accent-amber)" }}>Deadline passed — predictions are now locked</p>
         </div>
       )}
     </div>
@@ -279,17 +296,13 @@ function PredictionWaiting({
     } catch (err) {
       if (err instanceof ApiError && err.status === 404) {
         if (err.code === "NOT_PARTICIPANT") {
-          // Not a participant — show error and call callback
           alert("You didn't enter this prediction");
           onNotParticipant?.();
-        } else if (err.code === "NOT_REVEALED") {
-          // Result not revealed yet
-          alert("Result not available yet — check back soon");
         } else {
+          // NOT_REVEALED or any other 404
           alert("Result not available yet — check back soon");
         }
       } else {
-        console.error("Failed to check result:", err);
         alert("Error checking result — please try again");
       }
     } finally {
@@ -301,46 +314,53 @@ function PredictionWaiting({
     <div className="space-y-5">
       <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
         className="text-center pt-4">
-        <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-neon/10 border-2 border-neon/20 mb-5">
-          <CheckCircle2 size={40} className="text-neon" />
+        {/* Checkmark — indigo, not green */}
+        <div className="inline-flex items-center justify-center w-20 h-20 rounded-full mb-5"
+          style={{ backgroundColor: "rgba(76,111,255,0.1)", border: "2px solid rgba(76,111,255,0.2)" }}>
+          <CheckCircle2 size={40} style={{ color: "var(--accent-indigo)" }} />
         </div>
-        <h2 className="text-white font-black text-2xl">Prediction Submitted!</h2>
-        <p className="text-gray-500 text-sm mt-1">Your answer is locked in</p>
+        <h2 className="font-black text-2xl" style={{ color: "var(--text-primary)" }}>Prediction Submitted!</h2>
+        <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>Your answer is locked in</p>
       </motion.div>
 
-      <div className="bg-[#111] border border-neon/20 rounded-2xl p-5 text-center">
-        <p className="text-[11px] text-gray-500 uppercase tracking-widest font-bold mb-2">Your Prediction</p>
+      <div className="rounded-2xl p-5 text-center border"
+        style={{ backgroundColor: "var(--bg-card)", borderColor: "rgba(76,111,255,0.2)" }}>
+        <p className="text-[11px] uppercase tracking-widest font-bold mb-2" style={{ color: "var(--text-muted)" }}>Your Prediction</p>
         {answer
-          ? <p className="text-neon font-black text-3xl">{answer}</p>
-          : <p className="text-gray-600 text-sm italic">Your answer was submitted in a previous session</p>
+          ? <p className="font-black text-3xl font-mono" style={{ color: "var(--accent-indigo)" }}>{answer}</p>
+          : <p className="text-sm italic" style={{ color: "var(--text-muted)" }}>Your answer was submitted in a previous session</p>
         }
       </div>
 
-      <div className="bg-[#111] border border-[#1E1E1E] rounded-2xl p-5 space-y-4">
-        <p className="text-[11px] text-gray-500 uppercase tracking-widest font-bold">What happens next</p>
+      <div className="rounded-2xl p-5 space-y-4 border"
+        style={{ backgroundColor: "var(--bg-card)", borderColor: "var(--border-hairline)" }}>
+        <p className="text-[11px] uppercase tracking-widest font-bold" style={{ color: "var(--text-muted)" }}>What happens next</p>
         {[
-          { icon: <Clock size={14} className="text-orange-400" />, title: "Event takes place", desc: "The real-world event plays out" },
-          { icon: <CheckCircle2 size={14} className="text-blue-400" />, title: "Admin reveals the answer", desc: "After the event, the correct answer is marked" },
-          { icon: <Trophy size={14} className="text-neon" />, title: "Winners paid instantly", desc: "Prize credited to your wallet automatically" },
+          { icon: <Clock size={14} style={{ color: "var(--accent-amber)" }} />, title: "Event takes place", desc: "The real-world event plays out" },
+          { icon: <CheckCircle2 size={14} style={{ color: "var(--accent-indigo)" }} />, title: "Admin reveals the answer", desc: "After the event, the correct answer is marked" },
+          { icon: <Trophy size={14} style={{ color: "var(--accent-amber)" }} />, title: "Winners paid instantly", desc: "Prize credited to your wallet automatically" },
         ].map((s, i) => (
           <div key={i} className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-xl bg-[#1A1A1A] flex items-center justify-center flex-shrink-0">{s.icon}</div>
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+              style={{ backgroundColor: "var(--bg-base)" }}>{s.icon}</div>
             <div>
-              <p className="text-white text-sm font-semibold">{s.title}</p>
-              <p className="text-gray-600 text-xs mt-0.5">{s.desc}</p>
+              <p className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>{s.title}</p>
+              <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>{s.desc}</p>
             </div>
           </div>
         ))}
       </div>
 
-      <div className="bg-orange-900/10 border border-orange-800/20 rounded-xl p-4 text-center">
-        <p className="text-orange-300/80 text-xs leading-relaxed">
+      <div className="rounded-xl p-4 text-center border"
+        style={{ backgroundColor: "rgba(232,163,61,0.06)", borderColor: "rgba(232,163,61,0.2)" }}>
+        <p className="text-xs leading-relaxed" style={{ color: "var(--text-secondary)" }}>
           Come back after the event to see if you won. You&apos;ll see the result on this page.
         </p>
         <button
           onClick={handleCheckResult}
           disabled={checking}
-          className="mt-3 text-neon text-xs font-bold hover:underline block mx-auto disabled:opacity-50 flex items-center justify-center gap-1"
+          className="mt-3 text-xs font-bold hover:underline flex items-center justify-center gap-1 mx-auto disabled:opacity-50"
+          style={{ color: "var(--accent-amber)" }}
         >
           {checking ? <Loader2 size={12} className="animate-spin" /> : null}
           {checking ? "Checking..." : "Check result now →"}
@@ -358,35 +378,45 @@ function PredictionResult({ won, correctAnswer, prize, userAnswer }: {
     <div className="space-y-5">
       <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
         transition={{ type: "spring", damping: 14 }} className="text-center pt-4">
-        <div className={`inline-flex items-center justify-center w-24 h-24 rounded-full mb-5 ${
-          won ? "bg-neon/10 border-2 border-neon/30" : "bg-red-500/10 border-2 border-red-500/30"
-        }`}>
+        <div className="inline-flex items-center justify-center w-24 h-24 rounded-full mb-5"
+          style={won
+            ? { backgroundColor: "rgba(232,163,61,0.1)", border: "2px solid rgba(232,163,61,0.3)" }
+            : { backgroundColor: "rgba(239,68,68,0.1)", border: "2px solid rgba(239,68,68,0.3)" }
+          }>
           {won
-            ? <Trophy size={44} className="text-neon" />
-            : <XCircle size={44} className="text-red-400" />
+            ? <Trophy size={44} style={{ color: "var(--accent-amber)" }} />
+            : <XCircle size={44} style={{ color: "#f87171" }} />
           }
         </div>
-        <h2 className={`font-black text-3xl ${won ? "text-neon" : "text-white"}`}>
+        <h2 className="font-black text-3xl" style={{ color: won ? "var(--accent-amber)" : "var(--text-primary)" }}>
           {won ? `You Won ₦${prize.toLocaleString()}!` : "Better Luck Next Time"}
         </h2>
-        <p className="text-gray-500 text-sm mt-1">{won ? "Prize has been added to your wallet" : "Keep playing — big wins ahead"}</p>
+        <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>
+          {won ? "Prize has been added to your wallet" : "Keep playing — big wins ahead"}
+        </p>
       </motion.div>
 
       <div className="grid grid-cols-2 gap-3">
-        <div className="bg-[#111] border border-[#1E1E1E] rounded-xl p-4 text-center">
-          <p className="text-[11px] text-gray-500 uppercase tracking-widest mb-1">Your Answer</p>
-          <p className={`font-black text-lg ${won ? "text-neon" : "text-red-400"}`}>{userAnswer || "—"}</p>
+        <div className="rounded-xl p-4 text-center border" style={{ backgroundColor: "var(--bg-card)", borderColor: "var(--border-hairline)" }}>
+          <p className="text-[11px] uppercase tracking-widest mb-1" style={{ color: "var(--text-muted)" }}>Your Answer</p>
+          <p className="font-black text-lg" style={{ color: won ? "var(--accent-indigo)" : "#f87171" }}>
+            {userAnswer || "—"}
+          </p>
         </div>
-        <div className="bg-[#111] border border-neon/20 rounded-xl p-4 text-center">
-          <p className="text-[11px] text-gray-500 uppercase tracking-widest mb-1">Correct Answer</p>
-          <p className="text-neon font-black text-lg">{correctAnswer}</p>
+        <div className="rounded-xl p-4 text-center border"
+          style={{ backgroundColor: "var(--bg-card)", borderColor: "rgba(232,163,61,0.25)" }}>
+          <p className="text-[11px] uppercase tracking-widest mb-1" style={{ color: "var(--text-muted)" }}>Correct Answer</p>
+          <p className="font-black text-lg" style={{ color: "var(--accent-amber)" }}>{correctAnswer}</p>
         </div>
       </div>
 
       {won && (
-        <div className="bg-neon/10 border border-neon/20 rounded-xl p-4 text-center">
-          <p className="text-neon font-black text-xl">+₦{prize.toLocaleString()}</p>
-          <p className="text-gray-500 text-xs mt-1">Credited to your wallet</p>
+        <div className="rounded-xl p-4 text-center border"
+          style={{ backgroundColor: "rgba(232,163,61,0.08)", borderColor: "rgba(232,163,61,0.25)" }}>
+          <p className="font-black text-xl font-mono" style={{ color: "var(--accent-amber)" }}>
+            +₦{prize.toLocaleString()}
+          </p>
+          <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>Credited to your wallet</p>
         </div>
       )}
     </div>
@@ -414,7 +444,7 @@ export default function PredictionPlayPage() {
     init();
   }, [state.isAuthenticated, predictionId]); // eslint-disable-line
 
-  // Poll for result every 10s when in locked state
+  // Poll for result every 10s when in locked/waiting state
   useEffect(() => {
     if (pageState !== "locked" || notParticipant) return;
     const poll = async () => {
@@ -427,22 +457,15 @@ export default function PredictionPlayPage() {
       } catch (err) {
         if (err instanceof ApiError && err.status === 404) {
           if (err.code === "NOT_PARTICIPANT") {
-            // Not a participant — stop polling and show error
-            console.warn("Player is not a participant in this prediction");
             setNotParticipant(true);
             setError("You didn't enter this prediction");
             setPageState("error");
           }
-          // NOT_REVEALED — keep polling
-          else if (err.code === "NOT_REVEALED") {
-            // Silent — keep polling
-          }
-        } else if (err instanceof ApiError && err.status !== 404) {
-          console.error("Result poll error:", err.message);
+          // NOT_REVEALED — keep polling silently
         }
+        // other errors — keep polling, don't surface
       }
     };
-    // Check immediately on mount
     poll();
     const id = setInterval(poll, 10000);
     return () => clearInterval(id);
@@ -450,7 +473,7 @@ export default function PredictionPlayPage() {
 
   const init = async () => {
     try {
-      // Check if answer already revealed
+      // ── 1. Check if result is already revealed ──────────────────────────────
       try {
         const res = await predictionsApi.getResult(predictionId);
         if (res?.correctAnswer) {
@@ -458,11 +481,26 @@ export default function PredictionPlayPage() {
           setPageState("result");
           return;
         }
-      } catch { /* not revealed yet */ }
+      } catch { /* not revealed yet — continue */ }
 
-      // Load prediction from active list
-      const listRes = await predictionsApi.getActive();
-      const found = listRes.predictions.find((p) => p.id === predictionId);
+      // ── 2. Load prediction data ─────────────────────────────────────────────
+      // Primary: dedicated single-prediction endpoint (works for locked predictions too).
+      // Fallback: active-list filter (only works while prediction is still open).
+      // Backend flag: if GET /api/predictions/:id doesn't exist yet on Railway,
+      //   the getOne call returns 404 and we fall through to the active list.
+      let found: PredictionData | null = null;
+      try {
+        const oneRes = await predictionsApi.getOne(predictionId);
+        found = oneRes.prediction ?? null;
+      } catch {
+        // getOne not available or failed — try active list
+        try {
+          const listRes = await predictionsApi.getActive();
+          found = listRes.predictions.find((p) => p.id === predictionId) ?? null;
+        } catch {
+          // both failed
+        }
+      }
 
       if (!found) {
         setError("This prediction is no longer available");
@@ -472,34 +510,39 @@ export default function PredictionPlayPage() {
 
       setPrediction(found);
 
-      // If locked, try to restore player's previously submitted answer
-      if (found.status === "locked" || new Date(found.countdown_end) < new Date()) {
+      // ── 3. Check player's prior participation ───────────────────────────────
+      // If locked (by status or expired countdown), check if the player has an answer.
+      const isLocked = found.status === "locked" || new Date(found.countdown_end) < new Date();
+      if (isLocked) {
         try {
           const myAnswer = await predictionsApi.getMyAnswer(predictionId);
           setUserAnswer(myAnswer.answer);
-        } catch { /* not submitted yet */ }
+        } catch { /* not submitted — show locked state anyway */ }
         setPageState("locked");
         return;
       }
 
-      // Check if player already entered (but hasn't submitted yet)
-      // getMyAnswer returns 404 if not participated at all
+      // Still open — check if player already entered (paid) or submitted.
+      // getMyAnswer returns:
+      //   200 with answer  → already submitted → locked/waiting state
+      //   404              → not entered at all → show detail/enter
+      //   any other error  → surface as actual error (network, 500, etc.)
       try {
         const myAnswer = await predictionsApi.getMyAnswer(predictionId);
-        // Already submitted — show locked state
+        // Successful response = player already submitted an answer
         setUserAnswer(myAnswer.answer);
         setPageState("locked");
         return;
       } catch (err) {
-        if (err instanceof ApiError && err.status !== 404) {
-          // Entered but not submitted yet → go to submit step
-          setPageState("submit");
+        if (err instanceof ApiError && err.status === 404) {
+          // Not entered yet — show detail screen
+          setPageState("detail");
           return;
         }
-        // 404 = not entered at all → show detail/enter
+        // Any other error (network, 500) — not silently swallowed
+        throw err;
       }
 
-      setPageState("detail");
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to load prediction");
       setPageState("error");
@@ -557,9 +600,11 @@ export default function PredictionPlayPage() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 lg:px-8 py-6 pb-28">
-      {/* Back */}
-      <button onClick={() => router.back()}
-        className="flex items-center gap-2 text-gray-500 hover:text-white transition-colors text-sm font-medium mb-6">
+      <button
+        onClick={() => router.back()}
+        className="flex items-center gap-2 text-sm font-medium mb-6 transition-colors"
+        style={{ color: "var(--text-muted)" }}
+      >
         <ChevronLeft size={18} /> Back
       </button>
 
@@ -567,7 +612,7 @@ export default function PredictionPlayPage() {
         {pageState === "loading" && (
           <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }}
             className="flex justify-center items-center min-h-64">
-            <Loader2 size={28} className="text-neon animate-spin" />
+            <Loader2 size={28} className="animate-spin" style={{ color: "var(--accent-indigo)" }} />
           </motion.div>
         )}
 
@@ -609,9 +654,15 @@ export default function PredictionPlayPage() {
         {pageState === "error" && (
           <motion.div key="error" initial={{ opacity: 0 }} animate={{ opacity: 1 }}
             className="text-center py-16 space-y-4">
-            <XCircle size={40} className="text-gray-600 mx-auto" />
-            <p className="text-gray-400">{error || "Something went wrong"}</p>
-            <button onClick={() => router.back()} className="text-neon text-sm font-bold hover:underline">Go back</button>
+            <XCircle size={40} className="mx-auto" style={{ color: "var(--text-muted)" }} />
+            <p style={{ color: "var(--text-secondary)" }}>{error || "Something went wrong"}</p>
+            <button
+              onClick={() => router.back()}
+              className="text-sm font-bold hover:underline"
+              style={{ color: "var(--accent-indigo)" }}
+            >
+              Go back
+            </button>
           </motion.div>
         )}
       </AnimatePresence>

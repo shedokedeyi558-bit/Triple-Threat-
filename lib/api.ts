@@ -536,6 +536,9 @@ export const predictionsApi = {
   getActive: () =>
     request<{ predictions: PredictionData[] }>("/api/predictions/active", { token: getToken() }),
 
+  getOne: (predictionId: string) =>
+    request<{ prediction: PredictionData }>(`/api/predictions/${predictionId}`, { token: getToken() }),
+
   enter: (predictionId: string) =>
     request<PredictionEnterResponse>("/api/predictions/enter", {
       method: "POST",
