@@ -148,8 +148,8 @@ export default function CreatePillPackPage() {
       {/* Dev tools: category selector + count + fill button */}
       <div className="space-y-2 w-full">
         {/* Category chips — horizontally scrollable on mobile */}
-        <div className="overflow-x-auto -mx-5 px-5 lg:mx-0 lg:px-0">
-          <div className="flex items-center gap-2 flex-nowrap whitespace-nowrap">
+        <div className="overflow-x-auto overflow-y-hidden whitespace-nowrap" style={{ WebkitOverflowScrolling: "touch", scrollBehavior: "smooth" }}>
+          <div className="flex items-center gap-2 flex-nowrap pb-1" style={{ minWidth: "min-content" }}>
             <span className="text-[10px] font-bold uppercase tracking-widest flex-shrink-0" style={{ color: "var(--text-muted)" }}>
               Category:
             </span>
