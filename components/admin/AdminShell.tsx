@@ -30,7 +30,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* ── MAIN CONTENT ── */}
-      <div className="flex-1 lg:ml-56 flex flex-col min-h-screen">
+      <div className="flex-1 min-w-0 lg:ml-56 flex flex-col min-h-screen">
         {/* Mobile top bar */}
         <header className="lg:hidden flex items-center gap-3 px-4 py-4 border-b" style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-base)" }}>
           <Link href="/admin" className="w-8 h-8 flex items-center justify-center flex-shrink-0">
@@ -103,7 +103,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         )}
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 lg:p-8 pb-20 lg:pb-8">
+        <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden p-4 lg:p-8 pb-20 lg:pb-8">
           {children}
         </main>
       </div>
