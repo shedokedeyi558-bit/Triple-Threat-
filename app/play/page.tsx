@@ -211,13 +211,19 @@ function TicketStubPrediction({ prediction, onClick }: { prediction: PredictionD
       <div className="mb-3" style={{ borderTop: `1px dashed ${accentColor}40` }}></div>
 
       {/* Bottom row: entry fee + prize */}
-      <div className="flex items-center justify-between text-xs">
-        <p className="font-mono font-bold" style={{ color: "var(--accent-amber)" }}>
-          ₦{prediction.fee.toLocaleString()}
-        </p>
-        <p className="font-mono font-bold" style={{ color: accentColor }}>
-          ₦{prediction.prize_per_winner.toLocaleString()}
-        </p>
+      <div className="flex items-center justify-between gap-2 text-xs flex-wrap">
+        <div>
+          <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>Entry</p>
+          <p className="font-mono font-bold" style={{ color: "var(--accent-amber)" }}>
+            ₦{prediction.fee.toLocaleString()}
+          </p>
+        </div>
+        <div className="text-right">
+          <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>Prize</p>
+          <p className="font-mono font-bold" style={{ color: accentColor }}>
+            ₦{prediction.prize_per_winner.toLocaleString()}
+          </p>
+        </div>
       </div>
     </motion.button>
   );
@@ -599,13 +605,15 @@ export default function PlayPage() {
                     <Wand2 size={18} style={{ color: "var(--accent-violet)" }} />
                     <div>
                       <h2 className="font-headline font-semibold text-lg" style={{ color: "var(--text-primary)" }}>
-                        {predictions.length > 0 ? `${predictions.length} open` : "Time Machine"}
+                        {predictions.length > 0 ? `${predictions.length} available event${predictions.length !== 1 ? 's' : ''}` : "Time Machine"}
                       </h2>
                     </div>
                   </div>
-                  <Link href="/time-machine" className="text-xs font-semibold" style={{ color: "var(--text-secondary)" }}>
-                    see all
-                  </Link>
+                  {predictions.length > 0 && (
+                    <Link href="/time-machine" className="text-xs font-semibold flex-shrink-0 ml-2" style={{ color: "var(--accent-violet)" }}>
+                      see all
+                    </Link>
+                  )}
                 </div>
 
                 {predictions.length === 0 ? (
