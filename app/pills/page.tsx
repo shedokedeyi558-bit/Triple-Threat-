@@ -69,11 +69,10 @@ function PillPackCard({ pack, onPillTap }: { pack: PillPack; onPillTap: (pack: P
 
       <div className="flex gap-3 items-center mb-5 min-h-[56px] overflow-x-auto pb-2" style={{ WebkitOverflowScrolling: "touch" }}>
         <div className="flex gap-3 items-center" style={{ minWidth: "min-content" }}>
-        {pack.pills.map((pill, i) => (
-          <PillBead key={pill.id} pill={pill} index={i} onTap={(p) => onPillTap(pack, p)} />
-        ))}
+          {pack.pills.map((pill, i) => (
+            <PillBead key={pill.id} pill={pill} index={i} onTap={(p) => onPillTap(pack, p)} />
+          ))}
         </div>
-      </div>
       </div>
 
       <div className="flex items-center justify-between pt-4 border-t border-[#1A1A1A]">
