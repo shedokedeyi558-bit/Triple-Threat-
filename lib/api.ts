@@ -959,6 +959,21 @@ export const adminApi = {
   // Seed removed (no longer needed)
 
   // Predictions management
+  createPrediction: (data: {
+    question: string;
+    category: string;
+    entry_fee: number;
+    prize_per_winner: number;
+    max_slots: number;
+    countdown_end: string;
+    event_date?: string;
+  }) =>
+    request<{ prediction: any }>("/api/admin/predictions", {
+      method: "POST",
+      body: data,
+      token: getAdminToken(),
+    }),
+
   getPrediction: (id: string) =>
     request<{ prediction: any }>(`/api/admin/predictions/${id}`, {
       token: getAdminToken(),
