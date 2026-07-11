@@ -5,6 +5,11 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { adminApi, ApiError } from "@/lib/api";
 import { ArrowLeft, Clock, CheckCircle } from "lucide-react";
+import {
+  generateSampleQuestions,
+  SAMPLE_CATEGORIES,
+  type SampleCategory,
+} from "@/lib/sampleQuestions";
 
 const inputCls =
   "w-full border rounded-xl px-4 py-3 text-sm focus:outline-none transition-colors placeholder-gray-600 focus:border-[#4C6FFF]/60"
@@ -32,6 +37,7 @@ export default function CreatePredictionPage() {
   const [eventDate, setEventDate] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [sampleCategory, setSampleCategory] = useState<SampleCategory>("Mixed");
 
   const validate = (): string | null => {
     if (!question.trim()) return "Question is required";
@@ -69,10 +75,13 @@ export default function CreatePredictionPage() {
   };
 
   const fillTestData = () => {
-    const deadline = new Date(Date.now() + 2 * 60 * 60 * 1000); // 2h from now
-    const event = new Date(Date.now() + 26 * 60 * 60 * 1000);   // ~1 day from now
-    setQuestion("Will the Lagos stock exchange index close above 95,000 points today?");
-    setCategory("Finance");
+    const deadline = new Date(Date.now() + 2 * 60 * 60 * 1000);
+    const event = new Date(Date.now() + 26 * 60 * 60 * 1000);
+    // Pick a sample question from the selected category
+    const [sample] = generateSampleQuestions(1, sampleCategory);
+    const cat = sampleCategory === "Mixed" ? "General" : sampleCategory;
+    setQuestion(sample.question);
+    setCategory(cat);
     setEntryFee("500");
     setPrizePerWinner("2000");
     setMaxSlots("50");
@@ -106,15 +115,37 @@ export default function CreatePredictionPage() {
         </div>
       </div>
 
-      {/* Test-fill button */}
-      <button
-        type="button"
-        onClick={fillTestData}
-        className="w-full py-2 rounded-xl text-xs font-semibold border transition-colors hover:opacity-80"
-        style={{ borderColor: "var(--border-hairline)", color: "var(--text-muted)", backgroundColor: "transparent" }}
-      >
-        Fill Test Data (dev only)
-      </button>
+      {/* Dev tools: category selector + fill button */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className="text-[10px] font-bold uppercase tracking-widest flex-shrink-0" style={{ color: "var(--text-muted)" }}>
+            Q category:
+          </span>
+          {SAMPLE_CATEGORIES.map((cat) => (
+            <button
+              key={cat}
+              type="button"
+              onClick={() => setSampleCategory(cat)}
+              className="px-2 py-1 rounded-lg text-[10px] font-semibold border transition-all"
+              style={{
+                backgroundColor: sampleCategory === cat ? "rgba(76,111,255,0.15)" : "transparent",
+                borderColor: sampleCategory === cat ? "rgba(76,111,255,0.5)" : "var(--border-hairline)",
+                color: sampleCategory === cat ? "var(--accent-indigo)" : "var(--text-muted)",
+              }}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+        <button
+          type="button"
+          onClick={fillTestData}
+          className="w-full py-2 rounded-xl text-xs font-semibold border transition-colors hover:opacity-80"
+          style={{ borderColor: "var(--border-hairline)", color: "var(--text-muted)", backgroundColor: "transparent" }}
+        >
+          Fill Test Data (dev only) · {sampleCategory}
+        </button>
+      </div>
 
       {/* Error */}
       {error && (

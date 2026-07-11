@@ -6,40 +6,11 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useAdmin } from "@/context/AdminContext";
 import { adminApi, type BlitzQuestion, ApiError } from "@/lib/api";
 import { ArrowLeft, Plus, Trash2, CheckCircle, Zap } from "lucide-react";
-
-// ── Sample question pool — cycles to cover any question_count ──────────────
-const SAMPLE_QUESTIONS_POOL: QuestionDraft[] = [
-  { question: "What is the capital of Nigeria?", format: "type_answer", options: [], correct_answer: "Abuja" },
-  { question: "Which planet is known as the Red Planet?", format: "multiple_choice", options: ["Earth", "Mars", "Venus", "Jupiter"], correct_answer: "Mars" },
-  { question: "What is 12 × 12?", format: "type_answer", options: [], correct_answer: "144" },
-  { question: "What is the capital of France?", format: "type_answer", options: [], correct_answer: "Paris" },
-  { question: "Which of these is a programming language?", format: "multiple_choice", options: ["TypeScript", "Banana", "Car", "Tree"], correct_answer: "TypeScript" },
-  { question: "What year did World War II end?", format: "type_answer", options: [], correct_answer: "1945" },
-  { question: "How many sides does a hexagon have?", format: "multiple_choice", options: ["4", "5", "6", "7"], correct_answer: "6" },
-  { question: "What is the largest planet in our solar system?", format: "type_answer", options: [], correct_answer: "Jupiter" },
-  { question: "What is the chemical symbol for water?", format: "multiple_choice", options: ["H2O", "CO2", "NaCl", "O2"], correct_answer: "H2O" },
-  { question: "How many continents are there on Earth?", format: "type_answer", options: [], correct_answer: "7" },
-  { question: "What is the square root of 144?", format: "type_answer", options: [], correct_answer: "12" },
-  { question: "Which country has the largest population?", format: "multiple_choice", options: ["India", "USA", "China", "Brazil"], correct_answer: "China" },
-  { question: "What is 15% of 200?", format: "type_answer", options: [], correct_answer: "30" },
-  { question: "What language is primarily spoken in Brazil?", format: "multiple_choice", options: ["Spanish", "Portuguese", "French", "English"], correct_answer: "Portuguese" },
-  { question: "How many seconds are in one hour?", format: "type_answer", options: [], correct_answer: "3600" },
-  { question: "What is the speed of light (approx) in km/s?", format: "multiple_choice", options: ["300,000", "150,000", "1,000", "30,000"], correct_answer: "300,000" },
-  { question: "What is the atomic number of carbon?", format: "type_answer", options: [], correct_answer: "6" },
-  { question: "Which ocean is the largest?", format: "multiple_choice", options: ["Atlantic", "Indian", "Pacific", "Arctic"], correct_answer: "Pacific" },
-  { question: "What is 8 to the power of 2?", format: "type_answer", options: [], correct_answer: "64" },
-  { question: "Which gas do plants absorb from the atmosphere?", format: "multiple_choice", options: ["Oxygen", "Nitrogen", "Carbon dioxide", "Hydrogen"], correct_answer: "Carbon dioxide" },
-];
-
-/**
- * Generate exactly `count` sample questions starting from `offset` index,
- * cycling through the pool if count exceeds pool length.
- */
-function generateSampleQuestions(count: number, offset = 0): QuestionDraft[] {
-  return Array.from({ length: count }, (_, i) =>
-    SAMPLE_QUESTIONS_POOL[(offset + i) % SAMPLE_QUESTIONS_POOL.length]
-  );
-}
+import {
+  generateSampleQuestions,
+  SAMPLE_CATEGORIES,
+  type SampleCategory,
+} from "@/lib/sampleQuestions";
 
 interface QuestionDraft {
   question: string;
@@ -104,6 +75,7 @@ export default function AdminBlitzCreatePage() {
     correct_answer: "",
   });
   const [createdId, setCreatedId] = useState<string | null>(null);
+  const [sampleCategory, setSampleCategory] = useState<SampleCategory>("Mixed");
 
   if (!state.isAuthenticated) {
     router.push("/admin/login");
@@ -268,63 +240,86 @@ export default function AdminBlitzCreatePage() {
           </motion.p>
         )}
 
-        {/* Test-fill button */}
-        <button
-          type="button"
-          onClick={() => {
-            // Read existing question_count if already set; default to 10
-            const existingCount = parseInt(details.question_count);
-            const count = existingCount > 0 ? existingCount : 10;
-            const usedDefault = !(existingCount > 0);
+        {/* Dev tools: category selector + fill/generate buttons */}
+        <div className="space-y-2">
+          {/* Category chip selector */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-[10px] font-bold uppercase tracking-widest flex-shrink-0" style={{ color: "var(--text-muted)" }}>
+              Q category:
+            </span>
+            {SAMPLE_CATEGORIES.map((cat) => (
+              <button
+                key={cat}
+                type="button"
+                onClick={() => setSampleCategory(cat)}
+                className="px-2 py-1 rounded-lg text-[10px] font-semibold border transition-all"
+                style={{
+                  backgroundColor: sampleCategory === cat ? "rgba(76,111,255,0.15)" : "transparent",
+                  borderColor: sampleCategory === cat ? "rgba(76,111,255,0.5)" : "var(--border-hairline)",
+                  color: sampleCategory === cat ? "var(--accent-indigo)" : "var(--text-muted)",
+                }}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
 
-            const regStart = new Date(Date.now() + 30 * 60 * 1000);
-            const tourStart = new Date(Date.now() + 2 * 60 * 60 * 1000);
-            const tourEnd = new Date(Date.now() + 3 * 60 * 60 * 1000);
-            setDetails({
-              title: "Test Blitz #1",
-              description: "Dev test tournament",
-              entry_fee: "500",
-              question_count: String(count),
-              time_limit_seconds: "300",
-              max_participants: "100",
-              cash_winner_count: "3",
-              payout_distribution: ["50", "30", "20"],
-              total_payout_percent: "70",
-              ticket_tier_percent: "30",
-              guaranteed_minimum: "",
-            });
-            setSchedule({
-              registration_start: regStart.toISOString().slice(0, 16),
-              tournament_start: tourStart.toISOString().slice(0, 16),
-              tournament_end: tourEnd.toISOString().slice(0, 16),
-            });
-            setQuestions(generateSampleQuestions(count));
-            setStep(1);
-            setError(usedDefault ? `No question count set — defaulted to ${count} questions` : "");
-          }}
-          className="w-full py-2 rounded-xl text-xs font-semibold border transition-colors"
-          style={{ borderColor: "var(--border-hairline)", color: "var(--text-muted)", backgroundColor: "transparent" }}
-        >
-          Fill Test Data (dev only)
-        </button>
-
-        {/* Generate sample questions button - only visible on step 3 */}
-        {step === 3 && (
+          {/* Fill Test Data */}
           <button
             type="button"
             onClick={() => {
-              const needed = requiredCount - questions.length;
-              const toAdd = generateSampleQuestions(needed, questions.length);
-              setQuestions((prev) => [...prev, ...toAdd]);
-              setError(`Generated ${toAdd.length} sample question${toAdd.length !== 1 ? "s" : ""}`);
+              const existingCount = parseInt(details.question_count);
+              const count = existingCount > 0 ? existingCount : 10;
+              const usedDefault = !(existingCount > 0);
+              const regStart = new Date(Date.now() + 30 * 60 * 1000);
+              const tourStart = new Date(Date.now() + 2 * 60 * 60 * 1000);
+              const tourEnd = new Date(Date.now() + 3 * 60 * 60 * 1000);
+              setDetails({
+                title: "Test Blitz #1",
+                description: "Dev test tournament",
+                entry_fee: "500",
+                question_count: String(count),
+                time_limit_seconds: "300",
+                max_participants: "100",
+                cash_winner_count: "3",
+                payout_distribution: ["50", "30", "20"],
+                total_payout_percent: "70",
+                ticket_tier_percent: "30",
+                guaranteed_minimum: "",
+              });
+              setSchedule({
+                registration_start: regStart.toISOString().slice(0, 16),
+                tournament_start: tourStart.toISOString().slice(0, 16),
+                tournament_end: tourEnd.toISOString().slice(0, 16),
+              });
+              setQuestions(generateSampleQuestions(count, sampleCategory));
+              setStep(1);
+              setError(usedDefault ? `No question count set — defaulted to ${count} questions` : "");
             }}
-            disabled={questions.length >= requiredCount}
-            className="w-full py-2 rounded-xl text-xs font-semibold border transition-colors disabled:opacity-50"
+            className="w-full py-2 rounded-xl text-xs font-semibold border transition-colors"
             style={{ borderColor: "var(--border-hairline)", color: "var(--text-muted)", backgroundColor: "transparent" }}
           >
-            Generate {Math.max(0, requiredCount - questions.length)} sample questions
+            Fill Test Data (dev only) · {sampleCategory}
           </button>
-        )}
+
+          {/* Generate — step 3 only */}
+          {step === 3 && (
+            <button
+              type="button"
+              onClick={() => {
+                const needed = requiredCount - questions.length;
+                const toAdd = generateSampleQuestions(needed, sampleCategory);
+                setQuestions((prev) => [...prev, ...toAdd]);
+                setError(`Generated ${toAdd.length} ${sampleCategory} question${toAdd.length !== 1 ? "s" : ""}`);
+              }}
+              disabled={questions.length >= requiredCount}
+              className="w-full py-2 rounded-xl text-xs font-semibold border transition-colors disabled:opacity-50"
+              style={{ borderColor: "var(--border-hairline)", color: "var(--text-muted)", backgroundColor: "transparent" }}
+            >
+              Generate {Math.max(0, requiredCount - questions.length)} {sampleCategory} questions
+            </button>
+          )}
+        </div>
 
         <AnimatePresence mode="wait">
           {step === 1 && (

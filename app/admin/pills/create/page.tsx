@@ -5,6 +5,11 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { adminApi, ApiError } from "@/lib/api";
 import { ArrowLeft, Plus, Package, Trash2, CheckCircle } from "lucide-react";
+import {
+  generateSampleQuestions,
+  SAMPLE_CATEGORIES,
+  type SampleCategory,
+} from "@/lib/sampleQuestions";
 
 interface PillDraft {
   question: string;
@@ -53,6 +58,7 @@ export default function CreatePillPackPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [formOpen, setFormOpen] = useState(true);
+  const [sampleCategory, setSampleCategory] = useState<SampleCategory>("Mixed");
 
   const addPill = () => {
     if (!draft.question.trim()) { setError("Question text required"); return; }
@@ -138,24 +144,57 @@ export default function CreatePillPackPage() {
         </motion.div>
       )}
 
-      {/* Test-fill button */}
-      <button
-        type="button"
-        onClick={() => {
-          setPackName("Science Quick-Fire Pack");
-          setPackCategory("Science");
-          setPills([
-            { question: "What planet is closest to the Sun?", format: "multiple_choice", options: ["Mercury", "Venus", "Mars", "Earth"], correct_answer: "Mercury", timer: 30, entry_fee: 200, prize: 500, color: PILL_COLORS[0] },
-            { question: "What is H2O commonly known as?", format: "multiple_choice", options: ["Salt", "Water", "Hydrogen", "Oxygen"], correct_answer: "Water", timer: 30, entry_fee: 200, prize: 500, color: PILL_COLORS[1] },
-            { question: "How many bones does an adult human body have?", format: "type_answer", options: [], correct_answer: "206", timer: 30, entry_fee: 300, prize: 800, color: PILL_COLORS[2] },
-          ]);
-          setError("");
-        }}
-        className="w-full py-2 rounded-xl text-xs font-semibold border transition-colors hover:opacity-80"
-        style={{ borderColor: "var(--border-hairline)", color: "var(--text-muted)", backgroundColor: "transparent" }}
-      >
-        Fill Test Data (dev only)
-      </button>
+      {/* Dev tools: category selector + fill button */}
+      <div className="space-y-2">
+        {/* Category chip selector */}
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className="text-[10px] font-bold uppercase tracking-widest flex-shrink-0" style={{ color: "var(--text-muted)" }}>
+            Q category:
+          </span>
+          {SAMPLE_CATEGORIES.map((cat) => (
+            <button
+              key={cat}
+              type="button"
+              onClick={() => setSampleCategory(cat)}
+              className="px-2 py-1 rounded-lg text-[10px] font-semibold border transition-all"
+              style={{
+                backgroundColor: sampleCategory === cat ? "rgba(76,111,255,0.15)" : "transparent",
+                borderColor: sampleCategory === cat ? "rgba(76,111,255,0.5)" : "var(--border-hairline)",
+                color: sampleCategory === cat ? "var(--accent-indigo)" : "var(--text-muted)",
+              }}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+
+        {/* Fill Test Data */}
+        <button
+          type="button"
+          onClick={() => {
+            const sampled = generateSampleQuestions(3, sampleCategory);
+            setPackName(`${sampleCategory} Quick-Fire Pack`);
+            setPackCategory(sampleCategory === "Mixed" ? "General" : sampleCategory);
+            setPills(
+              sampled.map((q, i) => ({
+                question: q.question,
+                format: q.format,
+                options: q.options.length ? q.options : ["", "", "", ""],
+                correct_answer: q.correct_answer,
+                timer: 30,
+                entry_fee: 200,
+                prize: 500,
+                color: PILL_COLORS[i % PILL_COLORS.length],
+              }))
+            );
+            setError("");
+          }}
+          className="w-full py-2 rounded-xl text-xs font-semibold border transition-colors hover:opacity-80"
+          style={{ borderColor: "var(--border-hairline)", color: "var(--text-muted)", backgroundColor: "transparent" }}
+        >
+          Fill Test Data (dev only) · {sampleCategory}
+        </button>
+      </div>
 
       {/* Pack Info */}
       <div
