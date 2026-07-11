@@ -11,6 +11,11 @@ export interface SampleQuestion {
   correct_answer: string;
 }
 
+export interface SamplePrediction {
+  question: string;
+  category: string;
+}
+
 export type SampleCategory =
   | "General Knowledge"
   | "Sports"
@@ -30,7 +35,7 @@ export const SAMPLE_CATEGORIES: SampleCategory[] = [
   "Science",
 ];
 
-// ── Per-category pools ────────────────────────────────────────────────────────
+// ── Per-category Q&A pools (Blitz / Pill Packs) ───────────────────────────────
 
 const GENERAL: SampleQuestion[] = [
   { question: "What is the largest ocean on Earth?", format: "multiple_choice", options: ["Atlantic", "Indian", "Pacific", "Arctic"], correct_answer: "Pacific" },
@@ -110,7 +115,73 @@ const SCIENCE: SampleQuestion[] = [
   { question: "What force keeps planets in orbit around the sun?", format: "multiple_choice", options: ["Magnetism", "Friction", "Gravity", "Nuclear force"], correct_answer: "Gravity" },
 ];
 
-// ── Combined map ──────────────────────────────────────────────────────────────
+// ── Per-category prediction pools (Time Machine) ──────────────────────────────
+// Phrased as predictive questions players answer before an event.
+
+const PREDICTIONS_BY_CATEGORY: Record<Exclude<SampleCategory, "Mixed">, SamplePrediction[]> = {
+  "Sports": [
+    { question: "Will the Super Eagles win their next AFCON qualifying match?", category: "Sports" },
+    { question: "Which team will score first in the next Premier League El Clasico?", category: "Sports" },
+    { question: "Will Manchester City finish in the top 4 this season?", category: "Sports" },
+    { question: "How many goals will be scored in the next Nigeria vs Ghana match?", category: "Sports" },
+    { question: "Will Novak Djokovic win the next Grand Slam he enters?", category: "Sports" },
+    { question: "Will the next boxing heavyweight title fight go to a decision?", category: "Sports" },
+    { question: "Which team will win the next UEFA Champions League final?", category: "Sports" },
+    { question: "Will the next F1 race be won by a non-Red Bull driver?", category: "Sports" },
+  ],
+  "Entertainment": [
+    { question: "Will Burna Boy win a Grammy at the next ceremony?", category: "Entertainment" },
+    { question: "Which film will gross the most at the box office this weekend?", category: "Entertainment" },
+    { question: "Will the next season of Squid Game outperform Season 1 in viewership?", category: "Entertainment" },
+    { question: "Will Wizkid release a new album before the end of this year?", category: "Entertainment" },
+    { question: "Will the next Marvel film score above 80% on Rotten Tomatoes?", category: "Entertainment" },
+    { question: "Will the next Big Brother Nigeria eviction be unanimous?", category: "Entertainment" },
+    { question: "Which Nigerian artist will top the Apple Music chart this Friday?", category: "Entertainment" },
+    { question: "Will the next Nollywood blockbuster debut in cinemas this month?", category: "Entertainment" },
+  ],
+  "General Knowledge": [
+    { question: "Will the Nigerian naira strengthen against the dollar this week?", category: "General Knowledge" },
+    { question: "Will Nigeria's inflation rate drop below 25% by next month?", category: "General Knowledge" },
+    { question: "Will the next federal budget pass before the constitutional deadline?", category: "General Knowledge" },
+    { question: "Will fuel prices increase in the next government price review?", category: "General Knowledge" },
+    { question: "Will Nigeria's electricity grid experience a national blackout this month?", category: "General Knowledge" },
+    { question: "Will the CBN hold interest rates at the next MPC meeting?", category: "General Knowledge" },
+    { question: "Will the Lagos traffic index improve or worsen this quarter?", category: "General Knowledge" },
+    { question: "Will average data costs in Nigeria drop this year?", category: "General Knowledge" },
+  ],
+  "Geography": [
+    { question: "Will Lagos surpass Cairo as Africa's most populated city by 2030?", category: "Geography" },
+    { question: "Will any new country join the African Union this year?", category: "Geography" },
+    { question: "Will the next UN climate summit produce a binding agreement?", category: "Geography" },
+    { question: "Will a West African nation host the next FIFA World Cup?", category: "Geography" },
+    { question: "Will sea levels visibly affect a major coastal African city this year?", category: "Geography" },
+    { question: "Will ECOWAS expand its membership this decade?", category: "Geography" },
+    { question: "Will the Congo Basin forest cover shrink further by next year's report?", category: "Geography" },
+    { question: "Will a new trans-African highway project be announced this year?", category: "Geography" },
+  ],
+  "History": [
+    { question: "Will historians declare the 2020s a turning point for democracy globally?", category: "History" },
+    { question: "Will a major African nation hold a disputed election this year?", category: "History" },
+    { question: "Will any colonial-era artifacts be returned to Nigeria this year?", category: "History" },
+    { question: "Will a new constitution be passed in any West African country this year?", category: "History" },
+    { question: "Will any country officially apologise for the transatlantic slave trade this decade?", category: "History" },
+    { question: "Will the Nigerian government formally memorialise the Biafra war this year?", category: "History" },
+    { question: "Will UNESCO add a new Nigerian site to its World Heritage List?", category: "History" },
+    { question: "Will a coup attempt occur in West Africa this year?", category: "History" },
+  ],
+  "Science": [
+    { question: "Will a new COVID variant trigger travel bans before year end?", category: "Science" },
+    { question: "Will any country announce a working nuclear fusion reactor this year?", category: "Science" },
+    { question: "Will NASA launch the next crewed moon mission on schedule?", category: "Science" },
+    { question: "Will a major tech company announce a general-purpose AI model this quarter?", category: "Science" },
+    { question: "Will Nigeria's tech startup funding exceed $1 billion this year?", category: "Science" },
+    { question: "Will solar energy overtake coal globally by next year's IEA report?", category: "Science" },
+    { question: "Will a breakthrough malaria vaccine be approved this year?", category: "Science" },
+    { question: "Will Elon Musk's Starship successfully orbit Earth this year?", category: "Science" },
+  ],
+};
+
+// ── Combined maps ─────────────────────────────────────────────────────────────
 
 const POOL_BY_CATEGORY: Record<Exclude<SampleCategory, "Mixed">, SampleQuestion[]> = {
   "General Knowledge": GENERAL,
@@ -122,15 +193,28 @@ const POOL_BY_CATEGORY: Record<Exclude<SampleCategory, "Mixed">, SampleQuestion[
 };
 
 const ALL_QUESTIONS: SampleQuestion[] = Object.values(POOL_BY_CATEGORY).flat();
+const ALL_PREDICTIONS: SamplePrediction[] = Object.values(PREDICTIONS_BY_CATEGORY).flat();
 
-// ── Generator ─────────────────────────────────────────────────────────────────
+// ── Pill fee/prize variance per category ──────────────────────────────────────
+// [entry_fee, prize] pairs — varied so generated pills feel different
+
+const PILL_PRICING: Record<Exclude<SampleCategory, "Mixed">, Array<[number, number]>> = {
+  "General Knowledge": [[200, 600], [300, 900], [200, 500], [400, 1200], [250, 750]],
+  "Sports":            [[300, 1000], [500, 1500], [200, 700], [400, 1200], [300, 900]],
+  "Entertainment":     [[200, 500], [300, 800], [400, 1000], [200, 600], [500, 1500]],
+  "Geography":         [[200, 600], [300, 800], [500, 1500], [200, 500], [400, 1200]],
+  "History":           [[400, 1200], [300, 900], [500, 1500], [200, 700], [300, 1000]],
+  "Science":           [[500, 1500], [400, 1200], [300, 900], [600, 2000], [400, 1000]],
+};
+
+const TIMERS = [20, 25, 30, 30, 30, 45, 60];
+
+// ── Generators ────────────────────────────────────────────────────────────────
 
 /**
- * Generate exactly `count` sample questions from the chosen category.
- *
- * - "Mixed": random sample across all categories.
- * - Single category: sequential from that category's pool, cycling if N > pool size.
- * - If N > single-category pool size, falls back to Mixed automatically for the overflow.
+ * Generate exactly `count` Q&A questions for Blitz / Pill Pack use.
+ * Mixed: shuffles all categories. Single category: sequential, cycles if N > pool.
+ * If N > single-category pool, fills overflow from Mixed.
  */
 export function generateSampleQuestions(
   count: number,
@@ -140,7 +224,6 @@ export function generateSampleQuestions(
   if (count <= 0) return [];
 
   if (category === "Mixed") {
-    // Fisher-Yates shuffle of all questions, then cycle
     const shuffled = [...ALL_QUESTIONS].sort(() => Math.random() - 0.5);
     return Array.from({ length: count }, (_, i) => shuffled[i % shuffled.length]);
   }
@@ -148,14 +231,71 @@ export function generateSampleQuestions(
   const pool = POOL_BY_CATEGORY[category];
 
   if (count <= pool.length) {
-    // Enough in this category — sequential from offset
     return Array.from({ length: count }, (_, i) => pool[(offset + i) % pool.length]);
   }
 
-  // N exceeds single-category pool — use the category pool fully, then fill remainder from Mixed
   const fromCategory = pool.map((q) => ({ ...q }));
   const needed = count - fromCategory.length;
   const shuffledAll = [...ALL_QUESTIONS].sort(() => Math.random() - 0.5);
   const overflow = Array.from({ length: needed }, (_, i) => shuffledAll[i % shuffledAll.length]);
   return [...fromCategory, ...overflow];
+}
+
+/**
+ * Generate pill data with varied entry_fee / prize / timer values.
+ * Returns SampleQuestion extended with pill-specific fields.
+ */
+export function generateSamplePills(
+  count: number,
+  category: SampleCategory = "Mixed",
+): Array<SampleQuestion & { entry_fee: number; prize: number; timer: number }> {
+  const questions = generateSampleQuestions(count, category);
+  const pricingPool = category === "Mixed"
+    ? Object.values(PILL_PRICING).flat()
+    : PILL_PRICING[category as Exclude<SampleCategory, "Mixed">];
+
+  return questions.map((q, i) => {
+    const [entry_fee, prize] = pricingPool[i % pricingPool.length];
+    const timer = TIMERS[i % TIMERS.length];
+    return { ...q, entry_fee, prize, timer };
+  });
+}
+
+/**
+ * Pick one prediction question for Time Machine use.
+ * Returns question text + a suggested category string.
+ * Also returns randomized entry_fee / prize_per_winner / max_slots.
+ */
+export function generateSamplePrediction(category: SampleCategory = "Mixed"): {
+  question: string;
+  category: string;
+  entry_fee: number;
+  prize_per_winner: number;
+  max_slots: number;
+} {
+  let pool: SamplePrediction[];
+  if (category === "Mixed") {
+    pool = [...ALL_PREDICTIONS].sort(() => Math.random() - 0.5);
+  } else {
+    pool = PREDICTIONS_BY_CATEGORY[category as Exclude<SampleCategory, "Mixed">];
+  }
+
+  const pick = pool[Math.floor(Math.random() * pool.length)];
+
+  // Randomize numbers within sensible ranges
+  const entryOptions = [200, 300, 500, 500, 500, 1000];
+  const prizeMultipliers = [3, 4, 5, 6, 8];
+  const slotOptions = [20, 30, 50, 50, 100, 200];
+
+  const entry_fee = entryOptions[Math.floor(Math.random() * entryOptions.length)];
+  const mult = prizeMultipliers[Math.floor(Math.random() * prizeMultipliers.length)];
+  const max_slots = slotOptions[Math.floor(Math.random() * slotOptions.length)];
+
+  return {
+    question: pick.question,
+    category: category === "Mixed" ? pick.category : category,
+    entry_fee,
+    prize_per_winner: entry_fee * mult,
+    max_slots,
+  };
 }

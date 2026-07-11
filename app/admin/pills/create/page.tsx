@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import { adminApi, ApiError } from "@/lib/api";
 import { ArrowLeft, Plus, Package, Trash2, CheckCircle } from "lucide-react";
 import {
-  generateSampleQuestions,
+  generateSamplePills,
   SAMPLE_CATEGORIES,
   type SampleCategory,
 } from "@/lib/sampleQuestions";
@@ -59,6 +59,7 @@ export default function CreatePillPackPage() {
   const [error, setError] = useState("");
   const [formOpen, setFormOpen] = useState(true);
   const [sampleCategory, setSampleCategory] = useState<SampleCategory>("Mixed");
+  const [sampleCount, setSampleCount] = useState("5");
 
   const addPill = () => {
     if (!draft.question.trim()) { setError("Question text required"); return; }
@@ -144,9 +145,9 @@ export default function CreatePillPackPage() {
         </motion.div>
       )}
 
-      {/* Dev tools: category selector + fill button */}
+      {/* Dev tools: category selector + count + fill button */}
       <div className="space-y-2">
-        {/* Category chip selector */}
+        {/* Category chips */}
         <div className="flex items-center gap-1.5 flex-wrap">
           <span className="text-[10px] font-bold uppercase tracking-widest flex-shrink-0" style={{ color: "var(--text-muted)" }}>
             Q category:
@@ -168,32 +169,49 @@ export default function CreatePillPackPage() {
           ))}
         </div>
 
-        {/* Fill Test Data */}
-        <button
-          type="button"
-          onClick={() => {
-            const sampled = generateSampleQuestions(3, sampleCategory);
-            setPackName(`${sampleCategory} Quick-Fire Pack`);
-            setPackCategory(sampleCategory === "Mixed" ? "General" : sampleCategory);
-            setPills(
-              sampled.map((q, i) => ({
-                question: q.question,
-                format: q.format,
-                options: q.options.length ? q.options : ["", "", "", ""],
-                correct_answer: q.correct_answer,
-                timer: 30,
-                entry_fee: 200,
-                prize: 500,
-                color: PILL_COLORS[i % PILL_COLORS.length],
-              }))
-            );
-            setError("");
-          }}
-          className="w-full py-2 rounded-xl text-xs font-semibold border transition-colors hover:opacity-80"
-          style={{ borderColor: "var(--border-hairline)", color: "var(--text-muted)", backgroundColor: "transparent" }}
-        >
-          Fill Test Data (dev only) · {sampleCategory}
-        </button>
+        {/* Count + Fill row */}
+        <div className="flex gap-2">
+          <div className="flex items-center gap-1.5 border rounded-xl px-3" style={{ borderColor: "var(--border-hairline)" }}>
+            <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>Pills:</span>
+            <input
+              type="number"
+              min="1"
+              max="20"
+              value={sampleCount}
+              onChange={(e) => setSampleCount(e.target.value)}
+              className="w-10 bg-transparent text-xs text-center outline-none py-2"
+              style={{ color: "var(--text-primary)" }}
+            />
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              const count = Math.max(1, Math.min(20, parseInt(sampleCount) || 5));
+              const sampled = generateSamplePills(count, sampleCategory);
+              const cat = sampleCategory === "Mixed" ? "General" : sampleCategory;
+              setPackName(`${cat} Quick-Fire Pack`);
+              setPackCategory(cat);
+              setPills(
+                sampled.map((q, i) => ({
+                  question: q.question,
+                  format: q.format,
+                  options: q.options.length ? q.options : ["", "", "", ""],
+                  correct_answer: q.correct_answer,
+                  timer: q.timer,
+                  entry_fee: q.entry_fee,
+                  prize: q.prize,
+                  color: PILL_COLORS[i % PILL_COLORS.length],
+                }))
+              );
+              setFormOpen(false);
+              setError("");
+            }}
+            className="flex-1 py-2 rounded-xl text-xs font-semibold border transition-colors hover:opacity-80"
+            style={{ borderColor: "var(--border-hairline)", color: "var(--text-muted)", backgroundColor: "transparent" }}
+          >
+            Fill Test Data (dev only) · {sampleCategory}
+          </button>
+        </div>
       </div>
 
       {/* Pack Info */}

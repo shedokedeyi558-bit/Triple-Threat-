@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import { adminApi, ApiError } from "@/lib/api";
 import { ArrowLeft, Clock, CheckCircle } from "lucide-react";
 import {
-  generateSampleQuestions,
+  generateSamplePrediction,
   SAMPLE_CATEGORIES,
   type SampleCategory,
 } from "@/lib/sampleQuestions";
@@ -77,14 +77,12 @@ export default function CreatePredictionPage() {
   const fillTestData = () => {
     const deadline = new Date(Date.now() + 2 * 60 * 60 * 1000);
     const event = new Date(Date.now() + 26 * 60 * 60 * 1000);
-    // Pick a sample question from the selected category
-    const [sample] = generateSampleQuestions(1, sampleCategory);
-    const cat = sampleCategory === "Mixed" ? "General" : sampleCategory;
+    const sample = generateSamplePrediction(sampleCategory);
     setQuestion(sample.question);
-    setCategory(cat);
-    setEntryFee("500");
-    setPrizePerWinner("2000");
-    setMaxSlots("50");
+    setCategory(sample.category);
+    setEntryFee(String(sample.entry_fee));
+    setPrizePerWinner(String(sample.prize_per_winner));
+    setMaxSlots(String(sample.max_slots));
     setCountdownEnd(deadline.toISOString().slice(0, 16));
     setEventDate(event.toISOString().slice(0, 16));
     setError("");
