@@ -967,12 +967,24 @@ export const adminApi = {
     max_slots: number;
     countdown_end: string;
     event_date?: string;
-  }) =>
-    request<{ prediction: any }>("/api/admin/predictions", {
+  }) => {
+    // Backend may expect countdown_seconds (duration) instead of countdown_end (timestamp).
+    // Send both so it works regardless of which the backend checks.
+    const secondsFromNow = Math.max(
+      60,
+      Math.floor((new Date(data.countdown_end).getTime() - Date.now()) / 1000)
+    );
+    return request<{ prediction: any }>("/api/admin/predictions", {
       method: "POST",
-      body: data,
+      body: {
+        ...data,
+        countdown_seconds: secondsFromNow,
+        // also send as countdown_duration in case backend uses that name
+        countdown_duration: secondsFromNow,
+      },
       token: getAdminToken(),
-    }),
+    });
+  },
 
   getPrediction: (id: string) =>
     request<{ prediction: any }>(`/api/admin/predictions/${id}`, {
