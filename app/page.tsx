@@ -55,11 +55,7 @@ export default function LandingPage() {
           </div>
 
           {/* Desktop Nav */}
-          <div className="hidden md:flex items-center gap-8">
-            <Link href="#games" className="text-sm" style={{ color: "var(--text-secondary)" }}>Games</Link>
-            <Link href="#how-it-works" className="text-sm" style={{ color: "var(--text-secondary)" }}>How it works</Link>
-            <Link href="/leaderboard" className="text-sm" style={{ color: "var(--text-secondary)" }}>Leaderboard</Link>
-          </div>
+          <div className="flex-1" />
 
           {/* Desktop Login Button */}
           <div className="hidden md:flex items-center gap-4">
@@ -94,9 +90,6 @@ export default function LandingPage() {
             className="md:hidden border-t px-4 py-4 space-y-4"
             style={{ borderColor: "var(--border-hairline)" }}
           >
-            <Link href="#games" className="block text-sm" style={{ color: "var(--text-secondary)" }}>Games</Link>
-            <Link href="#how-it-works" className="block text-sm" style={{ color: "var(--text-secondary)" }}>How it works</Link>
-            <Link href="/leaderboard" className="block text-sm" style={{ color: "var(--text-secondary)" }}>Leaderboard</Link>
             <Link href="/signin" className="block text-sm font-medium" style={{ color: "var(--accent-amber)" }}>Log in</Link>
           </motion.div>
         )}
@@ -224,6 +217,175 @@ export default function LandingPage() {
           </motion.div>
         </div>
       </section>
+
+      {/* ── SEE IT IN ACTION ── */}
+      <section className="px-4 sm:px-6 lg:px-8 py-16 lg:py-20 border-t" style={{ borderColor: "var(--border-hairline)" }}>
+        <div className="max-w-6xl mx-auto">
+          <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+            {/* Left: Headline & Text */}
+            <motion.div initial={{ opacity: 0, x: -20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}>
+              <h2 className="font-headline text-3xl lg:text-4xl font-semibold mb-4" style={{ color: "var(--text-primary)" }}>
+                Answer right, get paid on the spot.
+              </h2>
+              <p className="text-base leading-relaxed mb-6" style={{ color: "var(--text-secondary)" }}>
+                No long waits, no complicated withdrawals. Win a round, get your winnings instantly. Play from your phone, cash out whenever you want.
+              </p>
+              <ul className="space-y-3 text-sm">
+                {["Answer questions you know", "Get instant confirmation", "Cash out anytime"].map((item) => (
+                  <li key={item} className="flex gap-3" style={{ color: "var(--text-secondary)" }}>
+                    <span className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center" style={{ backgroundColor: "rgba(76,111,255,0.2)" }}>
+                      <span style={{ color: "var(--accent-indigo)" }}>✓</span>
+                    </span>
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </motion.div>
+
+            {/* Right: Mock Win Moment Card */}
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              className="flex justify-center"
+            >
+              <div
+                className="w-64 h-96 rounded-2xl shadow-2xl p-6 flex flex-col items-center justify-center relative overflow-hidden border"
+                style={{ borderColor: "var(--border-subtle)", backgroundColor: "var(--bg-card)" }}
+              >
+                {/* Animated floating +₦ elements */}
+                <style>{`
+                  @keyframes float-up-0 {
+                    0% { transform: translateY(0); opacity: 1; }
+                    100% { transform: translateY(-80px); opacity: 0; }
+                  }
+                  @keyframes float-up-1 {
+                    0% { transform: translateY(0); opacity: 1; }
+                    100% { transform: translateY(-80px); opacity: 0; }
+                  }
+                  @keyframes float-up-2 {
+                    0% { transform: translateY(0); opacity: 1; }
+                    100% { transform: translateY(-80px); opacity: 0; }
+                  }
+                  .float-up-0 { animation: float-up-0 2s ease-out 0s infinite; }
+                  .float-up-1 { animation: float-up-1 2s ease-out 0.5s infinite; }
+                  .float-up-2 { animation: float-up-2 2s ease-out 1s infinite; }
+                `}</style>
+                <div className="absolute float-up-0">
+                  <span className="text-xl font-mono font-bold" style={{ color: "var(--accent-indigo)" }}>+₦250</span>
+                </div>
+                <div className="absolute left-1/4 float-up-1">
+                  <span className="text-lg font-mono font-bold" style={{ color: "var(--accent-violet)" }}>+₦100</span>
+                </div>
+                <div className="absolute right-1/4 float-up-2">
+                  <span className="text-xl font-mono font-bold" style={{ color: "var(--accent-amber)" }}>+₦500</span>
+                </div>
+
+                {/* Main content */}
+                <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4 relative z-10" style={{ backgroundColor: "rgba(249,193,7,0.15)" }}>
+                  <motion.div
+                    animate={{ scale: [1, 1.1, 1] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                    className="w-full h-full rounded-full flex items-center justify-center"
+                  >
+                    <span className="text-2xl" style={{ color: "var(--accent-amber)" }}>✓</span>
+                  </motion.div>
+                </div>
+
+                <p className="text-2xl font-mono font-bold text-center mb-3 relative z-10" style={{ color: "var(--text-primary)" }}>
+                  Correct!
+                </p>
+                <p className="text-3xl font-mono font-black text-center mb-6 relative z-10" style={{ color: "var(--accent-indigo)" }}>
+                  +₦500
+                </p>
+
+                <div className="border-t w-full pt-4 relative z-10" style={{ borderColor: "var(--border-hairline)" }}>
+                  <p className="text-xs text-center mb-1" style={{ color: "var(--text-muted)" }}>Your balance</p>
+                  <p className="font-mono text-lg font-bold text-center" style={{ color: "var(--accent-indigo)" }}>
+                    ₦2,850
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── WHAT'S UP FOR GRABS ── */}
+      <section className="px-4 sm:px-6 lg:px-8 py-16 lg:py-20 border-t" style={{ borderColor: "var(--border-hairline)" }}>
+        <div className="max-w-4xl mx-auto text-center">
+          <motion.h2
+            initial={{ opacity: 0, y: 12 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="font-headline text-3xl lg:text-4xl font-semibold mb-2"
+            style={{ color: "var(--text-primary)" }}
+          >
+            Real naira. Every single mode.
+          </motion.h2>
+          <motion.p
+            initial={{ opacity: 0, y: 12 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.05 }}
+            className="text-sm mb-12"
+            style={{ color: "var(--text-secondary)" }}
+          >
+            Prize pools scale with participation. The more players, the bigger the pot.
+          </motion.p>
+
+          {/* Prize cards */}
+          <div className="grid md:grid-cols-3 gap-6 mb-6">
+            {[
+              { name: "Pills", upTo: "₦2,000", color: "var(--accent-indigo)", accent: "rgba(76,111,255,0.15)" },
+              { name: "Time Machine", upTo: "₦5,000", color: "#A78BFA", accent: "rgba(167,139,250,0.15)" },
+              { name: "Blitz", upTo: "₦50,000", color: "var(--accent-amber)", accent: "rgba(251,146,60,0.15)", emphasized: true },
+            ].map((prize) => (
+              <motion.div
+                key={prize.name}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.1 }}
+                className={`rounded-2xl p-8 border transition-all ${
+                  prize.emphasized
+                    ? "lg:scale-105 lg:ring-2"
+                    : ""
+                }`}
+                style={{
+                  borderColor: prize.emphasized ? prize.color : "var(--border-subtle)",
+                  backgroundColor: prize.accent,
+                  ...(prize.emphasized && { boxShadow: `0 0 20px ${prize.color}30`, ringColor: prize.color }),
+                }}
+              >
+                <h3 className="font-headline text-base font-semibold mb-3" style={{ color: prize.color }}>
+                  {prize.name}
+                </h3>
+                <p className="font-mono text-3xl font-black" style={{ color: prize.color }}>
+                  {prize.upTo}
+                </p>
+                <p className="text-xs mt-2" style={{ color: "var(--text-muted)" }}>
+                  up to
+                </p>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Disclaimer */}
+          <motion.p
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.2 }}
+            className="text-xs"
+            style={{ color: "var(--text-muted)" }}
+          >
+            Actual prizes depend on entries and current registrations — shown live before you join.
+          </motion.p>
+        </div>
+      </section>
+
+      {/* How It Works - Games Section */}
       <section id="how-it-works" className="px-4 sm:px-6 lg:px-8 py-16 lg:py-20 border-t" style={{ borderColor: "var(--border-hairline)" }}>
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
@@ -331,11 +493,6 @@ export default function LandingPage() {
                 <li>
                   <Link href="/#how-it-works" className="text-xs" style={{ color: "var(--text-secondary)" }}>
                     How it works
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/leaderboard" className="text-xs" style={{ color: "var(--text-secondary)" }}>
-                    Leaderboard
                   </Link>
                 </li>
                 <li>

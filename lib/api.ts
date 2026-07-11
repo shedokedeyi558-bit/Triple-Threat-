@@ -1014,19 +1014,6 @@ export interface PlayLimits {
   weekly_limit: number | null;
 }
 
-export interface LeaderboardEntry {
-  rank: number;
-  player_id: string;
-  masked_name: string;
-  total_won: number;
-  games_played: number;
-}
-
-export interface LeaderboardResponse {
-  entries: LeaderboardEntry[];
-  period: "week" | "month" | "all_time";
-  generated_at: string;
-}
 
 export const playerApi = {
   getSpendSummary: () =>
@@ -1041,11 +1028,4 @@ export const playerApi = {
 
   getPlayLimits: () =>
     request<{ limits: PlayLimits }>("/api/player/limits", { token: getToken() }),
-};
-
-// ─── LEADERBOARD ───────────────────────────────────────────────────────────────────
-
-export const leaderboardApi = {
-  get: (period: "week" | "month" | "all_time" = "week") =>
-    request<LeaderboardResponse>("/api/leaderboard", { params: { period } }),
 };
