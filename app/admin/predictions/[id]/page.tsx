@@ -122,7 +122,7 @@ export default function AdminPredictionDetailPage() {
     return (
       <div className="text-center py-16">
         <p className="text-red-400">{error || "Prediction not found"}</p>
-        <button onClick={() => router.back()} className="mt-4 text-sm text-neon">Go back</button>
+        <button onClick={() => router.back()} className="mt-4 text-sm font-medium" style={{ color: "var(--accent-indigo)" }}>Go back</button>
       </div>
     );
   }

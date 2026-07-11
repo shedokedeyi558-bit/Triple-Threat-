@@ -1,9 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowLeft, Heart, TrendingDown, AlertCircle, Settings } from "lucide-react";
+import { ArrowLeft, Heart, TrendingDown, AlertCircle } from "lucide-react";
 
 export default function ResponsiblePlayPage() {
   const router = useRouter();
@@ -113,29 +112,6 @@ export default function ResponsiblePlayPage() {
               </div>
             </div>
           </div>
-        </motion.div>
-
-        {/* CTA */}
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="flex flex-col sm:flex-row gap-3"
-        >
-          <Link
-            href="/profile"
-            className="flex items-center justify-center gap-2 flex-1 py-3 rounded-lg font-bold text-sm transition-all"
-            style={{ backgroundColor: "var(--accent-indigo)", color: "#042C53" }}
-          >
-            <Settings size={16} /> Set Your Limits Now
-          </Link>
-          <Link
-            href="/play"
-            className="flex items-center justify-center gap-2 flex-1 py-3 rounded-lg font-bold text-sm border"
-            style={{ borderColor: "var(--border-subtle)", color: "var(--text-primary)" }}
-          >
-            Back to Play
-          </Link>
         </motion.div>
 
         {/* Footer note */}

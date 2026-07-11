@@ -1,9 +1,9 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { NavBar } from "@/components/ui/NavBar";
 import Link from "next/link";
-import { ChevronDown } from "lucide-react";
+import Image from "next/image";
+import { ArrowLeft, ChevronDown } from "lucide-react";
 import { useState } from "react";
 
 interface FAQItem {
@@ -14,18 +14,18 @@ interface FAQItem {
 const faqs: FAQItem[] = [
   {
     question: "How do I deposit funds?",
-    answer: "Go to your Wallet, click 'Add Funds', and follow the Paystack payment flow. You can deposit via card, bank transfer, or mobile money. Funds are credited instantly.",
+    answer: "Go to your Wallet, tap Add Funds, and follow the Paystack payment flow. You can deposit via card, bank transfer, or mobile money. Funds are credited instantly.",
   },
   {
     question: "How long do withdrawals take?",
-    answer: "Withdrawal requests are reviewed by our admin team and typically processed within 24 hours. You'll receive your funds to your registered bank account.",
+    answer: "Withdrawal requests are reviewed by our admin team and typically processed within 24 hours. Funds are sent to your registered bank account.",
   },
   {
     question: "I think I found a bug, what do I do?",
     answer: (
       <>
-        Please report it to us immediately via email at{" "}
-        <a href="mailto:support@bitlyfe.com" className="text-neon hover:text-neon/80 underline">
+        Please report it to us immediately at{" "}
+        <a href="mailto:support@bitlyfe.com" className="underline font-medium" style={{ color: "var(--accent-indigo)" }}>
           support@bitlyfe.com
         </a>
         . Include details about what happened and we&apos;ll investigate right away.
@@ -36,11 +36,11 @@ const faqs: FAQItem[] = [
     question: "How are winners determined?",
     answer: (
       <>
-        Winners are determined by correct answers. For more details on each game type, check our{" "}
-        <Link href="/#how-it-works" className="text-neon hover:text-neon/80 underline">
+        Winners are determined by correct answers. For details on each game type, see our{" "}
+        <Link href="/#how-it-works" className="underline font-medium" style={{ color: "var(--accent-indigo)" }}>
           How It Works
         </Link>{" "}
-        page.
+        section.
       </>
     ),
   },
@@ -48,35 +48,29 @@ const faqs: FAQItem[] = [
 
 function FAQCard({ faq, index }: { faq: FAQItem; index: number }) {
   const [open, setOpen] = useState(false);
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
-      whileInView={{ opacity: 1, y: 0 }}
+      animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.05 }}
-      viewport={{ once: true }}
-      className="bg-gray-950/50 border border-gray-800 rounded-xl overflow-hidden"
+      className="rounded-xl border overflow-hidden"
+      style={{ borderColor: "var(--border-subtle)", backgroundColor: "var(--bg-card)" }}
     >
       <button
         onClick={() => setOpen(!open)}
-        className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-900/50 transition-colors"
+        className="w-full px-5 py-4 flex items-center justify-between text-left transition-colors hover:bg-black/10"
       >
-        <h3 className="text-white font-semibold text-left">{faq.question}</h3>
+        <h3 className="text-sm font-semibold pr-4" style={{ color: "var(--text-primary)" }}>{faq.question}</h3>
         <ChevronDown
-          size={20}
-          className={`flex-shrink-0 text-neon transition-transform ${open ? "rotate-180" : ""}`}
+          size={16}
+          className={`flex-shrink-0 transition-transform ${open ? "rotate-180" : ""}`}
+          style={{ color: "var(--accent-indigo)" }}
         />
       </button>
-
       {open && (
-        <motion.div
-          initial={{ opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: "auto" }}
-          exit={{ opacity: 0, height: 0 }}
-          className="border-t border-gray-800 px-6 py-4"
-        >
-          <p className="text-gray-300 leading-relaxed">{faq.answer}</p>
-        </motion.div>
+        <div className="border-t px-5 py-4" style={{ borderColor: "var(--border-hairline)" }}>
+          <p className="text-sm leading-relaxed" style={{ color: "var(--text-secondary)" }}>{faq.answer}</p>
+        </div>
       )}
     </motion.div>
   );
@@ -84,64 +78,55 @@ function FAQCard({ faq, index }: { faq: FAQItem; index: number }) {
 
 export default function SupportPage() {
   return (
-    <div className="min-h-dvh bg-[#0A0A0A] flex flex-col">
-      <NavBar />
+    <div className="min-h-dvh flex flex-col" style={{ backgroundColor: "var(--bg-base)" }}>
+      {/* Top bar */}
+      <header className="sticky top-0 z-30 border-b flex items-center gap-3 px-4 sm:px-6 py-4" style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-base)" }}>
+        <Link href="/" className="flex items-center gap-2 flex-shrink-0">
+          <Image src="/bitlyfe-mark.svg" alt="BitLyfe" width={28} height={28} />
+          <span className="font-headline text-base font-semibold" style={{ color: "var(--text-primary)" }}>bitlyfe</span>
+        </Link>
+        <div className="flex-1" />
+        <Link href="/" className="flex items-center gap-1 text-sm font-medium transition-colors hover:opacity-80" style={{ color: "var(--text-secondary)" }}>
+          <ArrowLeft size={16} /> Back
+        </Link>
+      </header>
 
       <main className="flex-1 px-4 sm:px-6 py-8 sm:py-12">
-        <div className="max-w-4xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-8"
-          >
-            <h1 className="text-4xl sm:text-5xl font-bold text-white mb-4">Support</h1>
-            <p className="text-gray-400 text-lg">Frequently asked questions and help</p>
+        <div className="max-w-2xl mx-auto space-y-6">
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+            <p className="font-mono text-xs tracking-widest mb-2" style={{ color: "var(--accent-indigo)" }}>HELP</p>
+            <h1 className="font-headline text-3xl sm:text-4xl font-semibold mb-1" style={{ color: "var(--text-primary)" }}>Support</h1>
+            <p className="text-sm" style={{ color: "var(--text-secondary)" }}>Frequently asked questions</p>
           </motion.div>
 
-          {/* FAQ Section */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="space-y-3 mb-12"
-          >
+          {/* FAQ Cards */}
+          <div className="space-y-2">
             {faqs.map((faq, idx) => (
               <FAQCard key={idx} faq={faq} index={idx} />
             ))}
-          </motion.div>
+          </div>
 
-          {/* Contact Section */}
+          {/* Contact */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="bg-gradient-to-br from-gray-950/50 to-gray-950/30 border border-gray-800 rounded-xl p-8 text-center"
+            transition={{ delay: 0.25 }}
+            className="rounded-xl p-6 border text-center"
+            style={{ borderColor: "var(--border-subtle)", backgroundColor: "var(--bg-card)" }}
           >
-            <h2 className="text-2xl font-bold text-white mb-4">Can&apos;t find what you need?</h2>
-            <p className="text-gray-300 mb-6">
+            <h2 className="font-headline font-semibold text-base mb-2" style={{ color: "var(--text-primary)" }}>
+              Can&apos;t find what you need?
+            </h2>
+            <p className="text-sm mb-4" style={{ color: "var(--text-secondary)" }}>
               Send us an email and we&apos;ll get back to you as soon as possible.
             </p>
             <a
               href="mailto:support@bitlyfe.com"
-              className="inline-block px-8 py-3 bg-neon text-black font-bold rounded-lg hover:bg-neon/90 transition-colors"
+              className="inline-flex items-center justify-center px-6 py-2.5 rounded-lg text-sm font-semibold transition-opacity hover:opacity-90"
+              style={{ backgroundColor: "var(--accent-indigo)", color: "white" }}
             >
               Contact Support
             </a>
-          </motion.div>
-
-          {/* Back to home button */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.3 }}
-            className="mt-12 text-center"
-          >
-            <Link
-              href="/"
-              className="inline-block px-8 py-3 bg-[#00FF66] text-black font-bold rounded-lg hover:bg-[#00FF66]/90 transition-colors"
-            >
-              Back to Home
-            </Link>
           </motion.div>
         </div>
       </main>

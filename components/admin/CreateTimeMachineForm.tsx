@@ -90,6 +90,28 @@ export function CreateTimeMachineForm({ isOpen, onClose, onSuccess }: CreateTime
 
         {error && <p className="text-red-400 text-sm bg-red-900/10 border border-red-900/30 rounded-lg p-3">{error}</p>}
 
+        {/* Test-fill button */}
+        <button
+          type="button"
+          onClick={() => {
+            const deadline = new Date(Date.now() + 4 * 60 * 60 * 1000);
+            setConfig({
+              question: "Will Nigeria beat Ghana in their next AFCON qualifier?",
+              category: "Football",
+              entry_fee: 500,
+              prize_per_winner: 2000,
+              max_slots: 50,
+              countdown_end: deadline.toISOString().slice(0, 16),
+              event_date: "",
+            });
+            setStep("config");
+          }}
+          className="w-full py-2 rounded-lg text-xs font-semibold border transition-colors hover:text-white"
+          style={{ borderColor: "#2A2A2A", color: "#555", backgroundColor: "transparent" }}
+        >
+          Fill Test Data (dev only)
+        </button>
+
         {/* Step: Config */}
         {step === "config" && (
           <div className="space-y-4">

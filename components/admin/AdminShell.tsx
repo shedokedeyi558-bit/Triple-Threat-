@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useAdmin } from "@/context/AdminContext";
 import { AdminSidebar } from "./AdminSidebar";
 import { AdminLogin } from "./AdminLogin";
-import { Menu, X } from "lucide-react";
+import { Menu, X, Package, Clock, Zap, Settings, Home, Users, CreditCard, BarChart2 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 
@@ -43,9 +43,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             className="p-2 rounded-lg transition-colors"
-            style={{
-              color: "var(--text-secondary)",
-            }}
+            style={{ color: "var(--text-secondary)" }}
             aria-label="Toggle menu"
           >
             {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
@@ -58,36 +56,36 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             <p className="text-[10px] font-semibold uppercase tracking-widest px-3 pb-1" style={{ color: "var(--text-muted)" }}>Games</p>
             <Link
               href="/admin/pills"
-              className="block px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
               style={{ color: "var(--text-secondary)" }}
               onClick={() => setMobileMenuOpen(false)}
             >
-              💊 Pill Packs
+              <Package size={14} style={{ color: "var(--accent-indigo)" }} /> Pill Packs
             </Link>
             <Link
               href="/admin/predictions"
-              className="block px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
               style={{ color: "var(--text-secondary)" }}
               onClick={() => setMobileMenuOpen(false)}
             >
-              🕐 Time Machine
+              <Clock size={14} style={{ color: "var(--accent-violet)" }} /> Time Machine
             </Link>
             <Link
               href="/admin/blitz"
-              className="block px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
               style={{ color: "var(--text-secondary)" }}
               onClick={() => setMobileMenuOpen(false)}
             >
-              ⚡ Blitz
+              <Zap size={14} style={{ color: "var(--accent-amber)" }} /> Blitz
             </Link>
             <div className="pt-2 border-t" style={{ borderColor: "var(--border-hairline)" }}>
               <Link
                 href="/admin/settings"
-                className="block px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
                 style={{ color: "var(--text-secondary)" }}
                 onClick={() => setMobileMenuOpen(false)}
               >
-                ⚙️ Settings
+                <Settings size={14} /> Settings
               </Link>
             </div>
           </div>
@@ -99,7 +97,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         </main>
       </div>
 
-      {/* ── MOBILE BOTTOM TAB NAR ── */}
+      {/* ── MOBILE BOTTOM TAB BAR ── */}
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 border-t px-0 h-16" style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-base)" }}>
         <div className="flex items-center justify-around h-full">
           <Link
@@ -107,7 +105,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             className="flex flex-col items-center justify-center gap-1 py-2 px-3 rounded-lg transition-colors flex-1"
             style={{ color: "var(--text-secondary)" }}
           >
-            <span className="text-lg">🏠</span>
+            <Home size={20} />
             <span className="text-[10px] font-semibold">Home</span>
           </Link>
           <Link
@@ -115,7 +113,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             className="flex flex-col items-center justify-center gap-1 py-2 px-3 rounded-lg transition-colors flex-1"
             style={{ color: "var(--text-secondary)" }}
           >
-            <span className="text-lg">👥</span>
+            <Users size={20} />
             <span className="text-[10px] font-semibold">Players</span>
           </Link>
           <Link
@@ -123,7 +121,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             className="flex flex-col items-center justify-center gap-1 py-2 px-3 rounded-lg transition-colors flex-1"
             style={{ color: "var(--text-secondary)" }}
           >
-            <span className="text-lg">💸</span>
+            <CreditCard size={20} />
             <span className="text-[10px] font-semibold">Withdraw</span>
           </Link>
           <Link
@@ -131,7 +129,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             className="flex flex-col items-center justify-center gap-1 py-2 px-3 rounded-lg transition-colors flex-1"
             style={{ color: "var(--text-secondary)" }}
           >
-            <span className="text-lg">📊</span>
+            <BarChart2 size={20} />
             <span className="text-[10px] font-semibold">Stats</span>
           </Link>
         </div>

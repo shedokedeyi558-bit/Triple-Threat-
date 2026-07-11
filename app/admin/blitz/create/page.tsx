@@ -234,6 +234,46 @@ export default function AdminBlitzCreatePage() {
           </motion.p>
         )}
 
+        {/* Test-fill button */}
+        <button
+          type="button"
+          onClick={() => {
+            const regStart = new Date(Date.now() + 30 * 60 * 1000);
+            const tourStart = new Date(Date.now() + 2 * 60 * 60 * 1000);
+            const tourEnd = new Date(Date.now() + 3 * 60 * 60 * 1000);
+            setDetails({
+              title: "Test Blitz #1",
+              description: "Dev test tournament",
+              entry_fee: "500",
+              question_count: "3",
+              time_limit_seconds: "300",
+              platform_cut_percent: "20",
+              max_participants: "100",
+              cash_winner_count: "3",
+              payout_distribution: ["50", "30", "20"],
+              total_payout_percent: "70",
+              ticket_tier_percent: "30",
+              guaranteed_minimum: "",
+            });
+            setSchedule({
+              registration_start: regStart.toISOString().slice(0, 16),
+              tournament_start: tourStart.toISOString().slice(0, 16),
+              tournament_end: tourEnd.toISOString().slice(0, 16),
+            });
+            setQuestions([
+              { question: "What is the capital of Nigeria?", format: "type_answer", options: [], correct_answer: "Abuja" },
+              { question: "Which planet is known as the Red Planet?", format: "multiple_choice", options: ["Earth", "Mars", "Venus", "Jupiter"], correct_answer: "Mars" },
+              { question: "What is 12 × 12?", format: "type_answer", options: [], correct_answer: "144" },
+            ]);
+            setStep(1);
+            setError("");
+          }}
+          className="w-full py-2 rounded-xl text-xs font-semibold border transition-colors"
+          style={{ borderColor: "var(--border-hairline)", color: "var(--text-muted)", backgroundColor: "transparent" }}
+        >
+          Fill Test Data (dev only)
+        </button>
+
         <AnimatePresence mode="wait">
           {step === 1 && (
             <motion.div

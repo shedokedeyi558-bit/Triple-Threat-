@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useApp } from "@/context/AppContext";
 import { pillsApi, type PillPack, type PillPackPill, ApiError } from "@/lib/api";
 import Link from "next/link";
-import { AlertCircle, Loader2, ChevronLeft } from "lucide-react";
+import { AlertCircle, Loader2, ChevronLeft, Package } from "lucide-react";
 
 function pillGlow(color: string) {
   return { background: color, boxShadow: `0 0 18px ${color}60, 0 0 36px ${color}25` };
@@ -171,7 +171,7 @@ export default function PillsPage() {
         <div className="flex justify-center py-20"><Loader2 size={24} className="text-neon animate-spin" /></div>
       ) : packs.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 text-center">
-          <p className="text-4xl mb-4">💊</p>
+          <Package size={40} className="text-gray-700 mb-4" />
           <p className="text-gray-500 font-semibold text-lg">No pill packs available</p>
           <p className="text-gray-700 text-sm mt-1">Check back soon — new packs drop regularly</p>
         </div>

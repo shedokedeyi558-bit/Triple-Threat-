@@ -136,6 +136,25 @@ export default function CreatePillPackPage() {
         </motion.div>
       )}
 
+      {/* Test-fill button */}
+      <button
+        type="button"
+        onClick={() => {
+          setPackName("Science Quick-Fire Pack");
+          setPackCategory("Science");
+          setPills([
+            { question: "What planet is closest to the Sun?", format: "multiple_choice", options: ["Mercury", "Venus", "Mars", "Earth"], correct_answer: "Mercury", timer: 30, entry_fee: 200, prize: 500, color: PILL_COLORS[0] },
+            { question: "What is H2O commonly known as?", format: "multiple_choice", options: ["Salt", "Water", "Hydrogen", "Oxygen"], correct_answer: "Water", timer: 30, entry_fee: 200, prize: 500, color: PILL_COLORS[1] },
+            { question: "How many bones does an adult human body have?", format: "type_answer", options: [], correct_answer: "206", timer: 30, entry_fee: 300, prize: 800, color: PILL_COLORS[2] },
+          ]);
+          setError("");
+        }}
+        className="w-full py-2 rounded-xl text-xs font-semibold border transition-colors hover:opacity-80"
+        style={{ borderColor: "var(--border-hairline)", color: "var(--text-muted)", backgroundColor: "transparent" }}
+      >
+        Fill Test Data (dev only)
+      </button>
+
       {/* Pack Info */}
       <div
         className="border rounded-2xl p-5 space-y-4"

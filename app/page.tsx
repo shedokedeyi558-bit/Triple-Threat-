@@ -103,7 +103,7 @@ export default function LandingPage() {
       </nav>
 
       {/* Hero Section */}
-      <section className="px-4 sm:px-6 lg:px-8 py-16 lg:py-24">
+      <section id="games" className="px-4 sm:px-6 lg:px-8 py-16 lg:py-24">
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-12 lg:gap-12 items-center">
             {/* Left Column */}
@@ -224,7 +224,7 @@ export default function LandingPage() {
           </motion.div>
         </div>
       </section>
-      <section className="px-4 sm:px-6 lg:px-8 py-16 lg:py-20 border-t" style={{ borderColor: "var(--border-hairline)" }}>
+      <section id="how-it-works" className="px-4 sm:px-6 lg:px-8 py-16 lg:py-20 border-t" style={{ borderColor: "var(--border-hairline)" }}>
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="font-headline text-2xl sm:text-3xl" style={{ color: "var(--text-primary)" }}>
