@@ -147,26 +147,28 @@ export default function CreatePillPackPage() {
 
       {/* Dev tools: category selector + count + fill button */}
       <div className="space-y-2 w-full">
-        {/* Category chips */}
-        <div className="w-full flex items-center gap-1 flex-wrap">
-          <span className="text-[10px] font-bold uppercase tracking-widest flex-shrink-0 mr-0.5" style={{ color: "var(--text-muted)" }}>
-            Category:
-          </span>
-          {SAMPLE_CATEGORIES.map((cat) => (
-            <button
-              key={cat}
-              type="button"
-              onClick={() => setSampleCategory(cat)}
-              className="px-1.5 py-0.5 rounded-md text-[9px] font-semibold border transition-all flex-shrink-0"
-              style={{
-                backgroundColor: sampleCategory === cat ? "rgba(76,111,255,0.15)" : "transparent",
-                borderColor: sampleCategory === cat ? "rgba(76,111,255,0.5)" : "var(--border-hairline)",
-                color: sampleCategory === cat ? "var(--accent-indigo)" : "var(--text-muted)",
-              }}
-            >
-              {cat}
-            </button>
-          ))}
+        {/* Category chips — horizontally scrollable on mobile */}
+        <div className="overflow-x-auto -mx-5 px-5 lg:mx-0 lg:px-0">
+          <div className="flex items-center gap-2 flex-nowrap whitespace-nowrap">
+            <span className="text-[10px] font-bold uppercase tracking-widest flex-shrink-0" style={{ color: "var(--text-muted)" }}>
+              Category:
+            </span>
+            {SAMPLE_CATEGORIES.map((cat) => (
+              <button
+                key={cat}
+                type="button"
+                onClick={() => setSampleCategory(cat)}
+                className="px-1.5 py-0.5 rounded-md text-[9px] font-semibold border transition-all flex-shrink-0"
+                style={{
+                  backgroundColor: sampleCategory === cat ? "rgba(76,111,255,0.15)" : "transparent",
+                  borderColor: sampleCategory === cat ? "rgba(76,111,255,0.5)" : "var(--border-hairline)",
+                  color: sampleCategory === cat ? "var(--accent-indigo)" : "var(--text-muted)",
+                }}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Count + Fill row */}
