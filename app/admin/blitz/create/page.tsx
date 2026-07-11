@@ -7,6 +7,40 @@ import { useAdmin } from "@/context/AdminContext";
 import { adminApi, type BlitzQuestion, ApiError } from "@/lib/api";
 import { ArrowLeft, Plus, Trash2, CheckCircle, Zap } from "lucide-react";
 
+// ── Sample question pool — cycles to cover any question_count ──────────────
+const SAMPLE_QUESTIONS_POOL: QuestionDraft[] = [
+  { question: "What is the capital of Nigeria?", format: "type_answer", options: [], correct_answer: "Abuja" },
+  { question: "Which planet is known as the Red Planet?", format: "multiple_choice", options: ["Earth", "Mars", "Venus", "Jupiter"], correct_answer: "Mars" },
+  { question: "What is 12 × 12?", format: "type_answer", options: [], correct_answer: "144" },
+  { question: "What is the capital of France?", format: "type_answer", options: [], correct_answer: "Paris" },
+  { question: "Which of these is a programming language?", format: "multiple_choice", options: ["TypeScript", "Banana", "Car", "Tree"], correct_answer: "TypeScript" },
+  { question: "What year did World War II end?", format: "type_answer", options: [], correct_answer: "1945" },
+  { question: "How many sides does a hexagon have?", format: "multiple_choice", options: ["4", "5", "6", "7"], correct_answer: "6" },
+  { question: "What is the largest planet in our solar system?", format: "type_answer", options: [], correct_answer: "Jupiter" },
+  { question: "What is the chemical symbol for water?", format: "multiple_choice", options: ["H2O", "CO2", "NaCl", "O2"], correct_answer: "H2O" },
+  { question: "How many continents are there on Earth?", format: "type_answer", options: [], correct_answer: "7" },
+  { question: "What is the square root of 144?", format: "type_answer", options: [], correct_answer: "12" },
+  { question: "Which country has the largest population?", format: "multiple_choice", options: ["India", "USA", "China", "Brazil"], correct_answer: "China" },
+  { question: "What is 15% of 200?", format: "type_answer", options: [], correct_answer: "30" },
+  { question: "What language is primarily spoken in Brazil?", format: "multiple_choice", options: ["Spanish", "Portuguese", "French", "English"], correct_answer: "Portuguese" },
+  { question: "How many seconds are in one hour?", format: "type_answer", options: [], correct_answer: "3600" },
+  { question: "What is the speed of light (approx) in km/s?", format: "multiple_choice", options: ["300,000", "150,000", "1,000", "30,000"], correct_answer: "300,000" },
+  { question: "What is the atomic number of carbon?", format: "type_answer", options: [], correct_answer: "6" },
+  { question: "Which ocean is the largest?", format: "multiple_choice", options: ["Atlantic", "Indian", "Pacific", "Arctic"], correct_answer: "Pacific" },
+  { question: "What is 8 to the power of 2?", format: "type_answer", options: [], correct_answer: "64" },
+  { question: "Which gas do plants absorb from the atmosphere?", format: "multiple_choice", options: ["Oxygen", "Nitrogen", "Carbon dioxide", "Hydrogen"], correct_answer: "Carbon dioxide" },
+];
+
+/**
+ * Generate exactly `count` sample questions starting from `offset` index,
+ * cycling through the pool if count exceeds pool length.
+ */
+function generateSampleQuestions(count: number, offset = 0): QuestionDraft[] {
+  return Array.from({ length: count }, (_, i) =>
+    SAMPLE_QUESTIONS_POOL[(offset + i) % SAMPLE_QUESTIONS_POOL.length]
+  );
+}
+
 interface QuestionDraft {
   question: string;
   format: "multiple_choice" | "type_answer";
@@ -238,6 +272,11 @@ export default function AdminBlitzCreatePage() {
         <button
           type="button"
           onClick={() => {
+            // Read existing question_count if already set; default to 10
+            const existingCount = parseInt(details.question_count);
+            const count = existingCount > 0 ? existingCount : 10;
+            const usedDefault = !(existingCount > 0);
+
             const regStart = new Date(Date.now() + 30 * 60 * 1000);
             const tourStart = new Date(Date.now() + 2 * 60 * 60 * 1000);
             const tourEnd = new Date(Date.now() + 3 * 60 * 60 * 1000);
@@ -245,7 +284,7 @@ export default function AdminBlitzCreatePage() {
               title: "Test Blitz #1",
               description: "Dev test tournament",
               entry_fee: "500",
-              question_count: "3",
+              question_count: String(count),
               time_limit_seconds: "300",
               max_participants: "100",
               cash_winner_count: "3",
@@ -259,13 +298,9 @@ export default function AdminBlitzCreatePage() {
               tournament_start: tourStart.toISOString().slice(0, 16),
               tournament_end: tourEnd.toISOString().slice(0, 16),
             });
-            setQuestions([
-              { question: "What is the capital of Nigeria?", format: "type_answer", options: [], correct_answer: "Abuja" },
-              { question: "Which planet is known as the Red Planet?", format: "multiple_choice", options: ["Earth", "Mars", "Venus", "Jupiter"], correct_answer: "Mars" },
-              { question: "What is 12 × 12?", format: "type_answer", options: [], correct_answer: "144" },
-            ]);
+            setQuestions(generateSampleQuestions(count));
             setStep(1);
-            setError("");
+            setError(usedDefault ? `No question count set — defaulted to ${count} questions` : "");
           }}
           className="w-full py-2 rounded-xl text-xs font-semibold border transition-colors"
           style={{ borderColor: "var(--border-hairline)", color: "var(--text-muted)", backgroundColor: "transparent" }}
@@ -278,17 +313,10 @@ export default function AdminBlitzCreatePage() {
           <button
             type="button"
             onClick={() => {
-              const sampleQuestions: QuestionDraft[] = [
-                { question: "What is the capital of France?", format: "type_answer", options: [], correct_answer: "Paris" },
-                { question: "Which of these is a programming language?", format: "multiple_choice", options: ["TypeScript", "Banana", "Car", "Tree"], correct_answer: "TypeScript" },
-                { question: "What year did World War II end?", format: "type_answer", options: [], correct_answer: "1945" },
-                { question: "How many sides does a hexagon have?", format: "multiple_choice", options: ["4", "5", "6", "7"], correct_answer: "6" },
-                { question: "What is the largest planet in our solar system?", format: "type_answer", options: [], correct_answer: "Jupiter" },
-              ];
               const needed = requiredCount - questions.length;
-              const toAdd = sampleQuestions.slice(0, Math.max(0, needed));
+              const toAdd = generateSampleQuestions(needed, questions.length);
               setQuestions((prev) => [...prev, ...toAdd]);
-              setError(`Generated ${toAdd.length} sample questions`);
+              setError(`Generated ${toAdd.length} sample question${toAdd.length !== 1 ? "s" : ""}`);
             }}
             disabled={questions.length >= requiredCount}
             className="w-full py-2 rounded-xl text-xs font-semibold border transition-colors disabled:opacity-50"
