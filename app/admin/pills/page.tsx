@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { adminApi, ApiError } from "@/lib/api";
-import { Loader2, Plus, Package, Eye, EyeOff } from "lucide-react";
+import { Loader2, Plus, Package, Eye, EyeOff, Trash2 } from "lucide-react";
 import { motion } from "framer-motion";
 
 interface PillPack {
@@ -32,6 +32,7 @@ export default function AdminPillsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [toggling, setToggling] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
 
   useEffect(() => { fetchPacks(); }, []);
 
@@ -56,6 +57,24 @@ export default function AdminPillsPage() {
       setError(err instanceof ApiError ? err.message : "Failed to update");
     } finally {
       setToggling(null);
+    }
+  };
+
+  const handleDelete = async (pack: PillPack) => {
+    const availableCount = pack.available_count ?? pack.pills.filter((p) => p.status === "available").length;
+    if (availableCount > 0) {
+      setError(`Cannot delete "${pack.name}" — it still has ${availableCount} unplayed pill(s) available to players.`);
+      return;
+    }
+    if (!window.confirm(`Delete "${pack.name}"?\n\nThis cannot be undone.`)) return;
+    setDeleting(pack.id);
+    try {
+      await adminApi.deletePillPack(pack.id);
+      setPacks((prev) => prev.filter((p) => p.id !== pack.id));
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Failed to delete pack");
+    } finally {
+      setDeleting(null);
     }
   };
 
@@ -169,6 +188,20 @@ export default function AdminPillsPage() {
                   }
                   {pack.status === "active" ? "Deactivate" : "Activate"}
                 </button>
+                {/* Delete — only show for inactive packs with no available pills */}
+                {pack.status !== "active" && (pack.available_count ?? pack.pills.filter(p => p.status === "available").length) === 0 && (
+                  <button
+                    onClick={() => handleDelete(pack)}
+                    disabled={deleting === pack.id}
+                    className="px-3 py-2.5 rounded-xl text-xs font-bold border border-red-700/30 bg-red-900/20 text-red-400 hover:bg-red-900/30 transition-colors disabled:opacity-50 flex items-center gap-1.5"
+                  >
+                    {deleting === pack.id
+                      ? <Loader2 size={13} className="animate-spin" />
+                      : <Trash2 size={13} />
+                    }
+                    Delete
+                  </button>
+                )}
               </div>
             </motion.div>
           ))}

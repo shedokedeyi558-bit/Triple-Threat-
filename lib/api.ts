@@ -866,6 +866,12 @@ export const adminApi = {
       { method: "PUT", body: data, token: getAdminToken() }
     ),
 
+  deletePillPack: (packId: string) =>
+    request<{ message: string }>(
+      `/api/admin/pills/packs/${packId}`,
+      { method: "DELETE", token: getAdminToken() }
+    ),
+
   addPillToPack: (packId: string, data: {
     question: string;
     format: "multiple_choice" | "type_answer";

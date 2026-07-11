@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { adminApi, ApiError } from "@/lib/api";
-import { Users, Eye, Clock, AlertCircle, ArrowLeft, Plus } from "lucide-react";
+import { Users, Eye, Clock, AlertCircle, ArrowLeft, Plus, Trash2 } from "lucide-react";
 
 interface PredictionRow {
   id: string;
@@ -34,6 +34,7 @@ export default function AdminPredictionsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [revealing, setRevealing] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
 
   useEffect(() => { 
     fetchPredictions(); 
@@ -41,11 +42,9 @@ export default function AdminPredictionsPage() {
 
   const fetchPredictions = async () => {
     try {
-      // Fetch using the predictions API directly
       const res = await adminApi.getGames({ limit: 1000 });
-      // Filter games that have prediction characteristics
       const predictions = ((res.games || []) as any[])
-        .filter((g) => g.category || g.countdown_end) // Predictions have countdown_end
+        .filter((g) => g.category || g.countdown_end)
         .map((g) => ({
           id: g.id,
           question: g.question || "Unnamed prediction",
@@ -68,7 +67,6 @@ export default function AdminPredictionsPage() {
   const handleRevealAnswer = async (predictionId: string) => {
     const correctAnswer = prompt("Enter the correct answer:");
     if (!correctAnswer) return;
-    
     setRevealing(predictionId);
     try {
       await adminApi.revealPredictionAnswer(predictionId, correctAnswer);
@@ -77,6 +75,19 @@ export default function AdminPredictionsPage() {
       setError(err instanceof ApiError ? err.message : "Failed to reveal answer");
     } finally {
       setRevealing(null);
+    }
+  };
+
+  const handleDelete = async (pred: PredictionRow) => {
+    if (!window.confirm(`Delete "${pred.question.slice(0, 60)}..."?\n\nThis cannot be undone.`)) return;
+    setDeleting(pred.id);
+    try {
+      await adminApi.deleteGame(pred.id);
+      setPredictions((prev) => prev.filter((p) => p.id !== pred.id));
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Failed to delete prediction");
+    } finally {
+      setDeleting(null);
     }
   };
 
@@ -142,11 +153,9 @@ export default function AdminPredictionsPage() {
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.05 }}
-                className="rounded-lg p-4 border" 
-                style={{ 
-                  borderColor: "var(--border-hairline)", 
-                  backgroundColor: "var(--bg-card)" 
-                }}
+                className="rounded-lg p-4 border cursor-pointer hover:border-[#4C6FFF]/40 transition-colors"
+                style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-card)" }}
+                onClick={() => router.push(`/admin/predictions/${pred.id}`)}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
@@ -173,25 +182,41 @@ export default function AdminPredictionsPage() {
                     </div>
                   </div>
 
-                  {isPastDeadline && pred.status === "locked" && (
-                    <button
-                      onClick={() => handleRevealAnswer(pred.id)}
-                      disabled={revealing === pred.id}
-                      className="px-3 py-1.5 text-xs font-semibold rounded-lg flex-shrink-0 transition-all disabled:opacity-50"
-                      style={{
-                        backgroundColor: "var(--accent-violet)" + "20",
-                        color: "var(--accent-violet)",
-                        border: "1px solid var(--accent-violet)" + "40",
-                      }}
-                    >
-                      {revealing === pred.id ? "..." : (
-                        <span className="flex items-center gap-1">
-                          <Eye size={12} />
-                          Reveal
-                        </span>
-                      )}
-                    </button>
-                  )}
+                  <div className="flex items-center gap-2 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                    {isPastDeadline && pred.status === "locked" && (
+                      <button
+                        onClick={() => handleRevealAnswer(pred.id)}
+                        disabled={revealing === pred.id}
+                        className="px-3 py-1.5 text-xs font-semibold rounded-lg transition-all disabled:opacity-50"
+                        style={{
+                          backgroundColor: "var(--accent-violet)" + "20",
+                          color: "var(--accent-violet)",
+                          border: "1px solid var(--accent-violet)" + "40",
+                        }}
+                      >
+                        {revealing === pred.id ? "..." : (
+                          <span className="flex items-center gap-1">
+                            <Eye size={12} />
+                            Reveal
+                          </span>
+                        )}
+                      </button>
+                    )}
+                    {(pred.status === "completed" || pred.status === "cancelled") && (
+                      <button
+                        onClick={() => handleDelete(pred)}
+                        disabled={deleting === pred.id}
+                        className="p-1.5 rounded-lg transition-colors disabled:opacity-50"
+                        style={{ color: "var(--text-muted)" }}
+                        title="Delete prediction"
+                      >
+                        {deleting === pred.id
+                          ? <div className="w-3.5 h-3.5 border border-current border-t-transparent rounded-full animate-spin" />
+                          : <Trash2 size={14} className="hover:text-red-400" />
+                        }
+                      </button>
+                    )}
+                  </div>
                 </div>
               </motion.div>
             );
