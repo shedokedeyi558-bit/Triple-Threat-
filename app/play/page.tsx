@@ -184,7 +184,7 @@ function TicketStubPrediction({ prediction, onClick }: { prediction: PredictionD
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       onClick={onClick}
-      className="relative w-full rounded-xl border px-4 py-4 text-left transition-all hover:border-opacity-100"
+      className="relative w-full rounded-xl border px-4 py-4 text-left transition-all hover:border-opacity-100 overflow-visible"
       style={{ borderColor: accentColor, backgroundColor: "var(--bg-card)", borderWidth: "1.5px" }}
     >
       {/* Ticket stub cutouts - left */}
@@ -192,10 +192,10 @@ function TicketStubPrediction({ prediction, onClick }: { prediction: PredictionD
       {/* Ticket stub cutouts - right */}
       <div className="absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full" style={{ backgroundColor: "var(--bg-base)" }}></div>
 
-      {/* Content */}
-      <div className="space-y-2">
+      {/* Content — wrapped with overflow control on mobile */}
+      <div className="space-y-2 overflow-hidden">
         <div className="flex items-start justify-between gap-2">
-          <div>
+          <div className="min-w-0 flex-1">
             <p className="text-xs font-mono font-bold uppercase" style={{ color: accentColor }}>
               {prediction.category}
             </p>

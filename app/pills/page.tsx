@@ -67,7 +67,7 @@ function PillPackCard({ pack, onPillTap }: { pack: PillPack; onPillTap: (pack: P
         </span>
       </div>
 
-      <div className="flex gap-3 items-center mb-5 min-h-[56px]">
+      <div className="flex gap-3 items-center mb-5 min-h-[56px] overflow-x-auto pb-2 -mx-4 sm:-mx-6 px-4 sm:px-6">
         {pack.pills.map((pill, i) => (
           <PillBead key={pill.id} pill={pill} index={i} onTap={(p) => onPillTap(pack, p)} />
         ))}
