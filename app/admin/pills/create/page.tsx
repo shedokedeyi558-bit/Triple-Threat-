@@ -52,6 +52,7 @@ export default function CreatePillPackPage() {
   const [draft, setDraft] = useState<PillDraft>(defaultPill());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [formOpen, setFormOpen] = useState(true);
 
   const addPill = () => {
     if (!draft.question.trim()) { setError("Question text required"); return; }
@@ -63,8 +64,9 @@ export default function CreatePillPackPage() {
     if (draft.entry_fee <= 0) { setError("Entry fee must be greater than 0"); return; }
     if (draft.prize <= 0) { setError("Prize must be greater than 0"); return; }
     setPills((prev) => [...prev, { ...draft }]);
-    setDraft({ ...defaultPill(), color: PILL_COLORS[pills.length % PILL_COLORS.length] });
+    setDraft({ ...defaultPill(), color: PILL_COLORS[(pills.length + 1) % PILL_COLORS.length] });
     setError("");
+    setFormOpen(false); // collapse form after each add — user re-opens to add another
   };
 
   const removePill = (i: number) => setPills((prev) => prev.filter((_, idx) => idx !== i));
@@ -183,169 +185,199 @@ export default function CreatePillPackPage() {
         </div>
       </div>
 
-      {/* Add Pill Form */}
+      {/* Add Pill Form — collapsible */}
       <div
-        className="border rounded-2xl p-5 space-y-4"
+        className="border rounded-2xl overflow-hidden"
         style={{ borderColor: "var(--border-subtle)", backgroundColor: "var(--bg-card)" }}
       >
-        <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>Add Pill</p>
-
-        <div>
-          <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Question *</label>
-          <textarea
-            className={inputCls + " resize-none"}
-            rows={2}
-            placeholder="Enter question text..."
-            value={draft.question}
-            onChange={(e) => setDraft({ ...draft, question: e.target.value })}
-          />
-        </div>
-
-        {/* Format Toggle */}
-        <div>
-          <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Format</label>
-          <div className="flex gap-2">
-            {(["multiple_choice", "type_answer"] as const).map((fmt) => (
-              <button
-                key={fmt}
-                type="button"
-                onClick={() => setDraft({ ...draft, format: fmt })}
-                className="flex-1 py-2 rounded-xl text-xs font-bold border transition-colors"
-                style={{
-                  backgroundColor: draft.format === fmt ? "rgba(76,111,255,0.15)" : "var(--bg-base)",
-                  borderColor: draft.format === fmt ? "rgba(76,111,255,0.5)" : "var(--border-subtle)",
-                  color: draft.format === fmt ? "var(--accent-indigo)" : "var(--text-secondary)",
-                }}
-              >
-                {fmt === "multiple_choice" ? "Multiple Choice" : "Type Answer"}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {draft.format === "multiple_choice" && (
-          <div>
-            <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Options</label>
-            <div className="space-y-2">
-              {draft.options.map((opt, i) => (
-                <input
-                  key={i}
-                  className={inputCls}
-                  placeholder={`Option ${i + 1}`}
-                  value={opt}
-                  onChange={(e) => {
-                    const newOpts = [...draft.options];
-                    newOpts[i] = e.target.value;
-                    setDraft({ ...draft, options: newOpts });
-                  }}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-
-        <div>
-          <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Correct Answer *</label>
-          <input
-            className={inputCls}
-            placeholder="Exact correct answer"
-            value={draft.correct_answer}
-            onChange={(e) => setDraft({ ...draft, correct_answer: e.target.value })}
-          />
-        </div>
-
-        <div className="grid grid-cols-3 gap-3">
-          <div>
-            <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Timer (sec)</label>
-            <input
-              className={inputCls}
-              type="number"
-              value={draft.timer}
-              onChange={(e) => setDraft({ ...draft, timer: Number(e.target.value) })}
-            />
-          </div>
-          <div>
-            <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Entry Fee (₦)</label>
-            <input
-              className={inputCls}
-              type="number"
-              value={draft.entry_fee}
-              onChange={(e) => setDraft({ ...draft, entry_fee: Number(e.target.value) })}
-            />
-          </div>
-          <div>
-            <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Prize (₦)</label>
-            <input
-              className={inputCls}
-              type="number"
-              value={draft.prize}
-              onChange={(e) => setDraft({ ...draft, prize: Number(e.target.value) })}
-            />
-          </div>
-        </div>
-
-        {/* Color picker */}
-        <div>
-          <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Pill Color</label>
-          <div className="flex gap-2 flex-wrap">
-            {PILL_COLORS.map((c) => (
-              <button
-                key={c}
-                type="button"
-                onClick={() => setDraft({ ...draft, color: c })}
-                className="w-8 h-8 rounded-full transition-all"
-                style={{
-                  backgroundColor: c,
-                  outline: draft.color === c ? `2px solid white` : "none",
-                  outlineOffset: 2,
-                  opacity: draft.color === c ? 1 : 0.5,
-                }}
-              />
-            ))}
-          </div>
-        </div>
-
+        {/* Header — always visible, toggles the form */}
         <button
           type="button"
-          onClick={addPill}
-          className="w-full py-3 rounded-xl text-sm font-bold border flex items-center justify-center gap-2 transition-colors hover:border-[#4C6FFF]/50"
-          style={{ borderColor: "var(--border-subtle)", color: "var(--text-secondary)", backgroundColor: "var(--bg-base)" }}
+          onClick={() => setFormOpen((o) => !o)}
+          className="w-full flex items-center justify-between px-5 py-4 text-left"
         >
-          <Plus size={15} />
-          Add Pill to Pack
+          <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>
+            Add Pill
+          </p>
+          <span className="text-xs font-semibold" style={{ color: "var(--accent-indigo)" }}>
+            {formOpen ? "▲ Collapse" : "▼ Expand"}
+          </span>
         </button>
+
+        {formOpen && (
+          <div className="px-5 pb-5 space-y-4 border-t" style={{ borderColor: "var(--border-hairline)" }}>
+            <div className="pt-4">
+              <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Question *</label>
+              <textarea
+                className={inputCls + " resize-none"}
+                rows={2}
+                placeholder="Enter question text..."
+                value={draft.question}
+                onChange={(e) => setDraft({ ...draft, question: e.target.value })}
+              />
+            </div>
+
+            {/* Format Toggle */}
+            <div>
+              <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Format</label>
+              <div className="flex gap-2">
+                {(["multiple_choice", "type_answer"] as const).map((fmt) => (
+                  <button
+                    key={fmt}
+                    type="button"
+                    onClick={() => setDraft({ ...draft, format: fmt })}
+                    className="flex-1 py-2 rounded-xl text-xs font-bold border transition-colors active:scale-95"
+                    style={{
+                      backgroundColor: draft.format === fmt ? "rgba(76,111,255,0.15)" : "var(--bg-base)",
+                      borderColor: draft.format === fmt ? "rgba(76,111,255,0.5)" : "var(--border-subtle)",
+                      color: draft.format === fmt ? "var(--accent-indigo)" : "var(--text-secondary)",
+                    }}
+                  >
+                    {fmt === "multiple_choice" ? "Multiple Choice" : "Type Answer"}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {draft.format === "multiple_choice" && (
+              <div>
+                <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Options</label>
+                <div className="space-y-2">
+                  {draft.options.map((opt, i) => (
+                    <input
+                      key={i}
+                      className={inputCls}
+                      placeholder={`Option ${i + 1}`}
+                      value={opt}
+                      onChange={(e) => {
+                        const newOpts = [...draft.options];
+                        newOpts[i] = e.target.value;
+                        setDraft({ ...draft, options: newOpts });
+                      }}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div>
+              <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Correct Answer *</label>
+              <input
+                className={inputCls}
+                placeholder="Exact correct answer"
+                value={draft.correct_answer}
+                onChange={(e) => setDraft({ ...draft, correct_answer: e.target.value })}
+              />
+            </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Timer (sec)</label>
+                <input
+                  className={inputCls}
+                  type="number"
+                  value={draft.timer}
+                  onChange={(e) => setDraft({ ...draft, timer: Number(e.target.value) })}
+                />
+              </div>
+              <div>
+                <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Entry Fee (₦)</label>
+                <input
+                  className={inputCls}
+                  type="number"
+                  value={draft.entry_fee}
+                  onChange={(e) => setDraft({ ...draft, entry_fee: Number(e.target.value) })}
+                />
+              </div>
+              <div>
+                <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Prize (₦)</label>
+                <input
+                  className={inputCls}
+                  type="number"
+                  value={draft.prize}
+                  onChange={(e) => setDraft({ ...draft, prize: Number(e.target.value) })}
+                />
+              </div>
+            </div>
+
+            {/* Color picker */}
+            <div>
+              <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Pill Color</label>
+              <div className="flex gap-2 flex-wrap">
+                {PILL_COLORS.map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => setDraft({ ...draft, color: c })}
+                    className="w-8 h-8 rounded-full transition-all active:scale-90"
+                    style={{
+                      backgroundColor: c,
+                      outline: draft.color === c ? `2px solid white` : "none",
+                      outlineOffset: 2,
+                      opacity: draft.color === c ? 1 : 0.5,
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={addPill}
+              className="w-full py-3 rounded-xl text-sm font-bold border flex items-center justify-center gap-2 transition-all hover:border-[#4C6FFF]/50 active:scale-[0.98]"
+              style={{ borderColor: "var(--border-subtle)", color: "var(--text-secondary)", backgroundColor: "var(--bg-base)" }}
+            >
+              <Plus size={15} />
+              Add Pill to Pack
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* Pills list */}
+      {/* Pills list — fixed height scroll container so page doesn't grow */}
       {pills.length > 0 && (
-        <div className="space-y-2">
-          <p className="text-[10px] font-bold uppercase tracking-widest px-1" style={{ color: "var(--text-muted)" }}>
-            Pills ({pills.length})
-          </p>
-          {pills.map((p, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex items-center gap-3 border rounded-xl p-3"
-              style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-card)" }}
-            >
-              <div className="w-8 h-8 rounded-full flex-shrink-0" style={{ backgroundColor: p.color }} />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold truncate" style={{ color: "var(--text-primary)" }}>{p.question}</p>
-                <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
-                  ₦{p.entry_fee} entry · ₦{p.prize} prize · {p.timer}s · ✓ {p.correct_answer}
-                </p>
-              </div>
+        <div>
+          <div className="flex items-center justify-between px-1 mb-2">
+            <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>
+              Pills ({pills.length})
+            </p>
+            {!formOpen && (
               <button
-                onClick={() => removePill(i)}
-                className="p-1.5 rounded-lg flex-shrink-0 transition-colors hover:text-red-400"
-                style={{ color: "var(--text-muted)" }}
+                type="button"
+                onClick={() => setFormOpen(true)}
+                className="text-xs font-semibold flex items-center gap-1"
+                style={{ color: "var(--accent-indigo)" }}
               >
-                <Trash2 size={14} />
+                <Plus size={12} /> Add another
               </button>
-            </motion.div>
-          ))}
+            )}
+          </div>
+          <div className="space-y-2 overflow-y-auto pr-0.5" style={{ maxHeight: "320px" }}>
+            {pills.map((p, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex items-center gap-3 border rounded-xl p-3"
+                style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-card)" }}
+              >
+                <div className="w-8 h-8 rounded-full flex-shrink-0" style={{ backgroundColor: p.color }} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold truncate" style={{ color: "var(--text-primary)" }}>{p.question}</p>
+                  <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
+                    ₦{p.entry_fee} entry · ₦{p.prize} prize · {p.timer}s · ✓ {p.correct_answer}
+                  </p>
+                </div>
+                <button
+                  onClick={() => removePill(i)}
+                  className="p-1.5 rounded-lg flex-shrink-0 transition-colors hover:text-red-400"
+                  style={{ color: "var(--text-muted)" }}
+                >
+                  <Trash2 size={14} />
+                </button>
+              </motion.div>
+            ))}
+          </div>
         </div>
       )}
 

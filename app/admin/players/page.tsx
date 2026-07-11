@@ -88,7 +88,7 @@ export default function PlayersPage() {
 
       {loading && (
         <div className="flex justify-center py-12">
-          <Loader2 size={28} className="text-neon animate-spin" />
+          <Loader2 size={28} className="animate-spin" style={{ color: "var(--accent-indigo)" }} />
         </div>
       )}
 
@@ -112,7 +112,9 @@ export default function PlayersPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="text-neon text-sm font-bold">₦{p.balance.toLocaleString()}</span>
+                  <span className="font-mono font-bold text-sm" style={{ color: "var(--accent-amber)" }}>
+                    ₦{p.balance.toLocaleString()}
+                  </span>
                   {expanded === p.id ? (
                     <ChevronUp size={16} className="text-gray-400" />
                   ) : (
@@ -138,7 +140,9 @@ export default function PlayersPage() {
 
                   <div className="flex items-center justify-between bg-[#111] rounded-xl p-3">
                     <span className="text-xs text-gray-400">Total won</span>
-                    <span className="text-neon font-bold">₦{p.total_won.toLocaleString()}</span>
+                    <span className="font-mono font-bold text-sm" style={{ color: "var(--accent-amber)" }}>
+                      ₦{p.total_won.toLocaleString()}
+                    </span>
                   </div>
                   <div className="flex items-center justify-between bg-[#111] rounded-xl p-3">
                     <span className="text-xs text-gray-400">Joined</span>
@@ -150,11 +154,16 @@ export default function PlayersPage() {
                   <button
                     onClick={() => handleToggleBan(p)}
                     disabled={toggling === p.id}
-                    className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-semibold text-sm transition-colors disabled:opacity-50 ${
+                    className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-semibold text-sm transition-all active:scale-[0.98] disabled:opacity-50 ${
                       p.status === "active"
                         ? "bg-red-900/30 border border-red-800/40 text-red-400 hover:bg-red-900/50"
-                        : "bg-neon/10 border border-neon/30 text-neon hover:bg-neon/20"
+                        : "border hover:opacity-80"
                     }`}
+                    style={p.status !== "active" ? {
+                      backgroundColor: "rgba(76,111,255,0.1)",
+                      borderColor: "rgba(76,111,255,0.3)",
+                      color: "var(--accent-indigo)",
+                    } : undefined}
                   >
                     {toggling === p.id ? (
                       <Loader2 size={15} className="animate-spin" />

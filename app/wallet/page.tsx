@@ -208,7 +208,7 @@ export default function WalletPage() {
               <button
                 key={t}
                 onClick={() => { setTab(t); setDepositError(""); setWithdrawError(""); setWithdrawMsg(""); }}
-                className={`flex-1 py-4 text-sm font-bold capitalize transition-all border-b-2 -mb-px`}
+                className="flex-1 py-4 text-sm font-bold capitalize transition-all border-b-2 -mb-px active:opacity-70"
                 style={{
                   borderColor: tab === t ? "var(--accent-amber)" : "transparent",
                   color: tab === t ? "var(--accent-amber)" : "var(--text-secondary)",
