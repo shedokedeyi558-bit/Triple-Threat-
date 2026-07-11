@@ -6,11 +6,62 @@ import { useApp } from "@/context/AppContext";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowRight, Menu, X } from "lucide-react";
+import { blitzApi, pillsApi, predictionsApi } from "@/lib/api";
 
 export default function LandingPage() {
   const { state } = useApp();
   const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Live stats — fail silently, fallbacks always show
+  const [liveStats, setLiveStats] = useState({
+    pills:       { stat: "Win up to ₦5,000", sub: "Answer in 30 sec · from ₦200" },
+    timeMachine: { stat: "Top prize ₦20,000", sub: "Predict right, collect instantly" },
+    blitz:       { stat: "Prize pools to ₦100,000", sub: "Next tournament · open now" },
+  });
+
+  useEffect(() => {
+    // Pills — try to get active packs count
+    pillsApi.getPacks().then((res) => {
+      const active = res.packs?.filter((p) => p.status === "active").length ?? 0;
+      if (active > 0) {
+        setLiveStats((prev) => ({
+          ...prev,
+          pills: { stat: "Win up to ₦5,000", sub: `${active} pack${active > 1 ? "s" : ""} live now · from ₦200` },
+        }));
+      }
+    }).catch(() => {});
+
+    // Time Machine — try to get active predictions count
+    predictionsApi.getActive().then((res) => {
+      const count = res.predictions?.length ?? 0;
+      if (count > 0) {
+        const next = res.predictions[0];
+        const slots = next?.max_slots
+          ? `${next.slots_filled ?? 0}/${next.max_slots} entered`
+          : `${count} open`;
+        setLiveStats((prev) => ({
+          ...prev,
+          timeMachine: { stat: "Top prize ₦20,000", sub: slots },
+        }));
+      }
+    }).catch(() => {});
+
+    // Blitz — try to get nearest open tournament
+    blitzApi.getAll().then((res) => {
+      const open = res.tournaments?.find((t) => t.status === "registration" || t.status === "active");
+      if (open) {
+        const pool = open.prize_pool > 0
+          ? `₦${open.prize_pool.toLocaleString("en-NG")} pool`
+          : "Prize pool live";
+        setLiveStats((prev) => ({
+          ...prev,
+          blitz: { stat: "Prize pools to ₦100,000", sub: `${pool} · ${open.total_registered} registered` },
+        }));
+      }
+    }).catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Redirect to /play if already authenticated
   useEffect(() => {
@@ -22,24 +73,24 @@ export default function LandingPage() {
   const gameTickets = [
     {
       title: "Pills",
-      description: "30-second knowledge challenges",
-      accent: "indigo",
+      description: "30-second knowledge drops",
       accentColor: "var(--accent-indigo)",
-      priceRange: "₦200 → ₦1,000",
+      stat: liveStats.pills.stat,
+      sub: liveStats.pills.sub,
     },
     {
       title: "Time Machine",
-      description: "Predict the outcome, lock it in before time runs out",
-      accent: "violet",
-      accentColor: "var(--accent-violet)",
-      priceRange: "₦500 → ₦2,000",
+      description: "Lock in your prediction before time's up",
+      accentColor: "#a78bfa",
+      stat: liveStats.timeMachine.stat,
+      sub: liveStats.timeMachine.sub,
     },
     {
       title: "Blitz",
-      description: "Live tournaments — outscore everyone, outrun the clock",
-      accent: "amber",
+      description: "Live tournaments — outscore everyone",
       accentColor: "var(--accent-amber)",
-      priceRange: "Winner takes 40%",
+      stat: liveStats.blitz.stat,
+      sub: liveStats.blitz.sub,
     },
   ];
 
@@ -162,21 +213,26 @@ export default function LandingPage() {
                   className="rounded-r-xl overflow-hidden"
                   style={{
                     backgroundColor: "var(--bg-card)",
-                    borderLeft: `2px solid ${ticket.accentColor}`,
+                    borderLeft: `3px solid ${ticket.accentColor}`,
                   }}
                 >
-                  <div className="p-4 flex items-start justify-between">
-                    <div>
-                      <h3 className="font-headline font-semibold text-sm" style={{ color: "var(--text-primary)" }}>
-                        {ticket.title}
-                      </h3>
-                      <p className="text-xs mt-1" style={{ color: "var(--text-secondary)" }}>
-                        {ticket.description}
-                      </p>
+                  <div className="p-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-headline font-semibold text-sm" style={{ color: "var(--text-primary)" }}>
+                          {ticket.title}
+                        </h3>
+                        <p className="text-xs mt-0.5 truncate" style={{ color: "var(--text-secondary)" }}>
+                          {ticket.description}
+                        </p>
+                      </div>
+                      <span className="font-mono text-sm font-bold whitespace-nowrap flex-shrink-0" style={{ color: ticket.accentColor }}>
+                        {ticket.stat}
+                      </span>
                     </div>
-                    <span className="font-mono text-xs whitespace-nowrap ml-4" style={{ color: ticket.accentColor }}>
-                      {ticket.priceRange}
-                    </span>
+                    <p className="text-[10px] mt-2 font-mono" style={{ color: "var(--text-muted)" }}>
+                      {ticket.sub}
+                    </p>
                   </div>
                 </motion.div>
               ))}
@@ -196,21 +252,26 @@ export default function LandingPage() {
                 className="rounded-r-xl overflow-hidden"
                 style={{
                   backgroundColor: "var(--bg-card)",
-                  borderLeft: `2px solid ${ticket.accentColor}`,
+                  borderLeft: `3px solid ${ticket.accentColor}`,
                 }}
               >
-                <div className="p-3 sm:p-4 flex items-center justify-between">
-                  <div className="flex-1">
-                    <h3 className="font-headline font-semibold text-sm" style={{ color: "var(--text-primary)" }}>
-                      {ticket.title}
-                    </h3>
-                    <p className="text-xs mt-0.5" style={{ color: "var(--text-secondary)" }}>
-                      {ticket.description}
-                    </p>
+                <div className="p-3 sm:p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-headline font-semibold text-sm" style={{ color: "var(--text-primary)" }}>
+                        {ticket.title}
+                      </h3>
+                      <p className="text-xs mt-0.5 truncate" style={{ color: "var(--text-secondary)" }}>
+                        {ticket.description}
+                      </p>
+                    </div>
+                    <span className="font-mono text-sm font-bold whitespace-nowrap flex-shrink-0" style={{ color: ticket.accentColor }}>
+                      {ticket.stat}
+                    </span>
                   </div>
-                  <span className="font-mono text-xs whitespace-nowrap ml-3" style={{ color: ticket.accentColor }}>
-                    {ticket.priceRange}
-                  </span>
+                  <p className="text-[10px] mt-1.5 font-mono" style={{ color: "var(--text-muted)" }}>
+                    {ticket.sub}
+                  </p>
                 </div>
               </div>
             ))}
