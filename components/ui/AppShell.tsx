@@ -129,7 +129,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </header>
 
         {/* Page content */}
-        <main className="flex-1 pb-28 lg:pb-8">
+        <main className="flex-1 pb-28 lg:pb-8 overflow-x-hidden">
           {children}
         </main>
       </div>
