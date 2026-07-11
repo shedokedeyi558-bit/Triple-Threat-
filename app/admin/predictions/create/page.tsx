@@ -37,6 +37,7 @@ export default function CreatePredictionPage() {
   const [eventDate, setEventDate] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState<{ text: string; type: "info" | "success" } | null>(null);
   const [sampleCategory, setSampleCategory] = useState<SampleCategory>("Mixed");
 
   const validate = (): string | null => {
@@ -52,9 +53,10 @@ export default function CreatePredictionPage() {
 
   const handleCreate = async () => {
     const err = validate();
-    if (err) { setError(err); return; }
+    if (err) { setError(err); setNotice(null); return; }
 
     setError("");
+    setNotice(null);
     setLoading(true);
     try {
       await adminApi.createPrediction({
@@ -86,6 +88,7 @@ export default function CreatePredictionPage() {
     setCountdownEnd(deadline.toISOString().slice(0, 16));
     setEventDate(event.toISOString().slice(0, 16));
     setError("");
+    setNotice({ text: `Filled with a ${sample.category} prediction · ₦${sample.entry_fee} entry · ₦${sample.prize_per_winner} prize`, type: "success" });
   };
 
   return (
@@ -145,7 +148,7 @@ export default function CreatePredictionPage() {
         </button>
       </div>
 
-      {/* Error */}
+      {/* Error / Notice */}
       {error && (
         <motion.div
           initial={{ opacity: 0 }}
@@ -154,6 +157,20 @@ export default function CreatePredictionPage() {
           style={{ borderColor: "rgba(239,68,68,0.3)", backgroundColor: "rgba(239,68,68,0.05)", color: "#ef4444" }}
         >
           {error}
+        </motion.div>
+      )}
+      {notice && (
+        <motion.div
+          key={notice.text}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="border rounded-xl p-3 text-sm"
+          style={notice.type === "success"
+            ? { color: "var(--accent-indigo)", backgroundColor: "rgba(76,111,255,0.08)", borderColor: "rgba(76,111,255,0.25)" }
+            : { color: "var(--accent-amber)", backgroundColor: "rgba(249,193,7,0.08)", borderColor: "rgba(249,193,7,0.25)" }
+          }
+        >
+          {notice.type === "success" ? "✓ " : "ℹ "}{notice.text}
         </motion.div>
       )}
 

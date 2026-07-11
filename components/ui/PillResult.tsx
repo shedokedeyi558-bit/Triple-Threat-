@@ -6,9 +6,10 @@ import { useRouter } from "next/navigation";
 
 interface PillResultProps {
   won: boolean;
-  prize: number;
+  prize?: number;
   correctAnswer: string;
   category: string;
+  timedOut?: boolean;
 }
 
 export default function PillResult({
@@ -16,8 +17,11 @@ export default function PillResult({
   prize,
   correctAnswer,
   category,
+  timedOut = false,
 }: PillResultProps) {
   const router = useRouter();
+  const safeAnswer = correctAnswer ?? "";
+  const safePrize = prize ?? 0;
 
   return (
     <motion.div
@@ -40,6 +44,18 @@ export default function PillResult({
             </motion.div>
             <h2 className="text-3xl font-bold text-[#00FF66] mt-4 uppercase">Correct</h2>
           </>
+        ) : timedOut ? (
+          <>
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: "spring", damping: 15 }}
+              className="inline-block"
+            >
+              <XCircle size={64} className="text-yellow-500" />
+            </motion.div>
+            <h2 className="text-3xl font-bold text-yellow-500 mt-4 uppercase">Time&apos;s Up</h2>
+          </>
         ) : (
           <>
             <motion.div
@@ -59,7 +75,7 @@ export default function PillResult({
       {won && (
         <div className="bg-[#1A1A1A] border border-[#00FF66] rounded-2xl p-6 text-center">
           <p className="text-sm text-[#888] uppercase tracking-tight font-bold">Prize Won</p>
-          <p className="text-4xl font-bold text-[#00FF66] mt-2">₦{prize}</p>
+          <p className="text-4xl font-bold text-[#00FF66] mt-2">₦{safePrize.toLocaleString()}</p>
         </div>
       )}
 
@@ -67,7 +83,7 @@ export default function PillResult({
       {!won && (
         <div className="bg-[#0A0A0A] border border-[#2A2A2A] rounded-xl p-4">
           <p className="text-xs text-[#888] uppercase tracking-tight font-bold">Correct Answer</p>
-          <p className="text-lg font-bold mt-2">{correctAnswer}</p>
+          <p className="text-lg font-bold mt-2">{safeAnswer || "—"}</p>
         </div>
       )}
 

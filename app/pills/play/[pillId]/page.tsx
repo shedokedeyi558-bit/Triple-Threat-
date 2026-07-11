@@ -20,6 +20,7 @@ export default function PillPlayPage() {
   const [phase, setPhase] = useState<Phase>("revealing");
   const [data, setData] = useState<PillOpenResponse | null>(null);
   const [result, setResult] = useState<PillSubmitResponse | null>(null);
+  const [timedOut, setTimedOut] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -40,10 +41,12 @@ export default function PillPlayPage() {
 
   const handleSubmit = async (answer: string) => {
     setSubmitting(true);
+    const wasTimedOut = answer === "";
     try {
       const res = await pillsApi.submit(pillId, answer);
       dispatch({ type: "UPDATE_BALANCE", balance: res.newBalance });
       setResult(res);
+      if (wasTimedOut) setTimedOut(true);
       setPhase("result");
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to submit answer");
@@ -151,6 +154,7 @@ export default function PillPlayPage() {
                 prize={result.prize ?? 0}
                 correctAnswer={result.correctAnswer}
                 category={data.category}
+                timedOut={timedOut}
               />
             </motion.div>
           )}

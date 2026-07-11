@@ -25,14 +25,27 @@ export default function PillPlay({
   const [timeLeft, setTimeLeft] = useState(timer);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [textAnswer, setTextAnswer] = useState("");
+  const [timedOut, setTimedOut] = useState(false);
 
   useEffect(() => {
-    if (timeLeft <= 0) return;
+    if (timeLeft <= 0) {
+      // Auto-submit with whatever is selected; if nothing, submit empty string
+      // so the result screen always shows rather than leaving the player stuck
+      if (!timedOut) {
+        setTimedOut(true);
+        const answer =
+          format === "multiple_choice"
+            ? selectedOption ?? ""
+            : textAnswer.trim();
+        onSubmit(answer);
+      }
+      return;
+    }
     const interval = setInterval(() => {
       setTimeLeft((prev) => Math.max(0, prev - 1));
     }, 1000);
     return () => clearInterval(interval);
-  }, [timeLeft]);
+  }, [timeLeft]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const progress = ((timer - timeLeft) / timer) * 100;
   const isTimeRunningOut = timeLeft <= 5;

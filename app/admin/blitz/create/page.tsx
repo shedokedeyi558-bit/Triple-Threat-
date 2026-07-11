@@ -45,6 +45,7 @@ export default function AdminBlitzCreatePage() {
 
   const [step, setStep] = useState(1);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState<{ text: string; type: "info" | "success" } | null>(null);
   const [loading, setLoading] = useState(false);
 
   const [details, setDetails] = useState<TournamentDetails>({
@@ -124,14 +125,14 @@ export default function AdminBlitzCreatePage() {
   const handleStep1Next = () => {
     const err = validateStep1();
     if (err) { setError(err); return; }
-    setError("");
+    setError(""); setNotice(null);
     setStep(2);
   };
 
   const handleStep2Next = () => {
     const err = validateStep2();
     if (err) { setError(err); return; }
-    setError("");
+    setError(""); setNotice(null);
     setStep(3);
   };
 
@@ -144,7 +145,7 @@ export default function AdminBlitzCreatePage() {
     }
     setQuestions((prev) => [...prev, { ...qDraft }]);
     setQDraft({ question: "", format: "multiple_choice", options: ["", "", "", ""], correct_answer: "" });
-    setError("");
+    setError(""); setNotice(null);
   };
 
   const removeQuestion = (index: number) => {
@@ -240,6 +241,21 @@ export default function AdminBlitzCreatePage() {
           </motion.p>
         )}
 
+        {notice && (
+          <motion.p
+            key={notice.text}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-sm rounded-xl p-3 border"
+            style={notice.type === "success"
+              ? { color: "var(--accent-indigo)", backgroundColor: "rgba(76,111,255,0.08)", borderColor: "rgba(76,111,255,0.25)" }
+              : { color: "var(--accent-amber)", backgroundColor: "rgba(249,193,7,0.08)", borderColor: "rgba(249,193,7,0.25)" }
+            }
+          >
+            {notice.type === "success" ? "✓ " : "ℹ "}{notice.text}
+          </motion.p>
+        )}
+
         {/* Dev tools: category selector + fill/generate buttons */}
         <div className="space-y-2">
           {/* Category chip selector */}
@@ -294,7 +310,11 @@ export default function AdminBlitzCreatePage() {
               });
               setQuestions(generateSampleQuestions(count, sampleCategory));
               setStep(1);
-              setError(usedDefault ? `No question count set — defaulted to ${count} questions` : "");
+              setError("");
+              setNotice(usedDefault
+                ? { text: `No question count set — used default of ${count}`, type: "info" }
+                : { text: `Filled with ${count} ${sampleCategory} questions`, type: "success" }
+              );
             }}
             className="w-full py-2 rounded-xl text-xs font-semibold border transition-colors"
             style={{ borderColor: "var(--border-hairline)", color: "var(--text-muted)", backgroundColor: "transparent" }}
@@ -310,7 +330,8 @@ export default function AdminBlitzCreatePage() {
                 const needed = requiredCount - questions.length;
                 const toAdd = generateSampleQuestions(needed, sampleCategory);
                 setQuestions((prev) => [...prev, ...toAdd]);
-                setError(`Generated ${toAdd.length} ${sampleCategory} question${toAdd.length !== 1 ? "s" : ""}`);
+                setError("");
+                setNotice({ text: `Generated ${toAdd.length} ${sampleCategory} question${toAdd.length !== 1 ? "s" : ""}`, type: "success" });
               }}
               disabled={questions.length >= requiredCount}
               className="w-full py-2 rounded-xl text-xs font-semibold border transition-colors disabled:opacity-50"
