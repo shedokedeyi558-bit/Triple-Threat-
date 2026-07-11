@@ -577,6 +577,13 @@ export interface BlitzTournament {
   total_registered: number;
   prize_pool: number;
   platform_cut_percent: number;
+  // Configurable prize model fields (added to admin creation form)
+  cash_winner_count?: number;
+  payout_distribution?: number[];   // e.g. [50, 30, 20] — must sum to 100
+  total_payout_percent?: number;    // % of revenue going to cash prizes
+  ticket_tier_percent?: number;     // % of remaining going to free-ticket tier
+  guaranteed_minimum?: number;
+  max_participants?: number;
   created_at: string;
 }
 
