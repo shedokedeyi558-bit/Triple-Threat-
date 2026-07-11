@@ -1,10 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import { useApp } from "@/context/AppContext";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { Gamepad2, Wallet, User, LogOut } from "lucide-react";
+import { Gamepad2, Wallet, User, LogOut, Loader2 } from "lucide-react";
 import { removeToken } from "@/lib/api";
 import { useRouter } from "next/navigation";
 import { NotificationBell } from "@/components/ui/NotificationBell";
@@ -22,6 +23,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { state, dispatch, hydrated } = useApp();
   const pathname = usePathname();
   const router = useRouter();
+  const [loggingOut, setLoggingOut] = useState(false);
 
   const isProtected = SHELL_PATHS.some((p) => pathname.startsWith(p));
 
@@ -43,10 +45,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   };
 
   const handleLogout = () => {
+    if (loggingOut) return;
+    setLoggingOut(true);
     removeToken();
     dispatch({ type: "LOGOUT" });
     localStorage.removeItem("tt_player");
     router.push("/");
+    // Keep loggingOut=true — the component unmounts on navigation so no reset needed
   };
 
   return (
@@ -91,10 +96,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className="px-2 pb-6">
           <button
             onClick={handleLogout}
-            className="w-10 h-10 flex items-center justify-center rounded-lg transition-all text-red-600 hover:bg-red-900/20 relative group"
+            disabled={loggingOut}
+            className="w-10 h-10 flex items-center justify-center rounded-lg transition-all text-red-600 hover:bg-red-900/20 relative group disabled:opacity-60"
             title="Log out"
           >
-            <LogOut size={16} />
+            {loggingOut ? <Loader2 size={16} className="animate-spin" /> : <LogOut size={16} />}
             <div className="absolute left-12 bg-black px-2 py-1 rounded text-xs font-semibold whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" style={{ color: "var(--text-primary)" }}>
               Log out
             </div>

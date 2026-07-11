@@ -9,7 +9,7 @@ import { ArrowLeft, Zap, Users, Clock, Trophy, Ticket, CheckCircle, Loader2 } fr
 
 function formatCountdown(target: string): string {
   const diffMs = new Date(target).getTime() - Date.now();
-  if (diffMs <= 0) return "Now";
+  if (diffMs <= 0) return "Ended";
   const h = Math.floor(diffMs / 3600000);
   const m = Math.floor((diffMs % 3600000) / 60000);
   const s = Math.floor((diffMs % 60000) / 1000);
@@ -124,39 +124,43 @@ export default function BlitzDetailPage() {
   }
 
   // ── Prize model ────────────────────────────────────────────────────────────
-  // Use the configurable fields if present; fall back gracefully when absent.
   const cashWinnerCount = tournament.cash_winner_count ?? 3;
-  const payoutDist = tournament.payout_distribution ?? [60, 25, 15]; // legacy fallback
+  const payoutDist = tournament.payout_distribution ?? [60, 25, 15];
   const totalPayoutPct = tournament.total_payout_percent ?? (100 - (tournament.platform_cut_percent ?? 30));
   const ticketTierPct = tournament.ticket_tier_percent ?? 0;
 
-  // Estimated prize pool based on max participants (if known) or registered
-  const maxParticipants = tournament.max_participants ?? tournament.total_registered;
-  const estimatedPool = maxParticipants > 0
-    ? Math.floor(tournament.entry_fee * maxParticipants * totalPayoutPct / 100)
-    : null;
+  // Live pool (from actual registrations)
   const currentPool = tournament.prize_pool > 0 ? tournament.prize_pool : null;
 
-  // Per-rank cash prize amounts — only calculated when we have a real pool
-  const poolForCalc = currentPool ?? estimatedPool;
-  const cashPrizes: { rank: number; pct: number; amount: number | null }[] = Array.from(
+  // Ceiling pool: max_participants × entry_fee × totalPayoutPct — always calculable
+  const maxParticipants = tournament.max_participants ?? 0;
+  const ceilingPool = maxParticipants > 0
+    ? Math.floor(tournament.entry_fee * maxParticipants * totalPayoutPct / 100)
+    : null;
+
+  // What to show in the Prize Pool stat card
+  const poolDisplay = currentPool
+    ? `₦${currentPool.toLocaleString()}`
+    : ceilingPool
+    ? `up to ₦${ceilingPool.toLocaleString()}`
+    : "—";
+
+  // Per-rank rows — use ceiling pool for "up to ₦X" figures; never show "—"
+  const cashPrizes: { rank: number; pct: number; ceiling: number | null; live: number | null }[] = Array.from(
     { length: cashWinnerCount },
-    (_, i) => ({
-      rank: i + 1,
-      pct: payoutDist[i] ?? 0,
-      amount: poolForCalc != null ? Math.floor(poolForCalc * (payoutDist[i] ?? 0) / 100) : null,
-    })
+    (_, i) => {
+      const pct = payoutDist[i] ?? 0;
+      return {
+        rank: i + 1,
+        pct,
+        ceiling: ceilingPool != null ? Math.floor(ceilingPool * pct / 100) : null,
+        live: currentPool != null ? Math.floor(currentPool * pct / 100) : null,
+      };
+    }
   );
 
-  // Ticket tier — rough range from rank cashWinnerCount+1
   const hasTicketTier = ticketTierPct > 0;
-
-  const rankLabel = (n: number) => {
-    if (n === 1) return "1st Place";
-    if (n === 2) return "2nd Place";
-    if (n === 3) return "3rd Place";
-    return `${n}th Place`;
-  };
+  const rankLabel = (n: number) => n === 1 ? "1st Place" : n === 2 ? "2nd Place" : n === 3 ? "3rd Place" : `${n}th Place`;
   const trophyColor = (n: number) => n === 1 ? "#facc15" : n === 2 ? "#9ca3af" : n === 3 ? "#ea580c" : "var(--accent-indigo)";
 
   return (
@@ -183,7 +187,7 @@ export default function BlitzDetailPage() {
         <div className="grid grid-cols-2 gap-3">
           {[
             { label: "Entry Fee", value: `₦${tournament.entry_fee.toLocaleString()}`, color: "var(--text-primary)" },
-            { label: "Prize Pool", value: currentPool ? `₦${currentPool.toLocaleString()}` : estimatedPool ? `up to ₦${estimatedPool.toLocaleString()}` : "—", color: "var(--accent-amber)" },
+            { label: "Prize Pool", value: poolDisplay, color: "var(--accent-amber)" },
             { label: "Questions", value: String(tournament.question_count), color: "var(--text-primary)" },
             { label: "Time Limit", value: `${Math.floor(tournament.time_limit_seconds / 60)}m`, color: "var(--text-primary)" },
           ].map((s) => (
@@ -200,14 +204,21 @@ export default function BlitzDetailPage() {
       </motion.div>
 
       {/* Countdown */}
-      {(tournament.status === "registration" || tournament.status === "active") && countdown && (
+      {(tournament.status === "registration" || tournament.status === "active") && (
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
           className="rounded-2xl p-5 flex items-center justify-between border" style={{ backgroundColor: "var(--bg-card)", borderColor: "var(--border-subtle)" }}>
           <div className="flex items-center gap-2 text-sm" style={{ color: "var(--text-secondary)" }}>
             <Clock size={16} />
             {tournament.status === "registration" ? "Tournament starts in" : "Ends in"}
           </div>
-          <span className="font-black text-2xl tabular-nums font-mono" style={{ color: "var(--accent-amber)" }}>{countdown}</span>
+          <div className="text-right">
+            <span className="font-black text-2xl tabular-nums font-mono" style={{ color: countdown === "Ended" ? "var(--text-muted)" : "var(--accent-amber)" }}>
+              {countdown}
+            </span>
+            {countdown === "Ended" && (
+              <p className="text-xs mt-1" style={{ color: "var(--accent-amber)" }}>Awaiting results</p>
+            )}
+          </div>
         </motion.div>
       )}
 
@@ -216,11 +227,9 @@ export default function BlitzDetailPage() {
         className="rounded-2xl p-5 space-y-3 border" style={{ backgroundColor: "var(--bg-card)", borderColor: "var(--border-subtle)" }}>
         <div className="flex items-center justify-between">
           <p className="text-[11px] uppercase tracking-widest font-bold" style={{ color: "var(--text-muted)" }}>Prize Breakdown</p>
-          {!currentPool && (
-            <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>
-              {estimatedPool ? "estimated at max capacity" : "grows as players join"}
-            </p>
-          )}
+          <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>
+            {currentPool ? "live pool" : ceilingPool ? "at max capacity" : ""}
+          </p>
         </div>
         <div className="space-y-3">
           {cashPrizes.map((p) => (
@@ -230,9 +239,19 @@ export default function BlitzDetailPage() {
                 <span className="font-semibold" style={{ color: "var(--text-primary)" }}>{rankLabel(p.rank)}</span>
                 <span className="text-[11px]" style={{ color: "var(--text-muted)" }}>({p.pct}%)</span>
               </div>
-              <span className="font-black font-mono" style={{ color: "var(--accent-amber)" }}>
-                {p.amount != null ? `₦${p.amount.toLocaleString()}` : "—"}
-              </span>
+              <div className="text-right">
+                {p.live != null ? (
+                  <span className="font-black font-mono" style={{ color: "var(--accent-amber)" }}>
+                    ₦{p.live.toLocaleString()}
+                  </span>
+                ) : p.ceiling != null ? (
+                  <span className="font-black font-mono" style={{ color: "var(--text-secondary)" }}>
+                    up to ₦{p.ceiling.toLocaleString()}
+                  </span>
+                ) : (
+                  <span className="font-black font-mono" style={{ color: "var(--text-muted)" }}>—</span>
+                )}
+              </div>
             </div>
           ))}
           {hasTicketTier && (

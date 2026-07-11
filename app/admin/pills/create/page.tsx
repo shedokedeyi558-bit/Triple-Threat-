@@ -17,8 +17,6 @@ interface PillDraft {
   options: string[];
   correct_answer: string;
   timer: number;
-  entry_fee: number;
-  prize: number;
   color: string;
 }
 
@@ -37,8 +35,6 @@ const defaultPill = (): PillDraft => ({
   options: ["", "", "", ""],
   correct_answer: "",
   timer: 30,
-  entry_fee: 200,
-  prize: 500,
   color: PILL_COLORS[0],
 });
 
@@ -53,6 +49,8 @@ export default function CreatePillPackPage() {
 
   const [packName, setPackName] = useState("");
   const [packCategory, setPackCategory] = useState("");
+  const [packEntryFee, setPackEntryFee] = useState<number | "">("");
+  const [packPrize, setPackPrize] = useState<number | "">("");
   const [pills, setPills] = useState<PillDraft[]>([]);
   const [draft, setDraft] = useState<PillDraft>(defaultPill());
   const [loading, setLoading] = useState(false);
@@ -68,12 +66,10 @@ export default function CreatePillPackPage() {
       const filled = draft.options.filter((o) => o.trim());
       if (filled.length < 2) { setError("At least 2 options required"); return; }
     }
-    if (draft.entry_fee <= 0) { setError("Entry fee must be greater than 0"); return; }
-    if (draft.prize <= 0) { setError("Prize must be greater than 0"); return; }
     setPills((prev) => [...prev, { ...draft }]);
     setDraft({ ...defaultPill(), color: PILL_COLORS[(pills.length + 1) % PILL_COLORS.length] });
     setError("");
-    setFormOpen(false); // collapse form after each add — user re-opens to add another
+    setFormOpen(false);
   };
 
   const removePill = (i: number) => setPills((prev) => prev.filter((_, idx) => idx !== i));
@@ -81,6 +77,8 @@ export default function CreatePillPackPage() {
   const handleCreate = async () => {
     if (!packName.trim()) { setError("Pack name required"); return; }
     if (!packCategory.trim()) { setError("Category required"); return; }
+    if (!packEntryFee || Number(packEntryFee) <= 0) { setError("Entry fee required"); return; }
+    if (!packPrize || Number(packPrize) <= 0) { setError("Prize required"); return; }
     if (pills.length === 0) { setError("Add at least one pill"); return; }
 
     setLoading(true);
@@ -96,8 +94,8 @@ export default function CreatePillPackPage() {
           options: pill.format === "multiple_choice" ? pill.options.filter((o) => o.trim()) : undefined,
           correct_answer: pill.correct_answer,
           timer: pill.timer,
-          entry_fee: pill.entry_fee,
-          prize: pill.prize,
+          entry_fee: Number(packEntryFee),
+          prize: Number(packPrize),
           color: pill.color,
         });
       }
@@ -200,11 +198,11 @@ export default function CreatePillPackPage() {
                   options: q.options.length ? q.options : ["", "", "", ""],
                   correct_answer: q.correct_answer,
                   timer: q.timer,
-                  entry_fee: q.entry_fee,
-                  prize: q.prize,
                   color: PILL_COLORS[i % PILL_COLORS.length],
                 }))
               );
+              setPackEntryFee(sampled[0]?.entry_fee ?? 200);
+              setPackPrize(sampled[0]?.prize ?? 1000);
               setFormOpen(false);
               setError("");
             }}
@@ -241,7 +239,32 @@ export default function CreatePillPackPage() {
               onChange={(e) => setPackCategory(e.target.value)}
             />
           </div>
+          <div>
+            <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Entry Fee (₦) *</label>
+            <input
+              className={inputCls}
+              type="number"
+              min="50"
+              placeholder="e.g. 200"
+              value={packEntryFee}
+              onChange={(e) => setPackEntryFee(e.target.value === "" ? "" : Number(e.target.value))}
+            />
+          </div>
+          <div>
+            <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Prize per Pill (₦) *</label>
+            <input
+              className={inputCls}
+              type="number"
+              min="100"
+              placeholder="e.g. 1000"
+              value={packPrize}
+              onChange={(e) => setPackPrize(e.target.value === "" ? "" : Number(e.target.value))}
+            />
+          </div>
         </div>
+        <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>
+          All pills in this pack share the same entry fee and prize.
+        </p>
       </div>
 
       {/* Add Pill Form — collapsible */}
@@ -329,7 +352,7 @@ export default function CreatePillPackPage() {
               />
             </div>
 
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Timer (sec)</label>
                 <input
@@ -337,24 +360,6 @@ export default function CreatePillPackPage() {
                   type="number"
                   value={draft.timer}
                   onChange={(e) => setDraft({ ...draft, timer: Number(e.target.value) })}
-                />
-              </div>
-              <div>
-                <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Entry Fee (₦)</label>
-                <input
-                  className={inputCls}
-                  type="number"
-                  value={draft.entry_fee}
-                  onChange={(e) => setDraft({ ...draft, entry_fee: Number(e.target.value) })}
-                />
-              </div>
-              <div>
-                <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Prize (₦)</label>
-                <input
-                  className={inputCls}
-                  type="number"
-                  value={draft.prize}
-                  onChange={(e) => setDraft({ ...draft, prize: Number(e.target.value) })}
                 />
               </div>
             </div>
@@ -424,7 +429,7 @@ export default function CreatePillPackPage() {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold truncate" style={{ color: "var(--text-primary)" }}>{p.question}</p>
                   <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
-                    ₦{p.entry_fee} entry · ₦{p.prize} prize · {p.timer}s · ✓ {p.correct_answer}
+                    {p.timer}s · ✓ {p.correct_answer}
                   </p>
                 </div>
                 <button

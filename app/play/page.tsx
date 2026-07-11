@@ -91,8 +91,8 @@ function SegmentFilter({ active, onChange }: { active: FilterVal; onChange: (v: 
 // ─── Pack card ────────────────────────────────────────────────────────────
 function PackCard({ pack, onClick }: { pack: PillPack; onClick: () => void }) {
   const color = catColor(pack.category);
-  const minP = Math.min(...pack.pills.map((p) => p.price));
-  const maxP = Math.max(...pack.pills.map((p) => p.price));
+  // All pills in a pack share one price — use first pill's price as the pack price
+  const price = pack.pills.length > 0 ? pack.pills[0].price : 0;
   return (
     <motion.button
       initial={{ opacity: 0, x: 16 }}
@@ -118,7 +118,7 @@ function PackCard({ pack, onClick }: { pack: PillPack; onClick: () => void }) {
       </div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <p style={{ fontSize: 11, fontFamily: "monospace", color: "var(--text-muted)" }}>
-          ₦{minP.toLocaleString()}–{maxP.toLocaleString()}
+          ₦{price.toLocaleString()} per pill
         </p>
         <ArrowRight size={13} style={{ color }} />
       </div>
