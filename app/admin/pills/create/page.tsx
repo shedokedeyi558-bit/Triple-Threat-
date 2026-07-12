@@ -112,7 +112,13 @@ export default function CreatePillPackPage() {
     setError("");
     try {
       const packRes = await adminApi.createPillPack({ name: packName.trim(), category: packCategory.trim() });
-      const packId = packRes.pack.id;
+      // Backend may return { pack: { id } } or { id } directly — handle both
+      const packId = (packRes as any).pack?.id ?? (packRes as any).id;
+      if (!packId) {
+        setError("Pack created but no ID returned — check backend response shape");
+        setLoading(false);
+        return;
+      }
 
       for (const pill of pills) {
         await adminApi.addPillToPack(packId, {
