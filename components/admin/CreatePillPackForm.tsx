@@ -107,7 +107,7 @@ export function CreatePillPackForm({ isOpen, onClose, onSuccess }: CreatePillPac
           format: pill.format,
           options: pill.format === "multiple_choice" ? pill.options : undefined,
           correct_answer: pill.correct_answer,
-          timer: pill.timer as number,
+          timer_seconds: pill.timer as number,
           entry_fee: packEntryFee as number,
           prize: packPrize as number,
           color: pill.color,

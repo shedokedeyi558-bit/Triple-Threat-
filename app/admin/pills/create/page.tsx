@@ -126,7 +126,7 @@ export default function CreatePillPackPage() {
           format: pill.format,
           options: pill.format === "multiple_choice" ? pill.options.filter((o) => o.trim()) : undefined,
           correct_answer: pill.correct_answer,
-          timer: pill.timer,
+          timer_seconds: pill.timer,
           entry_fee: Number(packEntryFee),
           prize: Number(packPrize),
           color: pill.color,

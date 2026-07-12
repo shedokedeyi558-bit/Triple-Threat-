@@ -877,7 +877,7 @@ export const adminApi = {
     format: "multiple_choice" | "type_answer";
     options?: string[];
     correct_answer: string;
-    timer: number;
+    timer_seconds: number;
     entry_fee: number;
     prize: number;
     color: string;
