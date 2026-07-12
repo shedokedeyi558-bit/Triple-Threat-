@@ -44,15 +44,35 @@ const inputCls =
 
 const labelCls = "block text-[10px] font-bold uppercase tracking-widest mb-1.5";
 
+const DRAFT_KEY = "admin_pill_pack_draft";
+
 export default function CreatePillPackPage() {
   const router = useRouter();
 
-  const [packName, setPackName] = useState("");
-  const [packCategory, setPackCategory] = useState("");
-  const [packEntryFee, setPackEntryFee] = useState<number | "">("");
-  const [packPrize, setPackPrize] = useState<number | "">("");
-  const [pills, setPills] = useState<PillDraft[]>([]);
-  const [draft, setDraft] = useState<PillDraft>(defaultPill());
+  // Restore from localStorage on first mount
+  const saved = typeof window !== "undefined"
+    ? (() => { try { return JSON.parse(localStorage.getItem(DRAFT_KEY) || "null"); } catch { return null; } })()
+    : null;
+
+  const [packName, setPackName] = useState<string>(saved?.packName ?? "");
+  const [packCategory, setPackCategory] = useState<string>(saved?.packCategory ?? "");
+  const [packEntryFee, setPackEntryFee] = useState<number | "">(saved?.packEntryFee ?? "");
+  const [packPrize, setPackPrize] = useState<number | "">(saved?.packPrize ?? "");
+  const [pills, setPills] = useState<PillDraft[]>(saved?.pills ?? []);
+  const [draft, setDraft] = useState<PillDraft>(saved?.draft ?? defaultPill());
+
+  // Auto-persist draft whenever it changes
+  const updateDraft = (patch: Partial<PillDraft>) => {
+    const updated = { ...draft, ...patch };
+    setDraft(updated);
+    persist({ draft: updated });
+  };
+
+  // Persist to localStorage whenever any key field changes
+  const persist = (patch: object) => {
+    const current = (() => { try { return JSON.parse(localStorage.getItem(DRAFT_KEY) || "{}"); } catch { return {}; } })();
+    localStorage.setItem(DRAFT_KEY, JSON.stringify({ ...current, ...patch }));
+  };
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [formOpen, setFormOpen] = useState(true);
@@ -66,13 +86,20 @@ export default function CreatePillPackPage() {
       const filled = draft.options.filter((o) => o.trim());
       if (filled.length < 2) { setError("At least 2 options required"); return; }
     }
-    setPills((prev) => [...prev, { ...draft }]);
-    setDraft({ ...defaultPill(), color: PILL_COLORS[(pills.length + 1) % PILL_COLORS.length] });
+    const newPills = [...pills, { ...draft }];
+    setPills(newPills);
+    const newDraft = { ...defaultPill(), color: PILL_COLORS[newPills.length % PILL_COLORS.length] };
+    setDraft(newDraft);
+    persist({ pills: newPills, draft: newDraft });
     setError("");
     setFormOpen(false);
   };
 
-  const removePill = (i: number) => setPills((prev) => prev.filter((_, idx) => idx !== i));
+  const removePill = (i: number) => {
+    const newPills = pills.filter((_, idx) => idx !== i);
+    setPills(newPills);
+    persist({ pills: newPills });
+  };
 
   const handleCreate = async () => {
     if (!packName.trim()) { setError("Pack name required"); return; }
@@ -101,6 +128,7 @@ export default function CreatePillPackPage() {
       }
 
       router.push("/admin/pills");
+      localStorage.removeItem(DRAFT_KEY);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : (err instanceof Error ? err.message : "Failed to create pack"));
     } finally {
@@ -203,6 +231,21 @@ export default function CreatePillPackPage() {
               );
               setPackEntryFee(sampled[0]?.entry_fee ?? 200);
               setPackPrize(sampled[0]?.prize ?? 1000);
+              persist({
+                packName: `${cat} Quick-Fire Pack`,
+                packCategory: cat,
+                packEntryFee: sampled[0]?.entry_fee ?? 200,
+                packPrize: sampled[0]?.prize ?? 1000,
+                pills: sampled.map((q, i) => ({
+                  question: q.question,
+                  format: q.format,
+                  options: q.options.length ? q.options : ["", "", "", ""],
+                  correct_answer: q.correct_answer,
+                  timer: q.timer,
+                  color: PILL_COLORS[i % PILL_COLORS.length],
+                })),
+                draft: defaultPill(),
+              });
               setFormOpen(false);
               setError("");
             }}
@@ -227,7 +270,7 @@ export default function CreatePillPackPage() {
               className={inputCls}
               placeholder="e.g. Science Pack 1"
               value={packName}
-              onChange={(e) => setPackName(e.target.value)}
+              onChange={(e) => { setPackName(e.target.value); persist({ packName: e.target.value }); }}
             />
           </div>
           <div>
@@ -236,7 +279,7 @@ export default function CreatePillPackPage() {
               className={inputCls}
               placeholder="e.g. Science"
               value={packCategory}
-              onChange={(e) => setPackCategory(e.target.value)}
+              onChange={(e) => { setPackCategory(e.target.value); persist({ packCategory: e.target.value }); }}
             />
           </div>
           <div>
@@ -247,7 +290,7 @@ export default function CreatePillPackPage() {
               min="50"
               placeholder="e.g. 200"
               value={packEntryFee}
-              onChange={(e) => setPackEntryFee(e.target.value === "" ? "" : Number(e.target.value))}
+              onChange={(e) => { const v = e.target.value === "" ? "" : Number(e.target.value); setPackEntryFee(v); persist({ packEntryFee: v }); }}
             />
           </div>
           <div>
@@ -258,7 +301,7 @@ export default function CreatePillPackPage() {
               min="100"
               placeholder="e.g. 1000"
               value={packPrize}
-              onChange={(e) => setPackPrize(e.target.value === "" ? "" : Number(e.target.value))}
+              onChange={(e) => { const v = e.target.value === "" ? "" : Number(e.target.value); setPackPrize(v); persist({ packPrize: v }); }}
             />
           </div>
         </div>
@@ -295,7 +338,7 @@ export default function CreatePillPackPage() {
                 rows={2}
                 placeholder="Enter question text..."
                 value={draft.question}
-                onChange={(e) => setDraft({ ...draft, question: e.target.value })}
+                onChange={(e) => updateDraft({ question: e.target.value })}
               />
             </div>
 
@@ -307,7 +350,7 @@ export default function CreatePillPackPage() {
                   <button
                     key={fmt}
                     type="button"
-                    onClick={() => setDraft({ ...draft, format: fmt })}
+                    onClick={() => updateDraft({ format: fmt })}
                     className="flex-1 py-2 rounded-xl text-xs font-bold border transition-colors active:scale-95"
                     style={{
                       backgroundColor: draft.format === fmt ? "rgba(76,111,255,0.15)" : "var(--bg-base)",
@@ -334,7 +377,7 @@ export default function CreatePillPackPage() {
                       onChange={(e) => {
                         const newOpts = [...draft.options];
                         newOpts[i] = e.target.value;
-                        setDraft({ ...draft, options: newOpts });
+                        updateDraft({ options: newOpts });
                       }}
                     />
                   ))}
@@ -348,7 +391,7 @@ export default function CreatePillPackPage() {
                 className={inputCls}
                 placeholder="Exact correct answer"
                 value={draft.correct_answer}
-                onChange={(e) => setDraft({ ...draft, correct_answer: e.target.value })}
+                onChange={(e) => updateDraft({ correct_answer: e.target.value })}
               />
             </div>
 
@@ -361,7 +404,7 @@ export default function CreatePillPackPage() {
                   min="5"
                   placeholder=""
                   value={draft.timer || ""}
-                  onChange={(e) => setDraft({ ...draft, timer: Number(e.target.value) })}
+                  onChange={(e) => updateDraft({ timer: Number(e.target.value) })}
                 />
               </div>
             </div>
@@ -374,7 +417,7 @@ export default function CreatePillPackPage() {
                   <button
                     key={c}
                     type="button"
-                    onClick={() => setDraft({ ...draft, color: c })}
+                    onClick={() => updateDraft({ color: c })}
                     className="w-8 h-8 rounded-full transition-all active:scale-90"
                     style={{
                       backgroundColor: c,
