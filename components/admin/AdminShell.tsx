@@ -7,11 +7,14 @@ import { AdminLogin } from "./AdminLogin";
 import { Menu, X, Package, Clock, Zap, Settings, Home, Users, CreditCard, BarChart2, LogOut } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
+import { usePathname } from "next/navigation";
 import { removeAdminToken } from "@/lib/api";
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const { state, dispatch } = useAdmin();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
+  const pathname = usePathname();
 
   const handleLogout = () => {
     removeAdminToken();
@@ -109,40 +112,27 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       </div>
 
       {/* ── MOBILE BOTTOM TAB BAR ── */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 border-t px-0 h-16" style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-base)" }}>
-        <div className="flex items-center justify-around h-full">
-          <Link
-            href="/admin"
-            className="flex flex-col items-center justify-center gap-1 py-2 px-3 rounded-lg transition-colors flex-1"
-            style={{ color: "var(--text-secondary)" }}
-          >
-            <Home size={20} />
-            <span className="text-[10px] font-semibold">Home</span>
-          </Link>
-          <Link
-            href="/admin/players"
-            className="flex flex-col items-center justify-center gap-1 py-2 px-3 rounded-lg transition-colors flex-1"
-            style={{ color: "var(--text-secondary)" }}
-          >
-            <Users size={20} />
-            <span className="text-[10px] font-semibold">Players</span>
-          </Link>
-          <Link
-            href="/admin/withdrawals"
-            className="flex flex-col items-center justify-center gap-1 py-2 px-3 rounded-lg transition-colors flex-1"
-            style={{ color: "var(--text-secondary)" }}
-          >
-            <CreditCard size={20} />
-            <span className="text-[10px] font-semibold">Withdraw</span>
-          </Link>
-          <Link
-            href="/admin/analytics"
-            className="flex flex-col items-center justify-center gap-1 py-2 px-3 rounded-lg transition-colors flex-1"
-            style={{ color: "var(--text-secondary)" }}
-          >
-            <BarChart2 size={20} />
-            <span className="text-[10px] font-semibold">Stats</span>
-          </Link>
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 border-t" style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-base)" }}>
+        <div className="flex items-center justify-around h-16">
+          {[
+            { href: "/admin", icon: Home, label: "Home", exact: true },
+            { href: "/admin/players", icon: Users, label: "Players", exact: false },
+            { href: "/admin/withdrawals", icon: CreditCard, label: "Withdraw", exact: false },
+            { href: "/admin/analytics", icon: BarChart2, label: "Stats", exact: false },
+          ].map(({ href, icon: Icon, label, exact }) => {
+            const isActive = exact ? pathname === href : pathname.startsWith(href);
+            return (
+              <Link
+                key={href}
+                href={href}
+                className="flex flex-col items-center justify-center gap-1 py-2 px-3 rounded-lg flex-1 transition-all active:scale-90 active:opacity-60"
+                style={{ color: isActive ? "var(--accent-amber)" : "var(--text-muted)" }}
+              >
+                <Icon size={20} />
+                <span className="text-[10px] font-semibold">{label}</span>
+              </Link>
+            );
+          })}
         </div>
       </nav>
     </div>

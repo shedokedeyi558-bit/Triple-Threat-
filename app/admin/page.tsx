@@ -151,8 +151,8 @@ export default function AdminDashboard() {
                 Revenue Today
               </span>
             </div>
-            <p className="font-mono text-xl font-bold" style={{ color: "var(--text-primary)" }}>
-              ₦{stats.revenueToday.toLocaleString()}
+            <p className="text-xl font-bold" style={{ color: "var(--text-primary)" }}>
+              <span>₦</span><span className="font-mono">{stats.revenueToday.toLocaleString()}</span>
             </p>
           </motion.div>
 
