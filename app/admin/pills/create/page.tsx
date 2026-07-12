@@ -34,7 +34,7 @@ const defaultPill = (): PillDraft => ({
   format: "multiple_choice",
   options: ["", "", "", ""],
   correct_answer: "",
-  timer: 30,
+  timer: 0,
   color: PILL_COLORS[0],
 });
 
@@ -358,7 +358,9 @@ export default function CreatePillPackPage() {
                 <input
                   className={inputCls}
                   type="number"
-                  value={draft.timer}
+                  min="5"
+                  placeholder=""
+                  value={draft.timer || ""}
                   onChange={(e) => setDraft({ ...draft, timer: Number(e.target.value) })}
                 />
               </div>
