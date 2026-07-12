@@ -1091,10 +1091,10 @@ export interface ReferralTicket {
 
 export const referralApi = {
   getStats: () =>
-    request<ReferralStats>("/api/referrals/stats", { token: getToken() }),
+    request<ReferralStats>("/api/player/referrals/stats", { token: getToken() }),
 
   getTickets: () =>
-    request<{ tickets: ReferralTicket[] }>("/api/referrals/tickets", { token: getToken() }),
+    request<{ tickets: ReferralTicket[] }>("/api/player/referrals/tickets", { token: getToken() }),
 
   redeemPillTicket: (pillId: string, ticketCode: string) =>
     request<{ message: string; newBalance: number }>(
