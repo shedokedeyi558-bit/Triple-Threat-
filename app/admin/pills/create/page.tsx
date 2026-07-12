@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { adminApi, ApiError } from "@/lib/api";
@@ -79,6 +79,11 @@ export default function CreatePillPackPage() {
   const [sampleCategory, setSampleCategory] = useState<SampleCategory>("Mixed");
   const [sampleCount, setSampleCount] = useState("5");
 
+  // Scroll to top whenever error is set
+  useEffect(() => {
+    if (error) window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [error]);
+
   const addPill = () => {
     if (!draft.question.trim()) { setError("Question text required"); return; }
     if (!draft.correct_answer.trim()) { setError("Correct answer required"); return; }
@@ -111,7 +116,12 @@ export default function CreatePillPackPage() {
     setLoading(true);
     setError("");
     try {
-      const packRes = await adminApi.createPillPack({ name: packName.trim(), category: packCategory.trim() });
+      const packRes = await adminApi.createPillPack({
+        name: packName.trim(),
+        category: packCategory.trim(),
+        entry_fee: Number(packEntryFee),
+        prize: Number(packPrize),
+      });
       // Backend may return { pack: { id } } or { id } directly — handle both
       const packId = (packRes as any).pack?.id ?? (packRes as any).id;
       if (!packId) {
@@ -126,12 +136,12 @@ export default function CreatePillPackPage() {
           format: pill.format,
           options: pill.format === "multiple_choice" ? pill.options.filter((o) => o.trim()) : undefined,
           correct_answer: pill.correct_answer,
-          timer_seconds: pill.timer,
-          entry_fee: Number(packEntryFee),
-          prize: Number(packPrize),
+          timer: pill.timer,
           color: pill.color,
         });
       }
+
+      await adminApi.updatePillPack(packId, { status: "active" });
 
       router.push("/admin/pills");
       localStorage.removeItem(DRAFT_KEY);

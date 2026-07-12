@@ -854,7 +854,7 @@ export const adminApi = {
   getPillPacks: () =>
     request<{ packs: PillPack[] }>("/api/admin/pills/packs", { token: getAdminToken() }),
 
-  createPillPack: (data: { name: string; category: string }) =>
+  createPillPack: (data: { name: string; category: string; entry_fee: number; prize: number }) =>
     request<{ pack: { id: string; name: string; category: string; status: string } }>(
       "/api/admin/pills/packs",
       { method: "POST", body: data, token: getAdminToken() }
@@ -877,9 +877,7 @@ export const adminApi = {
     format: "multiple_choice" | "type_answer";
     options?: string[];
     correct_answer: string;
-    timer_seconds: number;
-    entry_fee: number;
-    prize: number;
+    timer: number;
     color: string;
   }) =>
     request<{ pill: { id: string } }>(

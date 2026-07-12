@@ -96,22 +96,38 @@ export function CreatePillPackForm({ isOpen, onClose, onSuccess }: CreatePillPac
     setLoading(true);
     setError("");
     try {
-      // 1. Create pack
-      const packRes = await adminApi.createPillPack({ name: packName, category: packCategory });
-      const packId = packRes.pack.id;
+      // 1. Create pack with entry_fee and prize
+      const packRes = await adminApi.createPillPack({
+        name: packName,
+        category: packCategory,
+        entry_fee: packEntryFee as number,
+        prize: packPrize as number,
+      });
+      const packId = (packRes as any).pack?.id ?? (packRes as any).id;
+      if (!packId) {
+        setError("Pack created but ID not returned from backend");
+        setLoading(false);
+        return;
+      }
 
-      // 2. Add pills
-      for (const pill of pills) {
-        await adminApi.addPillToPack(packId, {
-          question: pill.question,
-          format: pill.format,
-          options: pill.format === "multiple_choice" ? pill.options : undefined,
-          correct_answer: pill.correct_answer,
-          timer_seconds: pill.timer as number,
-          entry_fee: packEntryFee as number,
-          prize: packPrize as number,
-          color: pill.color,
-        });
+      // 2. Add pills — NO entry_fee/prize (inherited from pack), use timer not timer_seconds
+      for (let i = 0; i < pills.length; i++) {
+        const pill = pills[i];
+        try {
+          await adminApi.addPillToPack(packId, {
+            question: pill.question,
+            format: pill.format,
+            options: pill.format === "multiple_choice" ? pill.options : undefined,
+            correct_answer: pill.correct_answer,
+            timer: pill.timer as number,
+            color: pill.color,
+          });
+        } catch (pillErr) {
+          const msg = pillErr instanceof ApiError ? pillErr.message : (pillErr instanceof Error ? pillErr.message : "Unknown error");
+          setError(`Pill ${i + 1} failed: ${msg}`);
+          setLoading(false);
+          return;
+        }
       }
 
       // 3. Activate pack
@@ -122,7 +138,7 @@ export function CreatePillPackForm({ isOpen, onClose, onSuccess }: CreatePillPac
       onClose();
     } catch (err) {
       console.error("CreatePillPackForm error:", err);
-      setError(err instanceof ApiError ? err.message : (err instanceof Error ? `${err.name}: ${err.message}` : "Failed to create pack"));
+      setError(err instanceof ApiError ? err.message : (err instanceof Error ? `${err.message}` : "Failed to create pack"));
     } finally {
       setLoading(false);
     }
