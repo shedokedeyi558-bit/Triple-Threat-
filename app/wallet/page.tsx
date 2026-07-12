@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useApp } from "@/context/AppContext";
 import { ArrowDownLeft, ArrowUpRight, Loader2, Ticket } from "lucide-react";
-import { walletApi, playerApi, ApiError, type ApiTransaction } from "@/lib/api";
+import { walletApi, playerApi, referralApi, ApiError, type ApiTransaction, type ReferralTicket } from "@/lib/api";
 import { withTimeout } from "@/lib/withTimeout";
 import Link from "next/link";
 
@@ -73,7 +73,7 @@ export default function WalletPage() {
   const [withdrawError, setWithdrawError] = useState("");
   const [transactions, setTransactions] = useState<ApiTransaction[]>([]);
   const [txLoading, setTxLoading] = useState(true);
-  const [tickets, setTickets] = useState<Array<{ code: string; expires_at: string }>>([]);
+  const [tickets, setTickets] = useState<Array<{ code: string; expires_at: string; type?: string }>>([]);
   const [ticketsLoading, setTicketsLoading] = useState(true);
   const [spendSummary, setSpendSummary] = useState<{ spent_this_week: number; plays_today: number } | null>(null);
 
@@ -96,12 +96,11 @@ export default function WalletPage() {
       .then((data) => setSpendSummary(data))
       .catch(() => {});
     
-    // Fetch tickets (mock for now since API endpoint may not exist yet)
-    setTickets([
-      { code: "BLZ2024001", expires_at: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString() },
-      { code: "BLZ2024002", expires_at: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString() },
-    ]);
-    setTicketsLoading(false);
+    // Fetch real tickets from referral API
+    referralApi.getTickets()
+      .then((data) => setTickets(data.tickets.filter(t => t.status === "active").map(t => ({ code: t.code, expires_at: t.expires_at, type: t.type }))))
+      .catch(() => setTickets([]))
+      .finally(() => setTicketsLoading(false));
   }, [refreshBalance]);
 
   const handleDeposit = async () => {
@@ -181,12 +180,25 @@ export default function WalletPage() {
                 tickets.map((ticket) => (
                   <div key={ticket.code} className="rounded-xl p-4 flex items-center justify-between border" style={{ backgroundColor: "var(--bg-base)", borderColor: "var(--border-subtle)" }}>
                     <div>
-                      <p className="font-black text-sm tracking-widest font-mono" style={{ color: "var(--accent-amber)" }}>{ticket.code}</p>
+                      <div className="flex items-center gap-2 mb-1">
+                        <p className="font-black text-sm tracking-widest font-mono" style={{ color: "var(--accent-amber)" }}>{ticket.code}</p>
+                        {ticket.type && (
+                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded uppercase" style={{ backgroundColor: ticket.type === "pill" ? "rgba(124,111,232,0.15)" : "rgba(232,163,61,0.15)", color: ticket.type === "pill" ? "var(--accent-violet)" : "var(--accent-amber)" }}>
+                            {ticket.type === "pill" ? "💊 Pill" : "⚡ Blitz"}
+                          </span>
+                        )}
+                      </div>
                       <p className="text-xs mt-1" style={{ color: "var(--text-secondary)" }}>{formatCountdown(ticket.expires_at)}</p>
                     </div>
-                    <Link href="/blitz" className="px-3 py-2 text-xs font-bold rounded-lg hover:opacity-80 transition-opacity" style={{ backgroundColor: "var(--accent-amber)", color: "#000" }}>
-                      Use Ticket
-                    </Link>
+                    {ticket.type === "pill" ? (
+                      <Link href="/pills" className="px-3 py-2 text-xs font-bold rounded-lg hover:opacity-80 transition-opacity" style={{ backgroundColor: "rgba(124,111,232,0.15)", color: "var(--accent-violet)", border: "1px solid rgba(124,111,232,0.3)" }}>
+                        Use on Pills
+                      </Link>
+                    ) : (
+                      <Link href="/blitz" className="px-3 py-2 text-xs font-bold rounded-lg hover:opacity-80 transition-opacity" style={{ backgroundColor: "var(--accent-amber)", color: "#000" }}>
+                        Use Ticket
+                      </Link>
+                    )}
                   </div>
                 ))
               )}

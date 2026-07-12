@@ -111,8 +111,8 @@ export const authApi = {
   register: (phone: string, name?: string) =>
     request<VerifyOtpResponse>("/api/auth/register", { method: "POST", body: { phone, name } }),
 
-  verifyOtp: (phone: string, otp: string, password?: string) =>
-    request<VerifyOtpResponse>("/api/auth/verify-otp", { method: "POST", body: { phone, otp, password } }),
+  verifyOtp: (phone: string, otp: string, password?: string, referral_code?: string) =>
+    request<VerifyOtpResponse>("/api/auth/verify-otp", { method: "POST", body: { phone, otp, password, ...(referral_code ? { referral_code } : {}) } }),
 
   phoneSignIn: (phone: string, password: string) =>
     request<VerifyOtpResponse>("/api/auth/phone-signin", { method: "POST", body: { phone, password } }),
@@ -1069,4 +1069,36 @@ export const playerApi = {
 
   getPlayLimits: () =>
     request<{ limits: PlayLimits }>("/api/player/limits", { token: getToken() }),
+};
+
+// ─── REFERRALS ────────────────────────────────────────────────────────────────
+
+export interface ReferralStats {
+  referral_code: string;
+  referred_count: number;
+  pending_count: number;
+  completed_count: number;
+  total_earned: number;
+}
+
+export interface ReferralTicket {
+  id: string;
+  code: string;
+  type: "blitz" | "pill";
+  expires_at: string;
+  status: "active" | "used" | "expired";
+}
+
+export const referralApi = {
+  getStats: () =>
+    request<ReferralStats>("/api/referrals/stats", { token: getToken() }),
+
+  getTickets: () =>
+    request<{ tickets: ReferralTicket[] }>("/api/referrals/tickets", { token: getToken() }),
+
+  redeemPillTicket: (pillId: string, ticketCode: string) =>
+    request<{ message: string; newBalance: number }>(
+      `/api/pills/open`,
+      { method: "POST", body: { pillId, ticketCode }, token: getToken() }
+    ),
 };

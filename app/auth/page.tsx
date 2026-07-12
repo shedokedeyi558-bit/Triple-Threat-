@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useApp } from "@/context/AppContext";
 import { authApi, setToken, ApiError } from "@/lib/api";
 import Link from "next/link";
@@ -10,8 +10,9 @@ import { ArrowRight, AlertCircle, Loader, Check, ArrowLeft } from "lucide-react"
 
 type AuthStep = "phone" | "password" | "otp" | "success";
 
-export default function AuthPage() {
+function AuthForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { dispatch } = useApp();
   const [step, setStep] = useState<AuthStep>("phone");
   const [phone, setPhone] = useState("");
@@ -21,6 +22,8 @@ export default function AuthPage() {
   const [error, setError] = useState<string | null>(null);
   const [formattedPhone, setFormattedPhone] = useState("");
   const [checkbox, setCheckbox] = useState(false);
+  // Silently capture referral code from URL — no UI needed
+  const [refCode] = useState(() => searchParams.get("ref") || "");
 
   const handlePhoneChange = (value: string) => {
     const cleaned = value.replace(/\D/g, "");
@@ -85,7 +88,7 @@ export default function AuthPage() {
 
     try {
       const fullPhone = `+234${phone}`;
-      const response = await authApi.verifyOtp(fullPhone, otp, password);
+      const response = await authApi.verifyOtp(fullPhone, otp, password, refCode || undefined);
 
       setToken(response.token);
       dispatch({
@@ -477,5 +480,13 @@ export default function AuthPage() {
         </motion.div>
       </div>
     </div>
+  );
+}
+
+export default function AuthPage() {
+  return (
+    <Suspense fallback={null}>
+      <AuthForm />
+    </Suspense>
   );
 }
