@@ -39,7 +39,7 @@ export default function ProfilePage() {
 
   const handleWhatsAppShare = (code: string) => {
     const text = encodeURIComponent(
-      `🎯 Win real Naira on BitLyfe! Play trivia pills, make predictions & compete in tournaments. Join with my link and we both earn:\nhttps://bitlyfe.app/auth?ref=${code}`
+      `Win real Naira on BitLyfe! Play trivia pills, make predictions and compete in live tournaments. Join with my link and we both earn:\nhttps://bitlyfe.app/auth?ref=${code}`
     );
     window.open(`https://wa.me/?text=${text}`, "_blank");
   };
@@ -231,7 +231,7 @@ export default function ProfilePage() {
                 <button
                   onClick={() => handleCopyCode(referralStats.referral_code)}
                   className="flex-shrink-0 p-2 rounded-lg transition-colors"
-                  style={{ backgroundColor: copied ? "rgba(76,111,255,0.15)" : "rgba(232,163,61,0.1)", color: copied ? "var(--accent-indigo)" : "var(--accent-amber)" }}
+                  style={{ backgroundColor: copied ? "rgba(76,111,255,0.15)" : "rgba(76,111,255,0.1)", color: "var(--accent-indigo)" }}
                 >
                   {copied ? <Check size={16} /> : <Copy size={16} />}
                 </button>

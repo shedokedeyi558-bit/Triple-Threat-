@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useApp } from "@/context/AppContext";
-import { ArrowDownLeft, ArrowUpRight, Loader2, Ticket } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, Loader2, Ticket, Pill, Zap } from "lucide-react";
 import { walletApi, playerApi, referralApi, ApiError, type ApiTransaction, type ReferralTicket } from "@/lib/api";
 import { withTimeout } from "@/lib/withTimeout";
 import Link from "next/link";
@@ -183,8 +183,8 @@ export default function WalletPage() {
                       <div className="flex items-center gap-2 mb-1">
                         <p className="font-black text-sm tracking-widest font-mono" style={{ color: "var(--accent-amber)" }}>{ticket.code}</p>
                         {ticket.type && (
-                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded uppercase" style={{ backgroundColor: ticket.type === "pill" ? "rgba(124,111,232,0.15)" : "rgba(232,163,61,0.15)", color: ticket.type === "pill" ? "var(--accent-violet)" : "var(--accent-amber)" }}>
-                            {ticket.type === "pill" ? "💊 Pill" : "⚡ Blitz"}
+                          <span className="flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded uppercase" style={{ backgroundColor: ticket.type === "pill" ? "rgba(124,111,232,0.15)" : "rgba(232,163,61,0.15)", color: ticket.type === "pill" ? "var(--accent-violet)" : "var(--accent-amber)" }}>
+                            {ticket.type === "pill" ? <><Pill size={10} /> Pill</> : <><Zap size={10} /> Blitz</>}
                           </span>
                         )}
                       </div>

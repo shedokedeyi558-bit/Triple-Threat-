@@ -329,11 +329,17 @@ function BlitzModule({ tournament, onClick }: { tournament: BlitzTournament; onC
 
 // ─── Pill confirm sheet ────────────────────────────────────────────────────
 function PillSheet({ pack, pill, onConfirm, onClose, balance }: {
-  pack: PillPack; pill: PillPackPill; onConfirm: () => void; onClose: () => void; balance: number;
+  pack: PillPack; pill: PillPackPill; onConfirm: (ticketCode?: string) => void; onClose: () => void; balance: number;
 }) {
   const [err, setErr] = useState("");
-  const canAfford = balance >= pill.price;
+  const [ticketCode, setTicketCode] = useState("");
+  const [ticketValid, setTicketValid] = useState<boolean | null>(null);
   const color = catColor(pack.category);
+  // Ticket is valid if it's 6+ chars — backend validates on submit
+  const validatedTicket = ticketCode.length >= 6 ? ticketCode : null;
+  const usingTicket = validatedTicket !== null;
+  const canAfford = usingTicket || balance >= pill.price;
+
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "flex-end", justifyContent: "center" }}
@@ -359,23 +365,48 @@ function PillSheet({ pack, pill, onConfirm, onClose, balance }: {
           <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: 0 }}>{pack.category}</p>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16 }}>
-          <div style={{ borderRadius: 10, padding: "10px 12px", textAlign: "center", border: `1px solid var(--accent-amber)`, backgroundColor: "rgba(232,163,61,0.08)" }}>
+          <div style={{ borderRadius: 10, padding: "10px 12px", textAlign: "center", border: `1px solid ${usingTicket ? "rgba(76,111,255,0.4)" : "var(--accent-amber)"}`, backgroundColor: usingTicket ? "rgba(76,111,255,0.08)" : "rgba(232,163,61,0.08)" }}>
             <p style={{ fontSize: 11, color: "var(--text-secondary)", margin: "0 0 4px" }}>Entry Fee</p>
-            <p style={{ fontSize: 17, fontFamily: "monospace", fontWeight: 700, color: "var(--accent-amber)", margin: 0 }}>₦{pill.price.toLocaleString()}</p>
+            {usingTicket ? (
+              <div>
+                <p style={{ fontSize: 13, fontFamily: "monospace", fontWeight: 700, color: "var(--text-muted)", margin: 0, textDecoration: "line-through" }}>₦{pill.price.toLocaleString()}</p>
+                <p style={{ fontSize: 13, fontFamily: "monospace", fontWeight: 700, color: "var(--accent-indigo)", margin: 0 }}>FREE</p>
+              </div>
+            ) : (
+              <p style={{ fontSize: 17, fontFamily: "monospace", fontWeight: 700, color: "var(--accent-amber)", margin: 0 }}>₦{pill.price.toLocaleString()}</p>
+            )}
           </div>
           <div style={{ borderRadius: 10, padding: "10px 12px", textAlign: "center", border: "1px solid var(--border-subtle)", backgroundColor: "var(--bg-base)" }}>
             <p style={{ fontSize: 11, color: "var(--text-secondary)", margin: "0 0 4px" }}>Win up to</p>
             <p style={{ fontSize: 17, fontFamily: "monospace", fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>₦{pill.prize.toLocaleString()}</p>
           </div>
         </div>
+
+        {/* Ticket redemption — same pattern as Blitz registration */}
+        <div style={{ marginBottom: 14 }}>
+          <label style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-muted)", display: "block", marginBottom: 6 }}>
+            Have a pill ticket? (optional)
+          </label>
+          <input
+            type="text"
+            placeholder="Enter ticket code"
+            value={ticketCode}
+            onChange={(e) => setTicketCode(e.target.value.toUpperCase())}
+            style={{ width: "100%", boxSizing: "border-box", padding: "10px 14px", borderRadius: 10, border: `1px solid ${validatedTicket ? "rgba(76,111,255,0.5)" : "var(--border-subtle)"}`, backgroundColor: "var(--bg-base)", color: "var(--text-primary)", fontSize: 13, fontFamily: "monospace", outline: "none" }}
+          />
+          {validatedTicket && (
+            <p style={{ fontSize: 11, color: "var(--accent-indigo)", marginTop: 6 }}>Ticket applied — entry fee waived</p>
+          )}
+        </div>
+
         {!canAfford && <p style={{ textAlign: "center", color: "#f87171", fontSize: 13, marginBottom: 10 }}>Insufficient balance. <Link href="/wallet" style={{ textDecoration: "underline", fontWeight: 600 }}>Add funds</Link></p>}
         {err && <p style={{ textAlign: "center", color: "#f87171", fontSize: 13, marginBottom: 10 }}>{err} <Link href="/profile" style={{ textDecoration: "underline", fontWeight: 600 }}>Adjust limits</Link></p>}
         <button
-          onClick={() => { setErr(""); onConfirm(); }}
+          onClick={() => { setErr(""); onConfirm(validatedTicket || undefined); }}
           disabled={!canAfford}
           style={{ width: "100%", padding: "13px 0", borderRadius: 10, border: "none", backgroundColor: color, color: "#000", fontSize: 14, fontWeight: 600, cursor: canAfford ? "pointer" : "not-allowed", opacity: canAfford ? 1 : 0.4, marginBottom: 10 }}
         >
-          Take This Pill
+          {usingTicket ? "Take This Pill — FREE" : "Take This Pill"}
         </button>
         <button onClick={onClose} style={{ width: "100%", padding: "12px 0", border: "none", background: "none", fontSize: 14, fontWeight: 600, color: "var(--text-secondary)", cursor: "pointer" }}>
           Cancel
@@ -639,7 +670,7 @@ export default function PlayPage() {
           <PillSheet
             pack={sheet.pack} pill={sheet.pill}
             balance={state.player?.balance ?? 0}
-            onConfirm={() => { const pill = sheet.pill; setSheet(null); router.push(`/pills/play/${pill.id}`); }}
+            onConfirm={(ticketCode) => { const pill = sheet.pill; setSheet(null); router.push(`/pills/play/${pill.id}${ticketCode ? `?ticket=${ticketCode}` : ""}`); }}
             onClose={() => setSheet(null)}
           />
         )}
