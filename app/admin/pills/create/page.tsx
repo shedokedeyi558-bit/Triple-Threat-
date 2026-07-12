@@ -49,29 +49,39 @@ const DRAFT_KEY = "admin_pill_pack_draft";
 export default function CreatePillPackPage() {
   const router = useRouter();
 
-  // Restore from localStorage on first mount
-  const saved = typeof window !== "undefined"
-    ? (() => { try { return JSON.parse(localStorage.getItem(DRAFT_KEY) || "null"); } catch { return null; } })()
-    : null;
+  // Persist to localStorage — declared first so updateDraft can reference it
+  const persist = (patch: object) => {
+    try {
+      const current = JSON.parse(localStorage.getItem(DRAFT_KEY) || "{}");
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({ ...current, ...patch }));
+    } catch { /* ignore */ }
+  };
 
-  const [packName, setPackName] = useState<string>(saved?.packName ?? "");
-  const [packCategory, setPackCategory] = useState<string>(saved?.packCategory ?? "");
-  const [packEntryFee, setPackEntryFee] = useState<number | "">(saved?.packEntryFee ?? "");
-  const [packPrize, setPackPrize] = useState<number | "">(saved?.packPrize ?? "");
-  const [pills, setPills] = useState<PillDraft[]>(saved?.pills ?? []);
-  const [draft, setDraft] = useState<PillDraft>(saved?.draft ?? defaultPill());
+  // Restore from localStorage once — use useState initializer so it only runs on mount
+  const [packName, setPackName] = useState<string>(() => {
+    try { return JSON.parse(localStorage.getItem(DRAFT_KEY) || "null")?.packName ?? ""; } catch { return ""; }
+  });
+  const [packCategory, setPackCategory] = useState<string>(() => {
+    try { return JSON.parse(localStorage.getItem(DRAFT_KEY) || "null")?.packCategory ?? ""; } catch { return ""; }
+  });
+  const [packEntryFee, setPackEntryFee] = useState<number | "">(() => {
+    try { return JSON.parse(localStorage.getItem(DRAFT_KEY) || "null")?.packEntryFee ?? ""; } catch { return ""; }
+  });
+  const [packPrize, setPackPrize] = useState<number | "">(() => {
+    try { return JSON.parse(localStorage.getItem(DRAFT_KEY) || "null")?.packPrize ?? ""; } catch { return ""; }
+  });
+  const [pills, setPills] = useState<PillDraft[]>(() => {
+    try { return JSON.parse(localStorage.getItem(DRAFT_KEY) || "null")?.pills ?? []; } catch { return []; }
+  });
+  const [draft, setDraft] = useState<PillDraft>(() => {
+    try { return JSON.parse(localStorage.getItem(DRAFT_KEY) || "null")?.draft ?? defaultPill(); } catch { return defaultPill(); }
+  });
 
-  // Auto-persist draft whenever it changes
+  // Auto-persist draft — persist is defined above, safe to reference
   const updateDraft = (patch: Partial<PillDraft>) => {
     const updated = { ...draft, ...patch };
     setDraft(updated);
     persist({ draft: updated });
-  };
-
-  // Persist to localStorage whenever any key field changes
-  const persist = (patch: object) => {
-    const current = (() => { try { return JSON.parse(localStorage.getItem(DRAFT_KEY) || "{}"); } catch { return {}; } })();
-    localStorage.setItem(DRAFT_KEY, JSON.stringify({ ...current, ...patch }));
   };
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
