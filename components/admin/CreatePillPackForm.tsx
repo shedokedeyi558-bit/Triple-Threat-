@@ -121,7 +121,8 @@ export function CreatePillPackForm({ isOpen, onClose, onSuccess }: CreatePillPac
       onSuccess?.();
       onClose();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Failed to create pack");
+      console.error("CreatePillPackForm error:", err);
+      setError(err instanceof ApiError ? err.message : (err instanceof Error ? `${err.name}: ${err.message}` : "Failed to create pack"));
     } finally {
       setLoading(false);
     }

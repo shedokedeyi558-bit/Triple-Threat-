@@ -136,7 +136,8 @@ export default function CreatePillPackPage() {
       router.push("/admin/pills");
       localStorage.removeItem(DRAFT_KEY);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : (err instanceof Error ? err.message : "Failed to create pack"));
+      console.error("Pill pack creation error:", err);
+      setError(err instanceof ApiError ? err.message : (err instanceof Error ? `${err.name}: ${err.message}` : JSON.stringify(err)));
     } finally {
       setLoading(false);
     }
