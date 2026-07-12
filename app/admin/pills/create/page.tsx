@@ -102,7 +102,7 @@ export default function CreatePillPackPage() {
 
       router.push("/admin/pills");
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Failed to create pack");
+      setError(err instanceof ApiError ? err.message : (err instanceof Error ? err.message : "Failed to create pack"));
     } finally {
       setLoading(false);
     }
