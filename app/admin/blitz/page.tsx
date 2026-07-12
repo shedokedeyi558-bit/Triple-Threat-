@@ -11,7 +11,7 @@ function StatusBadge({ status }: { status: BlitzTournament["status"] }) {
   const config: Record<string, string> = {
     draft: "bg-gray-700/20 text-gray-400 border-gray-700/30",
     registration: "bg-blue-500/20 text-blue-400 border-blue-500/30",
-    active: "bg-neon/20 text-neon border-neon/40",
+    active: "bg-[#E8A33D]/20 text-[#E8A33D] border-[#E8A33D]/40",
     scoring: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
     completed: "bg-gray-500/20 text-gray-500 border-gray-500/30",
   };
@@ -82,7 +82,7 @@ export default function AdminBlitzPage() {
     <div className="space-y-5 max-w-4xl">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Zap size={22} className="text-neon" />
+          <Zap size={22} style={{ color: "var(--accent-amber)" }} />
           <h1 className="font-black text-2xl text-white">Blitz Tournaments</h1>
         </div>
         <button
@@ -134,7 +134,7 @@ export default function AdminBlitzPage() {
                     <StatusBadge status={t.status} />
                   </div>
                   <div className="flex items-center gap-4 text-xs text-gray-500 flex-wrap">
-                    <span className="text-neon font-semibold">₦{t.entry_fee.toLocaleString()} entry</span>
+                    <span className="text-[#E8A33D] font-semibold">₦{t.entry_fee.toLocaleString()} entry</span>
                     <span>Pool: ₦{t.prize_pool.toLocaleString()}</span>
                     <span className="flex items-center gap-1">
                       <Users size={11} />
@@ -148,7 +148,7 @@ export default function AdminBlitzPage() {
                   {t.status === "draft" && (
                     <button
                       onClick={() => router.push(`/admin/blitz/${t.id}/setup`)}
-                      className="px-3 py-1.5 text-xs font-bold bg-[#1E1E1E] border border-[#333] text-white rounded-lg hover:border-neon/40 transition-colors flex items-center gap-1"
+                      className="px-3 py-1.5 text-xs font-bold bg-[#1E1E1E] border border-[#333] text-white rounded-lg hover:border-[#4C6FFF]/40 transition-colors flex items-center gap-1"
                     >
                       Add Questions
                       <ChevronRight size={12} />
@@ -158,7 +158,7 @@ export default function AdminBlitzPage() {
                     <button
                       onClick={() => handleActivate(t.id)}
                       disabled={actionLoading === t.id + ":activate"}
-                      className="px-3 py-1.5 text-xs font-bold bg-neon/10 border border-neon/40 text-neon rounded-lg hover:bg-neon/20 transition-colors disabled:opacity-50"
+                      className="px-3 py-1.5 text-xs font-bold bg-[#4C6FFF]/10 border border-[#4C6FFF]/40 text-[#4C6FFF] rounded-lg hover:bg-[#4C6FFF]/20 transition-colors disabled:opacity-50"
                     >
                       {actionLoading === t.id + ":activate" ? "..." : "Activate"}
                     </button>
@@ -175,7 +175,7 @@ export default function AdminBlitzPage() {
                   {t.status === "completed" && (
                     <button
                       onClick={() => router.push(`/admin/blitz/${t.id}/leaderboard`)}
-                      className="px-3 py-1.5 text-xs font-bold bg-[#1E1E1E] border border-[#333] text-white rounded-lg hover:border-neon/40 transition-colors flex items-center gap-1"
+                      className="px-3 py-1.5 text-xs font-bold bg-[#1E1E1E] border border-[#333] text-white rounded-lg hover:border-[#4C6FFF]/40 transition-colors flex items-center gap-1"
                     >
                       <Trophy size={12} />
                       Leaderboard

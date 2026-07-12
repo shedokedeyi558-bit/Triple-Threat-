@@ -84,7 +84,7 @@ export function CreateTimeMachineForm({ isOpen, onClose, onSuccess }: CreateTime
         {/* Step indicator */}
         <div className="flex gap-2">
           {["config", "review"].map((s, i) => (
-            <div key={s} className={`h-1 flex-1 rounded-full transition-all ${["config", "review"].indexOf(step) >= i ? "bg-neon" : "bg-[#2A2A2A]"}`} />
+            <div key={s} className={`h-1 flex-1 rounded-full transition-all ${["config", "review"].indexOf(step) >= i ? "bg-[#4C6FFF]" : "bg-[#2A2A2A]"}`} />
           ))}
         </div>
 
@@ -121,7 +121,7 @@ export function CreateTimeMachineForm({ isOpen, onClose, onSuccess }: CreateTime
                 rows={3}
                 value={config.question}
                 onChange={(e) => setConfig({ ...config, question: e.target.value })}
-                className="w-full bg-[#111] border border-[#2A2A2A] focus:border-neon rounded-lg px-3 py-2 text-sm text-white outline-none"
+                className="w-full bg-[#111] border border-[#2A2A2A] focus:border-[#4C6FFF] rounded-lg px-3 py-2 text-sm text-white outline-none"
               />
             </div>
             <div>
@@ -129,7 +129,7 @@ export function CreateTimeMachineForm({ isOpen, onClose, onSuccess }: CreateTime
               <select
                 value={config.category}
                 onChange={(e) => setConfig({ ...config, category: e.target.value })}
-                className="w-full bg-[#111] border border-[#2A2A2A] focus:border-neon rounded-lg px-3 py-2 text-sm text-white outline-none"
+                className="w-full bg-[#111] border border-[#2A2A2A] focus:border-[#4C6FFF] rounded-lg px-3 py-2 text-sm text-white outline-none"
               >
                 {categories.map((c) => <option key={c}>{c}</option>)}
               </select>
@@ -139,32 +139,32 @@ export function CreateTimeMachineForm({ isOpen, onClose, onSuccess }: CreateTime
                 <label className="text-xs text-gray-400 mb-1 block">Entry Fee (₦) *</label>
                 <input type="number" min="100" value={config.entry_fee}
                   onChange={(e) => setConfig({ ...config, entry_fee: e.target.value === "" ? "" : Number(e.target.value) })}
-                  className="w-full bg-[#111] border border-[#2A2A2A] focus:border-neon rounded-lg px-3 py-2 text-sm text-white outline-none" />
+                  className="w-full bg-[#111] border border-[#2A2A2A] focus:border-[#4C6FFF] rounded-lg px-3 py-2 text-sm text-white outline-none" />
               </div>
               <div>
                 <label className="text-xs text-gray-400 mb-1 block">Prize/Winner (₦) *</label>
                 <input type="number" min="100" value={config.prize_per_winner}
                   onChange={(e) => setConfig({ ...config, prize_per_winner: e.target.value === "" ? "" : Number(e.target.value) })}
-                  className="w-full bg-[#111] border border-[#2A2A2A] focus:border-neon rounded-lg px-3 py-2 text-sm text-white outline-none" />
+                  className="w-full bg-[#111] border border-[#2A2A2A] focus:border-[#4C6FFF] rounded-lg px-3 py-2 text-sm text-white outline-none" />
               </div>
               <div>
                 <label className="text-xs text-gray-400 mb-1 block">Max Players *</label>
                 <input type="number" min="2" value={config.max_slots}
                   onChange={(e) => setConfig({ ...config, max_slots: e.target.value === "" ? "" : Number(e.target.value) })}
-                  className="w-full bg-[#111] border border-[#2A2A2A] focus:border-neon rounded-lg px-3 py-2 text-sm text-white outline-none" />
+                  className="w-full bg-[#111] border border-[#2A2A2A] focus:border-[#4C6FFF] rounded-lg px-3 py-2 text-sm text-white outline-none" />
               </div>
             </div>
             <div>
               <label className="text-xs text-gray-400 mb-1 block">Prediction Lock-in Deadline *</label>
               <input type="datetime-local" value={config.countdown_end}
                 onChange={(e) => setConfig({ ...config, countdown_end: e.target.value })}
-                className="w-full bg-[#111] border border-[#2A2A2A] focus:border-neon rounded-lg px-3 py-2 text-sm text-white outline-none" />
+                className="w-full bg-[#111] border border-[#2A2A2A] focus:border-[#4C6FFF] rounded-lg px-3 py-2 text-sm text-white outline-none" />
             </div>
             <div>
               <label className="text-xs text-gray-400 mb-1 block">Event Date (optional — when does it happen?)</label>
               <input type="datetime-local" value={config.event_date}
                 onChange={(e) => setConfig({ ...config, event_date: e.target.value })}
-                className="w-full bg-[#111] border border-[#2A2A2A] focus:border-neon rounded-lg px-3 py-2 text-sm text-white outline-none" />
+                className="w-full bg-[#111] border border-[#2A2A2A] focus:border-[#4C6FFF] rounded-lg px-3 py-2 text-sm text-white outline-none" />
               <p className="text-[10px] text-gray-600 mt-1">e.g. When the match kicks off</p>
             </div>
           </div>
@@ -175,8 +175,8 @@ export function CreateTimeMachineForm({ isOpen, onClose, onSuccess }: CreateTime
           <div className="bg-[#111] rounded-xl p-3 space-y-2 text-xs">
             <div className="flex justify-between"><span className="text-gray-400">Type</span><span className="font-bold text-white">TIME MACHINE</span></div>
             <div className="flex justify-between border-t border-[#2A2A2A] pt-2"><span className="text-gray-400">Category</span><span className="font-bold text-white">{config.category}</span></div>
-            <div className="flex justify-between border-t border-[#2A2A2A] pt-2"><span className="text-gray-400">Entry Fee</span><span className="font-bold text-neon">₦{Number(config.entry_fee).toLocaleString()}</span></div>
-            <div className="flex justify-between border-t border-[#2A2A2A] pt-2"><span className="text-gray-400">Prize/Winner</span><span className="font-bold text-neon">₦{Number(config.prize_per_winner).toLocaleString()}</span></div>
+            <div className="flex justify-between border-t border-[#2A2A2A] pt-2"><span className="text-gray-400">Entry Fee</span><span className="font-bold text-[#4C6FFF]">₦{Number(config.entry_fee).toLocaleString()}</span></div>
+            <div className="flex justify-between border-t border-[#2A2A2A] pt-2"><span className="text-gray-400">Prize/Winner</span><span className="font-bold text-[#4C6FFF]">₦{Number(config.prize_per_winner).toLocaleString()}</span></div>
             <div className="flex justify-between border-t border-[#2A2A2A] pt-2"><span className="text-gray-400">Max Players</span><span className="font-bold text-white">{config.max_slots}</span></div>
             <div className="border-t border-[#2A2A2A] pt-2"><span className="text-gray-400 block mb-1">Question</span><p className="text-white">{config.question}</p></div>
           </div>
@@ -192,12 +192,14 @@ export function CreateTimeMachineForm({ isOpen, onClose, onSuccess }: CreateTime
           )}
           {step !== "review" ? (
             <button onClick={() => { if (validateStep()) setStep("review"); }} disabled={loading}
-              className="flex-1 px-4 py-2 bg-neon text-black font-bold text-sm rounded-lg hover:bg-neon/90 transition-colors disabled:opacity-50">
+              className="flex-1 px-4 py-2 text-sm font-bold rounded-lg hover:opacity-90 transition-colors disabled:opacity-50"
+              style={{ backgroundColor: "var(--accent-indigo)", color: "#fff" }}>
               Review
             </button>
           ) : (
             <button onClick={handleCreate} disabled={loading}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-neon text-black font-bold text-sm rounded-lg hover:bg-neon/90 transition-colors disabled:opacity-50">
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-2 text-sm font-bold rounded-lg hover:opacity-90 transition-colors disabled:opacity-50"
+              style={{ backgroundColor: "var(--accent-indigo)", color: "#fff" }}>
               {loading ? <><Loader2 size={14} className="animate-spin" /> Creating...</> : <><Check size={14} /> Create Game</>}
             </button>
           )}

@@ -72,7 +72,7 @@ export default function PlayersPage() {
             placeholder="Search by phone..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-card border border-[#2A2A2A] focus:border-neon rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-gray-500 outline-none transition-colors"
+            className="w-full bg-card border border-[#2A2A2A] focus:border-[#4C6FFF] rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-gray-500 outline-none transition-colors"
           />
         </div>
         <select
@@ -105,7 +105,7 @@ export default function PlayersPage() {
                 onClick={() => setExpanded((prev) => (prev === p.id ? null : p.id))}
               >
                 <div className="flex items-center gap-3">
-                  <div className={`w-2 h-2 rounded-full flex-shrink-0 ${p.status === "active" ? "bg-neon" : "bg-red-500"}`} />
+                  <div className={`w-2 h-2 rounded-full flex-shrink-0 ${p.status === "active" ? "bg-[#4C6FFF]" : "bg-red-500"}`} />
                   <div>
                     <p className="text-sm text-white font-semibold">{maskPhone(p.phone)}</p>
                     {p.name && <p className="text-xs text-gray-400">{p.name}</p>}
@@ -186,3 +186,4 @@ export default function PlayersPage() {
     </div>
   );
 }
+

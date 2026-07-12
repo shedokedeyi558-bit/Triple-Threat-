@@ -77,8 +77,9 @@ export default function ProfilePage() {
         >
           <p className="text-[11px] text-gray-600 uppercase tracking-widest font-bold px-5 pt-4 pb-2">Account</p>
           <Link href="/wallet" className="flex items-center gap-4 px-5 py-4 hover:bg-[#1A1A1A] transition-colors border-t border-[#1A1A1A]">
-            <div className="w-10 h-10 rounded-xl bg-neon/10 flex items-center justify-center flex-shrink-0">
-              <Wallet size={17} className="text-neon" />
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                style={{ backgroundColor: "rgba(76,111,255,0.1)" }}>
+              <Wallet size={17} style={{ color: "var(--accent-indigo)" }} />
             </div>
             <div className="flex-1">
               <p className="text-white font-semibold">Wallet</p>

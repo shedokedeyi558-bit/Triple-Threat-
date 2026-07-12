@@ -14,13 +14,7 @@ interface PillPlayProps {
 }
 
 export default function PillPlay({
-  question,
-  category,
-  format,
-  options,
-  timer,
-  onSubmit,
-  isLoading = false,
+  question, category, format, options, timer, onSubmit, isLoading = false,
 }: PillPlayProps) {
   const [timeLeft, setTimeLeft] = useState(timer);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
@@ -29,21 +23,14 @@ export default function PillPlay({
 
   useEffect(() => {
     if (timeLeft <= 0) {
-      // Auto-submit with whatever is selected; if nothing, submit empty string
-      // so the result screen always shows rather than leaving the player stuck
       if (!timedOut) {
         setTimedOut(true);
-        const answer =
-          format === "multiple_choice"
-            ? selectedOption ?? ""
-            : textAnswer.trim();
+        const answer = format === "multiple_choice" ? selectedOption ?? "" : textAnswer.trim();
         onSubmit(answer);
       }
       return;
     }
-    const interval = setInterval(() => {
-      setTimeLeft((prev) => Math.max(0, prev - 1));
-    }, 1000);
+    const interval = setInterval(() => setTimeLeft((prev) => Math.max(0, prev - 1)), 1000);
     return () => clearInterval(interval);
   }, [timeLeft]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -52,27 +39,24 @@ export default function PillPlay({
 
   const handleSubmit = () => {
     const answer = format === "multiple_choice" ? selectedOption : textAnswer;
-    if (answer) {
-      onSubmit(answer);
-    }
+    if (answer) onSubmit(answer);
   };
 
-  const isValid =
-    format === "multiple_choice" ? selectedOption !== null : textAnswer.trim() !== "";
+  const isValid = format === "multiple_choice" ? selectedOption !== null : textAnswer.trim() !== "";
 
   return (
     <div className="space-y-6">
-      {/* Category & Question */}
       <div>
         <p className="text-xs text-[#888] uppercase tracking-tight font-bold">{category}</p>
-        <h2 className="text-2xl font-bold mt-4 leading-tight">{question}</h2>
+        <h2 className="text-2xl font-bold mt-4 leading-tight" style={{ color: "var(--text-primary)" }}>{question}</h2>
       </div>
 
-      {/* Timer Bar */}
+      {/* Timer bar — amber (plenty of time), yellow (mid), red (urgent) */}
       <div className="space-y-2">
         <div className="bg-[#0A0A0A] border border-[#2A2A2A] rounded-xl overflow-hidden h-2">
           <motion.div
-            className={`h-full ${isTimeRunningOut ? "bg-red-500" : "bg-[#00FF66]"}`}
+            className="h-full"
+            style={{ backgroundColor: isTimeRunningOut ? "#ef4444" : "var(--accent-amber)" }}
             initial={{ width: "100%" }}
             animate={{ width: `${100 - progress}%` }}
             transition={{ type: "linear", duration: 0.1 }}
@@ -80,13 +64,13 @@ export default function PillPlay({
         </div>
         <div className="flex justify-between items-center px-1">
           <p className="text-xs text-[#888]">Time remaining</p>
-          <p className={`font-bold ${isTimeRunningOut ? "text-red-500" : "text-[#00FF66]"}`}>
+          <p className="font-bold" style={{ color: isTimeRunningOut ? "#ef4444" : "var(--accent-amber)" }}>
             {timeLeft}s
           </p>
         </div>
       </div>
 
-      {/* Answer Section */}
+      {/* Answer section */}
       {format === "multiple_choice" ? (
         <div className="space-y-3">
           {options?.map((option, idx) => (
@@ -95,11 +79,11 @@ export default function PillPlay({
               onClick={() => setSelectedOption(option)}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className={`w-full p-4 rounded-xl font-bold uppercase tracking-tight transition-all min-h-12 ${
-                selectedOption === option
-                  ? "bg-[#00FF66] text-black border border-[#00FF66]"
-                  : "bg-[#1A1A1A] text-white border border-[#2A2A2A] hover:border-[#00FF66]"
-              }`}
+              className="w-full p-4 rounded-xl font-bold uppercase tracking-tight transition-all min-h-12"
+              style={selectedOption === option
+                ? { backgroundColor: "var(--accent-indigo)", color: "#fff", border: "1px solid var(--accent-indigo)" }
+                : { backgroundColor: "#1A1A1A", color: "var(--text-primary)", border: "1px solid #2A2A2A" }
+              }
             >
               {option}
             </motion.button>
@@ -112,24 +96,23 @@ export default function PillPlay({
             placeholder="Type your answer..."
             value={textAnswer}
             onChange={(e) => setTextAnswer(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && isValid && !isLoading) {
-                handleSubmit();
-              }
-            }}
+            onKeyDown={(e) => { if (e.key === "Enter" && isValid && !isLoading) handleSubmit(); }}
             disabled={isLoading}
-            className="w-full bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl p-4 text-white placeholder-[#666] focus:border-[#00FF66] focus:outline-none transition-colors disabled:opacity-50"
+            className="w-full bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl p-4 text-white placeholder-[#666] outline-none transition-colors disabled:opacity-50"
+            style={{ outline: "none" }}
+            onFocus={(e) => e.target.style.borderColor = "var(--accent-indigo)"}
+            onBlur={(e) => e.target.style.borderColor = "#2A2A2A"}
           />
         </div>
       )}
 
-      {/* Submit Button */}
       <motion.button
         onClick={handleSubmit}
         disabled={!isValid || isLoading}
         whileHover={{ scale: isValid && !isLoading ? 1.02 : 1 }}
         whileTap={{ scale: isValid && !isLoading ? 0.98 : 1 }}
-        className="w-full bg-[#00FF66] text-black font-bold uppercase tracking-tight rounded-xl py-3 min-h-12 hover:bg-[#00DD55] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+        className="w-full font-bold uppercase tracking-tight rounded-xl py-3 min-h-12 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+        style={{ backgroundColor: "var(--accent-indigo)", color: "#fff" }}
       >
         {isLoading ? "Submitting..." : "Submit"}
       </motion.button>

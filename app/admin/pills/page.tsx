@@ -19,7 +19,7 @@ interface PillPack {
 
 const statusBadge = (s: string) => {
   switch (s) {
-    case "active":   return "bg-neon/15 text-neon border border-neon/30";
+    case "active":   return "bg-[#4C6FFF]/15 text-[#4C6FFF] border border-[#4C6FFF]/30";
     case "inactive": return "bg-gray-800 text-gray-500";
     case "draft":    return "bg-yellow-900/20 text-yellow-500 border border-yellow-700/30";
     default:         return "bg-gray-800 text-gray-500";
@@ -100,7 +100,7 @@ export default function AdminPillsPage() {
 
       {loading ? (
         <div className="flex justify-center py-20">
-          <Loader2 size={28} className="text-neon animate-spin" />
+          <Loader2 size={28} className="text-[#4C6FFF] animate-spin" />
         </div>
       ) : packs.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 text-center">
@@ -179,7 +179,7 @@ export default function AdminPillsPage() {
                   className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-colors disabled:opacity-50 ${
                     pack.status === "active"
                       ? "bg-red-900/20 border border-red-700/30 text-red-400 hover:bg-red-900/30"
-                      : "bg-neon/10 border border-neon/20 text-neon hover:bg-neon/20"
+                      : "bg-[#4C6FFF]/10 border border-[#4C6FFF]/20 text-[#4C6FFF] hover:bg-[#4C6FFF]/20"
                   }`}
                 >
                   {toggling === pack.id
@@ -210,3 +210,4 @@ export default function AdminPillsPage() {
     </div>
   );
 }
+

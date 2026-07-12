@@ -104,14 +104,16 @@ export default function PillPlayPage() {
               <motion.div
                 animate={{ scale: [1, 2.5], opacity: [0.6, 0] }}
                 transition={{ duration: 0.9, repeat: Infinity, ease: "easeOut" }}
-                className="absolute w-24 h-24 rounded-full border-2 border-neon pointer-events-none"
+                className="absolute w-24 h-24 rounded-full border-2 pointer-events-none"
+                style={{ borderColor: "var(--accent-indigo)" }}
               />
 
               <div className="text-center space-y-1">
                 <motion.p
                   animate={{ opacity: [0.4, 1, 0.4] }}
                   transition={{ duration: 1.2, repeat: Infinity }}
-                  className="text-neon font-black text-lg tracking-widest uppercase"
+                  className="font-black text-lg tracking-widest uppercase"
+                  style={{ color: "var(--accent-indigo)" }}
                 >
                   Revealing
                 </motion.p>

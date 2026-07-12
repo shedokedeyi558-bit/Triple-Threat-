@@ -145,7 +145,7 @@ export default function BlitzPlayPage() {
 
   const totalSeconds = attempt?.time_limit_seconds ?? 1;
   const timerPercent = (timeLeft / totalSeconds) * 100;
-  const timerColor = timeLeft < 30 ? "#FF4444" : timeLeft < 60 ? "#FFD700" : "#00FF66";
+  const timerColor = timeLeft < 30 ? "#FF4444" : timeLeft < 60 ? "#FFD700" : "var(--accent-amber)";
   const isUrgent = timeLeft < 30;
 
   return (
@@ -159,7 +159,7 @@ export default function BlitzPlayPage() {
             exit={{ opacity: 0 }}
             className="flex-1 flex items-center justify-center"
           >
-            <div className="w-10 h-10 border-2 border-neon/30 border-t-neon rounded-full animate-spin" />
+            <div className="w-10 h-10 border-2 rounded-full animate-spin" style={{ borderColor: "rgba(76,111,255,0.3)", borderTopColor: "var(--accent-indigo)" }} />
           </motion.div>
         )}
 
@@ -172,7 +172,7 @@ export default function BlitzPlayPage() {
             className="flex-1 flex flex-col items-center justify-center gap-6 bg-[#0A0A0A]"
           >
             <div className="flex items-center gap-3 mb-4">
-              <Zap size={28} className="text-neon" />
+              <Zap size={28} style={{ color: "var(--accent-amber)" }} />
               <span className="font-black text-2xl uppercase tracking-tight text-white">BLITZ</span>
             </div>
             <AnimatePresence mode="wait">
@@ -183,7 +183,7 @@ export default function BlitzPlayPage() {
                 exit={{ scale: 0, opacity: 0 }}
                 transition={{ type: "spring", stiffness: 300, damping: 20 }}
                 className="font-black text-[140px] leading-none"
-                style={{ color: "#00FF66", textShadow: "0 0 60px #00FF6688" }}
+                style={{ color: "var(--accent-amber)", textShadow: "0 0 60px rgba(232,163,61,0.5)" }}
               >
                 {countdown === 0 ? "GO" : countdown}
               </motion.div>
@@ -251,10 +251,10 @@ export default function BlitzPlayPage() {
                                 disabled={!!selectedOption}
                                 className={`w-full text-left p-4 rounded-xl border font-semibold text-sm transition-all ${
                                   selectedOption === option
-                                    ? "bg-neon/20 border-neon text-neon"
+                                    ? "bg-[#4C6FFF]/20 border-[#4C6FFF] text-[#4C6FFF]"
                                     : selectedOption
                                     ? "bg-[#141414] border-[#1E1E1E] text-gray-600"
-                                    : "bg-[#141414] border-[#1E1E1E] text-white hover:border-neon/40"
+                                    : "bg-[#141414] border-[#1E1E1E] text-white hover:border-[#4C6FFF]/40"
                                 }`}
                               >
                                 {option}
@@ -271,14 +271,18 @@ export default function BlitzPlayPage() {
                               onChange={(e) => setTypeInput(e.target.value)}
                               onKeyDown={(e) => e.key === "Enter" && handleTypeSubmit()}
                               placeholder="Type your answer..."
-                              className="w-full bg-[#141414] border border-[#1E1E1E] rounded-xl px-4 py-3 text-white placeholder-gray-600 text-base font-semibold focus:outline-none focus:border-neon/60"
+                              className="w-full bg-[#141414] border border-[#1E1E1E] rounded-xl px-4 py-3 text-white placeholder-gray-600 text-base font-semibold focus:outline-none"
+                              style={{ borderColor: "#1E1E1E" }}
+                              onFocus={(e) => (e.target.style.borderColor = "var(--accent-indigo)")}
+                              onBlur={(e) => (e.target.style.borderColor = "#1E1E1E")}
                               autoFocus
                             />
                             <motion.button
                               whileTap={{ scale: 0.97 }}
                               onClick={handleTypeSubmit}
                               disabled={!typeInput.trim()}
-                              className="w-full py-3.5 bg-neon text-black font-black text-base rounded-xl disabled:opacity-30"
+                              className="w-full py-3.5 font-black text-base rounded-xl disabled:opacity-30"
+                              style={{ backgroundColor: "var(--accent-indigo)", color: "#fff" }}
                             >
                               Submit Answer
                             </motion.button>
@@ -301,7 +305,7 @@ export default function BlitzPlayPage() {
             exit={{ opacity: 0 }}
             className="flex-1 flex flex-col items-center justify-center gap-4"
           >
-            <div className="w-12 h-12 border-2 border-neon/30 border-t-neon rounded-full animate-spin" />
+            <div className="w-12 h-12 border-2 rounded-full animate-spin" style={{ borderColor: "rgba(76,111,255,0.3)", borderTopColor: "var(--accent-indigo)" }} />
             <p className="text-gray-400 text-sm">Submitting answers...</p>
           </motion.div>
         )}
@@ -319,7 +323,7 @@ export default function BlitzPlayPage() {
                 animate={{ scale: 1 }}
                 transition={{ type: "spring", stiffness: 260, damping: 20, delay: 0.2 }}
               >
-                <CheckCircle size={72} className="text-neon" />
+                <CheckCircle size={72} style={{ color: "var(--accent-amber)" }} />
               </motion.div>
 
               <div className="text-center space-y-1">
@@ -341,7 +345,7 @@ export default function BlitzPlayPage() {
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-gray-500 text-sm">Rank estimate</span>
-                      <span className="text-neon font-black text-lg">#{result.rank_estimate}</span>
+                      <span className="font-black text-lg" style={{ color: "var(--accent-amber)" }}>#{result.rank_estimate}</span>
                     </div>
                   </>
                 )}
@@ -358,7 +362,7 @@ export default function BlitzPlayPage() {
             <motion.button
               whileTap={{ scale: 0.97 }}
               onClick={() => router.push("/blitz")}
-              className="w-full py-4 bg-[#141414] border border-[#1E1E1E] rounded-xl text-white font-bold text-base hover:border-neon/30 transition-colors"
+              className="w-full py-4 bg-[#141414] border border-[#1E1E1E] rounded-xl text-white font-bold text-base hover:border-[#4C6FFF]/30 transition-colors"
             >
               Back to Lobby
             </motion.button>

@@ -7,9 +7,9 @@ import { notificationsApi, type Notification } from "@/lib/api";
 
 function notifIcon(type: Notification["type"]) {
   switch (type) {
-    case "win":                  return <Trophy size={14} className="text-neon" />;
+    case "win":                  return <Trophy size={14} style={{ color: "var(--accent-amber)" }} />;
     case "prediction_result":    return <TrendingUp size={14} className="text-purple-400" />;
-    case "withdrawal_approved":  return <CheckCircle size={14} className="text-neon" />;
+    case "withdrawal_approved":  return <CheckCircle size={14} style={{ color: "var(--accent-indigo)" }} />;
     case "withdrawal_rejected":  return <AlertCircle size={14} className="text-red-400" />;
     case "blitz_starting":       return <Zap size={14} className="text-yellow-400" />;
     case "new_event":            return <Clock size={14} className="text-blue-400" />;
@@ -73,10 +73,10 @@ export function NotificationBell() {
   return (
     <div ref={ref} className="relative">
       <button onClick={handleOpen}
-        className="relative w-9 h-9 rounded-xl bg-[#141414] border border-[#1E1E1E] flex items-center justify-center hover:border-neon/30 transition-colors">
+        className="relative w-9 h-9 rounded-xl bg-[#141414] border border-[#1E1E1E] flex items-center justify-center hover:border-[#4C6FFF]/30 transition-colors">
         <Bell size={16} className="text-gray-400" />
         {unread > 0 && (
-          <span className="absolute -top-1 -right-1 w-4 h-4 bg-neon text-black text-[9px] font-black rounded-full flex items-center justify-center">
+          <span className="absolute -top-1 -right-1 w-4 h-4 text-white text-[9px] font-black rounded-full flex items-center justify-center" style={{ backgroundColor: "var(--accent-indigo)" }}>
             {unread > 9 ? "9+" : unread}
           </span>
         )}
@@ -106,7 +106,7 @@ export function NotificationBell() {
                 </div>
               ) : (
                 notifications.map((n) => (
-                  <div key={n.id} className={`flex items-start gap-3 px-4 py-3 transition-colors ${!n.read ? "bg-neon/[0.03]" : ""}`}>
+                  <div key={n.id} className={`flex items-start gap-3 px-4 py-3 transition-colors ${!n.read ? "bg-[#4C6FFF]/[0.03]" : ""}`}>
                     <div className="w-7 h-7 rounded-lg bg-[#1A1A1A] flex items-center justify-center flex-shrink-0 mt-0.5">
                       {notifIcon(n.type)}
                     </div>
@@ -115,7 +115,7 @@ export function NotificationBell() {
                       <p className="text-gray-600 text-xs mt-0.5 leading-relaxed">{n.message}</p>
                       <p className="text-gray-700 text-[10px] mt-1">{formatTime(n.created_at)}</p>
                     </div>
-                    {!n.read && <div className="w-1.5 h-1.5 rounded-full bg-neon flex-shrink-0 mt-2" />}
+                    {!n.read && <div className="w-1.5 h-1.5 rounded-full flex-shrink-0 mt-2" style={{ backgroundColor: "var(--accent-indigo)" }} />}
                   </div>
                 ))
               )}

@@ -10,7 +10,7 @@ import { Zap, Users, Clock } from "lucide-react";
 function StatusBadge({ status }: { status: BlitzTournament["status"] }) {
   const config = {
     registration: { label: "Open", color: "bg-blue-500/20 text-blue-400 border-blue-500/30" },
-    active:        { label: "Live", color: "bg-neon/20 text-neon border-neon/30" },
+    active:        { label: "Live", color: "bg-[#E8A33D]/20 text-[#E8A33D] border-[#E8A33D]/30" },
     completed:     { label: "Ended", color: "bg-gray-700/30 text-gray-500 border-gray-700/30" },
     draft:         { label: "Soon", color: "bg-gray-700/20 text-gray-600 border-gray-700/20" },
     scoring:       { label: "Scoring", color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" },
@@ -46,13 +46,13 @@ function TournamentCard({ t }: { t: BlitzTournament }) {
       whileHover={{ y: -2 }}
       whileTap={{ scale: 0.99 }}
       onClick={() => router.push(`/blitz/${t.id}`)}
-      className="w-full bg-[#111] border border-[#1E1E1E] rounded-2xl p-5 text-left space-y-4 hover:border-neon/30 transition-all"
+      className="w-full bg-[#111] border border-[#1E1E1E] rounded-2xl p-5 text-left space-y-4 hover:border-[#4C6FFF]/30 transition-all"
     >
       {/* Header */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1.5">
-            <Zap size={15} className="text-neon flex-shrink-0" />
+            <Zap size={15} style={{ color: "var(--accent-amber)" }} className="flex-shrink-0" />
             <h3 className="text-white font-black text-lg leading-tight truncate">{t.title}</h3>
           </div>
           {t.description && (
@@ -66,7 +66,7 @@ function TournamentCard({ t }: { t: BlitzTournament }) {
       <div className="grid grid-cols-3 gap-2">
         <div className="bg-[#0A0A0A] rounded-xl p-3 text-center">
           <p className="text-[10px] text-gray-600 mb-1 uppercase tracking-wide">Entry</p>
-          <p className="text-neon font-black text-base">₦{t.entry_fee.toLocaleString()}</p>
+          <p className="font-black text-base font-mono" style={{ color: "var(--accent-amber)" }}>₦{t.entry_fee.toLocaleString()}</p>
         </div>
         <div className="bg-[#0A0A0A] rounded-xl p-3 text-center">
           <p className="text-[10px] text-gray-600 mb-1 uppercase tracking-wide">Prize Pool</p>
@@ -91,7 +91,7 @@ function TournamentCard({ t }: { t: BlitzTournament }) {
         <div className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-colors ${
           isCompleted
             ? "bg-[#1A1A1A] text-gray-500"
-            : "bg-neon/10 text-neon border border-neon/20"
+            : "bg-[#4C6FFF]/10 text-[#4C6FFF] border border-[#4C6FFF]/20"
         }`}>
           {isReg ? "Register →" : isActive ? "Play Now →" : isCompleted ? "View Results →" : "View →"}
         </div>

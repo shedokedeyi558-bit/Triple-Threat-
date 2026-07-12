@@ -16,44 +16,26 @@ export function BottomNavigation() {
     return pathname.startsWith(path);
   };
 
+  const activeColor = "var(--accent-amber)";
+
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-[#0A0A0A] border-t border-[#2A2A2A] z-40 lg:hidden">
       <div className="max-w-lg mx-auto flex items-center justify-around h-20 px-4">
-        <Link
-          href="/play"
-          className={`flex flex-col items-center justify-center gap-1 py-2 px-4 rounded-lg transition-colors ${
-            isActive("/play")
-              ? "text-neon"
-              : "text-gray-400 hover:text-white"
-          }`}
-        >
-          <Gamepad2 size={24} />
-          <span className="text-xs font-semibold">Play</span>
-        </Link>
-
-        <Link
-          href="/wallet"
-          className={`flex flex-col items-center justify-center gap-1 py-2 px-4 rounded-lg transition-colors ${
-            isActive("/wallet")
-              ? "text-neon"
-              : "text-gray-400 hover:text-white"
-          }`}
-        >
-          <Wallet size={24} />
-          <span className="text-xs font-semibold">Wallet</span>
-        </Link>
-
-        <Link
-          href="/profile"
-          className={`flex flex-col items-center justify-center gap-1 py-2 px-4 rounded-lg transition-colors ${
-            isActive("/profile")
-              ? "text-neon"
-              : "text-gray-400 hover:text-white"
-          }`}
-        >
-          <User size={24} />
-          <span className="text-xs font-semibold">Profile</span>
-        </Link>
+        {[
+          { href: "/play", icon: <Gamepad2 size={24} />, label: "Play" },
+          { href: "/wallet", icon: <Wallet size={24} />, label: "Wallet" },
+          { href: "/profile", icon: <User size={24} />, label: "Profile" },
+        ].map(({ href, icon, label }) => (
+          <Link
+            key={href}
+            href={href}
+            className="flex flex-col items-center justify-center gap-1 py-2 px-4 rounded-lg transition-colors"
+            style={{ color: isActive(href) ? activeColor : "#9ca3af" }}
+          >
+            {icon}
+            <span className="text-xs font-semibold">{label}</span>
+          </Link>
+        ))}
       </div>
     </nav>
   );

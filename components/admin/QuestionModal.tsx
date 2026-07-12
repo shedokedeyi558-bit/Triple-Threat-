@@ -144,7 +144,7 @@ export function QuestionModal({ open, onClose, question, onSaved }: Props) {
                   value={form.text}
                   onChange={(e) => set("text", e.target.value)}
                   placeholder="Enter your question..."
-                  className="w-full bg-[#1A1A1A] border border-[#2A2A2A] focus:border-neon rounded-xl px-4 py-3 text-white text-sm resize-none outline-none transition-colors"
+                  className="w-full bg-[#1A1A1A] border border-[#2A2A2A] focus:border-[#4C6FFF] rounded-xl px-4 py-3 text-white text-sm resize-none outline-none transition-colors"
                 />
               </div>
 
@@ -234,13 +234,13 @@ export function QuestionModal({ open, onClose, question, onSaved }: Props) {
                           placeholder={`Option ${String.fromCharCode(65 + i)}`}
                           value={opt.text}
                           onChange={(e) => handleOptionChange(i, e.target.value)}
-                          className="flex-1 bg-[#1A1A1A] border border-[#2A2A2A] focus:border-neon rounded-xl px-3 py-2.5 text-white text-sm outline-none transition-colors"
+                          className="flex-1 bg-[#1A1A1A] border border-[#2A2A2A] focus:border-[#4C6FFF] rounded-xl px-3 py-2.5 text-white text-sm outline-none transition-colors"
                         />
                         <button
                           onClick={() => handleSetCorrect(i)}
                           className={`w-8 h-8 flex-shrink-0 rounded-full border-2 text-xs font-bold transition-colors ${
                             correctOptionIdx === i
-                              ? "border-neon bg-neon/20 text-neon"
+                              ? "border-[#4C6FFF] bg-[#4C6FFF]/20 text-[#4C6FFF]"
                               : "border-[#2A2A2A] text-gray-600 hover:border-gray-400"
                           }`}
                           aria-label="Mark as correct"
@@ -263,7 +263,7 @@ export function QuestionModal({ open, onClose, question, onSaved }: Props) {
                       value={form.correct_answer}
                       onChange={(e) => set("correct_answer", e.target.value)}
                       placeholder="e.g. Au"
-                      className="w-full bg-[#1A1A1A] border border-[#2A2A2A] focus:border-neon rounded-xl px-4 py-3 text-white text-sm outline-none transition-colors"
+                      className="w-full bg-[#1A1A1A] border border-[#2A2A2A] focus:border-[#4C6FFF] rounded-xl px-4 py-3 text-white text-sm outline-none transition-colors"
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
@@ -309,7 +309,8 @@ export function QuestionModal({ open, onClose, question, onSaved }: Props) {
                 <button
                   onClick={handleSave}
                   disabled={saving}
-                  className="flex-1 py-3 rounded-xl bg-neon text-black font-bold text-sm active:scale-95 transition-transform disabled:opacity-60 flex items-center justify-center gap-2"
+                  className="flex-1 py-3 rounded-xl text-sm font-bold active:scale-95 transition-transform disabled:opacity-60 flex items-center justify-center gap-2"
+                  style={{ backgroundColor: "var(--accent-indigo)", color: "#fff" }}
                 >
                   {saving ? <Loader2 size={15} className="animate-spin" /> : null}
                   {saving ? "Saving…" : "Save Question"}

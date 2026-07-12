@@ -147,7 +147,7 @@ export function CreatePillPackForm({ isOpen, onClose, onSuccess }: CreatePillPac
         {/* Step indicator */}
         <div className="flex gap-2">
           {["config", "pills", "review"].map((s, i) => (
-            <div key={s} className={`h-1 flex-1 rounded-full transition-all ${["config", "pills", "review"].indexOf(step) >= i ? "bg-neon" : "bg-[#2A2A2A]"}`} />
+            <div key={s} className={`h-1 flex-1 rounded-full transition-all ${["config", "pills", "review"].indexOf(step) >= i ? "bg-[#4C6FFF]" : "bg-[#2A2A2A]"}`} />
           ))}
         </div>
 
@@ -164,7 +164,7 @@ export function CreatePillPackForm({ isOpen, onClose, onSuccess }: CreatePillPac
                   value={packName}
                   onChange={(e) => setPackName(e.target.value)}
                   placeholder="e.g. Weekend Pack"
-                  className="w-full bg-[#111] border border-[#2A2A2A] focus:border-neon rounded-lg px-3 py-2 text-sm text-white outline-none"
+                  className="w-full bg-[#111] border border-[#2A2A2A] focus:border-[#4C6FFF] rounded-lg px-3 py-2 text-sm text-white outline-none"
                 />
               </div>
               <div>
@@ -172,7 +172,7 @@ export function CreatePillPackForm({ isOpen, onClose, onSuccess }: CreatePillPac
                 <select
                   value={packCategory}
                   onChange={(e) => setPackCategory(e.target.value)}
-                  className="w-full bg-[#111] border border-[#2A2A2A] focus:border-neon rounded-lg px-3 py-2 text-sm text-white outline-none"
+                  className="w-full bg-[#111] border border-[#2A2A2A] focus:border-[#4C6FFF] rounded-lg px-3 py-2 text-sm text-white outline-none"
                 >
                   {categories.map((c) => <option key={c}>{c}</option>)}
                 </select>
@@ -187,7 +187,7 @@ export function CreatePillPackForm({ isOpen, onClose, onSuccess }: CreatePillPac
                   placeholder="e.g. 200"
                   value={packEntryFee}
                   onChange={(e) => setPackEntryFee(e.target.value === "" ? "" : Number(e.target.value))}
-                  className="w-full bg-[#111] border border-[#2A2A2A] focus:border-neon rounded-lg px-3 py-2 text-sm text-white outline-none"
+                  className="w-full bg-[#111] border border-[#2A2A2A] focus:border-[#4C6FFF] rounded-lg px-3 py-2 text-sm text-white outline-none"
                 />
               </div>
               <div>
@@ -198,7 +198,7 @@ export function CreatePillPackForm({ isOpen, onClose, onSuccess }: CreatePillPac
                   placeholder="e.g. 1000"
                   value={packPrize}
                   onChange={(e) => setPackPrize(e.target.value === "" ? "" : Number(e.target.value))}
-                  className="w-full bg-[#111] border border-[#2A2A2A] focus:border-neon rounded-lg px-3 py-2 text-sm text-white outline-none"
+                  className="w-full bg-[#111] border border-[#2A2A2A] focus:border-[#4C6FFF] rounded-lg px-3 py-2 text-sm text-white outline-none"
                 />
               </div>
             </div>
@@ -214,7 +214,7 @@ export function CreatePillPackForm({ isOpen, onClose, onSuccess }: CreatePillPac
                 <button
                   key={i}
                   onClick={() => setActivePillIdx(i)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${activePillIdx === i ? "border-neon bg-neon/10 text-neon" : "border-[#2A2A2A] text-gray-400"}`}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${activePillIdx === i ? "border-[#4C6FFF] bg-[#4C6FFF]/10 text-[#4C6FFF]" : "border-[#2A2A2A] text-gray-400"}`}
                 >
                   <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: p.color }} />
                   Pill {i + 1}
@@ -225,7 +225,7 @@ export function CreatePillPackForm({ isOpen, onClose, onSuccess }: CreatePillPac
               ))}
               <button
                 onClick={addPill}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold border border-dashed border-[#2A2A2A] text-gray-500 hover:border-neon hover:text-neon transition-colors"
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold border border-dashed border-[#2A2A2A] text-gray-500 hover:border-[#4C6FFF] hover:text-[#4C6FFF] transition-colors"
               >
                 <Plus size={12} /> Add
               </button>
@@ -262,7 +262,7 @@ export function CreatePillPackForm({ isOpen, onClose, onSuccess }: CreatePillPac
                     value={activePill.question}
                     onChange={(e) => updatePill({ question: e.target.value })}
                     placeholder="What is...?"
-                    className="w-full bg-[#0A0A0A] border border-[#2A2A2A] focus:border-neon rounded-lg px-3 py-2 text-xs text-white outline-none resize-none"
+                    className="w-full bg-[#0A0A0A] border border-[#2A2A2A] focus:border-[#4C6FFF] rounded-lg px-3 py-2 text-xs text-white outline-none resize-none"
                   />
                 </div>
 
@@ -272,7 +272,7 @@ export function CreatePillPackForm({ isOpen, onClose, onSuccess }: CreatePillPac
                     <select
                       value={activePill.format}
                       onChange={(e) => updatePill({ format: e.target.value as "multiple_choice" | "type_answer", correct_answer: "" })}
-                      className="w-full bg-[#0A0A0A] border border-[#2A2A2A] focus:border-neon rounded-lg px-3 py-2 text-xs text-white outline-none"
+                      className="w-full bg-[#0A0A0A] border border-[#2A2A2A] focus:border-[#4C6FFF] rounded-lg px-3 py-2 text-xs text-white outline-none"
                     >
                       <option>multiple_choice</option>
                       <option>type_answer</option>
@@ -286,7 +286,7 @@ export function CreatePillPackForm({ isOpen, onClose, onSuccess }: CreatePillPac
                       placeholder="30"
                       value={activePill.timer}
                       onChange={(e) => updatePill({ timer: e.target.value === "" ? "" : Number(e.target.value) })}
-                      className="w-full bg-[#0A0A0A] border border-[#2A2A2A] focus:border-neon rounded-lg px-3 py-2 text-xs text-white outline-none"
+                      className="w-full bg-[#0A0A0A] border border-[#2A2A2A] focus:border-[#4C6FFF] rounded-lg px-3 py-2 text-xs text-white outline-none"
                     />
                   </div>
                 </div>
@@ -306,11 +306,11 @@ export function CreatePillPackForm({ isOpen, onClose, onSuccess }: CreatePillPac
                               updatePill({ options: opts });
                             }}
                             placeholder={`Option ${i + 1}`}
-                            className="flex-1 bg-[#0A0A0A] border border-[#2A2A2A] focus:border-neon rounded-lg px-3 py-1.5 text-xs text-white outline-none"
+                            className="flex-1 bg-[#0A0A0A] border border-[#2A2A2A] focus:border-[#4C6FFF] rounded-lg px-3 py-1.5 text-xs text-white outline-none"
                           />
                           <button
                             onClick={() => updatePill({ correct_answer: opt })}
-                            className={`w-7 h-7 rounded-full border text-xs font-bold flex-shrink-0 transition-colors ${activePill.correct_answer === opt && opt ? "border-neon bg-neon/20 text-neon" : "border-[#2A2A2A] text-gray-600"}`}
+                            className={`w-7 h-7 rounded-full border text-xs font-bold flex-shrink-0 transition-colors ${activePill.correct_answer === opt && opt ? "border-[#4C6FFF] bg-[#4C6FFF]/20 text-[#4C6FFF]" : "border-[#2A2A2A] text-gray-600"}`}
                           >
                             ✓
                           </button>
@@ -328,7 +328,7 @@ export function CreatePillPackForm({ isOpen, onClose, onSuccess }: CreatePillPac
                       value={activePill.correct_answer}
                       onChange={(e) => updatePill({ correct_answer: e.target.value })}
                       placeholder="e.g. Paris"
-                      className="w-full bg-[#0A0A0A] border border-[#2A2A2A] focus:border-neon rounded-lg px-3 py-2 text-xs text-white outline-none"
+                      className="w-full bg-[#0A0A0A] border border-[#2A2A2A] focus:border-[#4C6FFF] rounded-lg px-3 py-2 text-xs text-white outline-none"
                     />
                   </div>
                 )}
@@ -344,8 +344,8 @@ export function CreatePillPackForm({ isOpen, onClose, onSuccess }: CreatePillPac
               <div className="flex justify-between"><span className="text-gray-400">Name</span><span className="font-bold text-white">{packName}</span></div>
               <div className="flex justify-between border-t border-[#2A2A2A] pt-2"><span className="text-gray-400">Category</span><span className="font-bold text-white">{packCategory}</span></div>
               <div className="flex justify-between border-t border-[#2A2A2A] pt-2"><span className="text-gray-400">Pills</span><span className="font-bold text-white">{pills.length}</span></div>
-              <div className="flex justify-between border-t border-[#2A2A2A] pt-2"><span className="text-gray-400">Entry Fee</span><span className="font-bold text-neon">₦{(packEntryFee || 0).toLocaleString()}</span></div>
-              <div className="flex justify-between border-t border-[#2A2A2A] pt-2"><span className="text-gray-400">Prize</span><span className="font-bold text-neon">₦{(packPrize || 0).toLocaleString()}</span></div>
+              <div className="flex justify-between border-t border-[#2A2A2A] pt-2"><span className="text-gray-400">Entry Fee</span><span className="font-bold text-[#4C6FFF]">₦{(packEntryFee || 0).toLocaleString()}</span></div>
+              <div className="flex justify-between border-t border-[#2A2A2A] pt-2"><span className="text-gray-400">Prize</span><span className="font-bold text-[#4C6FFF]">₦{(packPrize || 0).toLocaleString()}</span></div>
             </div>
           </div>
         )}
@@ -365,7 +365,8 @@ export function CreatePillPackForm({ isOpen, onClose, onSuccess }: CreatePillPac
             <button
               onClick={() => { if (validateStep()) setStep(step === "config" ? "pills" : "review"); }}
               disabled={loading}
-              className="flex-1 px-4 py-2 bg-neon text-black font-bold text-sm rounded-lg hover:bg-neon/90 transition-colors disabled:opacity-50"
+              className="flex-1 px-4 py-2 text-sm font-bold rounded-lg hover:opacity-90 transition-colors disabled:opacity-50"
+              style={{ backgroundColor: "var(--accent-indigo)", color: "#fff" }}
             >
               Next
             </button>
@@ -373,7 +374,8 @@ export function CreatePillPackForm({ isOpen, onClose, onSuccess }: CreatePillPac
             <button
               onClick={handleCreate}
               disabled={loading}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-neon text-black font-bold text-sm rounded-lg hover:bg-neon/90 transition-colors disabled:opacity-50"
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-2 text-sm font-bold rounded-lg hover:opacity-90 transition-colors disabled:opacity-50"
+              style={{ backgroundColor: "var(--accent-indigo)", color: "#fff" }}
             >
               {loading ? <><Loader2 size={14} className="animate-spin" /> Creating...</> : <><Check size={14} /> Create Pack</>}
             </button>
@@ -383,3 +385,4 @@ export function CreatePillPackForm({ isOpen, onClose, onSuccess }: CreatePillPac
     </div>
   );
 }
+

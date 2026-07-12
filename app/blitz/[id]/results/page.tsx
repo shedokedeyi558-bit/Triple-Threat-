@@ -1,220 +1,189 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter, useParams } from "next/navigation";
-import { motion } from "framer-motion";
-import { useApp } from "@/context/AppContext";
-import { blitzApi, type BlitzResult, ApiError } from "@/lib/api";
-import { BottomNavigation } from "@/components/ui/BottomNavigation";
-import { ArrowLeft, Trophy, Ticket, Zap } from "lucide-react";
+import { useEffect, useState, useCallback } from "react";
+import { adminApi, type AdminPlayer, ApiError } from "@/lib/api";
+import { Search, Shield, ShieldOff, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
 
-function maskPhone(phone: string): string {
-  if (phone.length < 6) return phone;
-  return phone.slice(0, 4) + "****" + phone.slice(-2);
-}
-
-function formatTime(ms: number): string {
-  const mins = Math.floor(ms / 60000);
-  const secs = Math.floor((ms % 60000) / 1000);
-  return `${mins}m ${secs}s`;
-}
-
-export default function BlitzResultsPage() {
-  const { state } = useApp();
-  const router = useRouter();
-  const params = useParams();
-  const id = params.id as string;
-
-  const [result, setResult] = useState<BlitzResult | null>(null);
+export default function PlayersPage() {
+  const [players, setPlayers] = useState<AdminPlayer[]>([]);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState<"" | "active" | "banned">("");
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const [toggling, setToggling] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!state.isAuthenticated) {
-      router.push("/auth");
-      return;
-    }
-    fetchResults();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.isAuthenticated, id]);
-
-  const fetchResults = async () => {
+  const fetchPlayers = useCallback(async (q?: string, status?: string) => {
+    setLoading(true);
+    setError("");
     try {
-      const res = await blitzApi.getResults(id);
-      setResult(res);
+      const params: Record<string, string> = {};
+      if (q) params.search = q;
+      if (status) params.status = status;
+      const data = await adminApi.getPlayers(params);
+      setPlayers(data.players);
+      setTotal(data.total ?? data.players.length);
     } catch (err) {
-      if (err instanceof ApiError) setError(err.message);
+      setError(err instanceof ApiError ? err.message : "Failed to load players");
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  useEffect(() => { fetchPlayers(); }, [fetchPlayers]);
+
+  // Debounce search + filter
+  useEffect(() => {
+    const t = setTimeout(() => fetchPlayers(search, filter), 400);
+    return () => clearTimeout(t);
+  }, [search, filter, fetchPlayers]);
+
+  const handleToggleBan = async (player: AdminPlayer) => {
+    setToggling(player.id);
+    try {
+      const res = await adminApi.toggleBan(player.id);
+      setPlayers((prev) => prev.map((p) => p.id === player.id ? res.player : p));
+    } catch (err) {
+      alert(err instanceof ApiError ? err.message : "Failed to update player");
+    } finally {
+      setToggling(null);
+    }
   };
 
-  if (!state.isAuthenticated) return null;
+  const maskPhone = (ph: string) => `${ph.slice(0, 4)}***${ph.slice(-4)}`;
+
+  const winRate = (p: AdminPlayer) =>
+    p.games_played > 0 ? Math.round((p.games_won / p.games_played) * 100) : 0;
 
   return (
-    <main className="min-h-screen bg-[#0A0A0A] text-white pb-28">
-      <header className="sticky top-0 z-40 bg-[#0A0A0A]/90 backdrop-blur-md border-b border-[#1A1A1A] px-4 py-4">
-        <div className="max-w-lg mx-auto flex items-center gap-3">
-          <button
-            onClick={() => router.push("/blitz")}
-            className="p-2 rounded-lg bg-[#141414] border border-[#1E1E1E] hover:border-neon/30 transition-colors"
-          >
-            <ArrowLeft size={18} className="text-gray-400" />
-          </button>
-          <div className="flex items-center gap-2">
-            <Zap size={18} className="text-neon" />
-            <span className="font-black text-lg uppercase tracking-tight text-white">Results</span>
-          </div>
-        </div>
-      </header>
-
-      <div className="max-w-lg mx-auto px-4 py-6 space-y-5">
-        {error && (
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="text-red-400 text-sm bg-red-900/10 border border-red-900/30 rounded-xl p-3"
-          >
-            {error}
-          </motion.p>
-        )}
-
-        {loading ? (
-          <div className="space-y-3">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="bg-[#141414] border border-[#1E1E1E] rounded-xl p-4 h-16 animate-pulse" />
-            ))}
-          </div>
-        ) : result ? (
-          <>
-            {result.my_prize && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className={`rounded-2xl p-5 text-center border ${
-                  result.my_prize.prize_type === "cash"
-                    ? "bg-neon/10 border-neon/40"
-                    : "bg-purple-500/10 border-purple-500/40"
-                }`}
-              >
-                {result.my_prize.prize_type === "cash" ? (
-                  <>
-                    <Trophy size={36} className="text-neon mx-auto mb-2" />
-                    <p className="text-gray-400 text-sm mb-1">You won</p>
-                    <p className="text-neon font-black text-3xl">₦{result.my_prize.amount.toLocaleString()}</p>
-                  </>
-                ) : (
-                  <>
-                    <Ticket size={36} className="text-purple-400 mx-auto mb-2" />
-                    <p className="text-gray-400 text-sm mb-1">Free ticket</p>
-                    {result.my_prize.ticket_code && (
-                      <p className="text-purple-400 font-black text-xl tracking-widest">{result.my_prize.ticket_code}</p>
-                    )}
-                  </>
-                )}
-              </motion.div>
-            )}
-
-            {result.my_position && (
-              <motion.div
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-[#141414] border border-[#1E1E1E] rounded-2xl p-4 flex items-center justify-between"
-              >
-                <div>
-                  <p className="text-gray-500 text-xs uppercase tracking-widest mb-0.5">Your Position</p>
-                  <p className="text-white font-black text-2xl">#{result.my_position}</p>
-                </div>
-                {result.my_score !== undefined && (
-                  <div className="text-right">
-                    <p className="text-gray-500 text-xs uppercase tracking-widest mb-0.5">Score</p>
-                    <p className="text-neon font-black text-2xl">{result.my_score}</p>
-                  </div>
-                )}
-              </motion.div>
-            )}
-
-            <div className="space-y-2">
-              <h2 className="text-gray-500 text-xs font-bold uppercase tracking-widest">Leaderboard</h2>
-            {result.leaderboard.slice(0, 10).map((entry, i) => {
-                const isMe = result.my_position === entry.position;
-                const delay = Math.min(i * 0.06, 0.5);
-                
-                // Determine badge based on actual prize_type from backend
-                let badgeStyle = null;
-                let badgeLabel = null;
-                if (entry.position === 1 && entry.prize_type === "cash") {
-                  badgeStyle = "bg-yellow-500/10 border-yellow-500/40";
-                  badgeLabel = "WINNER";
-                } else if (entry.prize_type === "free_ticket") {
-                  badgeStyle = "bg-purple-500/10 border-purple-500/40";
-                  badgeLabel = "FREE TICKET";
-                }
-
-                return (
-                  <motion.div
-                    key={entry.position}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay }}
-                    className={`flex items-center gap-3 p-3.5 rounded-xl border ${
-                      isMe
-                        ? "bg-neon/10 border-neon/40"
-                        : badgeStyle
-                        ? badgeStyle
-                        : "bg-[#141414] border-[#1E1E1E]"
-                    }`}
-                  >
-                    <div
-                      className={`w-7 h-7 rounded-full flex items-center justify-center font-black text-xs flex-shrink-0 ${
-                        isMe ? "bg-neon text-black" : "bg-[#0A0A0A] text-gray-400"
-                      }`}
-                    >
-                      {entry.position}
-                    </div>
-
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className={`font-bold text-sm ${isMe ? "text-neon" : "text-white"}`}>
-                          {maskPhone(entry.player_phone)}
-                          {isMe && <span className="text-[10px] text-neon/60">(you)</span>}
-                        </p>
-                        {badgeLabel && (
-                          <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
-                            badgeLabel === "WINNER" ? "text-yellow-400" : "text-purple-400"
-                          }`}>
-                            {badgeLabel}
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-gray-500 text-xs">{formatTime(entry.total_time_ms)}</p>
-                    </div>
-
-                    <div className="text-right flex-shrink-0">
-                      <p className={`font-black text-sm ${isMe ? "text-neon" : "text-white"}`}>
-                        {entry.score}
-                      </p>
-                      {entry.prize_type && (
-                        <p className={`text-[10px] font-semibold ${entry.prize_type === "cash" ? "text-neon" : "text-purple-400"}`}>
-                          {entry.prize_type === "cash"
-                            ? `₦${entry.amount?.toLocaleString()}`
-                            : "Free ticket"}
-                        </p>
-                      )}
-                    </div>
-                  </motion.div>
-                );
-              })}
-            </div>
-          </>
-        ) : (
-          <div className="bg-[#141414] border border-[#1E1E1E] rounded-2xl p-12 text-center">
-            <p className="text-gray-600 text-sm">Results not available yet</p>
-          </div>
-        )}
+    <div className="space-y-5">
+      <div>
+        <h1 className="text-2xl font-black text-white">Players</h1>
+        <p className="text-gray-400 text-sm mt-0.5">{total} registered players</p>
       </div>
 
-      <BottomNavigation />
-    </main>
+      {/* Search + Filter */}
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500" />
+          <input
+            type="text"
+            placeholder="Search by phone..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full bg-card border border-[#2A2A2A] focus:border-[#4C6FFF] rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-gray-500 outline-none transition-colors"
+          />
+        </div>
+        <select
+          value={filter}
+          onChange={(e) => setFilter(e.target.value as "" | "active" | "banned")}
+          className="bg-card border border-[#2A2A2A] rounded-xl px-3 py-3 text-sm text-white outline-none"
+        >
+          <option value="">All</option>
+          <option value="active">Active</option>
+          <option value="banned">Banned</option>
+        </select>
+      </div>
+
+      {loading && (
+        <div className="flex justify-center py-12">
+          <Loader2 size={28} className="animate-spin" style={{ color: "var(--accent-indigo)" }} />
+        </div>
+      )}
+
+      {error && !loading && (
+        <div className="text-center py-8 text-red-400 text-sm">{error}</div>
+      )}
+
+      {!loading && !error && (
+        <div className="space-y-2">
+          {players.map((p) => (
+            <div key={p.id} className="bg-card border border-[#2A2A2A] rounded-xl overflow-hidden">
+              <button
+                className="w-full px-4 py-3 flex items-center justify-between text-left"
+                onClick={() => setExpanded((prev) => (prev === p.id ? null : p.id))}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`w-2 h-2 rounded-full flex-shrink-0 ${p.status === "active" ? "bg-[#4C6FFF]" : "bg-red-500"}`} />
+                  <div>
+                    <p className="text-sm text-white font-semibold">{maskPhone(p.phone)}</p>
+                    {p.name && <p className="text-xs text-gray-400">{p.name}</p>}
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="font-mono font-bold text-sm" style={{ color: "var(--accent-amber)" }}>
+                    ₦{p.balance.toLocaleString()}
+                  </span>
+                  {expanded === p.id ? (
+                    <ChevronUp size={16} className="text-gray-400" />
+                  ) : (
+                    <ChevronDown size={16} className="text-gray-400" />
+                  )}
+                </div>
+              </button>
+
+              {expanded === p.id && (
+                <div className="border-t border-[#2A2A2A] px-4 py-4 space-y-4">
+                  <div className="grid grid-cols-3 gap-3">
+                    {[
+                      { label: "Played", value: p.games_played },
+                      { label: "Won", value: p.games_won },
+                      { label: "Win rate", value: `${winRate(p)}%` },
+                    ].map(({ label, value }) => (
+                      <div key={label} className="bg-[#111] rounded-xl p-3 text-center">
+                        <p className="text-white font-bold text-sm">{value}</p>
+                        <p className="text-xs text-gray-500 mt-0.5">{label}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="flex items-center justify-between bg-[#111] rounded-xl p-3">
+                    <span className="text-xs text-gray-400">Total won</span>
+                    <span className="font-mono font-bold text-sm" style={{ color: "var(--accent-amber)" }}>
+                      ₦{p.total_won.toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between bg-[#111] rounded-xl p-3">
+                    <span className="text-xs text-gray-400">Joined</span>
+                    <span className="text-white text-sm">
+                      {new Date(p.created_at).toLocaleDateString("en-NG", { month: "short", day: "numeric", year: "numeric" })}
+                    </span>
+                  </div>
+
+                  <button
+                    onClick={() => handleToggleBan(p)}
+                    disabled={toggling === p.id}
+                    className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-semibold text-sm transition-all active:scale-[0.98] disabled:opacity-50 ${
+                      p.status === "active"
+                        ? "bg-red-900/30 border border-red-800/40 text-red-400 hover:bg-red-900/50"
+                        : "border hover:opacity-80"
+                    }`}
+                    style={p.status !== "active" ? {
+                      backgroundColor: "rgba(76,111,255,0.1)",
+                      borderColor: "rgba(76,111,255,0.3)",
+                      color: "var(--accent-indigo)",
+                    } : undefined}
+                  >
+                    {toggling === p.id ? (
+                      <Loader2 size={15} className="animate-spin" />
+                    ) : p.status === "active" ? (
+                      <><ShieldOff size={15} /> Ban Player</>
+                    ) : (
+                      <><Shield size={15} /> Unban Player</>
+                    )}
+                  </button>
+                </div>
+              )}
+            </div>
+          ))}
+
+          {players.length === 0 && (
+            <div className="text-center py-12 text-gray-500">No players found</div>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
+

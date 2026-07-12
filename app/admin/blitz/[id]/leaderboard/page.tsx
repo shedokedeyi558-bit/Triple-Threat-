@@ -76,12 +76,12 @@ export default function AdminBlitzLeaderboardPage() {
           <div className="flex items-center gap-3">
             <button
               onClick={() => router.push("/admin/blitz")}
-              className="p-2 rounded-lg bg-[#141414] border border-[#1E1E1E] hover:border-neon/30 transition-colors"
+              className="p-2 rounded-lg bg-[#141414] border border-[#1E1E1E] hover:border-[#4C6FFF]/30 transition-colors"
             >
               <ArrowLeft size={18} className="text-gray-400" />
             </button>
             <div className="flex items-center gap-2">
-              <Zap size={18} className="text-neon" />
+              <Zap size={18} style={{ color: "var(--accent-amber)" }} />
               <h1 className="font-black text-xl text-white">Leaderboard</h1>
             </div>
           </div>
@@ -144,7 +144,7 @@ export default function AdminBlitzLeaderboardPage() {
                     <p className="text-white font-bold text-sm text-right">{entry.score}</p>
                     <div className="text-right">
                       {entry.prize_type === "cash" ? (
-                        <span className="text-neon font-bold text-sm">₦{entry.amount?.toLocaleString()}</span>
+                        <span className="text-[#E8A33D] font-bold text-sm">₦{entry.amount?.toLocaleString()}</span>
                       ) : entry.prize_type === "free_ticket" ? (
                         <span className="text-purple-400 font-semibold text-xs flex items-center justify-end gap-1">
                           <Ticket size={11} />

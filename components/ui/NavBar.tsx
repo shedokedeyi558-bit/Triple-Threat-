@@ -21,7 +21,7 @@ export function NavBar({ title, showWallet = true }: Props) {
         ) : (
           <Link href="/" className="font-black uppercase tracking-tight text-xl leading-none flex-shrink-0">
             <span className="text-white">BIT</span>
-            <span className="text-[#00FF66] neon-text-glow">LYFE</span>
+            <span style={{ color: "var(--accent-amber)" }} className="neon-text-glow">LYFE</span>
           </Link>
         )}
       </div>
@@ -30,7 +30,10 @@ export function NavBar({ title, showWallet = true }: Props) {
         {showWallet && state.isAuthenticated && state.player && (
           <Link
             href="/wallet"
-            className="flex items-center gap-2 bg-gray-900 border border-gray-800 hover:border-[#00FF66]/40 rounded-xl px-4 py-2 text-sm font-semibold font-mono text-[#00FF66] transition-colors"
+            className="flex items-center gap-2 bg-gray-900 border border-gray-800 rounded-xl px-4 py-2 text-sm font-semibold font-mono transition-colors"
+            style={{ color: "var(--accent-amber)", borderColor: "#1f2937" }}
+            onMouseEnter={(e) => (e.currentTarget.style.borderColor = "rgba(232,163,61,0.4)")}
+            onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#1f2937")}
           >
             <Wallet size={16} />
             ₦{state.player.balance.toLocaleString()}

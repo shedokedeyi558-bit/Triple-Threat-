@@ -59,7 +59,7 @@ function VerifyContent() {
       <div className="w-full max-w-sm text-center space-y-6">
         {status === "loading" && (
           <>
-            <Loader2 size={48} className="text-neon animate-spin mx-auto" />
+            <Loader2 size={48} className="animate-spin mx-auto" style={{ color: "var(--accent-indigo)" }} />
             <div>
               <h1 className="text-xl font-black text-white">Verifying Payment</h1>
               <p className="text-gray-400 text-sm mt-2">Please wait while we confirm your deposit...</p>
@@ -69,11 +69,11 @@ function VerifyContent() {
 
         {status === "success" && (
           <>
-            <CheckCircle size={48} className="text-neon mx-auto" />
+            <CheckCircle size={48} className="mx-auto" style={{ color: "var(--accent-amber)" }} />
             <div>
               <h1 className="text-2xl font-black text-white">Deposit Confirmed</h1>
               {amount > 0 && (
-                <p className="text-neon font-black text-3xl mt-2">+₦{amount.toLocaleString()}</p>
+                <p className="font-black text-3xl mt-2 font-mono" style={{ color: "var(--accent-amber)" }}>+₦{amount.toLocaleString()}</p>
               )}
               <p className="text-gray-400 text-sm mt-2">{message}</p>
               <p className="text-gray-500 text-xs mt-3">Redirecting to wallet...</p>
@@ -100,7 +100,7 @@ export default function PaymentVerifyPage() {
   return (
     <Suspense fallback={
       <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center">
-        <Loader2 size={48} className="text-neon animate-spin" />
+        <Loader2 size={48} className="animate-spin" style={{ color: "var(--accent-indigo)" }} />
       </div>
     }>
       <VerifyContent />

@@ -58,7 +58,7 @@ export default function TimeMachinePage() {
 
       {state.pills.predictionsLoading ? (
         <div className="flex justify-center items-center min-h-64">
-          <Loader className="animate-spin text-[#00FF66]" size={28} />
+          <Loader className="animate-spin" size={28} style={{ color: "var(--accent-indigo)" }} />
         </div>
       ) : state.pills.predictions.length > 0 ? (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

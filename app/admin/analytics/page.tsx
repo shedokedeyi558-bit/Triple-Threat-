@@ -21,7 +21,7 @@ function MetricRow({ icon, label, value, color = "text-white", highlight = false
   icon: React.ReactNode; label: string; value: string; color?: string; highlight?: boolean;
 }) {
   return (
-    <div className={`flex items-center justify-between px-4 py-3 rounded-xl ${highlight ? "bg-neon/5 border border-neon/20" : "bg-[#111] border border-[#1E1E1E]"}`}>
+    <div className={`flex items-center justify-between px-4 py-3 rounded-xl ${highlight ? "bg-[#4C6FFF]/5 border border-[#4C6FFF]/20" : "bg-[#111] border border-[#1E1E1E]"}`}>
       <div className="flex items-center gap-3">
         <div className="w-7 h-7 rounded-lg bg-[#1A1A1A] flex items-center justify-center flex-shrink-0 text-sm">
           {icon}
@@ -153,7 +153,7 @@ export default function AnalyticsPage() {
       )}
 
       {loading ? (
-        <div className="flex justify-center py-16"><Loader2 size={24} className="text-neon animate-spin" /></div>
+        <div className="flex justify-center py-16"><Loader2 size={24} className="animate-spin" style={{ color: "var(--accent-indigo)" }} /></div>
       ) : overview ? (
         /* Desktop: 2-col. Mobile: single col */
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -161,8 +161,8 @@ export default function AnalyticsPage() {
           {/* Left column */}
           <div className="space-y-6">
             <Section title="Money">
-              <MetricRow icon={<DollarSign size={13} className="text-neon" />} label="Total Revenue"
-                value={`₦${overview.money.total_revenue.toLocaleString()}`} color="text-neon" highlight />
+              <MetricRow icon={<DollarSign size={13} style={{ color: "var(--accent-amber)" }} />} label="Total Revenue"
+                value={`₦${overview.money.total_revenue.toLocaleString()}`} color="text-[#E8A33D]" highlight />
               <MetricRow icon={<ArrowUpCircle size={13} className="text-orange-400" />} label="Total Payouts"
                 value={`₦${overview.money.total_payouts.toLocaleString()}`} color="text-orange-400" />
               <MetricRow icon={<TrendingUp size={13} className="text-blue-400" />}
@@ -177,8 +177,8 @@ export default function AnalyticsPage() {
             <Section title="Players">
               <MetricRow icon={<Users size={13} className="text-white" />} label="Total Registered"
                 value={overview.players.total_registered.toLocaleString()} />
-              <MetricRow icon={<ArrowDownCircle size={13} className="text-neon" />} label="New This Period"
-                value={overview.players.new_this_period.toLocaleString()} color="text-neon" />
+              <MetricRow icon={<ArrowDownCircle size={13} style={{ color: "var(--accent-indigo)" }} />} label="New This Period"
+                value={overview.players.new_this_period.toLocaleString()} color="text-[#4C6FFF]" />
               <MetricRow icon={<Gamepad2 size={13} className="text-purple-400" />} label="Active Players"
                 value={overview.players.active_this_period.toLocaleString()} color="text-purple-400" />
             </Section>
@@ -193,16 +193,16 @@ export default function AnalyticsPage() {
                 value={overview.games.predictions_entered.toLocaleString()} color="text-purple-400" />
               <MetricRow icon="⚡" label="Blitz Registrations"
                 value={overview.games.blitz_registrations.toLocaleString()} />
-              <MetricRow icon={<TrendingUp size={13} className="text-neon" />} label="Total Plays"
-                value={overview.games.total_plays.toLocaleString()} color="text-neon" highlight />
+              <MetricRow icon={<TrendingUp size={13} style={{ color: "var(--accent-amber)" }} />} label="Total Plays"
+                value={overview.games.total_plays.toLocaleString()} color="text-[#E8A33D]" highlight />
             </Section>
 
             <Section title="Withdrawals">
               <MetricRow icon={<ArrowUpCircle size={13} className="text-gray-400" />} label="Total Requested"
                 value={overview.withdrawals.total_requested.toLocaleString()} />
-              <MetricRow icon={<CheckCircle size={13} className="text-neon" />}
+              <MetricRow icon={<CheckCircle size={13} style={{ color: "var(--accent-indigo)" }} />}
                 label={`Approved (${approvalRate}% rate)`}
-                value={overview.withdrawals.total_approved.toLocaleString()} color="text-neon" />
+                value={overview.withdrawals.total_approved.toLocaleString()} color="text-[#4C6FFF]" />
               <MetricRow icon={<Clock size={13} className="text-yellow-400" />}
                 label={overview.withdrawals.total_pending > 0 ? "Pending ⚠️" : "Pending"}
                 value={overview.withdrawals.total_pending.toLocaleString()}

@@ -31,7 +31,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   if (!hydrated && isProtected) {
     return (
       <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-neon/30 border-t-neon rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 rounded-full animate-spin" style={{ borderColor: "rgba(76,111,255,0.3)", borderTopColor: "var(--accent-indigo)" }} />
       </div>
     );
   }

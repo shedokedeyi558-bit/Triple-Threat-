@@ -1,318 +1,189 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { adminApi, ApiError } from "@/lib/api";
-import {
-  Loader2, ArrowLeft, Users, Clock, AlertCircle,
-  CheckCircle, Trophy, DollarSign, Lock, TrendingUp
-} from "lucide-react";
-import { motion } from "framer-motion";
+import { useEffect, useState, useCallback } from "react";
+import { adminApi, type AdminPlayer, ApiError } from "@/lib/api";
+import { Search, Shield, ShieldOff, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
 
-interface Prediction {
-  id: string;
-  question: string;
-  category: string;
-  status: "draft" | "active" | "locked" | "completed" | "cancelled";
-  entry_fee?: number;
-  fee?: number;
-  prize_per_winner: number;
-  max_slots: number;
-  slots_filled: number;
-  countdown_end: string;
-  answer_revealed_at?: string;
-  correct_answer?: string;
-}
-
-interface Participant {
-  id: string;
-  player_phone: string;
-  player_name?: string;
-  answer: string;
-  is_correct: boolean | null;
-  amount_won: number;
-  participated_at: string;
-}
-
-const statusBadge = (s: string) => {
-  const map: Record<string, string> = {
-    active:    "bg-neon/15 text-neon border border-neon/30",
-    locked:    "bg-orange-900/20 text-orange-400 border border-orange-700/30",
-    completed: "bg-blue-900/20 text-blue-400 border border-blue-700/30",
-    draft:     "bg-gray-800 text-gray-500",
-    cancelled: "bg-red-900/20 text-red-400",
-  };
-  return map[s] ?? "bg-gray-800 text-gray-500";
-};
-
-export default function AdminPredictionDetailPage() {
-  const params = useParams();
-  const router = useRouter();
-  const predId = params.id as string;
-
-  const [prediction, setPrediction] = useState<Prediction | null>(null);
-  const [participants, setParticipants] = useState<Participant[]>([]);
+export default function PlayersPage() {
+  const [players, setPlayers] = useState<AdminPlayer[]>([]);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [revealAnswer, setRevealAnswer] = useState("");
-  const [revealing, setRevealing] = useState(false);
-  const [revealResult, setRevealResult] = useState<{ total: number; correct: number; paid: number } | null>(null);
-  const [timeLeft, setTimeLeft] = useState("");
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState<"" | "active" | "banned">("");
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const [toggling, setToggling] = useState<string | null>(null);
 
-  useEffect(() => { fetchData(); }, [predId]); // eslint-disable-line
-
-  const fetchData = async () => {
+  const fetchPlayers = useCallback(async (q?: string, status?: string) => {
+    setLoading(true);
+    setError("");
     try {
-      setLoading(true);
-      const [gameRes, partRes] = await Promise.allSettled([
-        adminApi.getGame(predId),
-        adminApi.getGameParticipants(predId),
-      ]);
-      if (gameRes.status === "fulfilled") setPrediction(gameRes.value.game as unknown as Prediction);
-      if (partRes.status === "fulfilled") setParticipants(partRes.value.participations || []);
-      if (gameRes.status === "rejected") setError("Failed to load prediction");
+      const params: Record<string, string> = {};
+      if (q) params.search = q;
+      if (status) params.status = status;
+      const data = await adminApi.getPlayers(params);
+      setPlayers(data.players);
+      setTotal(data.total ?? data.players.length);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Failed to load prediction");
+      setError(err instanceof ApiError ? err.message : "Failed to load players");
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  // Live countdown
+  useEffect(() => { fetchPlayers(); }, [fetchPlayers]);
+
+  // Debounce search + filter
   useEffect(() => {
-    if (!prediction?.countdown_end) return;
-    const tick = () => {
-      const diff = Math.max(0, new Date(prediction.countdown_end).getTime() - Date.now());
-      if (diff === 0) { setTimeLeft("Locked"); return; }
-      const h = Math.floor(diff / 3600000);
-      const m = Math.floor((diff % 3600000) / 60000);
-      const s = Math.floor((diff % 60000) / 1000);
-      setTimeLeft(h > 0 ? `${h}h ${m}m ${s}s` : m > 0 ? `${m}m ${s}s` : `${s}s`);
-    };
-    tick();
-    const id = setInterval(tick, 1000);
-    return () => clearInterval(id);
-  }, [prediction]);
+    const t = setTimeout(() => fetchPlayers(search, filter), 400);
+    return () => clearTimeout(t);
+  }, [search, filter, fetchPlayers]);
 
-  const handleReveal = async () => {
-    if (!revealAnswer.trim()) return;
-    setRevealing(true);
+  const handleToggleBan = async (player: AdminPlayer) => {
+    setToggling(player.id);
     try {
-      const res = await adminApi.revealGameAnswer(predId, revealAnswer);
-      setRevealResult({ total: res.total_participants, correct: res.total_correct, paid: res.total_paid });
-      await fetchData();
+      const res = await adminApi.toggleBan(player.id);
+      setPlayers((prev) => prev.map((p) => p.id === player.id ? res.player : p));
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Failed to reveal answer");
+      alert(err instanceof ApiError ? err.message : "Failed to update player");
     } finally {
-      setRevealing(false);
+      setToggling(null);
     }
   };
 
-  const maskPhone = (p: string) => `${p.slice(0, 4)}***${p.slice(-4)}`;
+  const maskPhone = (ph: string) => `${ph.slice(0, 4)}***${ph.slice(-4)}`;
 
-  if (loading) {
-    return (
-      <div className="flex justify-center py-20">
-        <Loader2 size={28} className="text-neon animate-spin" />
-      </div>
-    );
-  }
-
-  if (!prediction) {
-    return (
-      <div className="text-center py-16">
-        <p className="text-red-400">{error || "Prediction not found"}</p>
-        <button onClick={() => router.back()} className="mt-4 text-sm font-medium" style={{ color: "var(--accent-indigo)" }}>Go back</button>
-      </div>
-    );
-  }
-
-  const fee = prediction.entry_fee ?? prediction.fee ?? 0;
-  const totalRevenue = participants.length * fee;
-  const totalPaid = participants.reduce((s, p) => s + p.amount_won, 0);
-  const profit = totalRevenue - totalPaid;
-  const correctCount = participants.filter((p) => p.is_correct === true).length;
-  const isLocked = prediction.status === "locked" || new Date(prediction.countdown_end) < new Date();
-  const canReveal = (prediction.status === "active" || prediction.status === "locked") && !prediction.correct_answer;
+  const winRate = (p: AdminPlayer) =>
+    p.games_played > 0 ? Math.round((p.games_won / p.games_played) * 100) : 0;
 
   return (
-    <div className="space-y-6 max-w-5xl">
-      {/* Back */}
-      <button onClick={() => router.back()} className="flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors">
-        <ArrowLeft size={16} /> Back to Dashboard
-      </button>
+    <div className="space-y-5">
+      <div>
+        <h1 className="text-2xl font-black text-white">Players</h1>
+        <p className="text-gray-400 text-sm mt-0.5">{total} registered players</p>
+      </div>
 
-      {error && (
-        <div className="bg-red-900/20 border border-red-800/40 rounded-xl p-3 text-red-400 text-sm flex gap-2">
-          <AlertCircle size={15} className="flex-shrink-0 mt-0.5" />{error}
+      {/* Search + Filter */}
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500" />
+          <input
+            type="text"
+            placeholder="Search by phone..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full bg-card border border-[#2A2A2A] focus:border-[#4C6FFF] rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-gray-500 outline-none transition-colors"
+          />
+        </div>
+        <select
+          value={filter}
+          onChange={(e) => setFilter(e.target.value as "" | "active" | "banned")}
+          className="bg-card border border-[#2A2A2A] rounded-xl px-3 py-3 text-sm text-white outline-none"
+        >
+          <option value="">All</option>
+          <option value="active">Active</option>
+          <option value="banned">Banned</option>
+        </select>
+      </div>
+
+      {loading && (
+        <div className="flex justify-center py-12">
+          <Loader2 size={28} className="animate-spin" style={{ color: "var(--accent-indigo)" }} />
         </div>
       )}
 
-      {/* Reveal success */}
-      {revealResult && (
-        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
-          className="bg-neon/10 border border-neon/30 rounded-2xl p-4 flex items-start gap-3">
-          <CheckCircle size={18} className="text-neon flex-shrink-0 mt-0.5" />
-          <div>
-            <p className="text-neon font-bold text-sm">Answer Revealed & Winners Paid!</p>
-            <p className="text-gray-400 text-xs mt-1">
-              {revealResult.total} participants · {revealResult.correct} correct · ₦{revealResult.paid.toLocaleString()} paid out
-            </p>
-          </div>
-        </motion.div>
+      {error && !loading && (
+        <div className="text-center py-8 text-red-400 text-sm">{error}</div>
       )}
 
-      {/* Top section: 2 cols on desktop */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+      {!loading && !error && (
+        <div className="space-y-2">
+          {players.map((p) => (
+            <div key={p.id} className="bg-card border border-[#2A2A2A] rounded-xl overflow-hidden">
+              <button
+                className="w-full px-4 py-3 flex items-center justify-between text-left"
+                onClick={() => setExpanded((prev) => (prev === p.id ? null : p.id))}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`w-2 h-2 rounded-full flex-shrink-0 ${p.status === "active" ? "bg-[#4C6FFF]" : "bg-red-500"}`} />
+                  <div>
+                    <p className="text-sm text-white font-semibold">{maskPhone(p.phone)}</p>
+                    {p.name && <p className="text-xs text-gray-400">{p.name}</p>}
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="font-mono font-bold text-sm" style={{ color: "var(--accent-amber)" }}>
+                    ₦{p.balance.toLocaleString()}
+                  </span>
+                  {expanded === p.id ? (
+                    <ChevronUp size={16} className="text-gray-400" />
+                  ) : (
+                    <ChevronDown size={16} className="text-gray-400" />
+                  )}
+                </div>
+              </button>
 
-        {/* Question + meta */}
-        <div className="lg:col-span-2 bg-card border border-[#2A2A2A] rounded-2xl p-5 space-y-4">
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-2">
-                <Clock size={16} className="text-purple-400" />
-                <span className="text-gray-500 text-xs uppercase tracking-widest font-bold">{prediction.category}</span>
-              </div>
-              <h1 className="text-white font-black text-xl leading-tight">{prediction.question}</h1>
-            </div>
-            <span className={`text-xs font-black px-3 py-1.5 rounded-lg flex-shrink-0 ${statusBadge(isLocked ? "locked" : prediction.status)}`}>
-              {isLocked && prediction.status === "active" ? "LOCKED" : prediction.status.toUpperCase()}
-            </span>
-          </div>
+              {expanded === p.id && (
+                <div className="border-t border-[#2A2A2A] px-4 py-4 space-y-4">
+                  <div className="grid grid-cols-3 gap-3">
+                    {[
+                      { label: "Played", value: p.games_played },
+                      { label: "Won", value: p.games_won },
+                      { label: "Win rate", value: `${winRate(p)}%` },
+                    ].map(({ label, value }) => (
+                      <div key={label} className="bg-[#111] rounded-xl p-3 text-center">
+                        <p className="text-white font-bold text-sm">{value}</p>
+                        <p className="text-xs text-gray-500 mt-0.5">{label}</p>
+                      </div>
+                    ))}
+                  </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {[
-              { label: "Entry Fee", value: `₦${fee.toLocaleString()}`, color: "text-neon" },
-              { label: "Prize/Winner", value: `₦${prediction.prize_per_winner.toLocaleString()}`, color: "text-white" },
-              { label: "Participants", value: `${prediction.slots_filled}/${prediction.max_slots}`, color: "text-white" },
-              { label: isLocked ? "Status" : "Lock-in", value: isLocked ? "Locked" : timeLeft, color: isLocked ? "text-orange-400" : "text-white" },
-            ].map((s) => (
-              <div key={s.label} className="bg-[#111] rounded-xl p-3">
-                <p className="text-[10px] text-gray-600 uppercase tracking-wide mb-1">{s.label}</p>
-                <p className={`font-black text-base ${s.color}`}>{s.value}</p>
-              </div>
-            ))}
-          </div>
+                  <div className="flex items-center justify-between bg-[#111] rounded-xl p-3">
+                    <span className="text-xs text-gray-400">Total won</span>
+                    <span className="font-mono font-bold text-sm" style={{ color: "var(--accent-amber)" }}>
+                      ₦{p.total_won.toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between bg-[#111] rounded-xl p-3">
+                    <span className="text-xs text-gray-400">Joined</span>
+                    <span className="text-white text-sm">
+                      {new Date(p.created_at).toLocaleDateString("en-NG", { month: "short", day: "numeric", year: "numeric" })}
+                    </span>
+                  </div>
 
-          {/* Revealed answer */}
-          {prediction.correct_answer && (
-            <div className="bg-neon/10 border border-neon/30 rounded-xl p-3 flex items-center gap-3">
-              <CheckCircle size={16} className="text-neon flex-shrink-0" />
-              <div>
-                <p className="text-[11px] text-gray-500">Correct Answer</p>
-                <p className="text-neon font-black text-lg">{prediction.correct_answer}</p>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Revenue summary */}
-        <div className="space-y-3">
-          {[
-            { icon: <DollarSign size={15} className="text-neon" />, label: "Total Revenue", value: `₦${totalRevenue.toLocaleString()}`, color: "text-neon" },
-            { icon: <Trophy size={15} className="text-yellow-400" />, label: "Total Paid Out", value: `₦${totalPaid.toLocaleString()}`, color: "text-yellow-400" },
-            { icon: <TrendingUp size={15} className="text-blue-400" />, label: "Platform Profit", value: `₦${profit.toLocaleString()}`, color: profit >= 0 ? "text-blue-400" : "text-red-400" },
-            { icon: <Users size={15} className="text-purple-400" />, label: "Correct Predictions", value: `${correctCount} / ${participants.length}`, color: "text-white" },
-          ].map((s) => (
-            <div key={s.label} className="bg-card border border-[#2A2A2A] rounded-xl p-4 flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-[#1A1A1A] flex items-center justify-center flex-shrink-0">{s.icon}</div>
-              <div>
-                <p className="text-[11px] text-gray-500">{s.label}</p>
-                <p className={`font-black text-base ${s.color}`}>{s.value}</p>
-              </div>
+                  <button
+                    onClick={() => handleToggleBan(p)}
+                    disabled={toggling === p.id}
+                    className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-semibold text-sm transition-all active:scale-[0.98] disabled:opacity-50 ${
+                      p.status === "active"
+                        ? "bg-red-900/30 border border-red-800/40 text-red-400 hover:bg-red-900/50"
+                        : "border hover:opacity-80"
+                    }`}
+                    style={p.status !== "active" ? {
+                      backgroundColor: "rgba(76,111,255,0.1)",
+                      borderColor: "rgba(76,111,255,0.3)",
+                      color: "var(--accent-indigo)",
+                    } : undefined}
+                  >
+                    {toggling === p.id ? (
+                      <Loader2 size={15} className="animate-spin" />
+                    ) : p.status === "active" ? (
+                      <><ShieldOff size={15} /> Ban Player</>
+                    ) : (
+                      <><Shield size={15} /> Unban Player</>
+                    )}
+                  </button>
+                </div>
+              )}
             </div>
           ))}
-        </div>
-      </div>
 
-      {/* Reveal Answer Panel */}
-      {canReveal && (
-        <div className="bg-orange-900/10 border border-orange-700/30 rounded-2xl p-5 space-y-4">
-          <div className="flex items-start gap-3">
-            <Lock size={18} className="text-orange-400 flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="text-orange-400 font-bold">Ready to Reveal Answer</p>
-              <p className="text-gray-500 text-xs mt-0.5">
-                {participants.length} player{participants.length !== 1 ? "s" : ""} submitted predictions. Enter the correct answer to pay winners.
-              </p>
-            </div>
-          </div>
-          <div className="flex gap-3">
-            <input
-              type="text"
-              value={revealAnswer}
-              onChange={(e) => setRevealAnswer(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter" && revealAnswer.trim()) handleReveal(); }}
-              placeholder="e.g. 3 goals, Yes, Chelsea wins"
-              className="flex-1 bg-[#111] border border-[#2A2A2A] focus:border-orange-400 rounded-xl px-4 py-3 text-sm text-white outline-none"
-            />
-            <button
-              onClick={handleReveal}
-              disabled={revealing || !revealAnswer.trim()}
-              className="px-6 py-3 bg-orange-600 hover:bg-orange-500 text-white font-bold rounded-xl text-sm disabled:opacity-50 flex items-center gap-2 transition-colors"
-            >
-              {revealing ? <Loader2 size={14} className="animate-spin" /> : null}
-              {revealing ? "Processing..." : "Reveal & Pay"}
-            </button>
-          </div>
+          {players.length === 0 && (
+            <div className="text-center py-12 text-gray-500">No players found</div>
+          )}
         </div>
       )}
-
-      {/* Participants table */}
-      <div className="bg-card border border-[#2A2A2A] rounded-2xl overflow-hidden">
-        <div className="px-5 py-4 border-b border-[#2A2A2A] flex items-center justify-between">
-          <h2 className="text-white font-black flex items-center gap-2">
-            <Users size={16} /> Participants
-          </h2>
-          <span className="text-gray-500 text-sm">{participants.length} total</span>
-        </div>
-
-        {participants.length === 0 ? (
-          <div className="py-12 text-center">
-            <Users size={28} className="text-gray-700 mx-auto mb-3" />
-            <p className="text-gray-500 text-sm">No participants yet</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-[#1E1E1E] bg-[#0D0D0D]">
-                  <th className="text-left py-3 px-4 text-xs text-gray-600 font-semibold uppercase tracking-wider">Player</th>
-                  <th className="text-left py-3 px-4 text-xs text-gray-600 font-semibold uppercase tracking-wider">Answer</th>
-                  <th className="text-left py-3 px-4 text-xs text-gray-600 font-semibold uppercase tracking-wider">Correct?</th>
-                  <th className="text-left py-3 px-4 text-xs text-gray-600 font-semibold uppercase tracking-wider">Prize Won</th>
-                  <th className="text-left py-3 px-4 text-xs text-gray-600 font-semibold uppercase tracking-wider">Time</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#1A1A1A]">
-                {participants.map((p) => (
-                  <tr key={p.id} className="hover:bg-[#111] transition-colors">
-                    <td className="py-3 px-4 font-mono text-xs text-white">{maskPhone(p.player_phone)}</td>
-                    <td className="py-3 px-4 text-gray-300 text-sm font-semibold">{p.answer}</td>
-                    <td className="py-3 px-4">
-                      {p.is_correct === null
-                        ? <span className="text-gray-500 text-xs px-2 py-1 bg-gray-800 rounded-lg">Pending</span>
-                        : p.is_correct
-                          ? <span className="text-neon text-xs font-bold px-2 py-1 bg-neon/10 rounded-lg">✓ Correct</span>
-                          : <span className="text-red-400 text-xs font-bold px-2 py-1 bg-red-900/20 rounded-lg">✗ Wrong</span>
-                      }
-                    </td>
-                    <td className="py-3 px-4">
-                      {p.amount_won > 0
-                        ? <span className="text-neon font-black">₦{p.amount_won.toLocaleString()}</span>
-                        : <span className="text-gray-600">—</span>
-                      }
-                    </td>
-                    <td className="py-3 px-4 text-gray-500 text-xs">
-                      {new Date(p.participated_at).toLocaleString("en-NG", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
     </div>
   );
 }
+

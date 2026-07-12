@@ -37,10 +37,10 @@ export function CreateGameModal({ isOpen, onClose, onSelectType }: CreateGameMod
             <div className="space-y-3">
               <button
                 onClick={() => onSelectType("pill_pack")}
-                className="w-full p-4 rounded-xl border-2 border-[#2A2A2A] bg-[#111] hover:border-neon/40 transition-all text-left"
+                className="w-full p-4 rounded-xl border-2 border-[#2A2A2A] bg-[#111] hover:border-[#E8A33D]/40 transition-all text-left"
               >
                 <div className="flex items-start gap-3">
-                  <Pill size={24} className="text-neon flex-shrink-0 mt-0.5" />
+                  <Pill size={24} className="text-[#4C6FFF] flex-shrink-0 mt-0.5" />
                   <div className="flex-1">
                     <h3 className="font-black text-white text-sm">PILL PACK</h3>
                     <p className="text-xs text-gray-400 mt-1">Set of anonymous questions as colored pills. Instant results.</p>
@@ -50,10 +50,10 @@ export function CreateGameModal({ isOpen, onClose, onSelectType }: CreateGameMod
 
               <button
                 onClick={() => onSelectType("predictions")}
-                className="w-full p-4 rounded-xl border-2 border-[#2A2A2A] bg-[#111] hover:border-neon/40 transition-all text-left"
+                className="w-full p-4 rounded-xl border-2 border-[#2A2A2A] bg-[#111] hover:border-[#E8A33D]/40 transition-all text-left"
               >
                 <div className="flex items-start gap-3">
-                  <Clock size={24} className="text-neon flex-shrink-0 mt-0.5" />
+                  <Clock size={24} className="text-[#4C6FFF] flex-shrink-0 mt-0.5" />
                   <div className="flex-1">
                     <h3 className="font-black text-white text-sm">TIME MACHINE</h3>
                     <p className="text-xs text-gray-400 mt-1">Open prediction with countdown. Reveal answer & pay winners.</p>
@@ -67,3 +67,4 @@ export function CreateGameModal({ isOpen, onClose, onSelectType }: CreateGameMod
     </AnimatePresence>
   );
 }
+

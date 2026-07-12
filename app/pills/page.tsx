@@ -124,7 +124,7 @@ function PillSheet({ pack, pill, onConfirm, onClose, balance }: {
         <div className="grid grid-cols-2 gap-3">
           <div className="bg-[#1A1A1A] rounded-xl p-4 text-center">
             <p className="text-[11px] text-gray-500 mb-1">Entry</p>
-            <p className="text-neon font-black text-xl">₦{pill.price.toLocaleString()}</p>
+            <p className="font-black text-xl font-mono" style={{ color: "var(--accent-amber)" }}>₦{pill.price.toLocaleString()}</p>
           </div>
           <div className="bg-[#1A1A1A] rounded-xl p-4 text-center">
             <p className="text-[11px] text-gray-500 mb-1">Win up to</p>
@@ -133,13 +133,13 @@ function PillSheet({ pack, pill, onConfirm, onClose, balance }: {
         </div>
         {!canAfford && (
           <p className="text-center text-red-400 text-sm">
-            Insufficient balance. <Link href="/wallet" className="text-neon underline">Deposit</Link>
+            Insufficient balance. <Link href="/wallet" className="underline font-semibold" style={{ color: "var(--accent-indigo)" }}>Deposit</Link>
           </p>
         )}
         <div className="space-y-3">
           <motion.button whileTap={{ scale: 0.97 }} onClick={onConfirm} disabled={!canAfford}
-            className="w-full py-4 bg-neon text-black font-black text-lg rounded-xl disabled:opacity-40"
-            style={canAfford ? { boxShadow: "0 0 24px #00FF6640" } : {}}>
+            className="w-full py-4 font-black text-lg rounded-xl disabled:opacity-40"
+            style={{ backgroundColor: "var(--accent-indigo)", color: "#fff" }}>
             Take This Pill
           </motion.button>
           <button onClick={onClose} className="w-full py-3 text-gray-500 text-sm font-semibold">Cancel</button>
@@ -176,7 +176,7 @@ export default function PillsPage() {
       )}
 
       {loading ? (
-        <div className="flex justify-center py-20"><Loader2 size={24} className="text-neon animate-spin" /></div>
+        <div className="flex justify-center py-20"><Loader2 size={24} className="animate-spin" style={{ color: "var(--accent-indigo)" }} /></div>
       ) : packs.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 text-center">
           <Package size={40} className="text-gray-700 mb-4" />
