@@ -97,6 +97,7 @@ export default function CreatePillPackPage() {
   const addPill = () => {
     if (!draft.question.trim()) { setError("Question text required"); return; }
     if (!draft.correct_answer.trim()) { setError("Correct answer required"); return; }
+    if (!draft.timer || draft.timer <= 0) { setError("Timer must be greater than 0 (e.g. 10, 30)"); return; }
     if (draft.format === "multiple_choice") {
       const filled = draft.options.filter((o) => o.trim());
       if (filled.length < 2) { setError("At least 2 options required"); return; }
@@ -123,8 +124,22 @@ export default function CreatePillPackPage() {
     if (!packPrize || Number(packPrize) <= 0) { setError("Prize required"); return; }
     if (pills.length === 0) { setError("Add at least one pill"); return; }
 
+    // Validate all pills before hitting the backend
+    for (let i = 0; i < pills.length; i++) {
+      const p = pills[i];
+      if (!p.question.trim()) { setError(`Pill ${i + 1}: question is empty`); return; }
+      if (!p.correct_answer.trim()) { setError(`Pill ${i + 1}: correct answer is empty`); return; }
+      if (!p.timer || p.timer <= 0) { setError(`Pill ${i + 1}: timer must be greater than 0`); return; }
+      if (p.format === "multiple_choice" && p.options.filter((o) => o.trim()).length < 2) {
+        setError(`Pill ${i + 1}: multiple choice needs at least 2 options`); return;
+      }
+    }
+
     setLoading(true);
     setError("");
+
+    // Step 1: Create pack
+    let packId: string;
     try {
       const packRes = await adminApi.createPillPack({
         name: packName.trim(),
@@ -132,35 +147,60 @@ export default function CreatePillPackPage() {
         entry_fee: Number(packEntryFee),
         prize: Number(packPrize),
       });
-      // Backend may return { pack: { id } } or { id } directly — handle both
-      const packId = (packRes as any).pack?.id ?? (packRes as any).id;
+      packId = (packRes as any).pack?.id ?? (packRes as any).id;
       if (!packId) {
-        setError("Pack created but no ID returned — check backend response shape");
+        setError("Pack created but no ID returned from backend");
         setLoading(false);
         return;
       }
+    } catch (err) {
+      console.error("Pack creation failed:", err);
+      setError(`Pack creation failed: ${err instanceof ApiError ? err.message : err instanceof Error ? err.message : "Unknown error"}`);
+      setLoading(false);
+      return;
+    }
 
-      for (const pill of pills) {
+    // Step 2: Add pills sequentially — await each fully, surface individual failures
+    const failed: { index: number; question: string; error: string }[] = [];
+    for (let i = 0; i < pills.length; i++) {
+      const pill = pills[i];
+      try {
         await adminApi.addPillToPack(packId, {
-          question: pill.question,
+          question: pill.question.trim(),
           format: pill.format,
           options: pill.format === "multiple_choice" ? pill.options.filter((o) => o.trim()) : undefined,
-          correct_answer: pill.correct_answer,
+          correct_answer: pill.correct_answer.trim(),
           timer: pill.timer,
           color: pill.color,
         });
+      } catch (err) {
+        const msg = err instanceof ApiError ? err.message : err instanceof Error ? err.message : "Unknown error";
+        console.error(`Pill ${i + 1} failed:`, err);
+        failed.push({ index: i + 1, question: pill.question.slice(0, 40), error: msg });
       }
-
-      await adminApi.updatePillPack(packId, { status: "active" });
-
-      router.push("/admin/pills");
-      localStorage.removeItem(DRAFT_KEY);
-    } catch (err) {
-      console.error("Pill pack creation error:", err);
-      setError(err instanceof ApiError ? err.message : (err instanceof Error ? `${err.name}: ${err.message}` : JSON.stringify(err)));
-    } finally {
-      setLoading(false);
     }
+
+    // If any pills failed, report them and stop — don't activate a partial pack
+    if (failed.length > 0) {
+      const details = failed.map((f) => `Pill ${f.index} ("${f.question}…"): ${f.error}`).join("\n");
+      setError(`${failed.length} of ${pills.length} pills failed to save:\n${details}\n\nThe pack was created but not activated. Fix the issues and try again.`);
+      setLoading(false);
+      return;
+    }
+
+    // Step 3: All pills saved — activate the pack
+    try {
+      await adminApi.updatePillPack(packId, { status: "active" });
+    } catch (err) {
+      setError(`All ${pills.length} pills saved but pack activation failed: ${err instanceof ApiError ? err.message : "Unknown error"}`);
+      setLoading(false);
+      return;
+    }
+
+    // Full success
+    localStorage.removeItem(DRAFT_KEY);
+    setLoading(false);
+    router.push("/admin/pills");
   };
 
   return (
