@@ -515,10 +515,28 @@ export default function PlayPage() {
       </div>
 
       {loading ? (
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          {[180, 140, 160].map((h, i) => (
-            <div key={i} style={{ height: h, borderRadius: 10, border: "1px solid var(--border-subtle)", backgroundColor: "var(--bg-card)", animation: "pulse 1.5s infinite" }} />
-          ))}
+        <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
+          {/* Skeleton — Pills section */}
+          <div>
+            <div className="skeleton" style={{ height: 20, width: 120, borderRadius: 6, marginBottom: 14 }} />
+            <div style={{ display: "flex", gap: 12, overflow: "hidden" }}>
+              {[1,2].map((i) => (
+                <div key={i} className="skeleton" style={{ flexShrink: 0, width: 200, height: 96, borderRadius: 10 }} />
+              ))}
+            </div>
+          </div>
+          {/* Skeleton — Predictions section */}
+          <div>
+            <div className="skeleton" style={{ height: 20, width: 160, borderRadius: 6, marginBottom: 14 }} />
+            {[1,2].map((i) => (
+              <div key={i} className="skeleton" style={{ height: 110, borderRadius: 12, marginBottom: 10 }} />
+            ))}
+          </div>
+          {/* Skeleton — Blitz section */}
+          <div>
+            <div className="skeleton" style={{ height: 20, width: 100, borderRadius: 6, marginBottom: 14 }} />
+            <div className="skeleton" style={{ height: 140, borderRadius: 10 }} />
+          </div>
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>

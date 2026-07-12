@@ -1,7 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { Suspense } from "react";
 import { AppProvider } from "@/context/AppContext";
 import { AppShell } from "@/components/ui/AppShell";
+import { RouteProgress } from "@/components/ui/RouteProgress";
 
 export const metadata: Metadata = {
   title: "BitLyfe — Play Smart. Win Real.",
@@ -46,6 +48,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className="bg-bg text-white antialiased" style={{ backgroundColor: "var(--bg-base)", color: "var(--text-primary)" }}>
+        <Suspense fallback={null}>
+          <RouteProgress />
+        </Suspense>
         <AppProvider>
           <AppShell>
             {children}

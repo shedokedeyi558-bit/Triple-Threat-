@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useApp } from "@/context/AppContext";
 import { ArrowDownLeft, ArrowUpRight, Loader2, Ticket } from "lucide-react";
 import { walletApi, playerApi, ApiError, type ApiTransaction } from "@/lib/api";
+import { withTimeout } from "@/lib/withTimeout";
 import Link from "next/link";
 
 const quickAmounts = [500, 1000, 2000, 5000];
@@ -109,7 +110,7 @@ export default function WalletPage() {
     setDepositError("");
     setDepositLoading(true);
     try {
-      const data = await walletApi.deposit(amt);
+      const data = await withTimeout(walletApi.deposit(amt), 18000);
       window.location.href = data.authorizationUrl;
     } catch (err) {
       setDepositError(err instanceof ApiError ? err.message : "Deposit failed. Try again.");
@@ -126,7 +127,7 @@ export default function WalletPage() {
     setWithdrawError("");
     setWithdrawLoading(true);
     try {
-      const data = await walletApi.withdraw(amt, bank, accNum, bank);
+      const data = await withTimeout(walletApi.withdraw(amt, bank, accNum, bank), 18000);
       setWithdrawMsg(data.message);
       dispatch({ type: "UPDATE_BALANCE", balance: data.newBalance });
       setWithdrawAmt(""); setBank(""); setAccNum("");
@@ -317,9 +318,18 @@ export default function WalletPage() {
               <p className="font-bold text-sm" style={{ color: "var(--text-primary)" }}>Transaction History</p>
             </div>
             <div className="flex-1 overflow-y-auto divide-y" style={{ maxHeight: "600px", borderTopColor: "var(--border-hairline)" }}>
-              {txLoading ? (
-                <div className="flex justify-center py-12">
-                  <Loader2 size={22} className="animate-spin" style={{ color: "var(--accent-amber)" }} />
+      {txLoading ? (
+                <div className="divide-y" style={{ borderColor: "var(--border-hairline)" }}>
+                  {[1,2,3,4,5].map((i) => (
+                    <div key={i} className="flex items-center gap-3 px-5 py-3.5">
+                      <div className="skeleton w-8 h-8 rounded-lg flex-shrink-0" />
+                      <div className="flex-1 space-y-2">
+                        <div className="skeleton h-3.5 w-3/4 rounded" />
+                        <div className="skeleton h-2.5 w-1/3 rounded" />
+                      </div>
+                      <div className="skeleton h-4 w-16 rounded flex-shrink-0" />
+                    </div>
+                  ))}
                 </div>
               ) : transactions.length === 0 ? (
                 <div className="py-12 text-center">

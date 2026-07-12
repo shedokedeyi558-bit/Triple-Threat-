@@ -29,6 +29,58 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+/* ── Global instant tap/click feedback ─────────────────────────────────────
+   Pure CSS :active — fires immediately on touch, no JS, no network needed.
+   Works on all interactive elements: buttons, links, cards, nav items.
+   scale + opacity gives physical "press" feel at ~100ms, snaps back instantly.
+────────────────────────────────────────────────────────────────────────── */
+button:active,
+a:active,
+[role="button"]:active,
+[tabindex]:active {
+  opacity: 0.72;
+  transform: scale(0.97);
+  transition: opacity 80ms ease, transform 80ms ease;
+}
+
+/* Disable the global active scale on elements that already have their own
+   more specific active transform (e.g. Framer Motion whileTap), so they
+   don't compound. Use data-no-press to opt out. */
+[data-no-press]:active {
+  opacity: 1;
+  transform: none;
+}
+
+/* Skeleton loading utility ─────────────────────────────────────────────── */
+@keyframes skeleton-shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.skeleton {
+  border-radius: 8px;
+  background: linear-gradient(
+    90deg,
+    var(--bg-card) 25%,
+    #1e2436 50%,
+    var(--bg-card) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.4s ease infinite;
+}
+
+/* Route progress bar ───────────────────────────────────────────────────── */
+#route-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 2px;
+  background: var(--accent-indigo);
+  z-index: 9999;
+  transition: width 200ms ease, opacity 200ms ease;
+  box-shadow: 0 0 8px rgba(76, 111, 255, 0.6);
+  pointer-events: none;
+}
+
 html {
   font-size: 16px;
 }
