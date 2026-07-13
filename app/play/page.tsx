@@ -94,38 +94,65 @@ function SegmentFilter({ active, onChange }: { active: FilterVal; onChange: (v: 
 }
 
 // ─── Pack card ────────────────────────────────────────────────────────────
+// Pills have a capsule / pharmacy-counter feel:
+//   - colored top accent stripe
+//   - pill-count shown in a rounded badge
+//   - faint category-color background wash
+//   - no hard rectangular border — soft rounded corners + shadow
 function PackCard({ pack, onClick }: { pack: PillPack; onClick: () => void }) {
   const color = catColor(pack.category);
-  // All pills in a pack share one price — use first pill's price as the pack price
   const price = pack.pills.length > 0 ? pack.pills[0].price : 0;
   return (
     <motion.button
       initial={{ opacity: 0, x: 16 }}
       animate={{ opacity: 1, x: 0 }}
+      whileTap={{ scale: 0.97 }}
       onClick={onClick}
       style={{
         flexShrink: 0,
-        width: 200,
-        borderRadius: 10,
-        padding: 16,
-        border: `1.5px solid ${color}`,
+        width: 172,
+        borderRadius: 14,
+        overflow: "hidden",
         backgroundColor: "var(--bg-card)",
         textAlign: "left",
         cursor: "pointer",
+        border: "1px solid rgba(255,255,255,0.06)",
+        boxShadow: `0 4px 20px ${color}18`,
+        display: "flex",
+        flexDirection: "column",
       }}
     >
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
-        <div style={{ minWidth: 0 }}>
-          <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", margin: 0 }}>{pack.name}</p>
-          <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 4 }}>{pack.pills.length} pills inside</p>
+      {/* Coloured top stripe */}
+      <div style={{ height: 4, backgroundColor: color, width: "100%" }} />
+
+      <div style={{ padding: "12px 14px 14px", flex: 1, display: "flex", flexDirection: "column", gap: 10 }}>
+        {/* Category dot + pill badge */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", color }}>
+            {pack.category}
+          </span>
+          <span style={{
+            fontSize: 10, fontWeight: 700, padding: "2px 7px",
+            borderRadius: 20, backgroundColor: `${color}22`, color,
+          }}>
+            {pack.pills.length} pills
+          </span>
         </div>
-        <div style={{ width: 10, height: 10, borderRadius: "50%", backgroundColor: color, flexShrink: 0 }} />
-      </div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <p style={{ fontSize: 11, fontFamily: "monospace", color: "var(--text-muted)" }}>
-          ₦{price.toLocaleString()} per pill
+
+        {/* Pack name */}
+        <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", margin: 0, lineHeight: 1.35 }}>
+          {pack.name}
         </p>
-        <ArrowRight size={13} style={{ color }} />
+
+        {/* Price row */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "auto" }}>
+          <p style={{ fontSize: 12, fontFamily: "monospace", fontWeight: 700, color: "var(--accent-amber)", margin: 0 }}>
+            ₦{price.toLocaleString()}
+          </p>
+          <div style={{ width: 22, height: 22, borderRadius: "50%", backgroundColor: color, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <ArrowRight size={11} color="#000" />
+          </div>
+        </div>
       </div>
     </motion.button>
   );
@@ -171,8 +198,13 @@ function PillChip({ pack, pill, onClick }: { pack: PillPack; pill: PillPackPill;
   );
 }
 
-// ─── Prediction card (full-width, NO fixed pixel width, NO notch circles) ─
-// Width is 100% and box-sizing border-box — cannot exceed parent container.
+// ─── Prediction card — "event ticket" aesthetic ───────────────────────────
+// Distinct from Pills:
+//   - Full-width stacked layout (no horizontal scroll)
+//   - Accent color left border (3px) + faint background tint
+//   - Countdown clock is the dominant visual — large mono font, top-right
+//   - Category pill-badge top-left
+//   - Entry / Prize on a dashed divider row (ticket stub feel)
 function PredictionCard({ prediction, onClick }: { prediction: PredictionData; onClick: () => void }) {
   const [timeLeft, setTimeLeft] = useState(0);
   useEffect(() => {
@@ -197,47 +229,65 @@ function PredictionCard({ prediction, onClick }: { prediction: PredictionData; o
     <motion.button
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
+      whileTap={{ scale: 0.985 }}
       onClick={onClick}
       style={{
         width: "100%",
         boxSizing: "border-box",
         borderRadius: 12,
-        padding: "14px 16px",
+        padding: "0",
         textAlign: "left",
         cursor: "pointer",
         backgroundColor: "var(--bg-card)",
-        border: `1px solid ${color}`,
-        borderLeftWidth: 3,
+        border: `1px solid rgba(255,255,255,0.06)`,
+        borderLeft: `3px solid ${color}`,
+        overflow: "hidden",
+        position: "relative",
       }}
     >
-      {/* Row 1: category + timer */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-        <span style={{ fontSize: 11, fontFamily: "monospace", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color }}>
-          {prediction.category}
-        </span>
-        <span style={{ fontSize: 12, fontFamily: "monospace", fontWeight: 700, flexShrink: 0, color: locked ? "var(--text-muted)" : "var(--text-primary)" }}>
-          {timeLabel}
-        </span>
+      {/* Faint category-color background wash */}
+      <div style={{ position: "absolute", inset: 0, backgroundColor: color, opacity: 0.03, pointerEvents: "none" }} />
+
+      <div style={{ position: "relative", padding: "13px 15px 0" }}>
+        {/* Row 1: category badge + countdown */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 9 }}>
+          <span style={{
+            fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em",
+            padding: "2px 7px", borderRadius: 4,
+            backgroundColor: `${color}22`, color,
+          }}>
+            {prediction.category}
+          </span>
+          <span style={{
+            fontSize: 15, fontFamily: "monospace", fontWeight: 800,
+            color: locked ? "var(--text-muted)" : color,
+            letterSpacing: "-0.02em",
+          }}>
+            {timeLabel}
+          </span>
+        </div>
+
+        {/* Question */}
+        <p style={{ fontSize: 14, fontWeight: 600, lineHeight: 1.45, color: "var(--text-primary)", margin: "0 0 13px" }}>
+          {prediction.question}
+        </p>
       </div>
 
-      {/* Question */}
-      <p style={{ fontSize: 14, fontWeight: 600, lineHeight: 1.4, color: "var(--text-primary)", margin: "0 0 12px" }}>
-        {prediction.question}
-      </p>
-
-      {/* Dashed divider */}
-      <div style={{ borderTop: `1px dashed ${color}50`, marginBottom: 12 }} />
-
-      {/* Row 3: entry + prize */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+      {/* Ticket stub divider + footer */}
+      <div style={{
+        display: "flex", justifyContent: "space-between", alignItems: "center",
+        padding: "9px 15px",
+        borderTop: `1px dashed ${color}40`,
+        backgroundColor: `${color}08`,
+      }}>
         <div>
-          <p style={{ fontSize: 10, color: "var(--text-muted)", margin: "0 0 2px" }}>Entry</p>
+          <p style={{ fontSize: 9, color: "var(--text-muted)", margin: "0 0 1px", textTransform: "uppercase", letterSpacing: "0.06em" }}>Entry</p>
           <p style={{ fontSize: 13, fontFamily: "monospace", fontWeight: 700, color: "var(--accent-amber)", margin: 0 }}>
             ₦{prediction.fee.toLocaleString()}
           </p>
         </div>
         <div style={{ textAlign: "right" }}>
-          <p style={{ fontSize: 10, color: "var(--text-muted)", margin: "0 0 2px" }}>Prize</p>
+          <p style={{ fontSize: 9, color: "var(--text-muted)", margin: "0 0 1px", textTransform: "uppercase", letterSpacing: "0.06em" }}>Prize pool</p>
           <p style={{ fontSize: 13, fontFamily: "monospace", fontWeight: 700, color, margin: 0 }}>
             ₦{prediction.prize_per_winner.toLocaleString()}
           </p>
@@ -622,7 +672,18 @@ export default function PlayPage() {
           {showPills && (
             <section>
               <SectionHeader
-                icon={<Package size={17} style={{ color: "var(--accent-indigo)", flexShrink: 0 }} />}
+                icon={
+                  <span style={{
+                    fontSize: 10, fontWeight: 800, padding: "3px 9px",
+                    borderRadius: 20, letterSpacing: "0.06em",
+                    backgroundColor: "rgba(76,111,255,0.15)",
+                    color: "var(--accent-indigo)",
+                    border: "1px solid rgba(76,111,255,0.25)",
+                    flexShrink: 0,
+                  }}>
+                    PILLS
+                  </span>
+                }
                 title={packs.length > 0 ? `${packs.length} pack${packs.length !== 1 ? "s" : ""} live` : "Daily Pills"}
                 href="/pills"
               />
@@ -658,7 +719,7 @@ export default function PlayPage() {
             <section>
               <SectionHeader
                 icon={<Wand2 size={17} style={{ color: "var(--accent-violet)", flexShrink: 0 }} />}
-                title={predictions.length > 0 ? `${predictions.length} available event${predictions.length !== 1 ? "s" : ""}` : "Time Machine"}
+                title={predictions.length > 0 ? `${predictions.length} open event${predictions.length !== 1 ? "s" : ""}` : "Time Machine"}
                 href="/time-machine"
                 linkLabel={predictions.length > 0 ? "see all" : ""}
               />
