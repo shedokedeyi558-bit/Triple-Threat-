@@ -7,6 +7,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { blitzApi, pillsApi, predictionsApi } from "@/lib/api";
+import { WinnersTicker } from "@/components/ui/WinnersTicker";
 
 export default function LandingPage() {
   const { state } = useApp();
@@ -122,6 +123,9 @@ export default function LandingPage() {
           </div>
         </div>
       </nav>
+
+      {/* Winners ticker — real data, falls back gracefully */}
+      <WinnersTicker />
 
       {/* Hero Section */}
       <section id="games" className="px-4 sm:px-6 lg:px-8 py-16 lg:py-24">

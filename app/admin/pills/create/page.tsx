@@ -87,6 +87,7 @@ export default function CreatePillPackPage() {
   const [loadingStep, setLoadingStep] = useState<string>("");
   const [createSuccess, setCreateSuccess] = useState(false);
   const [error, setError] = useState("");
+  const [isVip, setIsVip] = useState(false);
   const [formOpen, setFormOpen] = useState(true);
   const [sampleCategory, setSampleCategory] = useState<SampleCategory>("Mixed");
   const [sampleCount, setSampleCount] = useState("5");
@@ -125,6 +126,7 @@ export default function CreatePillPackPage() {
     if (!packEntryFee || Number(packEntryFee) <= 0) { setError("Entry fee required"); return; }
     if (!packPrize || Number(packPrize) <= 0) { setError("Prize required"); return; }
     if (pills.length === 0) { setError("Add at least one pill"); return; }
+    if (isVip && pills.length < 10) { setError(`VIP packs require at least 10 questions — ${pills.length} added so far`); return; }
 
     // Validate all pills before hitting the backend
     for (let i = 0; i < pills.length; i++) {
@@ -151,6 +153,7 @@ export default function CreatePillPackPage() {
         category: packCategory.trim(),
         entry_fee: Number(packEntryFee),
         prize: Number(packPrize),
+        is_vip: isVip,
         idempotency_key: idempotencyKey,
       } as any);
       packId = (packRes as any).pack?.id ?? (packRes as any).id;
@@ -246,6 +249,39 @@ export default function CreatePillPackPage() {
         >
           {error}
         </motion.div>
+      )}
+
+      {/* ── VIP / Standard toggle ── */}
+      <div className="flex gap-2 p-1 rounded-xl border" style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-card)" }}>
+        <button
+          type="button"
+          onClick={() => setIsVip(false)}
+          className="flex-1 py-2.5 rounded-lg text-sm font-bold transition-all"
+          style={{
+            backgroundColor: !isVip ? "var(--accent-indigo)" : "transparent",
+            color: !isVip ? "#fff" : "var(--text-secondary)",
+          }}
+        >
+          Standard Pack
+        </button>
+        <button
+          type="button"
+          onClick={() => setIsVip(true)}
+          className="flex-1 py-2.5 rounded-lg text-sm font-bold transition-all"
+          style={{
+            backgroundColor: isVip ? "var(--accent-amber)" : "transparent",
+            color: isVip ? "#000" : "var(--text-secondary)",
+            boxShadow: isVip ? "0 0 12px rgba(232,163,61,0.35)" : "none",
+          }}
+        >
+          VIP Pack
+        </button>
+      </div>
+      {isVip && (
+        <p className="text-[11px] px-1" style={{ color: "var(--accent-amber)" }}>
+          VIP packs require 10+ questions. Players answer all questions sequentially to win.
+          {pills.length > 0 && pills.length < 10 && ` (${pills.length}/10 added)`}
+        </p>
       )}
 
       {/* Dev tools: category selector + count + fill button */}

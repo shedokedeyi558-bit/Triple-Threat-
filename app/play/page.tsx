@@ -387,22 +387,24 @@ function PillSheet({ pack, pill, onConfirm, onClose, balance }: {
           </div>
         </div>
 
-        {/* Ticket redemption — same pattern as Blitz registration */}
-        <div style={{ marginBottom: 14 }}>
-          <label style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-muted)", display: "block", marginBottom: 6 }}>
-            Have a pill ticket? (optional)
-          </label>
-          <input
-            type="text"
-            placeholder="Enter ticket code"
-            value={ticketCode}
-            onChange={(e) => setTicketCode(e.target.value.toUpperCase())}
-            style={{ width: "100%", boxSizing: "border-box", padding: "10px 14px", borderRadius: 10, border: `1px solid ${validatedTicket ? "rgba(76,111,255,0.5)" : "var(--border-subtle)"}`, backgroundColor: "var(--bg-base)", color: "var(--text-primary)", fontSize: 13, fontFamily: "monospace", outline: "none" }}
-          />
-          {validatedTicket && (
-            <p style={{ fontSize: 11, color: "var(--accent-indigo)", marginTop: 6 }}>Ticket applied — entry fee waived</p>
-          )}
-        </div>
+        {/* Ticket redemption — only for standard packs, not VIP */}
+        {!pack.is_vip && (
+          <div style={{ marginBottom: 14 }}>
+            <label style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-muted)", display: "block", marginBottom: 6 }}>
+              Have a pill ticket? (optional)
+            </label>
+            <input
+              type="text"
+              placeholder="Enter ticket code"
+              value={ticketCode}
+              onChange={(e) => setTicketCode(e.target.value.toUpperCase())}
+              style={{ width: "100%", boxSizing: "border-box", padding: "10px 14px", borderRadius: 10, border: `1px solid ${validatedTicket ? "rgba(76,111,255,0.5)" : "var(--border-subtle)"}`, backgroundColor: "var(--bg-base)", color: "var(--text-primary)", fontSize: 13, fontFamily: "monospace", outline: "none" }}
+            />
+            {validatedTicket && (
+              <p style={{ fontSize: 11, color: "var(--accent-indigo)", marginTop: 6 }}>Ticket applied — entry fee waived</p>
+            )}
+          </div>
+        )}
 
         {!canAfford && <p style={{ textAlign: "center", color: "#f87171", fontSize: 13, marginBottom: 10 }}>Insufficient balance. <Link href="/wallet" style={{ textDecoration: "underline", fontWeight: 600 }}>Add funds</Link></p>}
         {err && <p style={{ textAlign: "center", color: "#f87171", fontSize: 13, marginBottom: 10 }}>{err} <Link href="/profile" style={{ textDecoration: "underline", fontWeight: 600 }}>Adjust limits</Link></p>}

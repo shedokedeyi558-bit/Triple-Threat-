@@ -474,6 +474,7 @@ export interface PillPack {
   name: string;
   category: string;
   status: "active" | "inactive" | "draft";
+  is_vip?: boolean;
   pills: PillPackPill[];
 }
 
@@ -854,7 +855,7 @@ export const adminApi = {
   getPillPacks: () =>
     request<{ packs: PillPack[] }>("/api/admin/pills/packs", { token: getAdminToken() }),
 
-  createPillPack: (data: { name: string; category: string; entry_fee: number; prize: number }) =>
+  createPillPack: (data: { name: string; category: string; entry_fee: number; prize: number; is_vip?: boolean }) =>
     request<{ pack: { id: string; name: string; category: string; status: string } }>(
       "/api/admin/pills/packs",
       { method: "POST", body: data, token: getAdminToken() }
