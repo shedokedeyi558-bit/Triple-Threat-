@@ -94,11 +94,6 @@ function SegmentFilter({ active, onChange }: { active: FilterVal; onChange: (v: 
 }
 
 // ─── Pack card ────────────────────────────────────────────────────────────
-// Pills have a capsule / pharmacy-counter feel:
-//   - colored top accent stripe
-//   - pill-count shown in a rounded badge
-//   - faint category-color background wash
-//   - no hard rectangular border — soft rounded corners + shadow
 function PackCard({ pack, onClick }: { pack: PillPack; onClick: () => void }) {
   const color = catColor(pack.category);
   const price = pack.pills.length > 0 ? pack.pills[0].price : 0;
@@ -110,48 +105,42 @@ function PackCard({ pack, onClick }: { pack: PillPack; onClick: () => void }) {
       onClick={onClick}
       style={{
         flexShrink: 0,
-        width: 172,
-        borderRadius: 14,
+        width: 148,
+        borderRadius: 10,
         overflow: "hidden",
         backgroundColor: "var(--bg-card)",
         textAlign: "left",
         cursor: "pointer",
-        border: "1px solid rgba(255,255,255,0.06)",
-        boxShadow: `0 4px 20px ${color}18`,
+        border: `1px solid ${color}44`,
         display: "flex",
         flexDirection: "column",
       }}
     >
       {/* Coloured top stripe */}
-      <div style={{ height: 4, backgroundColor: color, width: "100%" }} />
+      <div style={{ height: 3, backgroundColor: color, width: "100%" }} />
 
-      <div style={{ padding: "12px 14px 14px", flex: 1, display: "flex", flexDirection: "column", gap: 10 }}>
-        {/* Category dot + pill badge */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", color }}>
+      <div style={{ padding: "10px 11px 11px", flex: 1, display: "flex", flexDirection: "column", gap: 7 }}>
+        {/* Category + count on same line, category truncates if needed */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 4 }}>
+          <span style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>
             {pack.category}
           </span>
-          <span style={{
-            fontSize: 10, fontWeight: 700, padding: "2px 7px",
-            borderRadius: 20, backgroundColor: `${color}22`, color,
-          }}>
-            {pack.pills.length} pills
+          <span style={{ fontSize: 9, fontWeight: 700, whiteSpace: "nowrap", flexShrink: 0, padding: "1px 5px", borderRadius: 20, backgroundColor: `${color}20`, color }}>
+            {pack.pills.length}p
           </span>
         </div>
 
         {/* Pack name */}
-        <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", margin: 0, lineHeight: 1.35 }}>
+        <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-primary)", margin: 0, lineHeight: 1.3 }}>
           {pack.name}
         </p>
 
-        {/* Price row */}
+        {/* Price + arrow */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "auto" }}>
-          <p style={{ fontSize: 12, fontFamily: "monospace", fontWeight: 700, color: "var(--accent-amber)", margin: 0 }}>
+          <p style={{ fontSize: 11, fontFamily: "monospace", fontWeight: 700, color: "var(--accent-amber)", margin: 0 }}>
             ₦{price.toLocaleString()}
           </p>
-          <div style={{ width: 22, height: 22, borderRadius: "50%", backgroundColor: color, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <ArrowRight size={11} color="#000" />
-          </div>
+          <ArrowRight size={12} style={{ color, flexShrink: 0 }} />
         </div>
       </div>
     </motion.button>
@@ -248,18 +237,18 @@ function PredictionCard({ prediction, onClick }: { prediction: PredictionData; o
       {/* Faint category-color background wash */}
       <div style={{ position: "absolute", inset: 0, backgroundColor: color, opacity: 0.03, pointerEvents: "none" }} />
 
-      <div style={{ position: "relative", padding: "13px 15px 0" }}>
+      <div style={{ position: "relative", padding: "11px 14px 0" }}>
         {/* Row 1: category badge + countdown */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 9 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 7 }}>
           <span style={{
-            fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em",
-            padding: "2px 7px", borderRadius: 4,
+            fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em",
+            padding: "2px 6px", borderRadius: 4,
             backgroundColor: `${color}22`, color,
           }}>
             {prediction.category}
           </span>
           <span style={{
-            fontSize: 15, fontFamily: "monospace", fontWeight: 800,
+            fontSize: 13, fontFamily: "monospace", fontWeight: 800,
             color: locked ? "var(--text-muted)" : color,
             letterSpacing: "-0.02em",
           }}>
@@ -268,7 +257,7 @@ function PredictionCard({ prediction, onClick }: { prediction: PredictionData; o
         </div>
 
         {/* Question */}
-        <p style={{ fontSize: 14, fontWeight: 600, lineHeight: 1.45, color: "var(--text-primary)", margin: "0 0 13px" }}>
+        <p style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.4, color: "var(--text-primary)", margin: "0 0 11px" }}>
           {prediction.question}
         </p>
       </div>
@@ -276,19 +265,19 @@ function PredictionCard({ prediction, onClick }: { prediction: PredictionData; o
       {/* Ticket stub divider + footer */}
       <div style={{
         display: "flex", justifyContent: "space-between", alignItems: "center",
-        padding: "9px 15px",
+        padding: "7px 15px",
         borderTop: `1px dashed ${color}40`,
         backgroundColor: `${color}08`,
       }}>
         <div>
           <p style={{ fontSize: 9, color: "var(--text-muted)", margin: "0 0 1px", textTransform: "uppercase", letterSpacing: "0.06em" }}>Entry</p>
-          <p style={{ fontSize: 13, fontFamily: "monospace", fontWeight: 700, color: "var(--accent-amber)", margin: 0 }}>
+          <p style={{ fontSize: 12, fontFamily: "monospace", fontWeight: 700, color: "var(--accent-amber)", margin: 0 }}>
             ₦{prediction.fee.toLocaleString()}
           </p>
         </div>
         <div style={{ textAlign: "right" }}>
           <p style={{ fontSize: 9, color: "var(--text-muted)", margin: "0 0 1px", textTransform: "uppercase", letterSpacing: "0.06em" }}>Prize pool</p>
-          <p style={{ fontSize: 13, fontFamily: "monospace", fontWeight: 700, color, margin: 0 }}>
+          <p style={{ fontSize: 12, fontFamily: "monospace", fontWeight: 700, color, margin: 0 }}>
             ₦{prediction.prize_per_winner.toLocaleString()}
           </p>
         </div>
@@ -456,7 +445,7 @@ function SectionHeader({ icon, title, href, linkLabel = "see all" }: {
   icon: React.ReactNode; title: string; href: string; linkLabel?: string;
 }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
         {icon}
         <h2 style={{ fontSize: 17, fontWeight: 600, color: "var(--text-primary)", margin: 0, whiteSpace: "nowrap" }}>
@@ -611,7 +600,7 @@ export default function PlayPage() {
           </div>
         </div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
 
           {/* ── VIP PACKS — amber glow section, above standard pills ── */}
           {showPills && vipPacks.length > 0 && (
