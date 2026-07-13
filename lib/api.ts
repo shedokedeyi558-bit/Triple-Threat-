@@ -478,6 +478,66 @@ export interface PillPack {
   pills: PillPackPill[];
 }
 
+// ─── VIP PILLS ───────────────────────────────────────────────────────────────
+// Sequential 10-question streak. One entry fee for the whole pack.
+// POST /api/pills/vip/start — returns session (fresh or in-progress)
+// POST /api/pills/vip/answer/:sessionId — submit answer for current question
+
+export interface VipStartResponse {
+  session_id: string;
+  pack_id: string;
+  pack_name: string;
+  category: string;
+  entry_fee: number;
+  prize: number;            // total prize if all 10 correct
+  total_questions: number;  // always 10
+  current_question_index: number; // 0-based; 0 = fresh, >0 = resumed
+  is_new_attempt: boolean;  // true = charged entry fee, false = resumed in-progress
+  new_balance?: number;     // only present if is_new_attempt = true
+  question: {
+    question: string;
+    format: "multiple_choice" | "type_answer";
+    options?: string[];
+    timer: number;
+  };
+}
+
+export interface VipAnswerResponse {
+  correct: boolean;
+  correct_answer: string;
+  // if correct and more remain:
+  next_question?: {
+    question: string;
+    format: "multiple_choice" | "type_answer";
+    options?: string[];
+    timer: number;
+  };
+  next_question_index?: number;
+  // if streak complete (all 10 correct):
+  streak_complete?: boolean;
+  prize?: number;
+  new_balance?: number;
+  // if wrong: entry_fee_lost included in correct_answer
+  entry_fee: number;
+  question_number: number; // 1-based for display
+}
+
+export const vipPillsApi = {
+  start: (packId: string) =>
+    request<VipStartResponse>(`/api/pills/vip/start`, {
+      method: "POST",
+      body: { pack_id: packId },
+      token: getToken(),
+    }),
+
+  answer: (sessionId: string, answer: string) =>
+    request<VipAnswerResponse>(`/api/pills/vip/answer/${sessionId}`, {
+      method: "POST",
+      body: { answer },
+      token: getToken(),
+    }),
+};
+
 export const pillsApi = {
   getAvailable: () =>
     request<{ pills: PillData[] }>("/api/pills/available", { token: getToken() }),

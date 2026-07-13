@@ -464,6 +464,7 @@ export default function PlayPage() {
   const { state } = useApp();
   const router = useRouter();
   const [packs, setPacks] = useState<PillPack[]>([]);
+  const [vipPacks, setVipPacks] = useState<PillPack[]>([]);
   const [predictions, setPredictions] = useState<PredictionData[]>([]);
   const [blitz, setBlitz] = useState<BlitzTournament[]>([]);
   const [loading, setLoading] = useState(true);
@@ -489,7 +490,12 @@ export default function PlayPage() {
         blitzApi.getAll(),
         playerApi.getSpendSummary(),
       ]);
-      if (pR.status === "fulfilled") setPacks((pR.value.packs ?? []).filter((p) => p.status === "active"));
+      if (pR.status === "fulfilled") {
+        const allPacks = (pR.value.packs ?? []).filter((p) => p.status === "active");
+        // Separate VIP from standard — they render in different sections
+        setPacks(allPacks.filter((p) => !p.is_vip));
+        setVipPacks(allPacks.filter((p) => p.is_vip));
+      }
       if (predR.status === "fulfilled") setPredictions(predR.value.predictions ?? []);
       if (bR.status === "fulfilled") setBlitz(bR.value.tournaments ?? []);
       if (spendR.status === "fulfilled") setPlaysToday(spendR.value.plays_today ?? 0);
@@ -579,7 +585,62 @@ export default function PlayPage() {
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
 
-          {/* ── PILL PACKS ── */}
+          {/* ── VIP PACKS — amber glow section, above standard pills ── */}
+          {showPills && vipPacks.length > 0 && (
+            <section>
+              <SectionHeader
+                icon={
+                  <span style={{ fontSize: 11, fontWeight: 800, padding: "2px 6px", borderRadius: 4, backgroundColor: "rgba(232,163,61,0.15)", color: "var(--accent-amber)", boxShadow: "0 0 8px rgba(232,163,61,0.25)", flexShrink: 0 }}>
+                    VIP
+                  </span>
+                }
+                title="VIP Challenges"
+                href="/pills"
+              />
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {vipPacks.map((pack) => {
+                  const color = catColor(pack.category);
+                  const price = pack.pills.length > 0 ? pack.pills[0].price : 0;
+                  const prize = pack.pills.length > 0 ? pack.pills[0].prize : 0;
+                  return (
+                    <motion.button
+                      key={pack.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      onClick={() => router.push(`/pills/vip/${pack.id}/play`)}
+                      style={{
+                        width: "100%", boxSizing: "border-box", borderRadius: 14,
+                        padding: "16px 18px", textAlign: "left", cursor: "pointer",
+                        backgroundColor: "var(--bg-card)",
+                        border: "1.5px solid rgba(232,163,61,0.5)",
+                        boxShadow: "0 0 16px rgba(232,163,61,0.15)",
+                      }}
+                    >
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                            <span style={{ fontSize: 10, fontWeight: 800, padding: "1px 6px", borderRadius: 4, backgroundColor: "rgba(232,163,61,0.15)", color: "var(--accent-amber)" }}>VIP</span>
+                            <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", margin: 0 }}>{pack.name}</p>
+                          </div>
+                          <p style={{ fontSize: 11, color: "var(--text-secondary)", margin: 0 }}>10 questions · answer all to win</p>
+                        </div>
+                        <div style={{ textAlign: "right", flexShrink: 0 }}>
+                          <p style={{ fontSize: 10, color: "var(--text-muted)", margin: "0 0 2px" }}>Prize</p>
+                          <p style={{ fontSize: 15, fontFamily: "monospace", fontWeight: 700, color: "var(--accent-amber)", margin: 0 }}>₦{prize.toLocaleString()}</p>
+                        </div>
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <p style={{ fontSize: 11, fontFamily: "monospace", color: "var(--text-muted)", margin: 0 }}>₦{price.toLocaleString()} entry</p>
+                        <span style={{ fontSize: 11, fontWeight: 600, color: "var(--accent-amber)" }}>Start Challenge →</span>
+                      </div>
+                    </motion.button>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+
+          {/* ── PILL PACKS (standard only) ── */}
           {showPills && (
             <section>
               <SectionHeader
