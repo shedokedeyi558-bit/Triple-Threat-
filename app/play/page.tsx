@@ -11,6 +11,9 @@ import {
 import { Clock, ChevronLeft, Zap, ArrowRight, Package, Wand2, AlertCircle, X } from "lucide-react";
 import Link from "next/link";
 
+// Feature flag — set NEXT_PUBLIC_BLITZ_ENABLED=true in env to re-enable
+const BLITZ_ENABLED = process.env.NEXT_PUBLIC_BLITZ_ENABLED === "true";
+
 // ─── Category colour map ───────────────────────────────────────────────────
 const CAT_COLOR: Record<string, string> = {
   Football: "#4C6FFF", Basketball: "#7C6FE8", Cricket: "#E8A33D",
@@ -58,7 +61,9 @@ function HorizontalScrollRow({ children, gap = 12 }: { children: React.ReactNode
 
 // ─── Segment filter ───────────────────────────────────────────────────────
 type FilterVal = "All" | "Pills" | "Predictions" | "Blitz";
-const SEGMENTS: FilterVal[] = ["All", "Pills", "Predictions", "Blitz"];
+const SEGMENTS: FilterVal[] = BLITZ_ENABLED
+  ? ["All", "Pills", "Predictions", "Blitz"]
+  : ["All", "Pills", "Predictions"];
 
 function SegmentFilter({ active, onChange }: { active: FilterVal; onChange: (v: FilterVal) => void }) {
   return (
@@ -495,7 +500,7 @@ export default function PlayPage() {
 
   const showPills = filter === "All" || filter === "Pills";
   const showPred  = filter === "All" || filter === "Predictions";
-  const showBlitz = filter === "All" || filter === "Blitz";
+  const showBlitz = BLITZ_ENABLED && (filter === "All" || filter === "Blitz");
   const liveBlitz = blitz.filter((t) => t.status === "active" || t.status === "registration");
   const selectedPack = selectedPackId ? packs.find((p) => p.id === selectedPackId) ?? null : null;
 

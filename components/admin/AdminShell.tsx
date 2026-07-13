@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useAdmin } from "@/context/AdminContext";
 import { AdminSidebar } from "./AdminSidebar";
 import { AdminLogin } from "./AdminLogin";
-import { Menu, X, Package, Clock, Zap, Settings, Home, Users, CreditCard, BarChart2, LogOut } from "lucide-react";
+import { Menu, X, Package, Clock, Zap, Settings, Home, Users, CreditCard, BarChart2, LogOut, Loader2 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -17,6 +17,8 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   const handleLogout = () => {
+    if (loggingOut) return;
+    setLoggingOut(true);
     removeAdminToken();
     dispatch({ type: "ADMIN_LOGOUT" });
   };
@@ -97,9 +99,10 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               </Link>
               <button
                 onClick={() => { setMobileMenuOpen(false); handleLogout(); }}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors w-full text-red-500 hover:bg-red-900/10"
+                disabled={loggingOut}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors w-full text-red-500 hover:bg-red-900/10 disabled:opacity-60"
               >
-                <LogOut size={14} /> Log out
+                {loggingOut ? <><Loader2 size={14} className="animate-spin" /> Logging out...</> : <><LogOut size={14} /> Log out</>}
               </button>
             </div>
           </div>

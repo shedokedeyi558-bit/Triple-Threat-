@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useApp } from "@/context/AppContext";
 import { predictionsApi, ApiError, type PredictionData } from "@/lib/api";
+import { withTimeout } from "@/lib/withTimeout";
 import {
   ChevronLeft, Clock, Users, Lock, CheckCircle2,
   XCircle, Loader2, Timer, Trophy, AlertCircle
@@ -163,7 +164,7 @@ function PredictionDetail({
           style={{ backgroundColor: "var(--accent-indigo)", color: "#fff" }}
         >
           {entering ? <Loader2 size={18} className="animate-spin" /> : null}
-          {entering ? "Processing..." : `Enter & Pay ₦${prediction.fee?.toLocaleString()}`}
+          {entering ? "Charging..." : `Enter & Pay ₦${prediction.fee?.toLocaleString()}`}
         </motion.button>
       )}
 
@@ -253,7 +254,7 @@ function PredictionSubmit({
             style={{ backgroundColor: "var(--accent-indigo)", color: "#fff" }}
           >
             {submitting ? <Loader2 size={18} className="animate-spin" /> : null}
-            {submitting ? "Locking in..." : "Lock In Prediction"}
+            {submitting ? "Submitting..." : "Lock In Prediction"}
           </motion.button>
         </>
       )}
@@ -554,7 +555,7 @@ export default function PredictionPlayPage() {
     setEntering(true);
     setError(null);
     try {
-      await predictionsApi.enter(predictionId);
+      await withTimeout(predictionsApi.enter(predictionId), 15000);
       dispatch({ type: "UPDATE_BALANCE", balance: (state.player?.balance ?? 0) - (prediction.fee ?? 0) });
       setPageState("submit");
     } catch (err) {
@@ -565,7 +566,7 @@ export default function PredictionPlayPage() {
           setError(err.message);
         }
       } else {
-        setError("Failed to enter prediction");
+        setError(err instanceof Error ? err.message : "Failed to enter prediction");
       }
     } finally {
       setEntering(false);
@@ -576,7 +577,7 @@ export default function PredictionPlayPage() {
     setSubmitting(true);
     setError(null);
     try {
-      await predictionsApi.submit(predictionId, answer);
+      await withTimeout(predictionsApi.submit(predictionId, answer), 15000);
       setUserAnswer(answer);
       setPageState("locked");
     } catch (err) {
@@ -591,7 +592,7 @@ export default function PredictionPlayPage() {
           setError(err.message);
         }
       } else {
-        setError("Failed to submit");
+        setError(err instanceof Error ? err.message : "Failed to submit");
       }
     } finally {
       setSubmitting(false);

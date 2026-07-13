@@ -84,6 +84,8 @@ export default function CreatePillPackPage() {
     persist({ draft: updated });
   };
   const [loading, setLoading] = useState(false);
+  const [loadingStep, setLoadingStep] = useState<string>("");
+  const [createSuccess, setCreateSuccess] = useState(false);
   const [error, setError] = useState("");
   const [formOpen, setFormOpen] = useState(true);
   const [sampleCategory, setSampleCategory] = useState<SampleCategory>("Mixed");
@@ -137,16 +139,20 @@ export default function CreatePillPackPage() {
 
     setLoading(true);
     setError("");
+    // Idempotency key — prevents duplicate pack creation on double-tap/retry
+    const idempotencyKey = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
     // Step 1: Create pack
     let packId: string;
     try {
+      setLoadingStep("Creating pack...");
       const packRes = await adminApi.createPillPack({
         name: packName.trim(),
         category: packCategory.trim(),
         entry_fee: Number(packEntryFee),
         prize: Number(packPrize),
-      });
+        idempotency_key: idempotencyKey,
+      } as any);
       packId = (packRes as any).pack?.id ?? (packRes as any).id;
       if (!packId) {
         setError("Pack created but no ID returned from backend");
@@ -163,6 +169,7 @@ export default function CreatePillPackPage() {
     // Step 2: Add pills sequentially — await each fully, surface individual failures
     const failed: { index: number; question: string; error: string }[] = [];
     for (let i = 0; i < pills.length; i++) {
+      setLoadingStep(`Saving pill ${i + 1} of ${pills.length}...`);
       const pill = pills[i];
       try {
         await adminApi.addPillToPack(packId, {
@@ -190,6 +197,7 @@ export default function CreatePillPackPage() {
 
     // Step 3: All pills saved — activate the pack
     try {
+      setLoadingStep("Activating pack...");
       await adminApi.updatePillPack(packId, { status: "active" });
     } catch (err) {
       setError(`All ${pills.length} pills saved but pack activation failed: ${err instanceof ApiError ? err.message : "Unknown error"}`);
@@ -197,10 +205,12 @@ export default function CreatePillPackPage() {
       return;
     }
 
-    // Full success
+    // Full success — show confirmation before navigating
     localStorage.removeItem(DRAFT_KEY);
+    setCreateSuccess(true);
+    setLoadingStep("Pack created!");
     setLoading(false);
-    router.push("/admin/pills");
+    setTimeout(() => router.push("/admin/pills"), 1200);
   };
 
   return (
@@ -563,17 +573,16 @@ export default function CreatePillPackPage() {
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           onClick={handleCreate}
-          disabled={loading}
-          className="w-full py-4 rounded-xl font-black text-base flex items-center justify-center gap-2 transition-opacity hover:opacity-90 disabled:opacity-50"
-          style={{ backgroundColor: "var(--accent-indigo)", color: "white" }}
+          disabled={loading || createSuccess}
+          className="w-full py-4 rounded-xl font-black text-base flex items-center justify-center gap-2 transition-all hover:opacity-90 disabled:opacity-60"
+          style={{ backgroundColor: createSuccess ? "rgba(76,111,255,0.3)" : "var(--accent-indigo)", color: "white" }}
         >
-          {loading ? (
-            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+          {createSuccess ? (
+            <><CheckCircle size={18} /> Pack Created!</>
+          ) : loading ? (
+            <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin flex-shrink-0" />{loadingStep}</>
           ) : (
-            <>
-              <CheckCircle size={18} />
-              Create Pack ({pills.length} pill{pills.length !== 1 ? "s" : ""})
-            </>
+            <><CheckCircle size={18} />Create Pack ({pills.length} pill{pills.length !== 1 ? "s" : ""})</>
           )}
         </motion.button>
       )}
