@@ -602,7 +602,7 @@ export default function PlayPage() {
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
 
-          {/* ── VIP PACKS — amber glow section, above standard pills ── */}
+          {/* ── VIP PACKS — glowing golden cards ── */}
           {showPills && vipPacks.length > 0 && (
             <section>
               <SectionHeader
@@ -614,9 +614,8 @@ export default function PlayPage() {
                 title="VIP Challenges"
                 href="/pills"
               />
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                 {vipPacks.map((pack) => {
-                  const color = catColor(pack.category);
                   const price = pack.pills.length > 0 ? pack.pills[0].price : 0;
                   const prize = pack.pills.length > 0 ? pack.pills[0].prize : 0;
                   return (
@@ -624,31 +623,85 @@ export default function PlayPage() {
                       key={pack.id}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
+                      whileTap={{ scale: 0.97 }}
                       onClick={() => router.push(`/pills/vip/${pack.id}/play`)}
                       style={{
-                        width: "100%", boxSizing: "border-box", borderRadius: 14,
-                        padding: "16px 18px", textAlign: "left", cursor: "pointer",
-                        backgroundColor: "var(--bg-card)",
-                        border: "1.5px solid rgba(232,163,61,0.5)",
-                        boxShadow: "0 0 16px rgba(232,163,61,0.15)",
+                        width: "100%", boxSizing: "border-box",
+                        borderRadius: 16, padding: "0",
+                        textAlign: "left", cursor: "pointer",
+                        background: "linear-gradient(135deg, #1a1200 0%, #2a1e00 40%, #1a1200 100%)",
+                        border: "1px solid rgba(232,163,61,0.6)",
+                        boxShadow: "0 0 0 1px rgba(232,163,61,0.15), 0 4px 24px rgba(232,163,61,0.25), 0 0 48px rgba(232,163,61,0.08)",
+                        overflow: "hidden",
+                        position: "relative",
                       }}
                     >
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
-                        <div style={{ minWidth: 0 }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                            <span style={{ fontSize: 10, fontWeight: 800, padding: "1px 6px", borderRadius: 4, backgroundColor: "rgba(232,163,61,0.15)", color: "var(--accent-amber)" }}>VIP</span>
-                            <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", margin: 0 }}>{pack.name}</p>
+                      {/* Shimmer overlay */}
+                      <motion.div
+                        animate={{ x: ["-100%", "200%"] }}
+                        transition={{ duration: 3.5, repeat: Infinity, repeatDelay: 2, ease: "easeInOut" }}
+                        style={{
+                          position: "absolute", top: 0, left: 0,
+                          width: "40%", height: "100%",
+                          background: "linear-gradient(90deg, transparent 0%, rgba(232,163,61,0.08) 50%, transparent 100%)",
+                          pointerEvents: "none",
+                        }}
+                      />
+
+                      {/* Top accent line */}
+                      <div style={{ height: 2, background: "linear-gradient(90deg, transparent, rgba(232,163,61,0.8), rgba(255,200,80,1), rgba(232,163,61,0.8), transparent)" }} />
+
+                      <div style={{ padding: "14px 16px 14px", position: "relative" }}>
+                        {/* Row 1: VIP badge + pack name + trophy */}
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                            <span style={{
+                              fontSize: 9, fontWeight: 900, padding: "2px 7px", borderRadius: 4,
+                              background: "linear-gradient(135deg, #E8A33D, #FFD060)",
+                              color: "#000", letterSpacing: "0.08em", flexShrink: 0,
+                            }}>
+                              VIP
+                            </span>
+                            <p style={{ fontSize: 13, fontWeight: 700, color: "#FFE082", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                              {pack.name}
+                            </p>
                           </div>
-                          <p style={{ fontSize: 11, color: "var(--text-secondary)", margin: 0 }}>10 questions · answer all to win</p>
+                          <Zap size={16} style={{ color: "var(--accent-amber)", flexShrink: 0, opacity: 0.8 }} />
                         </div>
-                        <div style={{ textAlign: "right", flexShrink: 0 }}>
-                          <p style={{ fontSize: 10, color: "var(--text-muted)", margin: "0 0 2px" }}>Prize</p>
-                          <p style={{ fontSize: 15, fontFamily: "monospace", fontWeight: 700, color: "var(--accent-amber)", margin: 0 }}>₦{prize.toLocaleString()}</p>
+
+                        {/* Row 2: 10 questions label */}
+                        <p style={{ fontSize: 10, color: "rgba(232,163,61,0.6)", margin: "0 0 12px", letterSpacing: "0.04em" }}>
+                          10-question exam · answer all to win
+                        </p>
+
+                        {/* Row 3: entry + prize */}
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+                          <div>
+                            <p style={{ fontSize: 9, color: "rgba(255,255,255,0.35)", margin: "0 0 2px", textTransform: "uppercase", letterSpacing: "0.06em" }}>Entry</p>
+                            <p style={{ fontSize: 13, fontFamily: "monospace", fontWeight: 700, color: "rgba(232,163,61,0.85)", margin: 0 }}>
+                              ₦{price.toLocaleString()}
+                            </p>
+                          </div>
+                          <div style={{ textAlign: "right" }}>
+                            <p style={{ fontSize: 9, color: "rgba(255,255,255,0.35)", margin: "0 0 2px", textTransform: "uppercase", letterSpacing: "0.06em" }}>Prize</p>
+                            <p style={{ fontSize: 17, fontFamily: "monospace", fontWeight: 900, color: "#FFD060", margin: 0 }}>
+                              ₦{prize.toLocaleString()}
+                            </p>
+                          </div>
                         </div>
                       </div>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <p style={{ fontSize: 11, fontFamily: "monospace", color: "var(--text-muted)", margin: 0 }}>₦{price.toLocaleString()} entry</p>
-                        <span style={{ fontSize: 11, fontWeight: 600, color: "var(--accent-amber)" }}>Start Challenge →</span>
+
+                      {/* Bottom CTA strip */}
+                      <div style={{
+                        padding: "8px 16px",
+                        background: "rgba(232,163,61,0.12)",
+                        borderTop: "1px solid rgba(232,163,61,0.2)",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        gap: 6,
+                      }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: "var(--accent-amber)", letterSpacing: "0.04em" }}>
+                          Start Challenge →
+                        </span>
                       </div>
                     </motion.button>
                   );
