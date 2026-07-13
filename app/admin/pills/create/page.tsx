@@ -279,7 +279,7 @@ export default function CreatePillPackPage() {
       </div>
       {isVip && (
         <p className="text-[11px] px-1" style={{ color: "var(--accent-amber)" }}>
-          VIP packs require 10+ questions. Players answer all questions sequentially to win.
+          VIP packs require 10+ questions per pill. Players get one overall countdown (set per pill via &quot;Exam Time&quot;) — no per-question timer. Run out of time or answer wrong and they lose the entry fee.
           {pills.length > 0 && pills.length < 10 && ` (${pills.length}/10 added)`}
         </p>
       )}
@@ -510,15 +510,22 @@ export default function CreatePillPackPage() {
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Timer (sec)</label>
+                <label className={labelCls} style={{ color: "var(--text-secondary)" }}>
+                  {isVip ? "Exam Time (sec) *" : "Timer (sec)"}
+                </label>
                 <input
                   className={inputCls}
                   type="number"
                   min="5"
-                  placeholder=""
+                  placeholder={isVip ? "e.g. 300" : ""}
                   value={draft.timer || ""}
                   onChange={(e) => updateDraft({ timer: Number(e.target.value) })}
                 />
+                {isVip && (
+                  <p className="text-[10px] mt-1" style={{ color: "var(--text-muted)" }}>
+                    Total time for all 10 questions — counts down once, like an exam.
+                  </p>
+                )}
               </div>
             </div>
 
