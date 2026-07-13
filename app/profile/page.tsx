@@ -39,7 +39,7 @@ export default function ProfilePage() {
 
   const handleWhatsAppShare = (code: string) => {
     const text = encodeURIComponent(
-      `Win real Naira on BitLyfe! Play trivia pills, make predictions and compete in live tournaments. Join with my link and we both earn:\nhttps://bitlyfe.app/auth?ref=${code}`
+      `Win real Naira on BitLyfe! Play trivia pills, make predictions and compete in live tournaments. Join with my link and get ₦200 bonus credit on your first game:\nhttps://bitlyfe.app/auth?ref=${code}`
     );
     window.open(`https://wa.me/?text=${text}`, "_blank");
   };
@@ -226,6 +226,9 @@ export default function ProfilePage() {
                   <p className="text-[10px] text-gray-600 uppercase tracking-widest mb-1">Your referral link</p>
                   <p className="text-sm font-mono font-bold truncate" style={{ color: "var(--accent-amber)" }}>
                     bitlyfe.app/auth?ref={referralStats.referral_code}
+                  </p>
+                  <p className="text-[10px] mt-1" style={{ color: "var(--text-muted)" }}>
+                    Friends who join earn you ₦200 bonus credit, usable on any game
                   </p>
                 </div>
                 <button

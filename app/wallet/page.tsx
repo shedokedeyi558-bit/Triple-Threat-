@@ -139,6 +139,8 @@ export default function WalletPage() {
   };
 
   const balance = state.player?.balance ?? 0;
+  const bonusBalance = state.player?.bonus_balance ?? 0;
+  const totalSpendable = balance + bonusBalance;
 
   return (
     <div className="px-4 lg:px-8 py-6 min-h-screen" style={{ backgroundColor: "var(--bg-base)" }}>
@@ -147,6 +149,11 @@ export default function WalletPage() {
       <div className="rounded-2xl p-5 mb-6 border" style={{ backgroundColor: "var(--bg-card)", borderColor: "var(--border-subtle)" }}>
         <p className="text-[11px] font-bold mb-1 uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>Available Balance</p>
         <p className="font-black text-4xl font-mono" style={{ color: "var(--text-primary)" }}>₦{balance.toLocaleString()}</p>
+        {bonusBalance > 0 && (
+          <p className="text-xs mt-1" style={{ color: "var(--accent-amber)" }}>
+            + ₦{bonusBalance.toLocaleString()} bonus credit (entry fees only, not withdrawable)
+          </p>
+        )}
         
         {/* Spend summary stat line */}
         {spendSummary && (

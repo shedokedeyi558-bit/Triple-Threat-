@@ -315,7 +315,7 @@ export default function BlitzDetailPage() {
             <motion.button
               whileTap={{ scale: 0.97 }}
               onClick={handleRegister}
-              disabled={registering || (state.player?.balance ?? 0) < tournament.entry_fee}
+              disabled={registering || (state.player?.balance ?? 0) + (state.player?.bonus_balance ?? 0) < tournament.entry_fee}
               className="w-full py-4 font-black text-lg rounded-xl disabled:opacity-40 transition-opacity"
               style={{ backgroundColor: "var(--accent-indigo)", color: "#fff" }}
             >
@@ -323,6 +323,12 @@ export default function BlitzDetailPage() {
                 ? "Register — FREE ENTRY"
                 : `Register — ₦${tournament.entry_fee.toLocaleString()}`}
             </motion.button>
+            {/* Bonus breakdown */}
+            {!ticketCode && (state.player?.bonus_balance ?? 0) > 0 && (
+              <p className="text-xs text-center mt-2" style={{ color: "var(--accent-amber)" }}>
+                ₦{Math.min(state.player?.bonus_balance ?? 0, tournament.entry_fee).toLocaleString()} from bonus credit
+              </p>
+            )}
           </>
         )}
 

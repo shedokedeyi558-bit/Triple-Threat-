@@ -41,11 +41,13 @@ function PredictionDetail({
   onEnter,
   entering,
   error,
+  bonusBalance,
 }: {
   prediction: PredictionData;
   onEnter: () => void;
   entering: boolean;
   error: string | null;
+  bonusBalance: number;
 }) {
   const countdown = useCountdown(prediction.countdown_end);
   const fill = Math.round((prediction.slots_filled / prediction.max_slots) * 100);
@@ -156,16 +158,24 @@ function PredictionDetail({
 
       {/* CTA */}
       {!countdown.expired && (
-        <motion.button
-          whileTap={{ scale: 0.97 }}
-          onClick={onEnter}
-          disabled={entering}
-          className="w-full py-4 font-black text-base rounded-xl disabled:opacity-50 flex items-center justify-center gap-2"
-          style={{ backgroundColor: "var(--accent-indigo)", color: "#fff" }}
-        >
-          {entering ? <Loader2 size={18} className="animate-spin" /> : null}
-          {entering ? "Charging..." : `Enter & Pay ₦${prediction.fee?.toLocaleString()}`}
-        </motion.button>
+        <>
+          {/* Bonus breakdown if applicable */}
+          {bonusBalance > 0 && (
+            <p className="text-xs text-center" style={{ color: "var(--accent-amber)", marginBottom: 4 }}>
+              ₦{Math.min(bonusBalance, prediction.fee ?? 0).toLocaleString()} from bonus credit
+            </p>
+          )}
+          <motion.button
+            whileTap={{ scale: 0.97 }}
+            onClick={onEnter}
+            disabled={entering}
+            className="w-full py-4 font-black text-base rounded-xl disabled:opacity-50 flex items-center justify-center gap-2"
+            style={{ backgroundColor: "var(--accent-indigo)", color: "#fff" }}
+          >
+            {entering ? <Loader2 size={18} className="animate-spin" /> : null}
+            {entering ? "Charging..." : `Enter & Pay ₦${prediction.fee?.toLocaleString()}`}
+          </motion.button>
+        </>
       )}
 
       {countdown.expired && (
@@ -619,7 +629,7 @@ export default function PredictionPlayPage() {
 
         {pageState === "detail" && prediction && (
           <motion.div key="detail" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
-            <PredictionDetail prediction={prediction} onEnter={handleEnter} entering={entering} error={error} />
+            <PredictionDetail prediction={prediction} onEnter={handleEnter} entering={entering} error={error} bonusBalance={state.player?.bonus_balance ?? 0} />
           </motion.div>
         )}
 
