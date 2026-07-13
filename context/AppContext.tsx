@@ -15,6 +15,7 @@ export interface PlayerInfo {
   phone: string;
   name: string | null;
   balance: number;
+  bonus_balance?: number;
   is_admin?: boolean;
 }
 
@@ -93,7 +94,7 @@ type Action =
   | { type: "START_SESSION"; session: ActiveSession }
   | { type: "END_SESSION"; result: ActiveSession["result"] }
   | { type: "CLEAR_SESSION" }
-  | { type: "UPDATE_BALANCE"; balance: number }
+  | { type: "UPDATE_BALANCE"; balance: number; bonus_balance?: number }
   | { type: "SET_PILLS"; pills: Pill[] }
   | { type: "PILLS_LOADING" }
   | { type: "SELECT_PILL"; pill: Pill }
@@ -166,7 +167,13 @@ function appReducer(state: AppState, action: Action): AppState {
     case "UPDATE_BALANCE":
       return {
         ...state,
-        player: state.player ? { ...state.player, balance: action.balance } : null,
+        player: state.player
+          ? {
+              ...state.player,
+              balance: action.balance,
+              bonus_balance: action.bonus_balance !== undefined ? action.bonus_balance : state.player.bonus_balance,
+            }
+          : null,
       };
     case "SET_PILLS":
       return { ...state, pills: { ...state.pills, pills: action.pills, pillsLoading: false } };

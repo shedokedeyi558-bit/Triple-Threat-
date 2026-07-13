@@ -81,17 +81,17 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
 
 export interface SignUpResponse {
   token: string;
-  player: { id: string; email: string; phone: string; name: string | null; balance: number; is_admin: boolean };
+  player: { id: string; email: string; phone: string; name: string | null; balance: number; bonus_balance?: number; is_admin: boolean };
 }
 
 export interface SignInResponse {
   token: string;
-  player: { id: string; email: string; phone: string; name: string | null; balance: number; is_admin: boolean };
+  player: { id: string; email: string; phone: string; name: string | null; balance: number; bonus_balance?: number; is_admin: boolean };
 }
 
 export interface VerifyOtpResponse {
   token: string;
-  player: { id: string; phone: string; name: string | null; balance: number };
+  player: { id: string; phone: string; name: string | null; balance: number; bonus_balance?: number };
 }
 
 export interface AdminLoginResponse {
@@ -185,7 +185,7 @@ export const gameApi = {
 
 // ─── WALLET ───────────────────────────────────────────────────────────────────
 
-export interface BalanceResponse { balance: number }
+export interface BalanceResponse { balance: number; bonus_balance?: number }
 
 export interface DepositResponse {
   authorizationUrl: string;
