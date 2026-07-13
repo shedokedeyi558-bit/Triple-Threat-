@@ -134,6 +134,28 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
+        {/* Top bar — mobile only */}
+        <header className="lg:hidden sticky top-0 z-30 flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-base)" }}>
+          <Link href="/play" className="flex items-center justify-center w-7 h-7">
+            <Image src="/bitlyfe-mark.svg" alt="BitLyfe" width={24} height={24} priority />
+          </Link>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/wallet"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border"
+              style={{ borderColor: "var(--border-subtle)", backgroundColor: "var(--bg-card)" }}
+            >
+              <span className="font-mono font-semibold text-sm" style={{ color: "var(--accent-amber)" }}>
+                ₦{state.player?.balance.toLocaleString() ?? "0"}
+              </span>
+              <span className="w-4 h-4 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0" style={{ backgroundColor: "var(--accent-amber)", color: "#000" }}>
+                +
+              </span>
+            </Link>
+            <NotificationBell />
+          </div>
+        </header>
+
         {/* Page content */}
         <main className="flex-1 pb-28 lg:pb-8 overflow-x-hidden">
           {children}
