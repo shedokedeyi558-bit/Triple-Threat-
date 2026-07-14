@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
@@ -493,8 +493,10 @@ function PillSheet({ pack, pill, onConfirm, onClose, balance, bonusBalance }: {
 }
 
 // â”€â”€â”€ Section header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-function SectionHeader({ icon, title, href, linkLabel = "see all" }: {
+// --- Section header ---------------------------------------------------------
+function SectionHeader({ icon, title, href, linkLabel = "see all", secondHref, secondLabel }: {
   icon: React.ReactNode; title: string; href: string; linkLabel?: string;
+  secondHref?: string; secondLabel?: string;
 }) {
   return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
@@ -504,9 +506,16 @@ function SectionHeader({ icon, title, href, linkLabel = "see all" }: {
           {title}
         </h2>
       </div>
-      <Link href={href} style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)", flexShrink: 0, marginLeft: 8, textDecoration: "none" }}>
-        {linkLabel}
-      </Link>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0, marginLeft: 8 }}>
+        {secondHref && secondLabel && (
+          <Link href={secondHref} style={{ fontSize: 12, fontWeight: 600, color: "var(--accent-violet)", textDecoration: "none" }}>
+            {secondLabel}
+          </Link>
+        )}
+        <Link href={href} style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)", textDecoration: "none" }}>
+          {linkLabel}
+        </Link>
+      </div>
     </div>
   );
 }
@@ -840,6 +849,8 @@ export default function PlayPage() {
                 title={openPredictions.length > 0 ? `${openPredictions.length} open event${openPredictions.length !== 1 ? "s" : ""}` : "Time Machine"}
                 href="/time-machine"
                 linkLabel={predictions.length > 0 ? "see all" : ""}
+                secondHref="/predictions/mine"
+                secondLabel="my picks"
               />
               {predictions.length === 0 ? (
                 <EmptyCard icon={<Wand2 size={16} style={{ color: "var(--accent-violet)" }} />} title="No open predictions" subtitle="New events added regularly" />

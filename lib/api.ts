@@ -593,12 +593,35 @@ export interface PredictionResultResponse {
   newBalance: number;
 }
 
+// A single entry in the player's participation history.
+// Returned by GET /api/predictions/mine.
+export interface MyPrediction {
+  id: string;                          // prediction id
+  question: string;
+  category: string;
+  fee: number;
+  prize_per_winner: number;
+  countdown_end: string;
+  status: "active" | "locked" | "completed" | "cancelled";
+  // Participation fields
+  my_answer: string | null;            // null = entered but not yet submitted
+  needs_submission: boolean;           // entered but no answer yet
+  correct_answer: string | null;       // null until admin reveals
+  won: boolean | null;                 // null until revealed
+  prize_won: number | null;            // null until won
+  participated_at: string;
+}
+
 export const predictionsApi = {
   getActive: () =>
     request<{ predictions: PredictionData[] }>("/api/predictions/active", { token: getToken() }),
 
   getOne: (predictionId: string) =>
     request<{ prediction: PredictionData }>(`/api/predictions/${predictionId}`, { token: getToken() }),
+
+  // Returns all predictions the player has entered (active + settled)
+  getMine: () =>
+    request<{ predictions: MyPrediction[] }>("/api/predictions/mine", { token: getToken() }),
 
   enter: (predictionId: string) =>
     request<PredictionEnterResponse>("/api/predictions/enter", {

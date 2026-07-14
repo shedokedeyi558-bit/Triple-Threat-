@@ -5,7 +5,7 @@ import { useApp } from "@/context/AppContext";
 import { removeToken, playerApi, referralApi, ApiError, type ReferralStats } from "@/lib/api";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { LogOut, Wallet, Shield, FileText, ChevronRight, Phone, AlertCircle, Loader2, Users, Copy, Check } from "lucide-react";
+import { LogOut, Wallet, Shield, FileText, ChevronRight, Phone, AlertCircle, Loader2, Users, Copy, Check, Wand2 } from "lucide-react";
 import { useState, useEffect } from "react";
 
 export default function ProfilePage() {
@@ -104,6 +104,17 @@ export default function ProfilePage() {
             <div className="flex-1">
               <p className="text-white font-semibold">Wallet</p>
               <p className="text-gray-500 text-xs mt-0.5">Deposit, withdraw, transaction history</p>
+            </div>
+            <ChevronRight size={16} className="text-gray-600" />
+          </Link>
+          <Link href="/predictions/mine" className="flex items-center gap-4 px-5 py-4 hover:bg-[#1A1A1A] transition-colors border-t border-[#1A1A1A]">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                style={{ backgroundColor: "rgba(124,111,232,0.1)" }}>
+              <Wand2 size={17} style={{ color: "var(--accent-violet)" }} />
+            </div>
+            <div className="flex-1">
+              <p className="text-white font-semibold">My Predictions</p>
+              <p className="text-gray-500 text-xs mt-0.5">Active entries and settled results</p>
             </div>
             <ChevronRight size={16} className="text-gray-600" />
           </Link>
