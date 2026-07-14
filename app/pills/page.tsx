@@ -313,7 +313,12 @@ export default function PillsPage() {
   if (!state.isAuthenticated) return null;
 
   const handlePackClick = (pack: PillPack) => {
-    // Open the first available pill in this pack
+    if (pack.is_vip) {
+      // VIP packs go to the exam flow, not the regular pill flow
+      router.push(`/pills/vip/${pack.id}/play`);
+      return;
+    }
+    // Regular packs: open the first available pill's confirm sheet
     const firstAvail = pack.pills.find((p) => p.status === "available");
     if (firstAvail) setSheet({ pack, pill: firstAvail });
   };
