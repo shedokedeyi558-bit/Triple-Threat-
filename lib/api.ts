@@ -42,6 +42,9 @@ interface RequestOptions {
   params?: Record<string, string | number>;
 }
 
+// ── Session-expiry dedup — only one toast+redirect per 5s window ──────────
+let _sessionExpiredAt = 0;
+
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const { method = "GET", body, token, params } = options;
 
@@ -71,28 +74,31 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   }));
 
   // ── Global session-expiry handler ──────────────────────────────────────
-  // Catches SESSION_EXPIRED / INVALID_TOKEN / 401 from ANY endpoint.
-  // Clears tokens, shows toast, redirects to login — one place, always.
-  if (
+  // Only fires when:
+  //   1. A token was actually sent (guest/public calls don't have one)
+  //   2. We haven't already fired within the last 5 seconds (dedup)
+  const isSessionError =
     res.status === 401 ||
     json.code === "SESSION_EXPIRED" ||
     json.code === "INVALID_TOKEN" ||
-    json.code === "TOKEN_EXPIRED"
-  ) {
-    if (typeof window !== "undefined") {
-      localStorage.removeItem("tt_token");
-      localStorage.removeItem("tt_admin_token");
-      localStorage.removeItem("tt_player");
-      // Import showToast lazily to avoid circular imports
+    json.code === "TOKEN_EXPIRED";
+
+  if (isSessionError && token && typeof window !== "undefined") {
+    const now = Date.now();
+    if (now - _sessionExpiredAt > 5000) {
+      _sessionExpiredAt = now;
       import("@/components/ui/Toast").then(({ showToast }) => {
         showToast("Your session expired — please log in again", "warning");
       });
-      // Small delay so the toast renders before navigation
       setTimeout(() => {
         const isAdmin = window.location.pathname.startsWith("/admin");
         window.location.href = isAdmin ? "/admin/login" : "/signin";
       }, 800);
     }
+    // Clear stored credentials regardless
+    localStorage.removeItem("tt_token");
+    localStorage.removeItem("tt_admin_token");
+    localStorage.removeItem("tt_player");
     throw new ApiError(json.error || "Session expired", res.status, json.code);
   }
 
