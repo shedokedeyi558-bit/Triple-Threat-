@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { AppProvider } from "@/context/AppContext";
 import { AppShell } from "@/components/ui/AppShell";
+import { ToastContainer } from "@/components/ui/Toast";
 
 export const metadata: Metadata = {
   title: "BitLyfe — Play Smart. Win Real.",
@@ -50,6 +51,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <AppShell>
             {children}
           </AppShell>
+          <ToastContainer />
         </AppProvider>
       </body>
     </html>

@@ -70,6 +70,42 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
     error: "Invalid JSON response",
   }));
 
+  // ── Global session-expiry handler ──────────────────────────────────────
+  // Catches SESSION_EXPIRED / INVALID_TOKEN / 401 from ANY endpoint.
+  // Clears tokens, shows toast, redirects to login — one place, always.
+  if (
+    res.status === 401 ||
+    json.code === "SESSION_EXPIRED" ||
+    json.code === "INVALID_TOKEN" ||
+    json.code === "TOKEN_EXPIRED"
+  ) {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("tt_token");
+      localStorage.removeItem("tt_admin_token");
+      localStorage.removeItem("tt_player");
+      // Import showToast lazily to avoid circular imports
+      import("@/components/ui/Toast").then(({ showToast }) => {
+        showToast("Your session expired — please log in again", "warning");
+      });
+      // Small delay so the toast renders before navigation
+      setTimeout(() => {
+        const isAdmin = window.location.pathname.startsWith("/admin");
+        window.location.href = isAdmin ? "/admin/login" : "/signin";
+      }, 800);
+    }
+    throw new ApiError(json.error || "Session expired", res.status, json.code);
+  }
+
+  // ── Rate-limit handler ─────────────────────────────────────────────────
+  if (res.status === 429) {
+    const retryAfter = json.retry_after_seconds ?? json.retryAfter;
+    const mins = retryAfter ? Math.ceil(retryAfter / 60) : null;
+    const msg = mins
+      ? `Too many attempts — try again in ${mins} minute${mins !== 1 ? "s" : ""}`
+      : "Too many attempts — please wait before trying again";
+    throw new ApiError(msg, 429, "TOO_MANY_ATTEMPTS");
+  }
+
   if (!res.ok || !json.success) {
     throw new ApiError(json.error || `Request failed (${res.status})`, res.status, json.code);
   }
@@ -119,6 +155,21 @@ export const authApi = {
 
   adminLogin: (email: string, password: string) =>
     request<AdminLoginResponse>("/api/auth/admin-login", { method: "POST", body: { email, password } }),
+
+  forgotPassword: (phone: string) =>
+    request<{ message: string }>("/api/auth/forgot-password", { method: "POST", body: { phone } }),
+
+  resetPassword: (phone: string, otp: string, newPassword: string) =>
+    request<{ message: string }>("/api/auth/reset-password", { method: "POST", body: { phone, otp, new_password: newPassword } }),
+
+  changePassword: (currentPassword: string, newPassword: string) =>
+    request<{ message: string }>("/api/auth/change-password", { method: "POST", body: { current_password: currentPassword, new_password: newPassword }, token: getToken() }),
+
+  logoutAll: () =>
+    request<{ message: string }>("/api/auth/logout-all", { method: "POST", token: getToken() }),
+
+  adminLogoutAll: () =>
+    request<{ message: string }>("/api/auth/admin-logout-all", { method: "POST", token: getAdminToken() }),
 };
 
 // ─── GAME ─────────────────────────────────────────────────────────────────────

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
@@ -427,13 +427,18 @@ function BlitzModule({ tournament, onClick }: { tournament: BlitzTournament; onC
 function PillSheet({ pack, pill, onConfirm, onClose, balance, bonusBalance }: {
   pack: PillPack; pill: PillPackPill; onConfirm: () => void; onClose: () => void; balance: number; bonusBalance: number;
 }) {
+  const [phase, setPhase] = useState<"preview" | "confirm">("preview");
   const [err, setErr] = useState("");
   const color = catColor(pack.category);
   const totalAvailable = balance + bonusBalance;
   const canAfford = totalAvailable >= pill.price;
-  // How much comes from bonus vs real balance
   const bonusUsed = Math.min(bonusBalance, pill.price);
   const realUsed = pill.price - bonusUsed;
+  // timer comes through as a field on pill when backend returns it
+  const timerSec = (pill as any).timer as number | undefined;
+  const timerLabel = timerSec
+    ? timerSec >= 60 ? `${Math.floor(timerSec / 60)} min${timerSec >= 120 ? "s" : ""}` : `${timerSec}s`
+    : null;
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -445,48 +450,91 @@ function PillSheet({ pack, pill, onConfirm, onClose, balance, bonusBalance }: {
         initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
         transition={{ type: "spring", stiffness: 340, damping: 32 }}
         onClick={(e) => e.stopPropagation()}
-        style={{
-          position: "relative", width: "100%", maxWidth: 420,
-          borderRadius: "24px 24px 0 0", padding: "28px 24px 32px",
-          backgroundColor: "var(--bg-card)",
-        }}
+        style={{ position: "relative", width: "100%", maxWidth: 420, borderRadius: "24px 24px 0 0", padding: "28px 24px 32px", backgroundColor: "var(--bg-card)" }}
       >
         <div style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: "#333", margin: "0 auto 20px" }} />
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, marginBottom: 20 }}>
-          <div style={{ width: 48, height: 48, borderRadius: "50%", backgroundColor: color, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <Package size={22} color="#fff" />
-          </div>
-          <p style={{ fontSize: 17, fontWeight: 600, color: "var(--text-primary)", margin: 0 }}>{pack.name}</p>
-          <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: 0 }}>{pack.category}</p>
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
-          <div style={{ borderRadius: 10, padding: "10px 12px", textAlign: "center", border: "1px solid var(--accent-amber)", backgroundColor: "rgba(232,163,61,0.08)" }}>
-            <p style={{ fontSize: 11, color: "var(--text-secondary)", margin: "0 0 4px" }}>Entry Fee</p>
-            <p style={{ fontSize: 17, fontFamily: "'IBM Plex Mono', monospace", fontWeight: 700, color: "var(--accent-amber)", margin: 0 }}>â‚¦{pill.price.toLocaleString()}</p>
-          </div>
-          <div style={{ borderRadius: 10, padding: "10px 12px", textAlign: "center", border: "1px solid var(--border-subtle)", backgroundColor: "var(--bg-base)" }}>
-            <p style={{ fontSize: 11, color: "var(--text-secondary)", margin: "0 0 4px" }}>Win up to</p>
-            <p style={{ fontSize: 17, fontFamily: "'IBM Plex Mono', monospace", fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>â‚¦{pill.prize.toLocaleString()}</p>
-          </div>
-        </div>
-        {/* Bonus breakdown â€” only shown when bonus contributes */}
-        {bonusUsed > 0 && canAfford && (
-          <p style={{ fontSize: 11, textAlign: "center", marginBottom: 12, color: "var(--accent-amber)" }}>
-            â‚¦{bonusUsed.toLocaleString()} from bonus credit{realUsed > 0 ? ` + â‚¦${realUsed.toLocaleString()} from balance` : " (fully covered)"}
-          </p>
-        )}
-        {!canAfford && <p style={{ textAlign: "center", color: "#f87171", fontSize: 13, marginBottom: 10 }}>Insufficient balance. <Link href="/wallet" style={{ textDecoration: "underline", fontWeight: 600 }}>Add funds</Link></p>}
-        {err && <p style={{ textAlign: "center", color: "#f87171", fontSize: 13, marginBottom: 10 }}>{err} <Link href="/profile" style={{ textDecoration: "underline", fontWeight: 600 }}>Adjust limits</Link></p>}
-        <button
-          onClick={() => { setErr(""); onConfirm(); }}
-          disabled={!canAfford}
-          style={{ width: "100%", padding: "13px 0", borderRadius: 10, border: "none", backgroundColor: color, color: "#000", fontSize: 14, fontWeight: 600, cursor: canAfford ? "pointer" : "not-allowed", opacity: canAfford ? 1 : 0.4, marginBottom: 10 }}
-        >
-          Take This Pill
-        </button>
-        <button onClick={onClose} style={{ width: "100%", padding: "12px 0", border: "none", background: "none", fontSize: 14, fontWeight: 600, color: "var(--text-secondary)", cursor: "pointer" }}>
-          Cancel
-        </button>
+
+        <AnimatePresence mode="wait">
+          {phase === "preview" ? (
+            <motion.div key="preview" initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -16 }}
+              style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              {/* Pack identity */}
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <div style={{ width: 44, height: 44, borderRadius: "50%", backgroundColor: color, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <Package size={20} color="#fff" />
+                </div>
+                <div>
+                  <p style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>{pack.name}</p>
+                  <p style={{ fontSize: 12, color: "var(--text-secondary)", margin: 0 }}>{pack.category}</p>
+                </div>
+              </div>
+              {/* Challenge hook */}
+              <div style={{ borderRadius: 12, padding: "14px 16px", backgroundColor: `${color}12`, border: `1px solid ${color}30` }}>
+                <p style={{ fontSize: 14, fontWeight: 600, lineHeight: 1.5, color: "var(--text-primary)", margin: 0 }}>
+                  {timerLabel ? `Think you can answer this in ${timerLabel}?` : "Think you can answer this correctly?"}
+                </p>
+                <p style={{ fontSize: 12, color: "var(--text-secondary)", margin: "4px 0 0" }}>
+                  Get it right and win{" "}
+                  <span style={{ fontFamily: "monospace", fontWeight: 700, color }}>₦{pill.prize.toLocaleString()}</span>
+                  {timerLabel && ` — you'll have ${timerLabel} on the clock`}.
+                </p>
+              </div>
+              {/* Stats row */}
+              <div style={{ display: "grid", gridTemplateColumns: timerLabel ? "1fr 1fr 1fr" : "1fr 1fr", gap: 8 }}>
+                <div style={{ borderRadius: 10, padding: "10px 8px", textAlign: "center", border: "1px solid var(--border-subtle)", backgroundColor: "var(--bg-base)" }}>
+                  <p style={{ fontSize: 9, color: "var(--text-muted)", margin: "0 0 3px", textTransform: "uppercase", letterSpacing: "0.06em" }}>Entry</p>
+                  <p style={{ fontSize: 14, fontFamily: "monospace", fontWeight: 700, color: "var(--accent-amber)", margin: 0 }}>₦{pill.price.toLocaleString()}</p>
+                </div>
+                <div style={{ borderRadius: 10, padding: "10px 8px", textAlign: "center", border: `1px solid ${color}40`, backgroundColor: `${color}08` }}>
+                  <p style={{ fontSize: 9, color: "var(--text-muted)", margin: "0 0 3px", textTransform: "uppercase", letterSpacing: "0.06em" }}>Prize</p>
+                  <p style={{ fontSize: 14, fontFamily: "monospace", fontWeight: 700, color, margin: 0 }}>₦{pill.prize.toLocaleString()}</p>
+                </div>
+                {timerLabel && (
+                  <div style={{ borderRadius: 10, padding: "10px 8px", textAlign: "center", border: "1px solid var(--border-subtle)", backgroundColor: "var(--bg-base)" }}>
+                    <p style={{ fontSize: 9, color: "var(--text-muted)", margin: "0 0 3px", textTransform: "uppercase", letterSpacing: "0.06em" }}>Time</p>
+                    <p style={{ fontSize: 13, fontFamily: "monospace", fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>{timerLabel}</p>
+                  </div>
+                )}
+              </div>
+              <button onClick={() => setPhase("confirm")}
+                style={{ width: "100%", padding: "13px 0", borderRadius: 10, border: "none", backgroundColor: color, color: "#000", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
+                {"I'm In — Show Entry Fee"}
+              </button>
+              <button onClick={onClose} style={{ width: "100%", padding: "10px 0", border: "none", background: "none", fontSize: 13, fontWeight: 600, color: "var(--text-secondary)", cursor: "pointer" }}>
+                Not now
+              </button>
+            </motion.div>
+          ) : (
+            <motion.div key="confirm" initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -16 }}
+              style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <p style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Confirm Entry</p>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                <div style={{ borderRadius: 10, padding: "10px 12px", textAlign: "center", border: "1px solid var(--accent-amber)", backgroundColor: "rgba(232,163,61,0.08)" }}>
+                  <p style={{ fontSize: 11, color: "var(--text-secondary)", margin: "0 0 4px" }}>You Pay</p>
+                  <p style={{ fontSize: 17, fontFamily: "monospace", fontWeight: 700, color: "var(--accent-amber)", margin: 0 }}>₦{pill.price.toLocaleString()}</p>
+                </div>
+                <div style={{ borderRadius: 10, padding: "10px 12px", textAlign: "center", border: `1px solid ${color}40`, backgroundColor: `${color}08` }}>
+                  <p style={{ fontSize: 11, color: "var(--text-secondary)", margin: "0 0 4px" }}>You Win</p>
+                  <p style={{ fontSize: 17, fontFamily: "monospace", fontWeight: 700, color, margin: 0 }}>₦{pill.prize.toLocaleString()}</p>
+                </div>
+              </div>
+              {bonusUsed > 0 && canAfford && (
+                <p style={{ fontSize: 11, textAlign: "center", color: "var(--accent-amber)" }}>
+                  ₦{bonusUsed.toLocaleString()} from bonus credit{realUsed > 0 ? ` + ₦${realUsed.toLocaleString()} from balance` : " (fully covered)"}
+                </p>
+              )}
+              {!canAfford && <p style={{ textAlign: "center", color: "#f87171", fontSize: 13 }}>Insufficient balance. <Link href="/wallet" style={{ textDecoration: "underline", fontWeight: 600 }}>Add funds</Link></p>}
+              {err && <p style={{ textAlign: "center", color: "#f87171", fontSize: 13 }}>{err}</p>}
+              <button onClick={() => { setErr(""); onConfirm(); }} disabled={!canAfford}
+                style={{ width: "100%", padding: "13px 0", borderRadius: 10, border: "none", backgroundColor: color, color: "#000", fontSize: 14, fontWeight: 700, cursor: canAfford ? "pointer" : "not-allowed", opacity: canAfford ? 1 : 0.4 }}>
+                Pay ₦{pill.price.toLocaleString()} &amp; Start
+              </button>
+              <button onClick={() => setPhase("preview")} style={{ width: "100%", padding: "10px 0", border: "none", background: "none", fontSize: 13, fontWeight: 600, color: "var(--text-secondary)", cursor: "pointer" }}>
+                Back
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </motion.div>
     </motion.div>
   );

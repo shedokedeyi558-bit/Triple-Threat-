@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAdmin } from "@/context/AdminContext";
 import { AdminSidebar } from "./AdminSidebar";
 import { AdminLogin } from "./AdminLogin";
@@ -9,12 +9,31 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { removeAdminToken } from "@/lib/api";
+import { showToast } from "@/components/ui/Toast";
+
+// Admin sessions are 30 minutes — warn at 25-minute mark
+const SESSION_DURATION_MS = 30 * 60 * 1000;
+const WARN_AT_MS = 25 * 60 * 1000;
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const { state, dispatch } = useAdmin();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const pathname = usePathname();
+  const warnedRef = useRef(false);
+
+  // Pre-expiry warning — fires once at the 25-min mark
+  useEffect(() => {
+    if (!state.isAuthenticated) return;
+    warnedRef.current = false;
+    const warnTimer = setTimeout(() => {
+      if (!warnedRef.current) {
+        warnedRef.current = true;
+        showToast("Your admin session expires in 5 minutes — save any open work", "warning", 8000);
+      }
+    }, WARN_AT_MS);
+    return () => clearTimeout(warnTimer);
+  }, [state.isAuthenticated]);
 
   const handleLogout = () => {
     if (loggingOut) return;

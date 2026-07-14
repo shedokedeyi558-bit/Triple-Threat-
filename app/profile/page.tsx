@@ -2,10 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import { useApp } from "@/context/AppContext";
-import { removeToken, playerApi, referralApi, ApiError, type ReferralStats } from "@/lib/api";
+import { removeToken, playerApi, referralApi, authApi, ApiError, type ReferralStats } from "@/lib/api";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { LogOut, Wallet, Shield, FileText, ChevronRight, Phone, AlertCircle, Loader2, Users, Copy, Check, Wand2 } from "lucide-react";
+import { LogOut, Wallet, Shield, FileText, ChevronRight, Phone, AlertCircle, Loader2, Users, Copy, Check, Wand2, Lock, MonitorX } from "lucide-react";
 import { useState, useEffect } from "react";
 
 export default function ProfilePage() {
@@ -18,6 +18,18 @@ export default function ProfilePage() {
   const [saveError, setSaveError] = useState("");
   const [referralStats, setReferralStats] = useState<ReferralStats | null>(null);
   const [copied, setCopied] = useState(false);
+
+  // Change-password state
+  const [cpCurrent, setCpCurrent] = useState("");
+  const [cpNew, setCpNew] = useState("");
+  const [cpConfirm, setCpConfirm] = useState("");
+  const [cpLoading, setCpLoading] = useState(false);
+  const [cpMsg, setCpMsg] = useState("");
+  const [cpError, setCpError] = useState("");
+
+  // Logout-all-devices state
+  const [showLogoutAllConfirm, setShowLogoutAllConfirm] = useState(false);
+  const [logoutAllLoading, setLogoutAllLoading] = useState(false);
 
   useEffect(() => {
     referralApi.getStats().then(setReferralStats).catch(() => {});
@@ -49,12 +61,7 @@ export default function ProfilePage() {
     setSaveMsg("");
     const daily = dailyLimit ? Number(dailyLimit) : null;
     const weekly = weeklyLimit ? Number(weeklyLimit) : null;
-    
-    if ((daily && daily <= 0) || (weekly && weekly <= 0)) {
-      setSaveError("Limits must be greater than 0");
-      return;
-    }
-    
+    if ((daily && daily <= 0) || (weekly && weekly <= 0)) { setSaveError("Limits must be greater than 0"); return; }
     setSaving(true);
     try {
       await playerApi.setPlayLimits(daily, weekly);
@@ -62,9 +69,34 @@ export default function ProfilePage() {
       setTimeout(() => setSaveMsg(""), 3000);
     } catch (err) {
       setSaveError(err instanceof ApiError ? err.message : "Failed to save limits");
-    } finally {
-      setSaving(false);
-    }
+    } finally { setSaving(false); }
+  };
+
+  const handleChangePassword = async () => {
+    setCpError(""); setCpMsg("");
+    if (cpNew.length < 6) { setCpError("New password must be at least 6 characters"); return; }
+    if (cpNew !== cpConfirm) { setCpError("Passwords don't match"); return; }
+    if (!cpCurrent) { setCpError("Enter your current password"); return; }
+    setCpLoading(true);
+    try {
+      await authApi.changePassword(cpCurrent, cpNew);
+      setCpMsg("Password updated");
+      setCpCurrent(""); setCpNew(""); setCpConfirm("");
+      setTimeout(() => setCpMsg(""), 3000);
+    } catch (err) {
+      setCpError(err instanceof ApiError ? err.message : "Failed to update password");
+    } finally { setCpLoading(false); }
+  };
+
+  const handleLogoutAll = async () => {
+    setLogoutAllLoading(true);
+    try {
+      await authApi.logoutAll();
+    } catch { /* silent — proceed regardless */ }
+    removeToken();
+    dispatch({ type: "LOGOUT" });
+    localStorage.removeItem("tt_player");
+    router.push("/signin");
   };
 
   const player = state.player;
@@ -78,10 +110,8 @@ export default function ProfilePage() {
           <p className="text-white font-black text-xl">{player?.name || "Player"}</p>
           <p className="text-gray-500 text-sm mt-0.5">{player?.phone}</p>
         </div>
-        <button
-          onClick={handleLogout}
-          className="hidden lg:flex items-center gap-2 text-red-400 text-sm font-semibold hover:text-red-300 transition-colors"
-        >
+        <button onClick={handleLogout}
+          className="hidden lg:flex items-center gap-2 text-red-400 text-sm font-semibold hover:text-red-300 transition-colors">
           <LogOut size={15} /> Log Out
         </button>
       </div>
@@ -216,8 +246,37 @@ export default function ProfilePage() {
           </button>
         </motion.div>
 
-        {/* Referrals — spans full width */}
-        <motion.div
+        {/* Change Password */}
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.11 }}
+          className="lg:col-span-2 bg-[#111] border border-[#1E1E1E] rounded-2xl p-5 space-y-4">
+          <div className="flex items-center gap-2">
+            <Lock size={14} style={{ color: "var(--accent-indigo)" }} />
+            <p className="text-[11px] text-gray-600 uppercase tracking-widest font-bold">Change Password</p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {[
+              { label: "Current Password", val: cpCurrent, set: setCpCurrent },
+              { label: "New Password",     val: cpNew,     set: setCpNew },
+              { label: "Confirm New",      val: cpConfirm, set: setCpConfirm },
+            ].map(({ label, val, set }) => (
+              <div key={label}>
+                <label className="text-gray-500 text-xs mb-1.5 block uppercase tracking-widest font-bold">{label}</label>
+                <input type="password" placeholder="••••••" value={val} onChange={(e) => set(e.target.value)}
+                  className="w-full bg-[#0A0A0A] border border-[#1E1E1E] rounded-xl px-4 py-2.5 text-white text-sm outline-none focus:border-[#4C6FFF]/40 placeholder:text-gray-700" />
+              </div>
+            ))}
+          </div>
+          {cpError && <div className="flex items-center gap-2 text-red-400 text-xs bg-red-900/10 border border-red-900/30 rounded-lg p-2.5"><AlertCircle size={14} className="flex-shrink-0" />{cpError}</div>}
+          {cpMsg  && <div className="flex items-center gap-2 text-xs bg-[#4C6FFF]/10 border border-[#4C6FFF]/30 rounded-lg p-2.5" style={{ color: "var(--accent-indigo)" }}>✓ {cpMsg}</div>}
+          <button onClick={handleChangePassword} disabled={cpLoading || !cpCurrent || cpNew.length < 6 || cpNew !== cpConfirm}
+            className="w-full py-2.5 rounded-lg font-bold text-sm disabled:opacity-40 flex items-center justify-center gap-2"
+            style={{ backgroundColor: "var(--accent-indigo)", color: "#fff" }}>
+            {cpLoading ? <Loader2 size={14} className="animate-spin" /> : null}
+            {cpLoading ? "Updating..." : "Update Password"}
+          </button>
+        </motion.div>
+
+        {/* Referrals — spans full width */}        <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.12 }}
@@ -299,6 +358,32 @@ export default function ProfilePage() {
         </motion.div>
 
       </div>
+
+      {/* Logout-all-devices — mobile + desktop */}
+      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.18 }} className="mt-3">
+        {!showLogoutAllConfirm ? (
+          <button onClick={() => setShowLogoutAllConfirm(true)}
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl border border-[#2A2A2A] text-gray-500 font-semibold text-sm hover:border-red-900/30 hover:text-red-400 transition-colors">
+            <MonitorX size={15} /> Log out of all devices
+          </button>
+        ) : (
+          <div className="border border-red-900/30 rounded-2xl p-4 space-y-3 bg-red-900/5">
+            <p className="text-sm font-semibold text-white">Log out everywhere?</p>
+            <p className="text-xs text-gray-500">This will log you out on all devices, including this one. You&apos;ll need to sign in again.</p>
+            <div className="flex gap-2">
+              <button onClick={handleLogoutAll} disabled={logoutAllLoading}
+                className="flex-1 py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 disabled:opacity-50"
+                style={{ backgroundColor: "#ef4444", color: "#fff" }}>
+                {logoutAllLoading ? <Loader2 size={14} className="animate-spin" /> : null}
+                {logoutAllLoading ? "Logging out..." : "Yes, log out everywhere"}
+              </button>
+              <button onClick={() => setShowLogoutAllConfirm(false)} className="flex-1 py-2.5 rounded-xl font-bold text-sm border border-[#1E1E1E] text-gray-400">
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+      </motion.div>
 
       {/* Logout — mobile only */}
       <motion.button
