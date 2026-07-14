@@ -848,21 +848,21 @@ export default function PlayPage() {
                 icon={<Wand2 size={17} style={{ color: "var(--accent-violet)", flexShrink: 0 }} />}
                 title={openPredictions.length > 0 ? `${openPredictions.length} open event${openPredictions.length !== 1 ? "s" : ""}` : "Time Machine"}
                 href="/time-machine"
-                linkLabel={predictions.length > 0 ? "see all" : ""}
+                linkLabel={openPredictions.length > 0 ? "see all" : ""}
                 secondHref="/predictions/mine"
                 secondLabel="my picks"
               />
-              {predictions.length === 0 ? (
+              {openPredictions.length === 0 ? (
                 <EmptyCard icon={<Wand2 size={16} style={{ color: "var(--accent-violet)" }} />} title="No open predictions" subtitle="New events added regularly" />
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                  {/* Deduplicate by id before rendering */}
-                  {Array.from(new Map(predictions.map((p) => [p.id, p])).values()).slice(0, 4).map((p) => (
+                  {/* Only open predictions rendered here — closed ones live in My Predictions */}
+                  {openPredictions.slice(0, 4).map((p) => (
                     <PredictionCard key={p.id} prediction={p} onClick={() => router.push(`/predictions/play/${p.id}`)} />
                   ))}
-                  {predictions.length > 4 && (
+                  {openPredictions.length > 4 && (
                     <Link href="/time-machine" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px 0", borderRadius: 8, border: "1px solid var(--border-subtle)", fontSize: 13, fontWeight: 600, color: "var(--accent-violet)", textDecoration: "none" }}>
-                      +{predictions.length - 4} more <ArrowRight size={13} />
+                      +{openPredictions.length - 4} more <ArrowRight size={13} />
                     </Link>
                   )}
                 </div>
