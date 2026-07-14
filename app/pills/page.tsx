@@ -301,7 +301,7 @@ export default function PillsPage() {
 
   const standardPacks = allPacks.filter((p) => !p.is_vip);
   const vipPacks = allPacks.filter((p) => p.is_vip);
-  const categories = [...new Set(standardPacks.map((p) => p.category))].sort();
+  const categories = Array.from(new Set(standardPacks.map((p) => p.category))).sort();
 
   const filteredPacks = activeCategory === "All"
     ? standardPacks
