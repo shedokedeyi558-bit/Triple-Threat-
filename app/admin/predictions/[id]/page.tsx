@@ -107,38 +107,23 @@ export default function AdminPredictionDetailPage() {
   useEffect(() => {
     if (!id) return;
 
-    // Try the dedicated predictions endpoint first.
-    // If the backend doesn't have GET /api/admin/predictions/:id yet,
-    // fall back to the games list and find the matching entry.
     const loadPrediction = async () => {
       try {
         const res = await adminApi.getPrediction(id);
-        setPrediction(res.prediction as PredictionDetail);
-      } catch (primaryErr) {
-        // Fallback: scan the games list
-        try {
-          const gamesRes = await adminApi.getGames({ limit: 1000 });
-          const found = (gamesRes.games as any[]).find((g) => g.id === id);
-          if (found) {
-            setPrediction({
-              id: found.id,
-              question: found.question || "Unnamed prediction",
-              category: found.category || "General",
-              entry_fee: found.entry_fee || 0,
-              prize_per_winner: found.prize_per_winner || 0,
-              slots_filled: found.slots_filled || 0,
-              max_slots: found.max_slots || 0,
-              status: found.status || "active",
-              countdown_end: found.countdown_end || "",
-              correct_answer: found.correct_answer ?? null,
-              answer_revealed_at: found.answer_revealed_at ?? null,
-            });
-          } else {
-            setError("Prediction not found");
-          }
-        } catch {
-          setError(primaryErr instanceof ApiError ? primaryErr.message : "Failed to load prediction");
+        const pred = res.prediction as PredictionDetail;
+        setPrediction(pred);
+        // Use the participants_summary from the detail endpoint if present —
+        // it's two cheap COUNT queries, no row fetching needed.
+        if ((res.prediction as any).participants_summary) {
+          const ps = (res.prediction as any).participants_summary;
+          setSummary({
+            total: ps.total ?? 0,
+            submitted: ps.submitted ?? 0,
+            pending_submission: ps.pending_submission ?? 0,
+          });
         }
+      } catch (err) {
+        setError(err instanceof ApiError ? err.message : "Failed to load prediction");
       } finally {
         setLoadingPred(false);
       }
