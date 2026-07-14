@@ -19,7 +19,8 @@ const config: Config = {
         danger: "#FF4444",
       },
       fontFamily: {
-        sans: ["Inter", "system-ui", "sans-serif"],
+        sans: ["IBM Plex Sans", "system-ui", "sans-serif"],
+        mono: ["IBM Plex Mono", "monospace"],
       },
       scale: {
         "98": "0.98",

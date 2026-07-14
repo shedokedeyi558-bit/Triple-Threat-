@@ -11,10 +11,10 @@ import {
 import { Clock, ChevronLeft, Zap, ArrowRight, Package, Wand2, AlertCircle, X } from "lucide-react";
 import Link from "next/link";
 
-// Feature flag — set NEXT_PUBLIC_BLITZ_ENABLED=true in env to re-enable
+// Feature flag â€” set NEXT_PUBLIC_BLITZ_ENABLED=true in env to re-enable
 const BLITZ_ENABLED = process.env.NEXT_PUBLIC_BLITZ_ENABLED === "true";
 
-// ─── Category colour map ───────────────────────────────────────────────────
+// â”€â”€â”€ Category colour map â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const CAT_COLOR: Record<string, string> = {
   Football: "#4C6FFF", Basketball: "#7C6FE8", Cricket: "#E8A33D",
   Crypto: "#8B5CF6", Politics: "#EC4899", Entertainment: "#FFD700",
@@ -24,16 +24,16 @@ const CAT_COLOR: Record<string, string> = {
 };
 const catColor = (cat: string) => CAT_COLOR[cat] ?? "#4C6FFF";
 
-// ─── HorizontalScrollRow ──────────────────────────────────────────────────
+// â”€â”€â”€ HorizontalScrollRow â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // ONE shared component for every horizontally-scrolling section.
 // Defensive properties that prevent the parent from being pushed wide:
-//   - overflow-x: auto  → enables scroll
-//   - overflow-y: hidden → no vertical bar
-//   - white-space: nowrap → single line
-//   - min-width: 0 on the div itself AND on the inner track → flex child won't
+//   - overflow-x: auto  â†’ enables scroll
+//   - overflow-y: hidden â†’ no vertical bar
+//   - white-space: nowrap â†’ single line
+//   - min-width: 0 on the div itself AND on the inner track â†’ flex child won't
 //     force the row wider than its container (the most common cause of page-
 //     level overflow in this app)
-//   - -webkit-overflow-scrolling: touch → iOS momentum scrolling
+//   - -webkit-overflow-scrolling: touch â†’ iOS momentum scrolling
 function HorizontalScrollRow({ children, gap = 12 }: { children: React.ReactNode; gap?: number }) {
   return (
     <div
@@ -59,7 +59,7 @@ function HorizontalScrollRow({ children, gap = 12 }: { children: React.ReactNode
   );
 }
 
-// ─── Segment filter ───────────────────────────────────────────────────────
+// â”€â”€â”€ Segment filter â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 type FilterVal = "All" | "Pills" | "Predictions" | "Blitz";
 const SEGMENTS: FilterVal[] = BLITZ_ENABLED
   ? ["All", "Pills", "Predictions", "Blitz"]
@@ -93,19 +93,23 @@ function SegmentFilter({ active, onChange }: { active: FilterVal; onChange: (v: 
   );
 }
 
-// ─── Pack card ────────────────────────────────────────────────────────────
-function PackCard({ pack, onClick }: { pack: PillPack; onClick: () => void }) {
+// â”€â”€â”€ Pack card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Used in both mobile horizontal-scroll and desktop 3-column grid.
+// On desktop the card fills the grid cell (width: 100%); on mobile it keeps
+// its fixed 148 px width so the horizontal-scroll layout works unchanged.
+function PackCard({ pack, onClick, desktopFull = false }: { pack: PillPack; onClick: () => void; desktopFull?: boolean }) {
   const color = catColor(pack.category);
   const price = pack.pills.length > 0 ? pack.pills[0].price : 0;
   return (
     <motion.button
-      initial={{ opacity: 0, x: 16 }}
-      animate={{ opacity: 1, x: 0 }}
+      initial={{ opacity: 0, y: desktopFull ? 10 : 0, x: desktopFull ? 0 : 16 }}
+      animate={{ opacity: 1, x: 0, y: 0 }}
       whileTap={{ scale: 0.97 }}
       onClick={onClick}
       style={{
-        flexShrink: 0,
-        width: 148,
+        /* On desktop grid the parent sets width; on mobile we fix to 148px */
+        flexShrink: desktopFull ? 1 : 0,
+        width: desktopFull ? "100%" : 148,
         borderRadius: 10,
         overflow: "hidden",
         backgroundColor: "var(--bg-card)",
@@ -120,25 +124,46 @@ function PackCard({ pack, onClick }: { pack: PillPack; onClick: () => void }) {
       <div style={{ height: 3, backgroundColor: color, width: "100%" }} />
 
       <div style={{ padding: "10px 11px 11px", flex: 1, display: "flex", flexDirection: "column", gap: 7 }}>
-        {/* Category + count on same line, category truncates if needed */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 4 }}>
-          <span style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>
+        {/* Category + pill-count badge â€” kept on the same line.
+            Category truncates with ellipsis; badge never wraps. */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6 }}>
+          <span style={{
+            fontSize: 9, fontWeight: 700, textTransform: "uppercase",
+            letterSpacing: "0.06em", color,
+            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+            minWidth: 0,
+          }}>
             {pack.category}
           </span>
-          <span style={{ fontSize: 9, fontWeight: 700, whiteSpace: "nowrap", flexShrink: 0, padding: "1px 5px", borderRadius: 20, backgroundColor: `${color}20`, color }}>
+          <span style={{
+            fontSize: 9, fontWeight: 700, whiteSpace: "nowrap", flexShrink: 0,
+            padding: "2px 6px", borderRadius: 20,
+            backgroundColor: `${color}20`,
+            color,
+            border: `1px solid ${color}40`,
+          }}>
             {pack.pills.length}p
           </span>
         </div>
 
-        {/* Pack name */}
-        <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-primary)", margin: 0, lineHeight: 1.3 }}>
+        {/* Pack name â€” up to 2 lines on desktop grid; single line on mobile */}
+        <p style={{
+          fontSize: 12, fontWeight: 600, color: "var(--text-primary)",
+          margin: 0, lineHeight: 1.35,
+          /* Allow wrapping â€” the grid cell gives enough horizontal room */
+          wordBreak: "break-word",
+        }}>
           {pack.name}
         </p>
 
-        {/* Price + arrow */}
+        {/* Price per pill + arrow */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "auto" }}>
-          <p style={{ fontSize: 11, fontFamily: "monospace", fontWeight: 700, color: "var(--accent-amber)", margin: 0 }}>
-            ₦{price.toLocaleString()}
+          <p style={{
+            fontSize: 11, fontFamily: "'IBM Plex Mono', monospace",
+            fontWeight: 700, color: "var(--accent-amber)", margin: 0,
+            textDecoration: "none",
+          }}>
+            â‚¦{price.toLocaleString()} / pill
           </p>
           <ArrowRight size={12} style={{ color, flexShrink: 0 }} />
         </div>
@@ -147,7 +172,7 @@ function PackCard({ pack, onClick }: { pack: PillPack; onClick: () => void }) {
   );
 }
 
-// ─── Pill chip (inside-pack view) ─────────────────────────────────────────
+// â”€â”€â”€ Pill chip (inside-pack view) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function PillChip({ pack, pill, onClick }: { pack: PillPack; pill: PillPackPill; onClick: () => void }) {
   const color = catColor(pack.category);
   const locked = pill.status !== "available";
@@ -175,24 +200,24 @@ function PillChip({ pack, pill, onClick }: { pack: PillPack; pill: PillPackPill;
       {locked ? (
         <>
           <Clock size={15} style={{ color: "var(--text-muted)" }} />
-          <span style={{ fontSize: 11, fontFamily: "monospace", fontWeight: 700, color: "var(--text-muted)" }}>soon</span>
+          <span style={{ fontSize: 11, fontFamily: "'IBM Plex Mono', monospace", fontWeight: 700, color: "var(--text-muted)" }}>soon</span>
         </>
       ) : (
         <>
           <Package size={15} style={{ color: "#fff", backgroundColor: color, borderRadius: "50%", padding: 3 }} />
-          <span style={{ fontSize: 11, fontFamily: "monospace", fontWeight: 700, color: "var(--accent-amber)" }}>₦{pill.price}</span>
+          <span style={{ fontSize: 11, fontFamily: "'IBM Plex Mono', monospace", fontWeight: 700, color: "var(--accent-amber)" }}>â‚¦{pill.price}</span>
         </>
       )}
     </motion.button>
   );
 }
 
-// ─── Prediction card — "event ticket" aesthetic ───────────────────────────
+// â”€â”€â”€ Prediction card â€” "event ticket" aesthetic â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Distinct from Pills:
 //   - Full-width stacked layout (no horizontal scroll)
 //   - Accent color left border (3px) + faint background tint
-//   - Countdown clock is the dominant visual — large mono font, top-right
-//   - Category pill-badge top-left
+//   - Countdown clock is the dominant visual â€” large mono font, top-right
+//   - Category pill-badge top-left with inline status badge (not a corner stamp)
 //   - Entry / Prize on a dashed divider row (ticket stub feel)
 function PredictionCard({ prediction, onClick }: { prediction: PredictionData; onClick: () => void }) {
   const [timeLeft, setTimeLeft] = useState(0);
@@ -203,16 +228,25 @@ function PredictionCard({ prediction, onClick }: { prediction: PredictionData; o
     return () => clearInterval(id);
   }, [prediction.countdown_end]);
 
-  const locked = prediction.status === "locked" || timeLeft <= 0;
+  // A prediction is closed/locked if the backend marks it so OR the countdown expired
+  const isLocked = prediction.status === "locked" || prediction.status === "completed" || prediction.status === "cancelled" || timeLeft <= 0;
+  const isOpen = !isLocked && prediction.status === "active";
+
   const h = Math.floor(timeLeft / 3600);
   const m = Math.floor((timeLeft % 3600) / 60);
   const s = timeLeft % 60;
-  const timeLabel = locked
+  const timeLabel = isLocked
     ? "Closed"
     : h > 0
     ? `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`
     : `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
   const color = catColor(prediction.category);
+
+  // Status badge â€” inline, muted, informative not alarming
+  const statusLabel = isOpen ? "Open" : isLocked && (prediction.status === "locked") ? "Locked" : "Closed";
+  const statusBg   = isOpen ? "rgba(76,111,255,0.15)"  : "rgba(180,140,60,0.15)";
+  const statusFg   = isOpen ? "var(--accent-indigo)"   : "rgba(200,160,70,0.9)";
+  const statusBorder = isOpen ? "rgba(76,111,255,0.3)" : "rgba(180,140,60,0.3)";
 
   return (
     <motion.button
@@ -238,19 +272,37 @@ function PredictionCard({ prediction, onClick }: { prediction: PredictionData; o
       <div style={{ position: "absolute", inset: 0, backgroundColor: color, opacity: 0.03, pointerEvents: "none" }} />
 
       <div style={{ position: "relative", padding: "11px 14px 0" }}>
-        {/* Row 1: category badge + countdown */}
+        {/* Row 1: category badge + status badge (inline) + countdown */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 7 }}>
+          {/* Left: category + status badge side by side */}
+          <div style={{ display: "flex", alignItems: "center", gap: 5, minWidth: 0 }}>
+            <span style={{
+              fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em",
+              padding: "2px 6px", borderRadius: 4,
+              backgroundColor: `${color}22`, color,
+              flexShrink: 0,
+            }}>
+              {prediction.category}
+            </span>
+            {/* Inline status badge â€” small, muted, never alarming */}
+            <span style={{
+              fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em",
+              padding: "2px 6px", borderRadius: 4,
+              backgroundColor: statusBg,
+              color: statusFg,
+              border: `1px solid ${statusBorder}`,
+              flexShrink: 0,
+            }}>
+              {statusLabel}
+            </span>
+          </div>
+          {/* Right: countdown clock */}
           <span style={{
-            fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em",
-            padding: "2px 6px", borderRadius: 4,
-            backgroundColor: `${color}22`, color,
-          }}>
-            {prediction.category}
-          </span>
-          <span style={{
-            fontSize: 13, fontFamily: "monospace", fontWeight: 800,
-            color: locked ? "var(--text-muted)" : color,
+            fontSize: 13, fontFamily: "'IBM Plex Mono', monospace", fontWeight: 800,
+            color: isLocked ? "var(--text-muted)" : color,
             letterSpacing: "-0.02em",
+            flexShrink: 0,
+            textDecoration: "none",
           }}>
             {timeLabel}
           </span>
@@ -271,14 +323,14 @@ function PredictionCard({ prediction, onClick }: { prediction: PredictionData; o
       }}>
         <div>
           <p style={{ fontSize: 9, color: "var(--text-muted)", margin: "0 0 1px", textTransform: "uppercase", letterSpacing: "0.06em" }}>Entry</p>
-          <p style={{ fontSize: 12, fontFamily: "monospace", fontWeight: 700, color: "var(--accent-amber)", margin: 0 }}>
-            ₦{prediction.fee.toLocaleString()}
+          <p style={{ fontSize: 12, fontFamily: "'IBM Plex Mono', monospace", fontWeight: 700, color: "var(--accent-amber)", margin: 0, textDecoration: "none" }}>
+            â‚¦{prediction.fee.toLocaleString()}
           </p>
         </div>
         <div style={{ textAlign: "right" }}>
           <p style={{ fontSize: 9, color: "var(--text-muted)", margin: "0 0 1px", textTransform: "uppercase", letterSpacing: "0.06em" }}>Prize pool</p>
-          <p style={{ fontSize: 12, fontFamily: "monospace", fontWeight: 700, color, margin: 0 }}>
-            ₦{prediction.prize_per_winner.toLocaleString()}
+          <p style={{ fontSize: 12, fontFamily: "'IBM Plex Mono', monospace", fontWeight: 700, color, margin: 0, textDecoration: "none" }}>
+            â‚¦{prediction.prize_per_winner.toLocaleString()}
           </p>
         </div>
       </div>
@@ -286,7 +338,7 @@ function PredictionCard({ prediction, onClick }: { prediction: PredictionData; o
   );
 }
 
-// ─── Live Blitz module ────────────────────────────────────────────────────
+// â”€â”€â”€ Live Blitz module â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function BlitzModule({ tournament, onClick }: { tournament: BlitzTournament; onClick: () => void }) {
   const isLive = tournament.status === "active";
   const isReg = tournament.status === "registration";
@@ -345,18 +397,18 @@ function BlitzModule({ tournament, onClick }: { tournament: BlitzTournament; onC
               style={{ width: 8, height: 8, borderRadius: "50%", backgroundColor: "#ef4444" }}
             />
           )}
-          <span style={{ fontSize: 11, fontFamily: "monospace", fontWeight: 700, color: isLive ? "#ef4444" : "var(--accent-amber)" }}>
+          <span style={{ fontSize: 11, fontFamily: "'IBM Plex Mono', monospace", fontWeight: 700, color: isLive ? "#ef4444" : "var(--accent-amber)" }}>
             {isLive ? "LIVE" : "STARTS IN"}
           </span>
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, marginBottom: 10 }}>
           <p style={{ fontSize: 17, fontWeight: 600, color: "var(--text-primary)", margin: 0 }}>{tournament.title}</p>
-          <span style={{ fontSize: 22, fontFamily: "monospace", fontWeight: 700, flexShrink: 0, color: "var(--accent-amber)" }}>
+          <span style={{ fontSize: 22, fontFamily: "'IBM Plex Mono', monospace", fontWeight: 700, flexShrink: 0, color: "var(--accent-amber)" }}>
             {countdown}
           </span>
         </div>
-        <p style={{ fontSize: 16, fontFamily: "monospace", fontWeight: 700, color: "var(--accent-amber)", margin: "0 0 4px" }}>
-          ₦{(estimate ?? tournament.prize_pool).toLocaleString()}
+        <p style={{ fontSize: 16, fontFamily: "'IBM Plex Mono', monospace", fontWeight: 700, color: "var(--accent-amber)", margin: "0 0 4px" }}>
+          â‚¦{(estimate ?? tournament.prize_pool).toLocaleString()}
         </p>
         {isReg && (
           <p style={{ fontSize: 12, color: "var(--text-secondary)", margin: "0 0 14px" }}>
@@ -364,14 +416,14 @@ function BlitzModule({ tournament, onClick }: { tournament: BlitzTournament; onC
           </p>
         )}
         <div style={{ width: "100%", padding: "8px 0", borderRadius: 8, backgroundColor: "var(--accent-amber)", textAlign: "center", fontSize: 13, fontWeight: 600, color: "#000", marginTop: 8 }}>
-          Join · ₦{tournament.entry_fee.toLocaleString()}
+          Join Â· â‚¦{tournament.entry_fee.toLocaleString()}
         </div>
       </div>
     </motion.button>
   );
 }
 
-// ─── Pill confirm sheet ────────────────────────────────────────────────────
+// â”€â”€â”€ Pill confirm sheet â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function PillSheet({ pack, pill, onConfirm, onClose, balance, bonusBalance }: {
   pack: PillPack; pill: PillPackPill; onConfirm: () => void; onClose: () => void; balance: number; bonusBalance: number;
 }) {
@@ -410,17 +462,17 @@ function PillSheet({ pack, pill, onConfirm, onClose, balance, bonusBalance }: {
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
           <div style={{ borderRadius: 10, padding: "10px 12px", textAlign: "center", border: "1px solid var(--accent-amber)", backgroundColor: "rgba(232,163,61,0.08)" }}>
             <p style={{ fontSize: 11, color: "var(--text-secondary)", margin: "0 0 4px" }}>Entry Fee</p>
-            <p style={{ fontSize: 17, fontFamily: "monospace", fontWeight: 700, color: "var(--accent-amber)", margin: 0 }}>₦{pill.price.toLocaleString()}</p>
+            <p style={{ fontSize: 17, fontFamily: "'IBM Plex Mono', monospace", fontWeight: 700, color: "var(--accent-amber)", margin: 0 }}>â‚¦{pill.price.toLocaleString()}</p>
           </div>
           <div style={{ borderRadius: 10, padding: "10px 12px", textAlign: "center", border: "1px solid var(--border-subtle)", backgroundColor: "var(--bg-base)" }}>
             <p style={{ fontSize: 11, color: "var(--text-secondary)", margin: "0 0 4px" }}>Win up to</p>
-            <p style={{ fontSize: 17, fontFamily: "monospace", fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>₦{pill.prize.toLocaleString()}</p>
+            <p style={{ fontSize: 17, fontFamily: "'IBM Plex Mono', monospace", fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>â‚¦{pill.prize.toLocaleString()}</p>
           </div>
         </div>
-        {/* Bonus breakdown — only shown when bonus contributes */}
+        {/* Bonus breakdown â€” only shown when bonus contributes */}
         {bonusUsed > 0 && canAfford && (
           <p style={{ fontSize: 11, textAlign: "center", marginBottom: 12, color: "var(--accent-amber)" }}>
-            ₦{bonusUsed.toLocaleString()} from bonus credit{realUsed > 0 ? ` + ₦${realUsed.toLocaleString()} from balance` : " (fully covered)"}
+            â‚¦{bonusUsed.toLocaleString()} from bonus credit{realUsed > 0 ? ` + â‚¦${realUsed.toLocaleString()} from balance` : " (fully covered)"}
           </p>
         )}
         {!canAfford && <p style={{ textAlign: "center", color: "#f87171", fontSize: 13, marginBottom: 10 }}>Insufficient balance. <Link href="/wallet" style={{ textDecoration: "underline", fontWeight: 600 }}>Add funds</Link></p>}
@@ -440,7 +492,7 @@ function PillSheet({ pack, pill, onConfirm, onClose, balance, bonusBalance }: {
   );
 }
 
-// ─── Section header ────────────────────────────────────────────────────────
+// â”€â”€â”€ Section header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function SectionHeader({ icon, title, href, linkLabel = "see all" }: {
   icon: React.ReactNode; title: string; href: string; linkLabel?: string;
 }) {
@@ -459,7 +511,7 @@ function SectionHeader({ icon, title, href, linkLabel = "see all" }: {
   );
 }
 
-// ─── Empty state card ──────────────────────────────────────────────────────
+// â”€â”€â”€ Empty state card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function EmptyCard({ icon, title, subtitle }: { icon: React.ReactNode; title: string; subtitle: string }) {
   return (
     <div style={{
@@ -476,7 +528,7 @@ function EmptyCard({ icon, title, subtitle }: { icon: React.ReactNode; title: st
   );
 }
 
-// ─── Main ──────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Main â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export default function PlayPage() {
   const { state } = useApp();
   const router = useRouter();
@@ -509,7 +561,7 @@ export default function PlayPage() {
       ]);
       if (pR.status === "fulfilled") {
         const allPacks = (pR.value.packs ?? []).filter((p) => p.status === "active");
-        // Separate VIP from standard — they render in different sections
+        // Separate VIP from standard â€” they render in different sections
         setPacks(allPacks.filter((p) => !p.is_vip));
         setVipPacks(allPacks.filter((p) => p.is_vip));
       }
@@ -529,11 +581,17 @@ export default function PlayPage() {
   const liveBlitz = blitz.filter((t) => t.status === "active" || t.status === "registration");
   const selectedPack = selectedPackId ? packs.find((p) => p.id === selectedPackId) ?? null : null;
 
+  // Count only predictions that are genuinely open:
+  // status === "active" AND countdown hasn't expired yet
+  const openPredictions = predictions.filter(
+    (p) => p.status === "active" && new Date(p.countdown_end).getTime() > Date.now()
+  );
+
   if (!state.isAuthenticated) return null;
 
   return (
     // ONE page wrapper. width:100%, overflow-x:hidden, box-sizing:border-box.
-    // This is the only place overflow-x containment is set — not on html/body
+    // This is the only place overflow-x containment is set â€” not on html/body
     // (which breaks iOS scroll) and not scattered per-section.
     <div style={{
       width: "100%",
@@ -570,14 +628,14 @@ export default function PlayPage() {
         )}
       </AnimatePresence>
 
-      {/* ── SEGMENT FILTER ── */}
+      {/* â”€â”€ SEGMENT FILTER â”€â”€ */}
       <div style={{ marginBottom: 24 }}>
         <SegmentFilter active={filter} onChange={setFilter} />
       </div>
 
       {loading ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
-          {/* Skeleton — Pills section */}
+          {/* Skeleton â€” Pills section */}
           <div>
             <div className="skeleton" style={{ height: 20, width: 120, borderRadius: 6, marginBottom: 14 }} />
             <div style={{ display: "flex", gap: 12, overflow: "hidden" }}>
@@ -586,14 +644,14 @@ export default function PlayPage() {
               ))}
             </div>
           </div>
-          {/* Skeleton — Predictions section */}
+          {/* Skeleton â€” Predictions section */}
           <div>
             <div className="skeleton" style={{ height: 20, width: 160, borderRadius: 6, marginBottom: 14 }} />
             {[1,2].map((i) => (
               <div key={i} className="skeleton" style={{ height: 110, borderRadius: 12, marginBottom: 10 }} />
             ))}
           </div>
-          {/* Skeleton — Blitz section */}
+          {/* Skeleton â€” Blitz section */}
           <div>
             <div className="skeleton" style={{ height: 20, width: 100, borderRadius: 6, marginBottom: 14 }} />
             <div className="skeleton" style={{ height: 140, borderRadius: 10 }} />
@@ -602,7 +660,7 @@ export default function PlayPage() {
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
 
-          {/* ── VIP PACKS — glowing golden cards ── */}
+          {/* â”€â”€ VIP PACKS â€” glowing golden cards â”€â”€ */}
           {showPills && vipPacks.length > 0 && (
             <section>
               <SectionHeader
@@ -671,21 +729,21 @@ export default function PlayPage() {
 
                         {/* Row 2: 10 questions label */}
                         <p style={{ fontSize: 10, color: "rgba(232,163,61,0.6)", margin: "0 0 12px", letterSpacing: "0.04em" }}>
-                          10-question exam · answer all to win
+                          10-question exam Â· answer all to win
                         </p>
 
                         {/* Row 3: entry + prize */}
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
                           <div>
                             <p style={{ fontSize: 9, color: "rgba(255,255,255,0.35)", margin: "0 0 2px", textTransform: "uppercase", letterSpacing: "0.06em" }}>Entry</p>
-                            <p style={{ fontSize: 13, fontFamily: "monospace", fontWeight: 700, color: "rgba(232,163,61,0.85)", margin: 0 }}>
-                              ₦{price.toLocaleString()}
+                            <p style={{ fontSize: 13, fontFamily: "'IBM Plex Mono', monospace", fontWeight: 700, color: "rgba(232,163,61,0.85)", margin: 0 }}>
+                              â‚¦{price.toLocaleString()}
                             </p>
                           </div>
                           <div style={{ textAlign: "right" }}>
                             <p style={{ fontSize: 9, color: "rgba(255,255,255,0.35)", margin: "0 0 2px", textTransform: "uppercase", letterSpacing: "0.06em" }}>Prize</p>
-                            <p style={{ fontSize: 17, fontFamily: "monospace", fontWeight: 900, color: "#FFD060", margin: 0 }}>
-                              ₦{prize.toLocaleString()}
+                            <p style={{ fontSize: 17, fontFamily: "'IBM Plex Mono', monospace", fontWeight: 900, color: "#FFD060", margin: 0 }}>
+                              â‚¦{prize.toLocaleString()}
                             </p>
                           </div>
                         </div>
@@ -700,7 +758,7 @@ export default function PlayPage() {
                         gap: 6,
                       }}>
                         <span style={{ fontSize: 11, fontWeight: 700, color: "var(--accent-amber)", letterSpacing: "0.04em" }}>
-                          Start Challenge →
+                          Start Challenge â†’
                         </span>
                       </div>
                     </motion.button>
@@ -710,7 +768,7 @@ export default function PlayPage() {
             </section>
           )}
 
-          {/* ── PILL PACKS (standard only) ── */}
+          {/* â”€â”€ PILL PACKS (standard only) â”€â”€ */}
           {showPills && (
             <section>
               <SectionHeader
@@ -747,21 +805,39 @@ export default function PlayPage() {
               ) : packs.length === 0 ? (
                 <EmptyCard icon={<Clock size={16} style={{ color: "var(--text-muted)" }} />} title="No packs live" subtitle="Check back soon" />
               ) : (
-                <HorizontalScrollRow>
-                  {packs.map((pack) => (
-                    <PackCard key={pack.id} pack={pack} onClick={() => setSelectedPackId(pack.id)} />
-                  ))}
-                </HorizontalScrollRow>
+                <>
+                  {/* â”€â”€ Mobile: horizontal scroll (< 768px) â”€â”€ */}
+                  <div className="block md:hidden">
+                    <HorizontalScrollRow>
+                      {packs.map((pack) => (
+                        <PackCard key={pack.id} pack={pack} onClick={() => setSelectedPackId(pack.id)} />
+                      ))}
+                    </HorizontalScrollRow>
+                  </div>
+
+                  {/* â”€â”€ Desktop: 3-column grid (â‰¥ 1024px), 2-col intermediate (768â€“1023px) â”€â”€ */}
+                  <div
+                    className="hidden md:grid"
+                    style={{
+                      gridTemplateColumns: "repeat(3, 1fr)",
+                      gap: 12,
+                    }}
+                  >
+                    {packs.map((pack) => (
+                      <PackCard key={pack.id} pack={pack} onClick={() => setSelectedPackId(pack.id)} desktopFull />
+                    ))}
+                  </div>
+                </>
               )}
             </section>
           )}
 
-          {/* ── TIME MACHINE ── */}
+          {/* â”€â”€ TIME MACHINE â”€â”€ */}
           {showPred && (
             <section>
               <SectionHeader
                 icon={<Wand2 size={17} style={{ color: "var(--accent-violet)", flexShrink: 0 }} />}
-                title={predictions.length > 0 ? `${predictions.length} open event${predictions.length !== 1 ? "s" : ""}` : "Time Machine"}
+                title={openPredictions.length > 0 ? `${openPredictions.length} open event${openPredictions.length !== 1 ? "s" : ""}` : "Time Machine"}
                 href="/time-machine"
                 linkLabel={predictions.length > 0 ? "see all" : ""}
               />
@@ -769,7 +845,8 @@ export default function PlayPage() {
                 <EmptyCard icon={<Wand2 size={16} style={{ color: "var(--accent-violet)" }} />} title="No open predictions" subtitle="New events added regularly" />
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                  {predictions.slice(0, 4).map((p) => (
+                  {/* Deduplicate by id before rendering */}
+                  {Array.from(new Map(predictions.map((p) => [p.id, p])).values()).slice(0, 4).map((p) => (
                     <PredictionCard key={p.id} prediction={p} onClick={() => router.push(`/predictions/play/${p.id}`)} />
                   ))}
                   {predictions.length > 4 && (
@@ -782,7 +859,7 @@ export default function PlayPage() {
             </section>
           )}
 
-          {/* ── LIVE BLITZ ── */}
+          {/* â”€â”€ LIVE BLITZ â”€â”€ */}
           {showBlitz && (
             <section>
               <SectionHeader

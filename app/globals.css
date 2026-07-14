@@ -109,6 +109,22 @@ body {
   font-weight: 500;
 }
 
+/* ── Currency symbol guard ──────────────────────────────────────────────────
+   Prevents any accidental strikethrough/line-through on ₦ amounts.
+   The ₦ glyph (U+20A6) is reliably present in IBM Plex Mono; we force
+   font-variant-numeric for consistent rendering and explicitly ban
+   text-decoration on any element that carries a font-mono class or
+   explicit monospace font — the most common container for currency values.
+────────────────────────────────────────────────────────────────────────── */
+.font-mono,
+[style*="font-family: monospace"],
+[style*="fontFamily: monospace"],
+[style*="IBM Plex Mono"] {
+  text-decoration: none;
+  font-variant-numeric: tabular-nums;
+  -webkit-text-decoration: none;
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: #111; }
