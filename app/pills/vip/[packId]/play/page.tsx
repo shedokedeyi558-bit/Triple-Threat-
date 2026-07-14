@@ -1,907 +1,372 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState, useCallback, useRef } from "react";
+import { useParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useApp } from "@/context/AppContext";
-import {
-  pillsApi, predictionsApi, blitzApi, playerApi,
-  type PillPack, type PillPackPill, type PredictionData, type BlitzTournament, ApiError,
-} from "@/lib/api";
-import { Clock, ChevronLeft, Zap, ArrowRight, Package, Wand2, AlertCircle, X } from "lucide-react";
-import Link from "next/link";
+import { vipPillsApi, type VipStartResponse, type VipAnswerResponse, ApiError } from "@/lib/api";
+import { Confetti } from "@/components/ui/Confetti";
+import { ChevronLeft, CheckCircle, XCircle, Trophy, Loader2, Clock } from "lucide-react";
 
-// Feature flag â€” set NEXT_PUBLIC_BLITZ_ENABLED=true in env to re-enable
-const BLITZ_ENABLED = process.env.NEXT_PUBLIC_BLITZ_ENABLED === "true";
+type Phase = "loading" | "playing" | "streak_complete" | "time_up" | "failed" | "error";
 
-// â”€â”€â”€ Category colour map â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-const CAT_COLOR: Record<string, string> = {
-  Football: "#4C6FFF", Basketball: "#7C6FE8", Cricket: "#E8A33D",
-  Crypto: "#8B5CF6", Politics: "#EC4899", Entertainment: "#FFD700",
-  Technology: "#00CFFF", Science: "#00FF66", Food: "#FF6B9D",
-  Lifestyle: "#FF8800", "General Knowledge": "#8B5CF6",
-  Sports: "#4C6FFF",
-};
-const catColor = (cat: string) => CAT_COLOR[cat] ?? "#4C6FFF";
-
-// â”€â”€â”€ HorizontalScrollRow â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// ONE shared component for every horizontally-scrolling section.
-// Defensive properties that prevent the parent from being pushed wide:
-//   - overflow-x: auto  â†’ enables scroll
-//   - overflow-y: hidden â†’ no vertical bar
-//   - white-space: nowrap â†’ single line
-//   - min-width: 0 on the div itself AND on the inner track â†’ flex child won't
-//     force the row wider than its container (the most common cause of page-
-//     level overflow in this app)
-//   - -webkit-overflow-scrolling: touch â†’ iOS momentum scrolling
-function HorizontalScrollRow({ children, gap = 12 }: { children: React.ReactNode; gap?: number }) {
+// ── Exam timer bar ────────────────────────────────────────────────────────────
+function ExamTimerBar({ secondsLeft, totalSeconds }: { secondsLeft: number; totalSeconds: number }) {
+  const pct = totalSeconds > 0 ? (secondsLeft / totalSeconds) * 100 : 0;
+  const isCritical = pct < 10;
+  const isWarning  = pct < 25;
   return (
-    <div
-      style={{
-        width: "100%",
-        minWidth: 0,
-        overflowX: "auto",
-        overflowY: "hidden",
-        WebkitOverflowScrolling: "touch",
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          gap,
-          minWidth: "min-content",
-          paddingBottom: 4,
-        }}
-      >
-        {children}
+    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+      <Clock size={13} style={{ flexShrink: 0, color: isCritical ? "#ef4444" : isWarning ? "var(--accent-amber)" : "var(--text-muted)" }} />
+      <div style={{ flex: 1, height: 4, borderRadius: 2, backgroundColor: "#1E1E1E", overflow: "hidden" }}>
+        <motion.div
+          animate={{ width: `${pct}%` }}
+          transition={{ duration: 0.5, ease: "linear" }}
+          style={{ height: "100%", borderRadius: 2, backgroundColor: isCritical ? "#ef4444" : isWarning ? "var(--accent-amber)" : "var(--accent-indigo)" }}
+        />
       </div>
-    </div>
-  );
-}
-
-// â”€â”€â”€ Segment filter â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-type FilterVal = "All" | "Pills" | "Predictions" | "Blitz";
-const SEGMENTS: FilterVal[] = BLITZ_ENABLED
-  ? ["All", "Pills", "Predictions", "Blitz"]
-  : ["All", "Pills", "Predictions"];
-
-function SegmentFilter({ active, onChange }: { active: FilterVal; onChange: (v: FilterVal) => void }) {
-  return (
-    <HorizontalScrollRow gap={8}>
-      {SEGMENTS.map((seg) => (
-        <button
-          key={seg}
-          onClick={() => onChange(seg)}
-          style={{
-            flexShrink: 0,
-            padding: "8px 16px",
-            borderRadius: 8,
-            fontSize: 14,
-            fontWeight: 600,
-            transition: "all .15s",
-            backgroundColor: active === seg ? "var(--accent-indigo)" : "transparent",
-            color: active === seg ? "#000" : "var(--text-secondary)",
-            border: active === seg ? "none" : "1px solid var(--border-subtle)",
-            cursor: "pointer",
-            whiteSpace: "nowrap",
-          }}
-        >
-          {seg}
-        </button>
-      ))}
-    </HorizontalScrollRow>
-  );
-}
-
-// â”€â”€â”€ Pack card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// Used in both mobile horizontal-scroll and desktop 3-column grid.
-// On desktop the card fills the grid cell (width: 100%); on mobile it keeps
-// its fixed 148 px width so the horizontal-scroll layout works unchanged.
-function PackCard({ pack, onClick, desktopFull = false }: { pack: PillPack; onClick: () => void; desktopFull?: boolean }) {
-  const color = catColor(pack.category);
-  const price = pack.pills.length > 0 ? pack.pills[0].price : 0;
-  return (
-    <motion.button
-      initial={{ opacity: 0, y: desktopFull ? 10 : 0, x: desktopFull ? 0 : 16 }}
-      animate={{ opacity: 1, x: 0, y: 0 }}
-      whileTap={{ scale: 0.97 }}
-      onClick={onClick}
-      style={{
-        /* On desktop grid the parent sets width; on mobile we fix to 148px */
-        flexShrink: desktopFull ? 1 : 0,
-        width: desktopFull ? "100%" : 148,
-        borderRadius: 10,
-        overflow: "hidden",
-        backgroundColor: "var(--bg-card)",
-        textAlign: "left",
-        cursor: "pointer",
-        border: `1px solid ${color}44`,
-        display: "flex",
-        flexDirection: "column",
-      }}
-    >
-      {/* Coloured top stripe */}
-      <div style={{ height: 3, backgroundColor: color, width: "100%" }} />
-
-      <div style={{ padding: "10px 11px 11px", flex: 1, display: "flex", flexDirection: "column", gap: 7 }}>
-        {/* Category + pill-count badge â€” kept on the same line.
-            Category truncates with ellipsis; badge never wraps. */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6 }}>
-          <span style={{
-            fontSize: 9, fontWeight: 700, textTransform: "uppercase",
-            letterSpacing: "0.06em", color,
-            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-            minWidth: 0,
-          }}>
-            {pack.category}
-          </span>
-          <span style={{
-            fontSize: 9, fontWeight: 700, whiteSpace: "nowrap", flexShrink: 0,
-            padding: "2px 6px", borderRadius: 20,
-            backgroundColor: `${color}20`,
-            color,
-            border: `1px solid ${color}40`,
-          }}>
-            {pack.pills.length}p
-          </span>
-        </div>
-
-        {/* Pack name â€” up to 2 lines on desktop grid; single line on mobile */}
-        <p style={{
-          fontSize: 12, fontWeight: 600, color: "var(--text-primary)",
-          margin: 0, lineHeight: 1.35,
-          /* Allow wrapping â€” the grid cell gives enough horizontal room */
-          wordBreak: "break-word",
-        }}>
-          {pack.name}
-        </p>
-
-        {/* Price per pill + arrow */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "auto" }}>
-          <p style={{
-            fontSize: 11, fontFamily: "'IBM Plex Mono', monospace",
-            fontWeight: 700, color: "var(--accent-amber)", margin: 0,
-            textDecoration: "none",
-          }}>
-            â‚¦{price.toLocaleString()} / pill
-          </p>
-          <ArrowRight size={12} style={{ color, flexShrink: 0 }} />
-        </div>
-      </div>
-    </motion.button>
-  );
-}
-
-// â”€â”€â”€ Pill chip (inside-pack view) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-function PillChip({ pack, pill, onClick }: { pack: PillPack; pill: PillPackPill; onClick: () => void }) {
-  const color = catColor(pack.category);
-  const locked = pill.status !== "available";
-  return (
-    <motion.button
-      initial={{ opacity: 0, x: 16 }}
-      animate={{ opacity: 1, x: 0 }}
-      onClick={onClick}
-      disabled={locked}
-      style={{
-        flexShrink: 0,
-        width: 88,
-        borderRadius: 44,
-        padding: 12,
-        border: `1.5px solid ${locked ? "var(--border-subtle)" : color}`,
-        backgroundColor: "var(--bg-card)",
-        opacity: locked ? 0.5 : 1,
-        cursor: locked ? "not-allowed" : "pointer",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        gap: 6,
-      }}
-    >
-      {locked ? (
-        <>
-          <Clock size={15} style={{ color: "var(--text-muted)" }} />
-          <span style={{ fontSize: 11, fontFamily: "'IBM Plex Mono', monospace", fontWeight: 700, color: "var(--text-muted)" }}>soon</span>
-        </>
-      ) : (
-        <>
-          <Package size={15} style={{ color: "#fff", backgroundColor: color, borderRadius: "50%", padding: 3 }} />
-          <span style={{ fontSize: 11, fontFamily: "'IBM Plex Mono', monospace", fontWeight: 700, color: "var(--accent-amber)" }}>â‚¦{pill.price}</span>
-        </>
-      )}
-    </motion.button>
-  );
-}
-
-// â”€â”€â”€ Prediction card â€” "event ticket" aesthetic â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// Distinct from Pills:
-//   - Full-width stacked layout (no horizontal scroll)
-//   - Accent color left border (3px) + faint background tint
-//   - Countdown clock is the dominant visual â€” large mono font, top-right
-//   - Category pill-badge top-left with inline status badge (not a corner stamp)
-//   - Entry / Prize on a dashed divider row (ticket stub feel)
-function PredictionCard({ prediction, onClick }: { prediction: PredictionData; onClick: () => void }) {
-  const [timeLeft, setTimeLeft] = useState(0);
-  useEffect(() => {
-    const tick = () => setTimeLeft(Math.max(0, Math.floor((new Date(prediction.countdown_end).getTime() - Date.now()) / 1000)));
-    tick();
-    const id = setInterval(tick, 1000);
-    return () => clearInterval(id);
-  }, [prediction.countdown_end]);
-
-  // A prediction is closed/locked if the backend marks it so OR the countdown expired
-  const isLocked = prediction.status === "locked" || prediction.status === "completed" || prediction.status === "cancelled" || timeLeft <= 0;
-  const isOpen = !isLocked && prediction.status === "active";
-
-  const h = Math.floor(timeLeft / 3600);
-  const m = Math.floor((timeLeft % 3600) / 60);
-  const s = timeLeft % 60;
-  const timeLabel = isLocked
-    ? "Closed"
-    : h > 0
-    ? `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`
-    : `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
-  const color = catColor(prediction.category);
-
-  // Status badge â€” inline, muted, informative not alarming
-  const statusLabel = isOpen ? "Open" : isLocked && (prediction.status === "locked") ? "Locked" : "Closed";
-  const statusBg   = isOpen ? "rgba(76,111,255,0.15)"  : "rgba(180,140,60,0.15)";
-  const statusFg   = isOpen ? "var(--accent-indigo)"   : "rgba(200,160,70,0.9)";
-  const statusBorder = isOpen ? "rgba(76,111,255,0.3)" : "rgba(180,140,60,0.3)";
-
-  return (
-    <motion.button
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      whileTap={{ scale: 0.985 }}
-      onClick={onClick}
-      style={{
-        width: "100%",
-        boxSizing: "border-box",
-        borderRadius: 12,
-        padding: "0",
-        textAlign: "left",
-        cursor: "pointer",
-        backgroundColor: "var(--bg-card)",
-        border: `1px solid rgba(255,255,255,0.06)`,
-        borderLeft: `3px solid ${color}`,
-        overflow: "hidden",
-        position: "relative",
-      }}
-    >
-      {/* Faint category-color background wash */}
-      <div style={{ position: "absolute", inset: 0, backgroundColor: color, opacity: 0.03, pointerEvents: "none" }} />
-
-      <div style={{ position: "relative", padding: "11px 14px 0" }}>
-        {/* Row 1: category badge + status badge (inline) + countdown */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 7 }}>
-          {/* Left: category + status badge side by side */}
-          <div style={{ display: "flex", alignItems: "center", gap: 5, minWidth: 0 }}>
-            <span style={{
-              fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em",
-              padding: "2px 6px", borderRadius: 4,
-              backgroundColor: `${color}22`, color,
-              flexShrink: 0,
-            }}>
-              {prediction.category}
-            </span>
-            {/* Inline status badge â€” small, muted, never alarming */}
-            <span style={{
-              fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em",
-              padding: "2px 6px", borderRadius: 4,
-              backgroundColor: statusBg,
-              color: statusFg,
-              border: `1px solid ${statusBorder}`,
-              flexShrink: 0,
-            }}>
-              {statusLabel}
-            </span>
-          </div>
-          {/* Right: countdown clock */}
-          <span style={{
-            fontSize: 13, fontFamily: "'IBM Plex Mono', monospace", fontWeight: 800,
-            color: isLocked ? "var(--text-muted)" : color,
-            letterSpacing: "-0.02em",
-            flexShrink: 0,
-            textDecoration: "none",
-          }}>
-            {timeLabel}
-          </span>
-        </div>
-
-        {/* Question */}
-        <p style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.4, color: "var(--text-primary)", margin: "0 0 11px" }}>
-          {prediction.question}
-        </p>
-      </div>
-
-      {/* Ticket stub divider + footer */}
-      <div style={{
-        display: "flex", justifyContent: "space-between", alignItems: "center",
-        padding: "7px 15px",
-        borderTop: `1px dashed ${color}40`,
-        backgroundColor: `${color}08`,
+      <span style={{
+        fontSize: 12, fontFamily: "monospace", fontWeight: 700, flexShrink: 0,
+        minWidth: 38, textAlign: "right",
+        color: isCritical ? "#ef4444" : isWarning ? "var(--accent-amber)" : "var(--text-primary)",
       }}>
-        <div>
-          <p style={{ fontSize: 9, color: "var(--text-muted)", margin: "0 0 1px", textTransform: "uppercase", letterSpacing: "0.06em" }}>Entry</p>
-          <p style={{ fontSize: 12, fontFamily: "'IBM Plex Mono', monospace", fontWeight: 700, color: "var(--accent-amber)", margin: 0, textDecoration: "none" }}>
-            â‚¦{prediction.fee.toLocaleString()}
-          </p>
-        </div>
-        <div style={{ textAlign: "right" }}>
-          <p style={{ fontSize: 9, color: "var(--text-muted)", margin: "0 0 1px", textTransform: "uppercase", letterSpacing: "0.06em" }}>Prize pool</p>
-          <p style={{ fontSize: 12, fontFamily: "'IBM Plex Mono', monospace", fontWeight: 700, color, margin: 0, textDecoration: "none" }}>
-            â‚¦{prediction.prize_per_winner.toLocaleString()}
-          </p>
-        </div>
-      </div>
-    </motion.button>
-  );
-}
-
-// â”€â”€â”€ Live Blitz module â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-function BlitzModule({ tournament, onClick }: { tournament: BlitzTournament; onClick: () => void }) {
-  const isLive = tournament.status === "active";
-  const isReg = tournament.status === "registration";
-  const [countdown, setCountdown] = useState("");
-  const [estimate, setEstimate] = useState<number | null>(null);
-
-  useEffect(() => {
-    const tick = () => {
-      const target = isLive
-        ? new Date(tournament.tournament_end).getTime()
-        : new Date(tournament.tournament_start).getTime();
-      const ms = target - Date.now();
-      if (ms <= 0) { setCountdown(isLive ? "Ending soon" : "Starting now"); return; }
-      const hrs = Math.floor(ms / 3600000);
-      const mins = Math.floor((ms % 3600000) / 60000);
-      setCountdown(hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`);
-    };
-    tick();
-    const id = setInterval(tick, 1000);
-    return () => clearInterval(id);
-  }, [tournament, isLive]);
-
-  useEffect(() => {
-    if (isReg) {
-      setEstimate(tournament.entry_fee * tournament.total_registered * 0.8);
-    } else {
-      setEstimate(tournament.prize_pool);
-    }
-  }, [tournament, isReg]);
-
-  return (
-    <motion.button
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      onClick={onClick}
-      style={{
-        width: "100%",
-        boxSizing: "border-box",
-        borderRadius: 10,
-        padding: "20px 20px",
-        textAlign: "left",
-        cursor: "pointer",
-        border: "2px solid var(--accent-amber)",
-        backgroundColor: "var(--bg-card)",
-        position: "relative",
-        overflow: "hidden",
-      }}
-    >
-      <div style={{ position: "absolute", inset: 0, backgroundColor: "var(--accent-amber)", opacity: 0.06 }} />
-      <div style={{ position: "relative", zIndex: 1 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-          {isLive && (
-            <motion.div
-              animate={{ opacity: [1, 0.4, 1] }}
-              transition={{ duration: 1.4, repeat: Infinity }}
-              style={{ width: 8, height: 8, borderRadius: "50%", backgroundColor: "#ef4444" }}
-            />
-          )}
-          <span style={{ fontSize: 11, fontFamily: "'IBM Plex Mono', monospace", fontWeight: 700, color: isLive ? "#ef4444" : "var(--accent-amber)" }}>
-            {isLive ? "LIVE" : "STARTS IN"}
-          </span>
-        </div>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, marginBottom: 10 }}>
-          <p style={{ fontSize: 17, fontWeight: 600, color: "var(--text-primary)", margin: 0 }}>{tournament.title}</p>
-          <span style={{ fontSize: 22, fontFamily: "'IBM Plex Mono', monospace", fontWeight: 700, flexShrink: 0, color: "var(--accent-amber)" }}>
-            {countdown}
-          </span>
-        </div>
-        <p style={{ fontSize: 16, fontFamily: "'IBM Plex Mono', monospace", fontWeight: 700, color: "var(--accent-amber)", margin: "0 0 4px" }}>
-          â‚¦{(estimate ?? tournament.prize_pool).toLocaleString()}
-        </p>
-        {isReg && (
-          <p style={{ fontSize: 12, color: "var(--text-secondary)", margin: "0 0 14px" }}>
-            {tournament.total_registered} registered
-          </p>
-        )}
-        <div style={{ width: "100%", padding: "8px 0", borderRadius: 8, backgroundColor: "var(--accent-amber)", textAlign: "center", fontSize: 13, fontWeight: 600, color: "#000", marginTop: 8 }}>
-          Join Â· â‚¦{tournament.entry_fee.toLocaleString()}
-        </div>
-      </div>
-    </motion.button>
-  );
-}
-
-// â”€â”€â”€ Pill confirm sheet â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-function PillSheet({ pack, pill, onConfirm, onClose, balance, bonusBalance }: {
-  pack: PillPack; pill: PillPackPill; onConfirm: () => void; onClose: () => void; balance: number; bonusBalance: number;
-}) {
-  const [err, setErr] = useState("");
-  const color = catColor(pack.category);
-  const totalAvailable = balance + bonusBalance;
-  const canAfford = totalAvailable >= pill.price;
-  // How much comes from bonus vs real balance
-  const bonusUsed = Math.min(bonusBalance, pill.price);
-  const realUsed = pill.price - bonusUsed;
-
-  return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "flex-end", justifyContent: "center" }}
-      onClick={onClose}
-    >
-      <div style={{ position: "absolute", inset: 0, backgroundColor: "rgba(0,0,0,0.8)", backdropFilter: "blur(4px)" }} />
-      <motion.div
-        initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
-        transition={{ type: "spring", stiffness: 340, damping: 32 }}
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          position: "relative", width: "100%", maxWidth: 420,
-          borderRadius: "24px 24px 0 0", padding: "28px 24px 32px",
-          backgroundColor: "var(--bg-card)",
-        }}
-      >
-        <div style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: "#333", margin: "0 auto 20px" }} />
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, marginBottom: 20 }}>
-          <div style={{ width: 48, height: 48, borderRadius: "50%", backgroundColor: color, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <Package size={22} color="#fff" />
-          </div>
-          <p style={{ fontSize: 17, fontWeight: 600, color: "var(--text-primary)", margin: 0 }}>{pack.name}</p>
-          <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: 0 }}>{pack.category}</p>
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
-          <div style={{ borderRadius: 10, padding: "10px 12px", textAlign: "center", border: "1px solid var(--accent-amber)", backgroundColor: "rgba(232,163,61,0.08)" }}>
-            <p style={{ fontSize: 11, color: "var(--text-secondary)", margin: "0 0 4px" }}>Entry Fee</p>
-            <p style={{ fontSize: 17, fontFamily: "'IBM Plex Mono', monospace", fontWeight: 700, color: "var(--accent-amber)", margin: 0 }}>â‚¦{pill.price.toLocaleString()}</p>
-          </div>
-          <div style={{ borderRadius: 10, padding: "10px 12px", textAlign: "center", border: "1px solid var(--border-subtle)", backgroundColor: "var(--bg-base)" }}>
-            <p style={{ fontSize: 11, color: "var(--text-secondary)", margin: "0 0 4px" }}>Win up to</p>
-            <p style={{ fontSize: 17, fontFamily: "'IBM Plex Mono', monospace", fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>â‚¦{pill.prize.toLocaleString()}</p>
-          </div>
-        </div>
-        {/* Bonus breakdown â€” only shown when bonus contributes */}
-        {bonusUsed > 0 && canAfford && (
-          <p style={{ fontSize: 11, textAlign: "center", marginBottom: 12, color: "var(--accent-amber)" }}>
-            â‚¦{bonusUsed.toLocaleString()} from bonus credit{realUsed > 0 ? ` + â‚¦${realUsed.toLocaleString()} from balance` : " (fully covered)"}
-          </p>
-        )}
-        {!canAfford && <p style={{ textAlign: "center", color: "#f87171", fontSize: 13, marginBottom: 10 }}>Insufficient balance. <Link href="/wallet" style={{ textDecoration: "underline", fontWeight: 600 }}>Add funds</Link></p>}
-        {err && <p style={{ textAlign: "center", color: "#f87171", fontSize: 13, marginBottom: 10 }}>{err} <Link href="/profile" style={{ textDecoration: "underline", fontWeight: 600 }}>Adjust limits</Link></p>}
-        <button
-          onClick={() => { setErr(""); onConfirm(); }}
-          disabled={!canAfford}
-          style={{ width: "100%", padding: "13px 0", borderRadius: 10, border: "none", backgroundColor: color, color: "#000", fontSize: 14, fontWeight: 600, cursor: canAfford ? "pointer" : "not-allowed", opacity: canAfford ? 1 : 0.4, marginBottom: 10 }}
-        >
-          Take This Pill
-        </button>
-        <button onClick={onClose} style={{ width: "100%", padding: "12px 0", border: "none", background: "none", fontSize: 14, fontWeight: 600, color: "var(--text-secondary)", cursor: "pointer" }}>
-          Cancel
-        </button>
-      </motion.div>
-    </motion.div>
-  );
-}
-
-// â”€â”€â”€ Section header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-function SectionHeader({ icon, title, href, linkLabel = "see all" }: {
-  icon: React.ReactNode; title: string; href: string; linkLabel?: string;
-}) {
-  return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-        {icon}
-        <h2 style={{ fontSize: 17, fontWeight: 600, color: "var(--text-primary)", margin: 0, whiteSpace: "nowrap" }}>
-          {title}
-        </h2>
-      </div>
-      <Link href={href} style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)", flexShrink: 0, marginLeft: 8, textDecoration: "none" }}>
-        {linkLabel}
-      </Link>
+        {Math.floor(secondsLeft / 60)}:{String(secondsLeft % 60).padStart(2, "0")}
+      </span>
     </div>
   );
 }
 
-// â”€â”€â”€ Empty state card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-function EmptyCard({ icon, title, subtitle }: { icon: React.ReactNode; title: string; subtitle: string }) {
+// ── Exam question UI (no per-question timer) ──────────────────────────────────
+function ExamQuestion({ question, format, options, onSubmit, isLoading, questionNum, totalQuestions }: {
+  question: string; format: "multiple_choice" | "type_answer"; options?: string[];
+  onSubmit: (a: string) => void; isLoading: boolean;
+  questionNum: number; totalQuestions: number;
+}) {
+  const [selected, setSelected] = useState<string | null>(null);
+  const [typed, setTyped] = useState("");
+
+  useEffect(() => { setSelected(null); setTyped(""); }, [question]);
+
+  const submit = (ans: string) => { if (!ans.trim() || isLoading) return; onSubmit(ans.trim()); };
+
   return (
-    <div style={{
-      width: "100%", boxSizing: "border-box", borderRadius: 10, padding: "28px 20px",
-      display: "flex", alignItems: "center", justifyContent: "center", gap: 12,
-      border: "1px solid var(--border-subtle)", backgroundColor: "var(--bg-card)",
-    }}>
-      {icon}
+    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       <div>
-        <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)", margin: 0 }}>{title}</p>
-        <p style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 4 }}>{subtitle}</p>
+        <p style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--accent-amber)", marginBottom: 8 }}>
+          Question {questionNum} of {totalQuestions}
+        </p>
+        <p style={{ fontSize: 17, fontWeight: 600, lineHeight: 1.5, color: "var(--text-primary)", margin: 0 }}>{question}</p>
       </div>
-    </div>
-  );
-}
 
-// â”€â”€â”€ Main â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-export default function PlayPage() {
-  const { state } = useApp();
-  const router = useRouter();
-  const [packs, setPacks] = useState<PillPack[]>([]);
-  const [vipPacks, setVipPacks] = useState<PillPack[]>([]);
-  const [predictions, setPredictions] = useState<PredictionData[]>([]);
-  const [blitz, setBlitz] = useState<BlitzTournament[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [sheet, setSheet] = useState<{ pack: PillPack; pill: PillPackPill } | null>(null);
-  const [filter, setFilter] = useState<FilterVal>("All");
-  const [selectedPackId, setSelectedPackId] = useState<string | null>(null);
-  const [playsToday, setPlaysToday] = useState(0);
-  const [nudgeDismissed, setNudgeDismissed] = useState(false);
-
-  useEffect(() => {
-    if (!state.isAuthenticated) { router.push("/auth"); return; }
-    fetchAll();
-    const id = setInterval(fetchAll, 15000);
-    return () => clearInterval(id);
-  }, [state.isAuthenticated]); // eslint-disable-line
-
-  const fetchAll = useCallback(async () => {
-    try {
-      const [pR, predR, bR, spendR] = await Promise.allSettled([
-        pillsApi.getPacks(),
-        predictionsApi.getActive(),
-        blitzApi.getAll(),
-        playerApi.getSpendSummary(),
-      ]);
-      if (pR.status === "fulfilled") {
-        const allPacks = (pR.value.packs ?? []).filter((p) => p.status === "active");
-        // Separate VIP from standard â€” they render in different sections
-        setPacks(allPacks.filter((p) => !p.is_vip));
-        setVipPacks(allPacks.filter((p) => p.is_vip));
-      }
-      if (predR.status === "fulfilled") setPredictions(predR.value.predictions ?? []);
-      if (bR.status === "fulfilled") setBlitz(bR.value.tournaments ?? []);
-      if (spendR.status === "fulfilled") setPlaysToday(spendR.value.plays_today ?? 0);
-    } catch (e) {
-      if (e instanceof ApiError) setError(e.message);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  const showPills = filter === "All" || filter === "Pills";
-  const showPred  = filter === "All" || filter === "Predictions";
-  const showBlitz = BLITZ_ENABLED && (filter === "All" || filter === "Blitz");
-  const liveBlitz = blitz.filter((t) => t.status === "active" || t.status === "registration");
-  const selectedPack = selectedPackId ? packs.find((p) => p.id === selectedPackId) ?? null : null;
-
-  // Count only predictions that are genuinely open:
-  // status === "active" AND countdown hasn't expired yet
-  const openPredictions = predictions.filter(
-    (p) => p.status === "active" && new Date(p.countdown_end).getTime() > Date.now()
-  );
-
-  if (!state.isAuthenticated) return null;
-
-  return (
-    // ONE page wrapper. width:100%, overflow-x:hidden, box-sizing:border-box.
-    // This is the only place overflow-x containment is set â€” not on html/body
-    // (which breaks iOS scroll) and not scattered per-section.
-    <div style={{
-      width: "100%",
-      maxWidth: "100vw",
-      overflowX: "hidden",
-      boxSizing: "border-box",
-      padding: "20px 16px 100px",
-      minHeight: "100%",
-    }}>
-
-      {/* Error banner */}
-      {error && (
-        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", borderRadius: 8, marginBottom: 16, border: "1px solid var(--border-subtle)", backgroundColor: "rgba(239,68,68,0.05)", color: "#f87171", fontSize: 13 }}>
-          <AlertCircle size={15} style={{ flexShrink: 0 }} />
-          {error}
+      {format === "multiple_choice" && options && options.length > 0 ? (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {options.map((opt, i) => (
+            <button key={i} onClick={() => setSelected(opt)} disabled={isLoading}
+              style={{
+                width: "100%", textAlign: "left", padding: "13px 16px", borderRadius: 10,
+                border: selected === opt ? "1.5px solid var(--accent-amber)" : "1.5px solid var(--border-subtle)",
+                backgroundColor: selected === opt ? "rgba(232,163,61,0.08)" : "var(--bg-card)",
+                color: selected === opt ? "var(--accent-amber)" : "var(--text-primary)",
+                fontSize: 14, fontWeight: selected === opt ? 600 : 400,
+                cursor: isLoading ? "not-allowed" : "pointer", transition: "all 0.12s",
+              }}>
+              {opt}
+            </button>
+          ))}
+          <button onClick={() => selected && submit(selected)} disabled={!selected || isLoading}
+            style={{
+              marginTop: 4, width: "100%", padding: "13px 0", borderRadius: 10, border: "none",
+              backgroundColor: selected ? "var(--accent-amber)" : "var(--border-subtle)",
+              color: selected ? "#000" : "var(--text-muted)",
+              fontSize: 14, fontWeight: 700,
+              cursor: !selected || isLoading ? "not-allowed" : "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+              opacity: isLoading ? 0.6 : 1,
+            }}>
+            {isLoading ? <Loader2 size={16} className="animate-spin" /> : null}
+            {isLoading ? "Submitting..." : "Confirm Answer"}
+          </button>
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <input type="text" placeholder="Type your answer..."
+            value={typed} onChange={(e) => setTyped(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && submit(typed)}
+            disabled={isLoading}
+            style={{
+              width: "100%", padding: "13px 16px", borderRadius: 10, boxSizing: "border-box",
+              border: "1.5px solid var(--border-subtle)", backgroundColor: "var(--bg-card)",
+              color: "var(--text-primary)", fontSize: 14, outline: "none",
+            }}
+          />
+          <button onClick={() => submit(typed)} disabled={!typed.trim() || isLoading}
+            style={{
+              width: "100%", padding: "13px 0", borderRadius: 10, border: "none",
+              backgroundColor: typed.trim() ? "var(--accent-amber)" : "var(--border-subtle)",
+              color: typed.trim() ? "#000" : "var(--text-muted)",
+              fontSize: 14, fontWeight: 700,
+              cursor: !typed.trim() || isLoading ? "not-allowed" : "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+              opacity: isLoading ? 0.6 : 1,
+            }}>
+            {isLoading ? <Loader2 size={16} className="animate-spin" /> : null}
+            {isLoading ? "Submitting..." : "Confirm Answer"}
+          </button>
         </div>
       )}
+    </div>
+  );
+}
 
-      {/* Responsible-play nudge */}
-      <AnimatePresence>
-        {playsToday > 5 && !nudgeDismissed && (
-          <motion.div
-            initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
-            style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", borderRadius: 8, marginBottom: 16, border: "1px solid var(--accent-amber)", backgroundColor: "rgba(232,163,61,0.08)" }}
-          >
-            <p style={{ fontSize: 13, color: "var(--text-primary)", margin: 0 }}>
-              You&apos;ve played {playsToday} times today.{" "}
-              <Link href="/profile" style={{ fontWeight: 600, textDecoration: "underline", color: "inherit" }}>Set a limit</Link>
-            </p>
-            <button onClick={() => setNudgeDismissed(true)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--accent-amber)", padding: 4, flexShrink: 0 }}>
-              <X size={15} />
+// ── Main page ─────────────────────────────────────────────────────────────────
+export default function VipPlayPage() {
+  const params = useParams();
+  const router = useRouter();
+  const { state, dispatch } = useApp();
+  const packId = params.packId as string;
+
+  const [phase, setPhase]                 = useState<Phase>("loading");
+  const [sessionId, setSessionId]         = useState<string | null>(null);
+  const [currentQuestion, setCurrentQ]   = useState<VipStartResponse["question"] | null>(null);
+  const [questionIndex, setQuestionIndex] = useState(0);
+  const [totalQuestions, setTotal]        = useState(10);
+  const [packName, setPackName]           = useState("");
+  const [entryFee, setEntryFee]           = useState(0);
+  const [submitting, setSubmitting]       = useState(false);
+  const [failedAt, setFailedAt]           = useState<{ questionNum: number; correctAnswer: string; entryFee: number } | null>(null);
+  const [error, setError]                 = useState<string | null>(null);
+  const [totalPrize, setTotalPrize]       = useState(0);
+  const [examSeconds, setExamSeconds]     = useState(0);
+  const [totalExamSeconds, setTotalExamS] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const stopTimer = () => { if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; } };
+
+  const startTimer = (seconds: number) => {
+    stopTimer();
+    setExamSeconds(seconds);
+    setTotalExamS(seconds);
+    timerRef.current = setInterval(() => {
+      setExamSeconds((prev) => {
+        if (prev <= 1) { stopTimer(); setPhase("time_up"); return 0; }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  useEffect(() => () => stopTimer(), []);
+
+  const startOrResume = useCallback(async () => {
+    if (!state.isAuthenticated) { router.push("/auth"); return; }
+    setPhase("loading"); setError(null); stopTimer();
+    try {
+      const res: VipStartResponse = await vipPillsApi.start(packId);
+      setSessionId(res.session_id);
+      setPackName(res.pack_name);
+      setEntryFee(res.entry_fee);
+      setTotal(res.total_questions);
+      setQuestionIndex(res.current_question_index);
+      setCurrentQ(res.question);
+      if (res.is_new_attempt && res.new_balance !== undefined) {
+        dispatch({ type: "UPDATE_BALANCE", balance: res.new_balance });
+      }
+      // Use exam_duration if backend provides it; fall back to question.timer
+      const examDuration = (res as any).exam_duration ?? res.question.timer;
+      startTimer(examDuration > 0 ? examDuration : 300);
+      setPhase("playing");
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Failed to start VIP session");
+      setPhase("error");
+    }
+  }, [packId, state.isAuthenticated, router, dispatch]); // eslint-disable-line
+
+  useEffect(() => { startOrResume(); }, [startOrResume]);
+
+  const handleAnswer = async (answer: string) => {
+    if (!sessionId) return;
+    setSubmitting(true);
+    try {
+      const res: VipAnswerResponse = await vipPillsApi.answer(sessionId, answer);
+      if (res.correct) {
+        if (res.streak_complete && res.prize !== undefined) {
+          stopTimer();
+          setTotalPrize(res.prize);
+          if (res.new_balance !== undefined) dispatch({ type: "UPDATE_BALANCE", balance: res.new_balance });
+          setPhase("streak_complete");
+        } else if (res.next_question && res.next_question_index !== undefined) {
+          // Instant advance — no animation delay, exam feel
+          setCurrentQ(res.next_question);
+          setQuestionIndex(res.next_question_index);
+          // Timer keeps running — no reset between questions
+        }
+      } else {
+        stopTimer();
+        setFailedAt({ questionNum: res.question_number, correctAnswer: res.correct_answer, entryFee: res.entry_fee });
+        setPhase("failed");
+      }
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Failed to submit answer");
+      setPhase("error");
+    } finally { setSubmitting(false); }
+  };
+
+  const displayQ = questionIndex + 1;
+
+  return (
+    <div className="min-h-screen" style={{ backgroundColor: "#0A0A0A", color: "var(--text-primary)" }}>
+
+      {/* Sticky header */}
+      <header className="sticky top-0 z-40 px-4 py-3 border-b"
+        style={{ backgroundColor: "rgba(10,10,10,0.95)", backdropFilter: "blur(12px)", borderColor: "#1A1A1A" }}>
+        <div className="max-w-lg mx-auto" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <button onClick={() => router.back()} className="p-1.5 rounded-lg hover:bg-[#1A1A1A] transition-colors">
+              <ChevronLeft size={20} className="text-gray-400" />
             </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* â”€â”€ SEGMENT FILTER â”€â”€ */}
-      <div style={{ marginBottom: 24 }}>
-        <SegmentFilter active={filter} onChange={setFilter} />
-      </div>
-
-      {loading ? (
-        <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
-          {/* Skeleton â€” Pills section */}
-          <div>
-            <div className="skeleton" style={{ height: 20, width: 120, borderRadius: 6, marginBottom: 14 }} />
-            <div style={{ display: "flex", gap: 12, overflow: "hidden" }}>
-              {[1,2].map((i) => (
-                <div key={i} className="skeleton" style={{ flexShrink: 0, width: 200, height: 96, borderRadius: 10 }} />
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ fontSize: 9, fontWeight: 800, padding: "2px 7px", borderRadius: 4, textTransform: "uppercase", backgroundColor: "rgba(232,163,61,0.15)", color: "var(--accent-amber)", boxShadow: "0 0 8px rgba(232,163,61,0.2)" }}>
+                VIP
+              </span>
+              <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-secondary)" }}>{packName}</span>
+            </div>
+            {/* Progress dots */}
+            <div style={{ display: "flex", gap: 4 }}>
+              {Array.from({ length: totalQuestions }).map((_, i) => (
+                <div key={i} style={{
+                  width: 6, height: 6, borderRadius: "50%", transition: "background-color 0.2s",
+                  backgroundColor: i < questionIndex ? "var(--accent-amber)" : i === questionIndex && phase === "playing" ? "rgba(232,163,61,0.5)" : "#2A2A2A",
+                }} />
               ))}
             </div>
           </div>
-          {/* Skeleton â€” Predictions section */}
-          <div>
-            <div className="skeleton" style={{ height: 20, width: 160, borderRadius: 6, marginBottom: 14 }} />
-            {[1,2].map((i) => (
-              <div key={i} className="skeleton" style={{ height: 110, borderRadius: 12, marginBottom: 10 }} />
-            ))}
-          </div>
-          {/* Skeleton â€” Blitz section */}
-          <div>
-            <div className="skeleton" style={{ height: 20, width: 100, borderRadius: 6, marginBottom: 14 }} />
-            <div className="skeleton" style={{ height: 140, borderRadius: 10 }} />
-          </div>
+          {phase === "playing" && (
+            <ExamTimerBar secondsLeft={examSeconds} totalSeconds={totalExamSeconds} />
+          )}
         </div>
-      ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      </header>
 
-          {/* â”€â”€ VIP PACKS â€” glowing golden cards â”€â”€ */}
-          {showPills && vipPacks.length > 0 && (
-            <section>
-              <SectionHeader
-                icon={
-                  <span style={{ fontSize: 11, fontWeight: 800, padding: "2px 6px", borderRadius: 4, backgroundColor: "rgba(232,163,61,0.15)", color: "var(--accent-amber)", boxShadow: "0 0 8px rgba(232,163,61,0.25)", flexShrink: 0 }}>
-                    VIP
-                  </span>
-                }
-                title="VIP Challenges"
-                href="/pills"
-              />
-              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                {vipPacks.map((pack) => {
-                  const price = pack.pills.length > 0 ? pack.pills[0].price : 0;
-                  const prize = pack.pills.length > 0 ? pack.pills[0].prize : 0;
-                  return (
-                    <motion.button
-                      key={pack.id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      whileTap={{ scale: 0.97 }}
-                      onClick={() => router.push(`/pills/vip/${pack.id}/play`)}
-                      style={{
-                        width: "100%", boxSizing: "border-box",
-                        borderRadius: 16, padding: "0",
-                        textAlign: "left", cursor: "pointer",
-                        background: "linear-gradient(135deg, #1a1200 0%, #2a1e00 40%, #1a1200 100%)",
-                        border: "1px solid rgba(232,163,61,0.6)",
-                        boxShadow: "0 0 0 1px rgba(232,163,61,0.15), 0 4px 24px rgba(232,163,61,0.25), 0 0 48px rgba(232,163,61,0.08)",
-                        overflow: "hidden",
-                        position: "relative",
-                      }}
-                    >
-                      {/* Shimmer overlay */}
-                      <motion.div
-                        animate={{ x: ["-100%", "200%"] }}
-                        transition={{ duration: 3.5, repeat: Infinity, repeatDelay: 2, ease: "easeInOut" }}
-                        style={{
-                          position: "absolute", top: 0, left: 0,
-                          width: "40%", height: "100%",
-                          background: "linear-gradient(90deg, transparent 0%, rgba(232,163,61,0.08) 50%, transparent 100%)",
-                          pointerEvents: "none",
-                        }}
-                      />
+      <div className="max-w-lg mx-auto px-4 py-6">
+        <AnimatePresence mode="wait">
 
-                      {/* Top accent line */}
-                      <div style={{ height: 2, background: "linear-gradient(90deg, transparent, rgba(232,163,61,0.8), rgba(255,200,80,1), rgba(232,163,61,0.8), transparent)" }} />
-
-                      <div style={{ padding: "14px 16px 14px", position: "relative" }}>
-                        {/* Row 1: VIP badge + pack name + trophy */}
-                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-                            <span style={{
-                              fontSize: 9, fontWeight: 900, padding: "2px 7px", borderRadius: 4,
-                              background: "linear-gradient(135deg, #E8A33D, #FFD060)",
-                              color: "#000", letterSpacing: "0.08em", flexShrink: 0,
-                            }}>
-                              VIP
-                            </span>
-                            <p style={{ fontSize: 13, fontWeight: 700, color: "#FFE082", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                              {pack.name}
-                            </p>
-                          </div>
-                          <Zap size={16} style={{ color: "var(--accent-amber)", flexShrink: 0, opacity: 0.8 }} />
-                        </div>
-
-                        {/* Row 2: 10 questions label */}
-                        <p style={{ fontSize: 10, color: "rgba(232,163,61,0.6)", margin: "0 0 12px", letterSpacing: "0.04em" }}>
-                          10-question exam Â· answer all to win
-                        </p>
-
-                        {/* Row 3: entry + prize */}
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
-                          <div>
-                            <p style={{ fontSize: 9, color: "rgba(255,255,255,0.35)", margin: "0 0 2px", textTransform: "uppercase", letterSpacing: "0.06em" }}>Entry</p>
-                            <p style={{ fontSize: 13, fontFamily: "'IBM Plex Mono', monospace", fontWeight: 700, color: "rgba(232,163,61,0.85)", margin: 0 }}>
-                              â‚¦{price.toLocaleString()}
-                            </p>
-                          </div>
-                          <div style={{ textAlign: "right" }}>
-                            <p style={{ fontSize: 9, color: "rgba(255,255,255,0.35)", margin: "0 0 2px", textTransform: "uppercase", letterSpacing: "0.06em" }}>Prize</p>
-                            <p style={{ fontSize: 17, fontFamily: "'IBM Plex Mono', monospace", fontWeight: 900, color: "#FFD060", margin: 0 }}>
-                              â‚¦{prize.toLocaleString()}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Bottom CTA strip */}
-                      <div style={{
-                        padding: "8px 16px",
-                        background: "rgba(232,163,61,0.12)",
-                        borderTop: "1px solid rgba(232,163,61,0.2)",
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        gap: 6,
-                      }}>
-                        <span style={{ fontSize: 11, fontWeight: 700, color: "var(--accent-amber)", letterSpacing: "0.04em" }}>
-                          Start Challenge â†’
-                        </span>
-                      </div>
-                    </motion.button>
-                  );
-                })}
+          {/* Loading */}
+          {phase === "loading" && (
+            <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+              style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "55vh", gap: 16 }}>
+              <div style={{ width: 56, height: 56, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "rgba(232,163,61,0.1)", boxShadow: "0 0 24px rgba(232,163,61,0.25)" }}>
+                <Loader2 size={24} className="animate-spin" style={{ color: "var(--accent-amber)" }} />
               </div>
-            </section>
+              <p style={{ fontSize: 13, color: "var(--text-muted)" }}>Loading exam...</p>
+            </motion.div>
           )}
 
-          {/* â”€â”€ PILL PACKS (standard only) â”€â”€ */}
-          {showPills && (
-            <section>
-              <SectionHeader
-                icon={
-                  <span style={{
-                    fontSize: 10, fontWeight: 800, padding: "3px 9px",
-                    borderRadius: 20, letterSpacing: "0.06em",
-                    backgroundColor: "rgba(76,111,255,0.15)",
-                    color: "var(--accent-indigo)",
-                    border: "1px solid rgba(76,111,255,0.25)",
-                    flexShrink: 0,
-                  }}>
-                    PILLS
-                  </span>
-                }
-                title={packs.length > 0 ? `${packs.length} pack${packs.length !== 1 ? "s" : ""} live` : "Daily Pills"}
-                href="/pills"
+          {/* Playing */}
+          {phase === "playing" && currentQuestion && (
+            <motion.div key={`q-${questionIndex}`}
+              initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -24 }}
+              transition={{ duration: 0.18 }}>
+              <ExamQuestion
+                question={currentQuestion.question}
+                format={currentQuestion.format}
+                options={currentQuestion.options}
+                onSubmit={handleAnswer}
+                isLoading={submitting}
+                questionNum={displayQ}
+                totalQuestions={totalQuestions}
               />
-
-              {selectedPack ? (
-                <>
-                  <button
-                    onClick={() => setSelectedPackId(null)}
-                    style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", cursor: "pointer", color: "var(--text-secondary)", fontSize: 13, marginBottom: 12, padding: 0 }}
-                  >
-                    <ChevronLeft size={15} /> {selectedPack.name}
-                  </button>
-                  <HorizontalScrollRow>
-                    {selectedPack.pills.map((pill) => (
-                      <PillChip key={pill.id} pack={selectedPack} pill={pill} onClick={() => setSheet({ pack: selectedPack, pill })} />
-                    ))}
-                  </HorizontalScrollRow>
-                </>
-              ) : packs.length === 0 ? (
-                <EmptyCard icon={<Clock size={16} style={{ color: "var(--text-muted)" }} />} title="No packs live" subtitle="Check back soon" />
-              ) : (
-                <>
-                  {/* â”€â”€ Mobile: horizontal scroll (< 768px) â”€â”€ */}
-                  <div className="block md:hidden">
-                    <HorizontalScrollRow>
-                      {packs.map((pack) => (
-                        <PackCard key={pack.id} pack={pack} onClick={() => setSelectedPackId(pack.id)} />
-                      ))}
-                    </HorizontalScrollRow>
-                  </div>
-
-                  {/* â”€â”€ Desktop: 3-column grid (â‰¥ 1024px), 2-col intermediate (768â€“1023px) â”€â”€ */}
-                  <div
-                    className="hidden md:grid"
-                    style={{
-                      gridTemplateColumns: "repeat(3, 1fr)",
-                      gap: 12,
-                    }}
-                  >
-                    {packs.map((pack) => (
-                      <PackCard key={pack.id} pack={pack} onClick={() => setSelectedPackId(pack.id)} desktopFull />
-                    ))}
-                  </div>
-                </>
-              )}
-            </section>
+            </motion.div>
           )}
 
-          {/* â”€â”€ TIME MACHINE â”€â”€ */}
-          {showPred && (
-            <section>
-              <SectionHeader
-                icon={<Wand2 size={17} style={{ color: "var(--accent-violet)", flexShrink: 0 }} />}
-                title={openPredictions.length > 0 ? `${openPredictions.length} open event${openPredictions.length !== 1 ? "s" : ""}` : "Time Machine"}
-                href="/time-machine"
-                linkLabel={predictions.length > 0 ? "see all" : ""}
-              />
-              {predictions.length === 0 ? (
-                <EmptyCard icon={<Wand2 size={16} style={{ color: "var(--accent-violet)" }} />} title="No open predictions" subtitle="New events added regularly" />
-              ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                  {/* Deduplicate by id before rendering */}
-                  {Array.from(new Map(predictions.map((p) => [p.id, p])).values()).slice(0, 4).map((p) => (
-                    <PredictionCard key={p.id} prediction={p} onClick={() => router.push(`/predictions/play/${p.id}`)} />
-                  ))}
-                  {predictions.length > 4 && (
-                    <Link href="/time-machine" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px 0", borderRadius: 8, border: "1px solid var(--border-subtle)", fontSize: 13, fontWeight: 600, color: "var(--accent-violet)", textDecoration: "none" }}>
-                      +{predictions.length - 4} more <ArrowRight size={13} />
-                    </Link>
-                  )}
-                </div>
-              )}
-            </section>
+          {/* Win */}
+          {phase === "streak_complete" && (
+            <motion.div key="win" initial={{ opacity: 0, scale: 0.88 }} animate={{ opacity: 1, scale: 1 }}
+              transition={{ type: "spring", damping: 14 }}
+              style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "70vh", gap: 24, textAlign: "center", padding: "0 16px" }}>
+              <Confetti />
+              <motion.div animate={{ scale: [1, 1.1, 1], rotate: [0, 4, -4, 0] }}
+                transition={{ duration: 1.4, repeat: Infinity, repeatDelay: 2 }}
+                style={{ width: 100, height: 100, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "rgba(232,163,61,0.12)", boxShadow: "0 0 40px rgba(232,163,61,0.4)" }}>
+                <Trophy size={48} style={{ color: "var(--accent-amber)" }} />
+              </motion.div>
+              <div>
+                <p style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--accent-amber)", marginBottom: 8 }}>VIP Champion</p>
+                <h1 style={{ fontSize: 32, fontWeight: 900, color: "var(--accent-amber)", margin: "0 0 6px" }}>All {totalQuestions} Correct!</h1>
+                <p style={{ fontSize: 14, color: "var(--text-secondary)" }}>You completed {packName}</p>
+              </div>
+              <div style={{ borderRadius: 16, padding: "18px 32px", textAlign: "center", backgroundColor: "rgba(232,163,61,0.08)", border: "1px solid rgba(232,163,61,0.25)" }}>
+                <p style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-muted)", marginBottom: 6 }}>Prize Credited</p>
+                <p style={{ fontSize: 34, fontFamily: "monospace", fontWeight: 900, color: "var(--accent-amber)", margin: 0 }}>+₦{totalPrize.toLocaleString()}</p>
+              </div>
+              <div style={{ display: "flex", gap: 12, width: "100%", maxWidth: 320 }}>
+                <button onClick={() => router.push("/wallet")} style={{ flex: 1, padding: "12px 0", borderRadius: 10, border: "none", backgroundColor: "var(--accent-amber)", color: "#000", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>View Wallet</button>
+                <button onClick={() => router.push("/pills")} style={{ flex: 1, padding: "12px 0", borderRadius: 10, border: "1px solid var(--border-subtle)", backgroundColor: "transparent", color: "var(--text-primary)", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Back to Pills</button>
+              </div>
+            </motion.div>
           )}
 
-          {/* â”€â”€ LIVE BLITZ â”€â”€ */}
-          {showBlitz && (
-            <section>
-              <SectionHeader
-                icon={<Zap size={17} style={{ color: "var(--accent-amber)", flexShrink: 0 }} />}
-                title={liveBlitz.length > 0 ? `${liveBlitz.length} upcoming` : "Live Blitz"}
-                href="/blitz"
-              />
-              {liveBlitz.length === 0 ? (
-                <div style={{ width: "100%", boxSizing: "border-box", borderRadius: 10, padding: "20px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", border: "1px solid var(--border-subtle)", backgroundColor: "var(--bg-card)" }}>
-                  <div>
-                    <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text-secondary)", margin: 0 }}>No active tournaments</p>
-                    <p style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 4 }}>New Blitz events launch weekly</p>
-                  </div>
-                  <Link href="/blitz" style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, fontWeight: 600, color: "var(--accent-amber)", textDecoration: "none", flexShrink: 0, marginLeft: 12 }}>
-                    Browse <ArrowRight size={12} />
-                  </Link>
-                </div>
-              ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                  {liveBlitz.map((t) => (
-                    <BlitzModule key={t.id} tournament={t} onClick={() => router.push(`/blitz/${t.id}`)} />
-                  ))}
-                </div>
-              )}
-            </section>
+          {/* Time up */}
+          {phase === "time_up" && (
+            <motion.div key="time_up" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+              style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 20, paddingTop: 48, textAlign: "center" }}>
+              <div style={{ width: 72, height: 72, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "rgba(232,163,61,0.08)", border: "2px solid rgba(232,163,61,0.3)" }}>
+                <Clock size={36} style={{ color: "var(--accent-amber)" }} />
+              </div>
+              <div>
+                <h2 style={{ fontSize: 22, fontWeight: 900, color: "var(--text-primary)", marginBottom: 6 }}>Time&apos;s Up</h2>
+                <p style={{ fontSize: 13, color: "var(--text-muted)" }}>You reached question {displayQ} of {totalQuestions} before time ran out.</p>
+              </div>
+              <div style={{ borderRadius: 12, padding: "14px 20px", border: "1px solid rgba(239,68,68,0.2)", backgroundColor: "rgba(239,68,68,0.05)", width: "100%", maxWidth: 320 }}>
+                <p style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.08em", color: "#f87171", marginBottom: 4 }}>Entry Fee Lost</p>
+                <p style={{ fontSize: 20, fontFamily: "monospace", fontWeight: 700, color: "#f87171", margin: 0 }}>₦{entryFee.toLocaleString()}</p>
+              </div>
+              <div style={{ display: "flex", gap: 12, width: "100%", maxWidth: 320 }}>
+                <button onClick={startOrResume} style={{ flex: 1, padding: "12px 0", borderRadius: 10, border: "none", backgroundColor: "var(--accent-indigo)", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Try Again — ₦{entryFee.toLocaleString()}</button>
+                <button onClick={() => router.push("/pills")} style={{ flex: 1, padding: "12px 0", borderRadius: 10, border: "1px solid var(--border-subtle)", backgroundColor: "transparent", color: "var(--text-secondary)", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Back</button>
+              </div>
+              <p style={{ fontSize: 11, color: "var(--text-muted)", maxWidth: 280 }}>Trying again starts a fresh attempt at full entry fee.</p>
+            </motion.div>
           )}
 
-        </div>
-      )}
+          {/* Failed */}
+          {phase === "failed" && failedAt && (
+            <motion.div key="failed" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+              style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 20, paddingTop: 48, textAlign: "center" }}>
+              <div style={{ width: 72, height: 72, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "rgba(239,68,68,0.08)", border: "2px solid rgba(239,68,68,0.25)" }}>
+                <XCircle size={36} className="text-red-400" />
+              </div>
+              <div>
+                <h2 style={{ fontSize: 22, fontWeight: 900, color: "var(--text-primary)", marginBottom: 6 }}>Wrong Answer</h2>
+                <p style={{ fontSize: 13, color: "var(--text-muted)" }}>Failed on question {failedAt.questionNum} of {totalQuestions}</p>
+              </div>
+              <div style={{ width: "100%", maxWidth: 320, display: "flex", flexDirection: "column", gap: 10 }}>
+                <div style={{ borderRadius: 10, padding: "12px 16px", textAlign: "left", border: "1px solid var(--border-hairline)", backgroundColor: "var(--bg-card)" }}>
+                  <p style={{ fontSize: 9, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-muted)", marginBottom: 4 }}>Correct answer was</p>
+                  <p style={{ fontSize: 15, fontWeight: 600, color: "var(--text-primary)", margin: 0 }}>{failedAt.correctAnswer}</p>
+                </div>
+                <div style={{ borderRadius: 10, padding: "12px 16px", textAlign: "left", border: "1px solid rgba(239,68,68,0.2)", backgroundColor: "rgba(239,68,68,0.05)" }}>
+                  <p style={{ fontSize: 9, textTransform: "uppercase", letterSpacing: "0.08em", color: "#f87171", marginBottom: 4 }}>Entry fee lost</p>
+                  <p style={{ fontSize: 15, fontFamily: "monospace", fontWeight: 700, color: "#f87171", margin: 0 }}>₦{failedAt.entryFee.toLocaleString()}</p>
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: 12, width: "100%", maxWidth: 320 }}>
+                <button onClick={startOrResume} style={{ flex: 1, padding: "12px 0", borderRadius: 10, border: "none", backgroundColor: "var(--accent-indigo)", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Try Again — ₦{entryFee.toLocaleString()}</button>
+                <button onClick={() => router.push("/pills")} style={{ flex: 1, padding: "12px 0", borderRadius: 10, border: "1px solid var(--border-subtle)", backgroundColor: "transparent", color: "var(--text-secondary)", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Back</button>
+              </div>
+              <p style={{ fontSize: 11, color: "var(--text-muted)" }}>Trying again starts a fresh attempt at full entry fee.</p>
+            </motion.div>
+          )}
 
-      {/* Pill confirm sheet */}
-      <AnimatePresence>
-        {sheet && (
-          <PillSheet
-            pack={sheet.pack} pill={sheet.pill}
-            balance={state.player?.balance ?? 0}
-            bonusBalance={state.player?.bonus_balance ?? 0}
-            onConfirm={() => { const pill = sheet.pill; setSheet(null); router.push(`/pills/play/${pill.id}`); }}
-            onClose={() => setSheet(null)}
-          />
-        )}
-      </AnimatePresence>
+          {/* Error */}
+          {phase === "error" && (
+            <motion.div key="error" initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+              style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16, paddingTop: 80, textAlign: "center" }}>
+              <XCircle size={36} style={{ color: "var(--text-muted)" }} />
+              <p style={{ fontSize: 14, color: "var(--text-secondary)" }}>{error || "Something went wrong"}</p>
+              <button onClick={startOrResume} style={{ padding: "10px 24px", borderRadius: 10, border: "none", backgroundColor: "var(--accent-indigo)", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Retry</button>
+            </motion.div>
+          )}
+
+        </AnimatePresence>
+      </div>
     </div>
   );
 }
