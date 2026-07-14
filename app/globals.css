@@ -68,19 +68,6 @@ a:active,
   animation: skeleton-shimmer 1.4s ease infinite;
 }
 
-/* Route progress bar ───────────────────────────────────────────────────── */
-#route-progress {
-  position: fixed;
-  top: 0;
-  left: 0;
-  height: 2px;
-  background: var(--accent-indigo);
-  z-index: 9999;
-  transition: width 200ms ease, opacity 200ms ease;
-  box-shadow: 0 0 8px rgba(76, 111, 255, 0.6);
-  pointer-events: none;
-}
-
 html {
   font-size: 16px;
 }
