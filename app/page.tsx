@@ -62,10 +62,10 @@ export default function LandingPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Redirect to /play if already authenticated
+  // Redirect to /pills if already authenticated
   useEffect(() => {
     if (state.isAuthenticated) {
-      router.push("/play");
+      router.push("/pills");
     }
   }, [state.isAuthenticated, router]);
 

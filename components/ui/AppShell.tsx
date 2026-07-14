@@ -5,19 +5,20 @@ import { useApp } from "@/context/AppContext";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { Gamepad2, Wallet, User, LogOut, Loader2 } from "lucide-react";
+import { Pill, CalendarClock, Wallet, User, LogOut, Loader2 } from "lucide-react";
 import { removeToken } from "@/lib/api";
 import { useRouter } from "next/navigation";
 import { NotificationBell } from "@/components/ui/NotificationBell";
 
 const navItems = [
-  { href: "/play",    label: "Play",    icon: Gamepad2 },
+  { href: "/pills",   label: "Pills",   icon: Pill },
+  { href: "/events",  label: "Events",  icon: CalendarClock },
   { href: "/wallet",  label: "Wallet",  icon: Wallet },
   { href: "/profile", label: "Profile", icon: User },
 ];
 
-// Pages that should show the app shell (player-facing)
-const SHELL_PATHS = ["/play", "/pills", "/blitz", "/wallet", "/profile", "/time-machine", "/predictions"];
+// Pages that render the app shell (player-facing)
+const SHELL_PATHS = ["/pills", "/events", "/blitz", "/wallet", "/profile", "/time-machine", "/predictions"];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { state, dispatch, hydrated } = useApp();
@@ -27,7 +28,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const isProtected = SHELL_PATHS.some((p) => pathname.startsWith(p));
 
-  // While rehydrating from localStorage, show nothing to prevent flash redirect
   if (!hydrated && isProtected) {
     return (
       <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center">
@@ -40,7 +40,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   if (!showShell) return <>{children}</>;
 
   const isActive = (href: string) => {
-    if (href === "/play") return pathname === "/play" || pathname.startsWith("/pills") || pathname.startsWith("/time-machine") || pathname.startsWith("/predictions") || pathname.startsWith("/blitz");
+    if (href === "/pills")  return pathname === "/pills" || pathname.startsWith("/pills/");
+    if (href === "/events") return pathname === "/events" || pathname.startsWith("/predictions") || pathname.startsWith("/time-machine");
     return pathname.startsWith(href);
   };
 
@@ -51,17 +52,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     dispatch({ type: "LOGOUT" });
     localStorage.removeItem("tt_player");
     router.push("/");
-    // Keep loggingOut=true — the component unmounts on navigation so no reset needed
   };
 
   return (
     <div className="flex min-h-screen bg-[--bg-base]" style={{ backgroundColor: "var(--bg-base)" }}>
 
       {/* ── ICON RAIL — desktop only ── */}
-      <aside className="hidden lg:flex flex-col fixed left-0 top-0 bottom-0 w-16 bg-[--bg-card] border-r" style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-card)" }} z-40>
+      <aside className="hidden lg:flex flex-col fixed left-0 top-0 bottom-0 w-16 bg-[--bg-card] border-r z-40"
+        style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-card)" }}>
         {/* Logo */}
         <div className="px-3 py-5 border-b flex items-center justify-center" style={{ borderColor: "var(--border-hairline)" }}>
-          <Link href="/play" className="flex items-center justify-center w-8 h-8">
+          <Link href="/pills" className="flex items-center justify-center w-8 h-8">
             <Image src="/bitlyfe-mark.svg" alt="BitLyfe" width={28} height={28} priority />
           </Link>
         </div>
@@ -83,7 +84,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 title={label}
               >
                 <Icon size={18} />
-                {/* Tooltip on hover */}
                 <div className="absolute left-12 bg-black px-2 py-1 rounded text-xs font-semibold whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" style={{ color: "var(--text-primary)" }}>
                   {label}
                 </div>
@@ -111,46 +111,36 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* ── MAIN CONTENT ── */}
       <div className="flex-1 lg:ml-16 flex flex-col min-h-screen">
         {/* Top bar — desktop */}
-        <header className="hidden lg:flex sticky top-0 z-30 bg-[--bg-base]/90 backdrop-blur-md border-b px-8 py-4 items-center justify-between" style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-base)" }}>
-          <div>
-            <h1 className="font-headline text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
-              {navItems.find((n) => isActive(n.href))?.label ?? "BitLyfe"}
-            </h1>
-          </div>
+        <header className="hidden lg:flex sticky top-0 z-30 bg-[--bg-base]/90 backdrop-blur-md border-b px-8 py-4 items-center justify-between"
+          style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-base)" }}>
+          <h1 className="font-headline text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
+            {navItems.find((n) => isActive(n.href))?.label ?? "BitLyfe"}
+          </h1>
           <div className="flex items-center gap-4">
-            <Link
-              href="/wallet"
-              className="flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors"
-              style={{ borderColor: "var(--border-subtle)", backgroundColor: "var(--bg-card)" }}
-            >
+            <Link href="/wallet" className="flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors"
+              style={{ borderColor: "var(--border-subtle)", backgroundColor: "var(--bg-card)" }}>
               <span className="font-mono font-semibold text-sm" style={{ color: "var(--accent-amber)" }}>
                 ₦{state.player?.balance.toLocaleString() ?? "0"}
               </span>
-              <button className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0" style={{ backgroundColor: "var(--accent-amber)", color: "#000" }}>
-                +
-              </button>
+              <span className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0" style={{ backgroundColor: "var(--accent-amber)", color: "#000" }}>+</span>
             </Link>
             <NotificationBell />
           </div>
         </header>
 
         {/* Top bar — mobile only */}
-        <header className="lg:hidden sticky top-0 z-30 flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-base)" }}>
-          <Link href="/play" className="flex items-center justify-center w-7 h-7">
+        <header className="lg:hidden sticky top-0 z-30 flex items-center justify-between px-4 py-3 border-b"
+          style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-base)" }}>
+          <Link href="/pills" className="flex items-center justify-center w-7 h-7">
             <Image src="/bitlyfe-mark.svg" alt="BitLyfe" width={24} height={24} priority />
           </Link>
           <div className="flex items-center gap-3">
-            <Link
-              href="/wallet"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border"
-              style={{ borderColor: "var(--border-subtle)", backgroundColor: "var(--bg-card)" }}
-            >
+            <Link href="/wallet" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border"
+              style={{ borderColor: "var(--border-subtle)", backgroundColor: "var(--bg-card)" }}>
               <span className="font-mono font-semibold text-sm" style={{ color: "var(--accent-amber)" }}>
                 ₦{state.player?.balance.toLocaleString() ?? "0"}
               </span>
-              <span className="w-4 h-4 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0" style={{ backgroundColor: "var(--accent-amber)", color: "#000" }}>
-                +
-              </span>
+              <span className="w-4 h-4 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0" style={{ backgroundColor: "var(--accent-amber)", color: "#000" }}>+</span>
             </Link>
             <NotificationBell />
           </div>
@@ -163,8 +153,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </div>
 
       {/* ── BOTTOM TAB NAV — mobile only ── */}
-      {/* z-40 moved into className — was incorrectly on the JSX element as a bare attribute, so it never applied */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 border-t" style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-base)" }}>
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 border-t"
+        style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-base)" }}>
         <div className="flex items-center justify-around h-16">
           {navItems.map(({ href, label, icon: Icon }) => {
             const active = isActive(href);
@@ -173,9 +163,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 key={href}
                 href={href}
                 className="flex flex-col items-center justify-center gap-1 py-2 px-3 rounded-lg transition-colors flex-1"
-                style={{
-                  color: active ? "var(--accent-amber)" : "var(--text-muted)",
-                }}
+                style={{ color: active ? "var(--accent-amber)" : "var(--text-muted)" }}
               >
                 <Icon size={20} />
                 <span className="text-[10px] font-semibold">{label}</span>

@@ -137,7 +137,7 @@ export default function ProfilePage() {
             </div>
             <ChevronRight size={16} className="text-gray-600" />
           </Link>
-          <Link href="/predictions/mine" className="flex items-center gap-4 px-5 py-4 hover:bg-[#1A1A1A] transition-colors border-t border-[#1A1A1A]">
+          <Link href="/events" className="flex items-center gap-4 px-5 py-4 hover:bg-[#1A1A1A] transition-colors border-t border-[#1A1A1A]">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
                 style={{ backgroundColor: "rgba(124,111,232,0.1)" }}>
               <Wand2 size={17} style={{ color: "var(--accent-violet)" }} />

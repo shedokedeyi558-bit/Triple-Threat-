@@ -106,7 +106,7 @@ function AuthForm() {
       setStep("success");
 
       setTimeout(() => {
-        router.push("/play");
+        router.push("/pills");
       }, 1500);
     } catch (err) {
       setError(

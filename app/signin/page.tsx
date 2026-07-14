@@ -48,7 +48,7 @@ export default function SignInPage() {
       setToken(response.token);
       dispatch({ type: "LOGIN", player: { id: response.player.id, phone: response.player.phone, name: response.player.name, email: "", balance: response.player.balance }, token: response.token });
       setStep("success");
-      setTimeout(() => router.push("/play"), 1200);
+      setTimeout(() => router.push("/pills"), 1200);
     } catch (err) {
       if (err instanceof ApiError && err.status === 429) {
         setError(err.message);

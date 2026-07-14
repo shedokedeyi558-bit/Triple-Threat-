@@ -59,7 +59,7 @@ export default function PredictionLocked({ answer }: PredictionLockedProps) {
       </motion.div>
 
       {/* Back button — indigo hover */}
-      <motion.button onClick={() => router.push("/play")} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}
+      <motion.button onClick={() => router.push("/events")} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}
         whileTap={{ scale: 0.97 }}
         className="w-full bg-[#1A1A1A] text-white font-bold uppercase tracking-tight rounded-xl py-3.5 flex items-center justify-center gap-2 transition-colors"
         style={{ border: "1px solid #2A2A2A" }}
@@ -67,7 +67,7 @@ export default function PredictionLocked({ answer }: PredictionLockedProps) {
         onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#2A2A2A")}
       >
         <ArrowLeft size={18} />
-        Back to Play
+        Back to Events
       </motion.button>
     </motion.div>
   );

@@ -733,7 +733,7 @@ export default function MyPredictionsPage() {
                   Browse open events to get started
                 </p>
                 <Link
-                  href="/play"
+                  href="/events"
                   style={{
                     display: "inline-flex",
                     alignItems: "center",
@@ -748,7 +748,7 @@ export default function MyPredictionsPage() {
                     backgroundColor: "rgba(76,111,255,0.08)",
                   }}
                 >
-                  Browse predictions <ArrowRight size={13} />
+                  Browse events <ArrowRight size={13} />
                 </Link>
               </div>
             ) : (
