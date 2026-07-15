@@ -292,35 +292,35 @@ export default function PillsPage() {
   const [error, setError] = useState("");
   const [sheet, setSheet] = useState<{ pack: PillPack; pill: PillPackPill } | null>(null);
   const [activeCategory, setActiveCategory] = useState("All");
+  const [debugInfo, setDebugInfo] = useState("");
+  const [debugInfo2, setDebugInfo2] = useState("");
 
   useEffect(() => {
     if (!state.isAuthenticated) { router.push("/auth"); return; }
 
-    // Load standard packs — also extract any specials that sneak in (is_vip: true)
     pillsApi.getPacks()
       .then((d) => {
         const active = (d.packs ?? []).filter((p) => p.status === "active");
-        // Separate specials from standard — backend now sends is_vip on every pack
         const standards = active.filter((p) => !p.is_vip && (p as any).pack_type !== "special");
-        const specials = active.filter((p) => p.is_vip || (p as any).pack_type === "special");
+        const fromPacks = active.filter((p) => p.is_vip || (p as any).pack_type === "special");
         setAllPacks(standards);
-        if (specials.length > 0) setSpecialPacks(specials);
+        setDebugInfo(`/packs: ${active.length} total, ${standards.length} standard, ${fromPacks.length} special. is_vip values: ${active.map(p=>p.name+'='+p.is_vip).join(', ')}`);
+        if (fromPacks.length > 0) setSpecialPacks(fromPacks);
       })
       .catch((e) => setError(e instanceof ApiError ? e.message : "Failed to load packs"));
 
-    // Also try the dedicated specials endpoint — merge results, deduplicate by id
     pillsApi.getSpecials()
       .then((d) => {
         const active = (d.packs ?? []).filter((p) => p.status === "active");
+        setDebugInfo2(`/specials: ${active.length} packs returned`);
         if (active.length > 0) {
           setSpecialPacks((prev) => {
             const existing = new Set(prev.map((p) => p.id));
-            const merged = [...prev, ...active.filter((p) => !existing.has(p.id))];
-            return merged;
+            return [...prev, ...active.filter((p) => !existing.has(p.id))];
           });
         }
       })
-      .catch(() => { /* silent — standard packs fallback handles it */ })
+      .catch((e) => setDebugInfo2(`/specials error: ${e instanceof ApiError ? e.message : String(e)}`))
       .finally(() => setLoading(false));
   }, [state.isAuthenticated, router]);
 
@@ -353,6 +353,15 @@ export default function PillsPage() {
       {error && (
         <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", borderRadius: 8, marginBottom: 16, border: "1px solid var(--border-subtle)", backgroundColor: "rgba(239,68,68,0.05)", color: "#f87171", fontSize: 13 }}>
           <AlertCircle size={15} style={{ flexShrink: 0 }} /> {error}
+        </div>
+      )}
+
+      {/* TEMP DEBUG — remove after confirming API response */}
+      {(debugInfo || debugInfo2) && (
+        <div style={{ padding: "8px 12px", borderRadius: 8, marginBottom: 12, backgroundColor: "rgba(76,111,255,0.08)", border: "1px solid rgba(76,111,255,0.2)", fontSize: 11, color: "var(--accent-indigo)", wordBreak: "break-all" }}>
+          <div>{debugInfo}</div>
+          <div style={{ marginTop: 4 }}>{debugInfo2}</div>
+          <div style={{ marginTop: 4, color: "var(--accent-amber)" }}>specialPacks count: {specialPacks.length}</div>
         </div>
       )}
 
