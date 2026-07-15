@@ -322,9 +322,12 @@ export default function AdminBlitzCreatePage() {
         )}
 
         {/* ── Dev tools — visible on all steps ── */}
-        <div style={{ marginBottom: 20 }}>
-          <DevTools {...devToolsProps} />
-        </div>
+        {/* Dev tools — dev only */}
+        {process.env.NODE_ENV === "development" && (
+          <div style={{ marginBottom: 20 }}>
+            <DevTools {...devToolsProps} />
+          </div>
+        )}
 
         {/* ── Steps ── */}
         <AnimatePresence mode="wait">

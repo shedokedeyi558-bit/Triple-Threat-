@@ -328,7 +328,8 @@ export default function CreatePillPackPage() {
         </div>
       )}
 
-      {/* Dev tools: category selector + count + fill button */}
+      {/* Dev tools: category selector + count + fill button — hidden in production */}
+      {process.env.NODE_ENV === "development" && (
       <div className="space-y-2 w-full">
         {/* Category chips — horizontally scrollable on mobile */}
         <div className="overflow-x-auto overflow-y-hidden whitespace-nowrap" style={{ WebkitOverflowScrolling: "touch", scrollBehavior: "smooth" }}>
@@ -413,6 +414,7 @@ export default function CreatePillPackPage() {
           </button>
         </div>
       </div>
+      )}
 
       {/* Pack Info */}
       <div

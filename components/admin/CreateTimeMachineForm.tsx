@@ -90,7 +90,8 @@ export function CreateTimeMachineForm({ isOpen, onClose, onSuccess }: CreateTime
 
         {error && <p className="text-red-400 text-sm bg-red-900/10 border border-red-900/30 rounded-lg p-3">{error}</p>}
 
-        {/* Test-fill button */}
+        {/* Test-fill button — dev only */}
+        {process.env.NODE_ENV === "development" && (
         <button
           type="button"
           onClick={() => {
@@ -111,6 +112,7 @@ export function CreateTimeMachineForm({ isOpen, onClose, onSuccess }: CreateTime
         >
           Fill Test Data (dev only)
         </button>
+        )}
 
         {/* Step: Config */}
         {step === "config" && (

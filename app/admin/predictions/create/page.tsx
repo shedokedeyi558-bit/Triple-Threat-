@@ -116,7 +116,8 @@ export default function CreatePredictionPage() {
         </div>
       </div>
 
-      {/* Dev tools: category selector + fill button */}
+      {/* Dev tools: category selector + fill button — hidden in production */}
+      {process.env.NODE_ENV === "development" && (
       <div className="space-y-2 w-full">
         {/* Category chip selector — horizontally scrollable on mobile */}
         <div className="overflow-x-auto overflow-y-hidden whitespace-nowrap" style={{ WebkitOverflowScrolling: "touch", scrollBehavior: "smooth" }}>
@@ -150,6 +151,7 @@ export default function CreatePredictionPage() {
           Fill test data · {sampleCategory}
         </button>
       </div>
+      )}
 
       {/* Error / Notice */}
       {error && (
