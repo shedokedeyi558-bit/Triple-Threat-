@@ -321,7 +321,8 @@ export default function PillsPage() {
   if (!state.isAuthenticated) return null;
 
   const handlePackClick = (pack: PillPack) => {
-    if (isSpecialPack(pack)) {
+    // Specials route to the exam flow
+    if (pack.is_vip || (pack as any).pack_type === "special") {
       router.push(`/pills/vip/${pack.id}/play`);
       return;
     }
