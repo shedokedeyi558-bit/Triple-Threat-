@@ -110,27 +110,31 @@ function GridPackCard({ pack, onClick }: { pack: PillPack; onClick: () => void }
       style={{
         width: "100%", boxSizing: "border-box", borderRadius: 12, padding: 0,
         textAlign: "left", cursor: "pointer", overflow: "hidden",
-        border: "1px solid var(--border-subtle)", backgroundColor: "var(--bg-card)", display: "flex", flexDirection: "column",
+        border: "1px solid var(--border-subtle)", backgroundColor: "var(--bg-card)",
+        display: "flex", flexDirection: "column",
       }}>
-      <div style={{ height: 3, backgroundColor: color, width: "100%" }} />
-      <div style={{ padding: "12px 13px 14px", flex: 1, display: "flex", flexDirection: "column", gap: 7 }}>
-        {/* Category label */}
-        <span style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", color }}>
-          {pack.category}
-        </span>
-        {/* Name — allow 2-line wrap */}
+      <div style={{ padding: "12px 12px 0", display: "flex", flexDirection: "column", gap: 8, flex: 1 }}>
+        {/* Top row: icon circle + category label */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ width: 30, height: 30, borderRadius: "50%", backgroundColor: `${color}18`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <Package size={14} style={{ color }} />
+          </div>
+          <span style={{ fontSize: 9, fontFamily: "monospace", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--text-muted)" }}>
+            {pack.category}
+          </span>
+        </div>
+        {/* Pack name */}
         <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", margin: 0, lineHeight: 1.35, wordBreak: "break-word" }}>
           {pack.name}
         </p>
-        {/* Availability — clear stat, no abbreviation */}
-        <p style={{ fontSize: 10, color: "var(--text-muted)", margin: 0 }}>
-          {available} available
-        </p>
-        {/* Price + arrow */}
-        <div style={{ marginTop: "auto", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      </div>
+      {/* Footer */}
+      <div style={{ margin: "10px 12px 0", paddingTop: 8, paddingBottom: 12, borderTop: "1px solid var(--border-hairline)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <p style={{ fontSize: 12, fontFamily: "monospace", fontWeight: 700, color: "var(--accent-amber)", margin: 0 }}>₦{price.toLocaleString()}</p>
-          <ArrowRight size={12} style={{ color }} />
+          <span style={{ fontSize: 9, color: "var(--text-muted)" }}>{available} left</span>
         </div>
+        <ArrowRight size={12} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
       </div>
     </motion.button>
   );
@@ -281,6 +285,8 @@ export default function PillsPage() {
   const [allPacks, setAllPacks] = useState<PillPack[]>([]);
   const [specialPacks, setSpecialPacks] = useState<PillPack[]>([]);
   const [loading, setLoading] = useState(true);
+  const [packsLoaded, setPacksLoaded] = useState(false);
+  const [specialsLoaded, setSpecialsLoaded] = useState(false);
   const [error, setError] = useState("");
   const [sheet, setSheet] = useState<{ pack: PillPack; pill: PillPackPill } | null>(null);
   const [activeCategory, setActiveCategory] = useState("All");
@@ -296,7 +302,8 @@ export default function PillsPage() {
         setAllPacks(standards);
         if (fromPacks.length > 0) setSpecialPacks(fromPacks);
       })
-      .catch((e) => setError(e instanceof ApiError ? e.message : "Failed to load packs"));
+      .catch((e) => setError(e instanceof ApiError ? e.message : "Failed to load packs"))
+      .finally(() => setPacksLoaded(true));
 
     pillsApi.getSpecials()
       .then((d) => {
@@ -309,8 +316,13 @@ export default function PillsPage() {
         }
       })
       .catch(() => { /* silent — /api/pills/packs fallback handles it */ })
-      .finally(() => setLoading(false));
+      .finally(() => setSpecialsLoaded(true));
   }, [state.isAuthenticated, router]);
+
+  // Only stop loading when BOTH fetches have settled — prevents empty state flash
+  useEffect(() => {
+    if (packsLoaded && specialsLoaded) setLoading(false);
+  }, [packsLoaded, specialsLoaded]);
 
   const standardPacks = allPacks;
   const categories = Array.from(new Set(standardPacks.map((p) => p.category))).sort();
@@ -319,9 +331,12 @@ export default function PillsPage() {
     ? standardPacks
     : standardPacks.filter((p) => p.category === activeCategory);
 
-  // Hero: admin-featured pack first, then fallback to first pack
-  const featuredPack = filteredPacks.find((p) => p.is_featured) ?? filteredPacks[0] ?? null;
-  const morePacks = filteredPacks.filter((p) => p !== featuredPack);
+  // Hero: only show explicitly featured pack — no fallback to first pack
+  const featuredPack = filteredPacks.find((p) => p.is_featured) ?? null;
+  // Standard Packs: all packs if nothing featured, everything except featured if one exists
+  const standardPacks2 = featuredPack
+    ? filteredPacks.filter((p) => p !== featuredPack)
+    : filteredPacks;
 
   if (!state.isAuthenticated) return null;
 
@@ -371,20 +386,20 @@ export default function PillsPage() {
           )}
 
           {/* More packs — 2-col grid */}
-          {morePacks.length > 0 && (
+          {standardPacks2.length > 0 && (
             <section>
               <p style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", color: "var(--text-muted)", marginBottom: 10 }}>
-                More packs
+                Standard Packs
               </p>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                {morePacks.map((pack) => (
+                {standardPacks2.map((pack) => (
                   <GridPackCard key={pack.id} pack={pack} onClick={() => handlePackClick(pack)} />
                 ))}
               </div>
             </section>
           )}
 
-          {/* Empty state */}
+          {/* Empty state — only after loading completes */}
           {filteredPacks.length === 0 && (
             <div style={{ borderRadius: 12, padding: "36px 20px", textAlign: "center", border: "1px solid var(--border-subtle)", backgroundColor: "var(--bg-card)" }}>
               <Clock size={28} style={{ color: "var(--text-muted)", margin: "0 auto 12px", display: "block" }} />
