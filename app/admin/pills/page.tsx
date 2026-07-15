@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { adminApi, ApiError } from "@/lib/api";
-import { Loader2, Plus, Package, Eye, EyeOff, Trash2, ClipboardCheck, Star, MoreHorizontal } from "lucide-react";
+import { Loader2, Plus, Package, Eye, EyeOff, Trash2, ClipboardCheck, Star } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface PillPack {
@@ -192,8 +192,8 @@ export default function AdminPillsPage() {
                 style={{ borderColor: isSpecial ? "rgba(232,163,61,0.25)" : "var(--border-hairline)", backgroundColor: "var(--bg-card)" }}>
 
                 {/* Main row */}
-                <div className="flex items-center gap-3 px-4 py-3 cursor-pointer" onClick={() => router.push(`/admin/pills/${pack.id}`)}>
-
+                <div className="flex items-center gap-3 px-4 py-3 cursor-pointer"
+                  onClick={() => setExpandedActions(isExpanded ? null : pack.id)}>
                   {/* Category + name + badges */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
@@ -214,11 +214,11 @@ export default function AdminPillsPage() {
                     </div>
                   </div>
 
-                  {/* Inline stats */}
+                  {/* Inline stats — readable labels */}
                   <div className="flex items-center gap-3 flex-shrink-0 text-[11px]">
-                    <span className="text-gray-600">{total}t</span>
-                    <span style={{ color: "var(--accent-indigo)" }}>{available}av</span>
-                    <span className="text-gray-500">{played}pl</span>
+                    <span className="text-gray-600">{total} pills</span>
+                    <span style={{ color: "var(--accent-indigo)" }}>{available} left</span>
+                    <span className="text-gray-500">{played} played</span>
                   </div>
 
                   {/* Status badge */}
@@ -230,12 +230,8 @@ export default function AdminPillsPage() {
                     {pack.status.toUpperCase()}
                   </span>
 
-                  {/* Action toggle */}
-                  <button onClick={(e) => { e.stopPropagation(); setExpandedActions(isExpanded ? null : pack.id); }}
-                    className="p-1.5 rounded-lg hover:bg-[#1A1A1A] transition-colors flex-shrink-0"
-                    style={{ color: "var(--text-muted)" }}>
-                    <MoreHorizontal size={15} />
-                  </button>
+                  {/* Chevron indicator */}
+                  <span className="text-gray-600 flex-shrink-0 text-xs">{isExpanded ? "▲" : "▼"}</span>
                 </div>
 
                 {/* Expanded actions */}
