@@ -136,45 +136,37 @@ function GridPackCard({ pack, onClick }: { pack: PillPack; onClick: () => void }
   );
 }
 
-// ── Specials banner ────────────────────────────────────────────────────────
-function SpecialsBanner({ packs, onTap }: { packs: PillPack[]; onTap: (pack: PillPack) => void }) {
+// ── Specials teaser banner (compact, routes to /pills/specials) ───────────
+function SpecialsTeaserBanner({ packs, onClick }: { packs: PillPack[]; onClick: () => void }) {
   if (packs.length === 0) return null;
+  const topPrize = Math.max(...packs.map((p) => p.pills[0]?.prize ?? 0));
   return (
-    <section>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-        <ClipboardCheck size={15} style={{ color: "var(--accent-amber)" }} />
-        <h2 style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Specials</h2>
+    <motion.button initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} whileTap={{ scale: 0.98 }}
+      onClick={onClick}
+      style={{
+        width: "100%", boxSizing: "border-box", borderRadius: 14, padding: "14px 16px",
+        textAlign: "left", cursor: "pointer", position: "relative", overflow: "hidden",
+        background: "linear-gradient(135deg, #1a1200 0%, #2a1e00 50%, #1a1200 100%)",
+        border: "1px solid rgba(232,163,61,0.5)",
+        boxShadow: "0 4px 20px rgba(232,163,61,0.18)",
+        display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12,
+      }}>
+      {/* Shimmer */}
+      <motion.div animate={{ x: ["-100%", "200%"] }} transition={{ duration: 4, repeat: Infinity, repeatDelay: 3 }}
+        style={{ position: "absolute", top: 0, left: 0, width: "35%", height: "100%", background: "linear-gradient(90deg,transparent,rgba(232,163,61,0.06),transparent)", pointerEvents: "none" }} />
+      <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0, position: "relative" }}>
+        <div style={{ width: 36, height: 36, borderRadius: 8, backgroundColor: "rgba(232,163,61,0.15)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          <ClipboardCheck size={18} style={{ color: "var(--accent-amber)" }} />
+        </div>
+        <div style={{ minWidth: 0 }}>
+          <p style={{ fontSize: 13, fontWeight: 800, color: "#FFE082", margin: 0 }}>Specials</p>
+          <p style={{ fontSize: 11, color: "rgba(232,163,61,0.65)", margin: "2px 0 0", whiteSpace: "nowrap" }}>
+            {packs.length} challenge{packs.length !== 1 ? "s" : ""} live · up to ₦{topPrize.toLocaleString()}
+          </p>
+        </div>
       </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {packs.map((pack) => {
-          const price = pack.pills[0]?.price ?? 0;
-          const prize = pack.pills[0]?.prize ?? 0;
-          return (
-            <motion.button key={pack.id} whileTap={{ scale: 0.97 }} onClick={() => onTap(pack)}
-              style={{
-                width: "100%", boxSizing: "border-box", borderRadius: 14, padding: "14px 16px",
-                textAlign: "left", cursor: "pointer", overflow: "hidden", position: "relative",
-                background: "linear-gradient(135deg, #1a1200, #2a1e00, #1a1200)",
-                border: "1px solid rgba(232,163,61,0.55)",
-                boxShadow: "0 4px 20px rgba(232,163,61,0.2)",
-              }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ fontSize: 9, fontWeight: 900, padding: "2px 7px", borderRadius: 4, background: "linear-gradient(135deg,#E8A33D,#FFD060)", color: "#000" }}>SPECIAL</span>
-                  <p style={{ fontSize: 13, fontWeight: 700, color: "#FFE082", margin: 0 }}>{pack.name}</p>
-                </div>
-                <ClipboardCheck size={14} style={{ color: "var(--accent-amber)", opacity: 0.8 }} />
-              </div>
-              <p style={{ fontSize: 10, color: "rgba(232,163,61,0.6)", margin: "0 0 10px" }}>Exam-style · answer to pass · one attempt</p>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <p style={{ fontSize: 12, fontFamily: "monospace", fontWeight: 700, color: "rgba(232,163,61,0.85)", margin: 0 }}>₦{price.toLocaleString()} entry</p>
-                <p style={{ fontSize: 16, fontFamily: "monospace", fontWeight: 900, color: "#FFD060", margin: 0 }}>₦{prize.toLocaleString()}</p>
-              </div>
-            </motion.button>
-          );
-        })}
-      </div>
-    </section>
+      <ArrowRight size={16} style={{ color: "var(--accent-amber)", flexShrink: 0, opacity: 0.8 }} />
+    </motion.button>
   );
 }
 
@@ -401,8 +393,8 @@ export default function PillsPage() {
             </div>
           )}
 
-          {/* Specials section — from /api/pills/specials */}
-          <SpecialsBanner packs={specialPacks} onTap={(pack) => router.push(`/pills/vip/${pack.id}/play`)} />
+          {/* Specials teaser — taps through to /pills/specials */}
+          <SpecialsTeaserBanner packs={specialPacks} onClick={() => router.push("/pills/specials")} />
 
         </div>
       )}
