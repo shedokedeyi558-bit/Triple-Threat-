@@ -308,8 +308,9 @@ export default function PillsPage() {
     ? standardPacks
     : standardPacks.filter((p) => p.category === activeCategory);
 
-  const heroPack = filteredPacks[0] ?? null;
-  const morePacks = filteredPacks.slice(1);
+  // Hero: admin-featured pack first, then fallback to first pack
+  const featuredPack = filteredPacks.find((p) => p.is_featured) ?? filteredPacks[0] ?? null;
+  const morePacks = filteredPacks.filter((p) => p !== featuredPack);
 
   if (!state.isAuthenticated) return null;
 
@@ -350,12 +351,12 @@ export default function PillsPage() {
           )}
 
           {/* Featured today */}
-          {heroPack && (
+          {featuredPack && (
             <section>
               <p style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", color: "var(--text-muted)", marginBottom: 10 }}>
                 Featured today
               </p>
-              <HeroPack pack={heroPack} onClick={() => handlePackClick(heroPack)} />
+              <HeroPack pack={featuredPack} onClick={() => handlePackClick(featuredPack)} />
             </section>
           )}
 

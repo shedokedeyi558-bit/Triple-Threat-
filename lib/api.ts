@@ -532,6 +532,7 @@ export interface PillPack {
   category: string;
   status: "active" | "inactive" | "draft";
   is_vip?: boolean;
+  is_featured?: boolean;
   pills: PillPackPill[];
 }
 
@@ -1020,6 +1021,12 @@ export const adminApi = {
     request<{ message: string }>(
       `/api/admin/pills/packs/${packId}?force=true`,
       { method: "DELETE", token: getAdminToken() }
+    ),
+
+  featurePillPack: (packId: string, featured: boolean) =>
+    request<{ pack: { id: string; is_featured: boolean } }>(
+      `/api/admin/pills/packs/${packId}/feature`,
+      { method: "PUT", body: { featured }, token: getAdminToken() }
     ),
 
   addPillToPack: (packId: string, data: {

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { adminApi, ApiError } from "@/lib/api";
-import { Loader2, Plus, Package, Eye, EyeOff, Trash2, ClipboardCheck } from "lucide-react";
+import { Loader2, Plus, Package, Eye, EyeOff, Trash2, ClipboardCheck, Star } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface PillPack {
@@ -12,6 +12,7 @@ interface PillPack {
   category: string;
   status: "active" | "inactive" | "draft";
   is_vip?: boolean;
+  is_featured?: boolean;
   pills: { id: string; color: string; status: string }[];
   available_count?: number;
   played_count?: number;
@@ -82,6 +83,7 @@ export default function AdminPillsPage() {
   const [error, setError] = useState("");
   const [toggling, setToggling] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [featuring, setFeaturing] = useState<string | null>(null);
   const [forceDeleteTarget, setForceDeleteTarget] = useState<PillPack | null>(null);
 
   useEffect(() => { fetchPacks(); }, []);
@@ -107,6 +109,23 @@ export default function AdminPillsPage() {
       setError(err instanceof ApiError ? err.message : "Failed to update");
     } finally {
       setToggling(null);
+    }
+  };
+
+  const handleFeature = async (pack: PillPack) => {
+    setFeaturing(pack.id);
+    try {
+      const newFeatured = !pack.is_featured;
+      await adminApi.featurePillPack(pack.id, newFeatured);
+      setPacks((prev) => prev.map((p) => ({
+        ...p,
+        // Only one pack can be featured — clear others when featuring a new one
+        is_featured: p.id === pack.id ? newFeatured : (newFeatured ? false : p.is_featured),
+      })));
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Failed to update featured status");
+    } finally {
+      setFeaturing(null);
     }
   };
 
@@ -197,6 +216,14 @@ export default function AdminPillsPage() {
                     <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-1">{pack.category}</p>
                     <div className="flex items-center gap-2 flex-wrap">
                       <h3 className="text-white font-black text-lg leading-tight">{pack.name}</h3>
+                      {/* Featured badge — standard packs only */}
+                      {pack.is_featured && !isSpecial && (
+                        <span className="text-[9px] font-black px-2 py-0.5 rounded flex items-center gap-1 flex-shrink-0"
+                          style={{ backgroundColor: "rgba(76,111,255,0.15)", color: "var(--accent-indigo)", border: "1px solid rgba(76,111,255,0.3)" }}>
+                          <Star size={9} /> FEATURED
+                        </span>
+                      )}
+                      {/* Special badge */}
                       {isSpecial && (
                         <span className="text-[9px] font-black px-2 py-0.5 rounded flex items-center gap-1 flex-shrink-0"
                           style={{ backgroundColor: "rgba(232,163,61,0.15)", color: "var(--accent-amber)", border: "1px solid rgba(232,163,61,0.3)", boxShadow: "0 0 8px rgba(232,163,61,0.2)" }}>
@@ -250,7 +277,23 @@ export default function AdminPillsPage() {
                       {pack.status === "active" ? "Deactivate" : "Activate"}
                     </button>
 
-                    {/* Safe delete — only when inactive + no available pills */}
+                    {/* Feature toggle — standard packs only, active only */}
+                    {!isSpecial && pack.status === "active" && (
+                      <button onClick={() => handleFeature(pack)} disabled={featuring === pack.id}
+                        className="px-3 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors disabled:opacity-50"
+                        style={pack.is_featured
+                          ? { backgroundColor: "rgba(76,111,255,0.2)", border: "1px solid rgba(76,111,255,0.4)", color: "var(--accent-indigo)" }
+                          : { backgroundColor: "rgba(76,111,255,0.06)", border: "1px solid rgba(76,111,255,0.15)", color: "var(--text-muted)" }
+                        }>
+                        {featuring === pack.id
+                          ? <Loader2 size={13} className="animate-spin" />
+                          : <Star size={13} fill={pack.is_featured ? "currentColor" : "none"} />
+                        }
+                        {pack.is_featured ? "Featured" : "Feature"}
+                      </button>
+                    )}
+
+                    {/* Safe delete */}
                     {canSafeDelete && (
                       <button onClick={() => handleDelete(pack)} disabled={deleting === pack.id}
                         className="px-3 py-2.5 rounded-xl text-xs font-bold border border-red-700/30 bg-red-900/20 text-red-400 hover:bg-red-900/30 transition-colors disabled:opacity-50 flex items-center gap-1.5">
