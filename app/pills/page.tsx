@@ -295,13 +295,22 @@ export default function PillsPage() {
   useEffect(() => {
     if (!state.isAuthenticated) { router.push("/auth"); return; }
     pillsApi.getPacks()
-      .then((d) => setAllPacks((d.packs ?? []).filter((p) => p.status === "active")))
+      .then((d) => {
+        const active = (d.packs ?? []).filter((p) => p.status === "active");
+        // Debug: log what fields each pack has so we can confirm is_vip
+        if (process.env.NODE_ENV === "development") {
+          console.log("[Pills] API packs:", active.map((p) => ({ id: p.id, name: p.name, is_vip: p.is_vip, pack_type: (p as any).pack_type, status: p.status })));
+        }
+        setAllPacks(active);
+      })
       .catch((e) => setError(e instanceof ApiError ? e.message : "Failed to load packs"))
       .finally(() => setLoading(false));
   }, [state.isAuthenticated, router]);
 
-  const standardPacks = allPacks.filter((p) => !p.is_vip);
-  const vipPacks = allPacks.filter((p) => p.is_vip);
+  // Detect Specials: is_vip flag OR pack_type === "special" (handle either backend field name)
+  const isSpecialPack = (p: PillPack) => p.is_vip === true || (p as any).pack_type === "special";
+  const standardPacks = allPacks.filter((p) => !isSpecialPack(p));
+  const vipPacks = allPacks.filter((p) => isSpecialPack(p));
   const categories = Array.from(new Set(standardPacks.map((p) => p.category))).sort();
 
   const filteredPacks = activeCategory === "All"
@@ -315,12 +324,10 @@ export default function PillsPage() {
   if (!state.isAuthenticated) return null;
 
   const handlePackClick = (pack: PillPack) => {
-    if (pack.is_vip) {
-      // VIP packs go to the exam flow, not the regular pill flow
+    if (isSpecialPack(pack)) {
       router.push(`/pills/vip/${pack.id}/play`);
       return;
     }
-    // Regular packs: open the first available pill's confirm sheet
     const firstAvail = pack.pills.find((p) => p.status === "available");
     if (firstAvail) setSheet({ pack, pill: firstAvail });
   };
