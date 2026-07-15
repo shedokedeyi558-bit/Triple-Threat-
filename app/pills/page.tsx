@@ -294,20 +294,23 @@ export default function PillsPage() {
 
   useEffect(() => {
     if (!state.isAuthenticated) { router.push("/auth"); return; }
-    pillsApi.getPacks()
-      .then((d) => {
-        const active = (d.packs ?? []).filter((p) => p.status === "active");
-        // Debug: log what fields each pack has so we can confirm is_vip
-        if (process.env.NODE_ENV === "development") {
-          console.log("[Pills] API packs:", active.map((p) => ({ id: p.id, name: p.name, is_vip: p.is_vip, pack_type: (p as any).pack_type, status: p.status })));
-        }
-        setAllPacks(active);
-      })
-      .catch((e) => setError(e instanceof ApiError ? e.message : "Failed to load packs"))
+
+    Promise.allSettled([
+      pillsApi.getPacks(),
+      pillsApi.getSpecials(),
+    ]).then(([packsResult, specialsResult]) => {
+      const standard = packsResult.status === "fulfilled"
+        ? (packsResult.value.packs ?? []).filter((p) => p.status === "active")
+        : [];
+      const specials = specialsResult.status === "fulfilled"
+        ? (specialsResult.value.packs ?? []).filter((p) => p.status === "active")
+        : [];
+      setAllPacks([...standard, ...specials.map((p) => ({ ...p, is_vip: true }))]);
+    }).catch((e) => setError(e instanceof ApiError ? e.message : "Failed to load packs"))
       .finally(() => setLoading(false));
   }, [state.isAuthenticated, router]);
 
-  // Detect Specials: is_vip flag OR pack_type === "special" (handle either backend field name)
+  // Specials come from /api/pills/specials — always marked is_vip: true
   const isSpecialPack = (p: PillPack) => p.is_vip === true || (p as any).pack_type === "special";
   const standardPacks = allPacks.filter((p) => !isSpecialPack(p));
   const vipPacks = allPacks.filter((p) => isSpecialPack(p));

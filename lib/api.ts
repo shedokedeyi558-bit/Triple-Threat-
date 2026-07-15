@@ -606,6 +606,9 @@ export const pillsApi = {
   getPacks: () =>
     request<{ packs: PillPack[] }>("/api/pills/packs", { token: getToken() }),
 
+  getSpecials: () =>
+    request<{ packs: PillPack[] }>("/api/pills/specials", { token: getToken() }),
+
   open: (pillId: string) =>
     request<PillOpenResponse>("/api/pills/open", {
       method: "POST",
