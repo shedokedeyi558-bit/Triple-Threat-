@@ -587,7 +587,8 @@ export const vipPillsApi = {
   start: (packId: string) =>
     request<VipStartResponse>(`/api/pills/vip/start`, {
       method: "POST",
-      body: { pack_id: packId },
+      // Send both field names — backend may expect either packId or pack_id
+      body: { pack_id: packId, packId },
       token: getToken(),
     }),
 

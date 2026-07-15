@@ -168,6 +168,12 @@ export default function SpecialsPlayPage() {
 
   const start = useCallback(async () => {
     if (!state.isAuthenticated) { router.push("/auth"); return; }
+    // Guard: packId must be a non-empty string — params may be undefined on first render
+    if (!packId || packId === "[packId]") {
+      setError(`Invalid pack ID: "${packId}" — check routing`);
+      setPhase("error");
+      return;
+    }
     setPhase("loading"); setError(null); stopTimer();
     try {
       const res: VipStartResponse = await vipPillsApi.start(packId);
