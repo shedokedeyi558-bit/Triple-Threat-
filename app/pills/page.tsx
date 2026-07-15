@@ -111,30 +111,45 @@ function GridPackCard({ pack, onClick }: { pack: PillPack; onClick: () => void }
         width: "100%", boxSizing: "border-box", borderRadius: 12, padding: 0,
         textAlign: "left", cursor: "pointer", overflow: "hidden",
         border: "1px solid var(--border-subtle)", backgroundColor: "var(--bg-card)",
-        display: "flex", flexDirection: "column",
+        // Equal-height flex column — footer always anchors at same vertical position
+        display: "flex", flexDirection: "column", alignSelf: "stretch",
       }}>
-      <div style={{ padding: "12px 12px 0", display: "flex", flexDirection: "column", gap: 8, flex: 1 }}>
-        {/* Top row: icon circle + category label */}
+      <div style={{ padding: "12px 12px 0", display: "flex", flexDirection: "column", flex: 1, gap: 8 }}>
+        {/* Top row: icon circle + category pill badge */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div style={{ width: 30, height: 30, borderRadius: "50%", backgroundColor: `${color}18`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ width: 30, height: 30, borderRadius: "50%", backgroundColor: `${color}18`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
             <Package size={14} style={{ color }} />
           </div>
-          <span style={{ fontSize: 9, fontFamily: "monospace", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--text-muted)" }}>
+          {/* Category pill badge — tinted background, not plain text */}
+          <span style={{
+            fontSize: 9, fontFamily: "monospace", fontWeight: 700,
+            textTransform: "uppercase", letterSpacing: "0.06em",
+            color, padding: "2px 7px", borderRadius: 20,
+            backgroundColor: `${color}18`,
+          }}>
             {pack.category}
           </span>
         </div>
-        {/* Pack name */}
-        <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", margin: 0, lineHeight: 1.35, wordBreak: "break-word" }}>
+        {/* Pack name — flex-grow pushes footer down equally for all cards */}
+        <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", margin: 0, lineHeight: 1.35, wordBreak: "break-word", flexGrow: 1 }}>
           {pack.name}
         </p>
       </div>
-      {/* Footer */}
-      <div style={{ margin: "10px 12px 0", paddingTop: 8, paddingBottom: 12, borderTop: "1px solid var(--border-hairline)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      {/* Footer — always anchored at bottom via flex column above */}
+      <div style={{
+        margin: "0 12px", paddingTop: 12, paddingBottom: 12,
+        marginTop: 12,
+        borderTop: "1px solid var(--border-hairline)",
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <p style={{ fontSize: 12, fontFamily: "monospace", fontWeight: 700, color: "var(--accent-amber)", margin: 0 }}>₦{price.toLocaleString()}</p>
           <span style={{ fontSize: 9, color: "var(--text-muted)" }}>{available} left</span>
         </div>
-        <ArrowRight size={12} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
+        {/* Arrow in tinted square button */}
+        <div style={{ width: 24, height: 24, borderRadius: 6, backgroundColor: `${color}18`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          <ArrowRight size={12} style={{ color }} />
+        </div>
       </div>
     </motion.button>
   );
@@ -391,7 +406,7 @@ export default function PillsPage() {
               <p style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", color: "var(--text-muted)", marginBottom: 10 }}>
                 Standard Packs
               </p>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, alignItems: "stretch" }}>
                 {standardPacks2.map((pack) => (
                   <GridPackCard key={pack.id} pack={pack} onClick={() => handlePackClick(pack)} />
                 ))}
