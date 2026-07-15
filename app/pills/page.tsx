@@ -287,6 +287,7 @@ export default function PillsPage() {
   const router = useRouter();
   const { state } = useApp();
   const [allPacks, setAllPacks] = useState<PillPack[]>([]);
+  const [specialPacks, setSpecialPacks] = useState<PillPack[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [sheet, setSheet] = useState<{ pack: PillPack; pill: PillPackPill } | null>(null);
@@ -295,25 +296,18 @@ export default function PillsPage() {
   useEffect(() => {
     if (!state.isAuthenticated) { router.push("/auth"); return; }
 
-    Promise.allSettled([
-      pillsApi.getPacks(),
-      pillsApi.getSpecials(),
-    ]).then(([packsResult, specialsResult]) => {
-      const standard = packsResult.status === "fulfilled"
-        ? (packsResult.value.packs ?? []).filter((p) => p.status === "active")
-        : [];
-      const specials = specialsResult.status === "fulfilled"
-        ? (specialsResult.value.packs ?? []).filter((p) => p.status === "active")
-        : [];
-      setAllPacks([...standard, ...specials.map((p) => ({ ...p, is_vip: true }))]);
-    }).catch((e) => setError(e instanceof ApiError ? e.message : "Failed to load packs"))
+    // Load standard packs and specials independently — don't let one failure hide the other
+    pillsApi.getPacks()
+      .then((d) => setAllPacks((d.packs ?? []).filter((p) => p.status === "active")))
+      .catch((e) => setError(e instanceof ApiError ? e.message : "Failed to load packs"));
+
+    pillsApi.getSpecials()
+      .then((d) => setSpecialPacks((d.packs ?? []).filter((p) => p.status === "active")))
+      .catch(() => setSpecialPacks([])) // silent on specials failure — section just won't show
       .finally(() => setLoading(false));
   }, [state.isAuthenticated, router]);
 
-  // Specials come from /api/pills/specials — always marked is_vip: true
-  const isSpecialPack = (p: PillPack) => p.is_vip === true || (p as any).pack_type === "special";
-  const standardPacks = allPacks.filter((p) => !isSpecialPack(p));
-  const vipPacks = allPacks.filter((p) => isSpecialPack(p));
+  const standardPacks = allPacks;
   const categories = Array.from(new Set(standardPacks.map((p) => p.category))).sort();
 
   const filteredPacks = activeCategory === "All"
@@ -393,8 +387,8 @@ export default function PillsPage() {
             </div>
           )}
 
-          {/* Specials section */}
-          <SpecialsBanner packs={vipPacks} onTap={(pack) => router.push(`/pills/vip/${pack.id}/play`)} />
+          {/* Specials section — from /api/pills/specials */}
+          <SpecialsBanner packs={specialPacks} onTap={(pack) => router.push(`/pills/vip/${pack.id}/play`)} />
 
         </div>
       )}
