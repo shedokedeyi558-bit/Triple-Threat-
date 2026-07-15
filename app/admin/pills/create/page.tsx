@@ -88,6 +88,10 @@ export default function CreatePillPackPage() {
   const [createSuccess, setCreateSuccess] = useState(false);
   const [error, setError] = useState("");
   const [isVip, setIsVip] = useState(false);
+  // Specials-only fields
+  const [specialQuestionCount, setSpecialQCount] = useState<number | "">(10);
+  const [specialTotalTime, setSpecialTotalTime] = useState<number | "">(900); // 15 min default
+  const [specialRequiredCorrect, setSpecialReqCorrect] = useState<number | "">(8);
   const [formOpen, setFormOpen] = useState(true);
   const [sampleCategory, setSampleCategory] = useState<SampleCategory>("Mixed");
   const [sampleCount, setSampleCount] = useState("5");
@@ -126,7 +130,12 @@ export default function CreatePillPackPage() {
     if (!packEntryFee || Number(packEntryFee) <= 0) { setError("Entry fee required"); return; }
     if (!packPrize || Number(packPrize) <= 0) { setError("Prize required"); return; }
     if (pills.length === 0) { setError("Add at least one pill"); return; }
-    if (isVip && pills.length < 10) { setError(`VIP packs require at least 10 questions — ${pills.length} added so far`); return; }
+    if (isVip && pills.length < Number(specialQuestionCount || 5)) {
+      setError(`Specials require at least ${specialQuestionCount} questions — ${pills.length} added so far`); return;
+    }
+    if (isVip && Number(specialRequiredCorrect) > Number(specialQuestionCount)) {
+      setError("Pass threshold cannot exceed question count"); return;
+    }
 
     // Validate all pills before hitting the backend
     for (let i = 0; i < pills.length; i++) {
@@ -154,6 +163,11 @@ export default function CreatePillPackPage() {
         entry_fee: Number(packEntryFee),
         prize: Number(packPrize),
         is_vip: isVip,
+        ...(isVip ? {
+          question_count: Number(specialQuestionCount) || 10,
+          total_time_seconds: Number(specialTotalTime) || 900,
+          required_correct: Number(specialRequiredCorrect) || 8,
+        } : {}),
         idempotency_key: idempotencyKey,
       } as any);
       packId = (packRes as any).pack?.id ?? (packRes as any).id;
@@ -251,7 +265,7 @@ export default function CreatePillPackPage() {
         </motion.div>
       )}
 
-      {/* ── VIP / Standard toggle ── */}
+      {/* ── Specials / Standard toggle ── */}
       <div className="flex gap-2 p-1 rounded-xl border" style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-card)" }}>
         <button
           type="button"
@@ -274,14 +288,44 @@ export default function CreatePillPackPage() {
             boxShadow: isVip ? "0 0 12px rgba(232,163,61,0.35)" : "none",
           }}
         >
-          VIP Pack
+          Specials Pack
         </button>
       </div>
       {isVip && (
-        <p className="text-[11px] px-1" style={{ color: "var(--accent-amber)" }}>
-          VIP packs require 10+ questions per pill. Players get one overall countdown (set per pill via &quot;Exam Time&quot;) — no per-question timer. Run out of time or answer wrong and they lose the entry fee.
-          {pills.length > 0 && pills.length < 10 && ` (${pills.length}/10 added)`}
-        </p>
+        <div className="space-y-3">
+          <p className="text-[11px] px-1" style={{ color: "var(--accent-amber)" }}>
+            Specials are exam-style packs — one overall countdown, no per-question feedback, results shown at the end.
+            One attempt per player. Build a larger question bank than question count for real randomization.
+          </p>
+          {/* Specials config fields */}
+          <div className="grid grid-cols-3 gap-3 border rounded-xl p-4" style={{ borderColor: "rgba(232,163,61,0.3)", backgroundColor: "rgba(232,163,61,0.04)" }}>
+            <div>
+              <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Questions (5–20)</label>
+              <input className={inputCls} type="number" min="5" max="20" placeholder="10"
+                value={specialQuestionCount}
+                onChange={(e) => setSpecialQCount(e.target.value === "" ? "" : Number(e.target.value))} />
+            </div>
+            <div>
+              <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Total Time (sec)</label>
+              <input className={inputCls} type="number" min="60" placeholder="900"
+                value={specialTotalTime}
+                onChange={(e) => setSpecialTotalTime(e.target.value === "" ? "" : Number(e.target.value))} />
+              <p className="text-[9px] mt-1" style={{ color: "var(--text-muted)" }}>900 = 15 min</p>
+            </div>
+            <div>
+              <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Pass Threshold</label>
+              <input className={inputCls} type="number" min="1" placeholder="8"
+                value={specialRequiredCorrect}
+                onChange={(e) => setSpecialReqCorrect(e.target.value === "" ? "" : Number(e.target.value))} />
+              <p className="text-[9px] mt-1" style={{ color: "var(--text-muted)" }}>correct to win</p>
+            </div>
+          </div>
+          {pills.length > 0 && pills.length < Number(specialQuestionCount || 5) && (
+            <p className="text-[11px] px-1" style={{ color: "var(--accent-amber)" }}>
+              {pills.length}/{specialQuestionCount} questions added
+            </p>
+          )}
+        </div>
       )}
 
       {/* Dev tools: category selector + count + fill button */}
@@ -523,7 +567,7 @@ export default function CreatePillPackPage() {
                 />
                 {isVip && (
                   <p className="text-[10px] mt-1" style={{ color: "var(--text-muted)" }}>
-                    Total time for all 10 questions — counts down once, like an exam.
+                    Overall exam time — overrides the pack-level Total Time if set here.
                   </p>
                 )}
               </div>

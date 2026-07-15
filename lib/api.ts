@@ -535,9 +535,10 @@ export interface PillPack {
   pills: PillPackPill[];
 }
 
-// ─── VIP PILLS ───────────────────────────────────────────────────────────────
-// Sequential 10-question streak. One entry fee for the whole pack.
-// POST /api/pills/vip/start — returns session (fresh or in-progress)
+// ─── SPECIALS (formerly VIP) ──────────────────────────────────────────────────
+// Exam-style: admin-configurable question count, total time, pass threshold.
+// No per-question feedback — scores revealed at end only.
+// POST /api/pills/vip/start — returns session
 // POST /api/pills/vip/answer/:sessionId — submit answer for current question
 
 export interface VipStartResponse {
@@ -546,23 +547,24 @@ export interface VipStartResponse {
   pack_name: string;
   category: string;
   entry_fee: number;
-  prize: number;            // total prize if all 10 correct
-  total_questions: number;  // always 10
-  current_question_index: number; // 0-based; 0 = fresh, >0 = resumed
-  is_new_attempt: boolean;  // true = charged entry fee, false = resumed in-progress
-  new_balance?: number;     // only present if is_new_attempt = true
+  prize: number;
+  total_questions: number;
+  required_correct: number;      // pass threshold set by admin
+  current_question_index: number;
+  is_new_attempt: boolean;
+  new_balance?: number;
+  exam_duration?: number;        // total seconds for the whole exam (preferred over question.timer)
   question: {
     question: string;
     format: "multiple_choice" | "type_answer";
     options?: string[];
-    timer: number;
+    timer: number;               // fallback if exam_duration absent
   };
 }
 
 export interface VipAnswerResponse {
   correct: boolean;
   correct_answer: string;
-  // if correct and more remain:
   next_question?: {
     question: string;
     format: "multiple_choice" | "type_answer";
@@ -570,13 +572,14 @@ export interface VipAnswerResponse {
     timer: number;
   };
   next_question_index?: number;
-  // if streak complete (all 10 correct):
+  // exam complete (all questions answered):
   streak_complete?: boolean;
+  passed?: boolean;              // true = met required_correct threshold
+  score?: number;                // how many correct out of total
   prize?: number;
   new_balance?: number;
-  // if wrong: entry_fee_lost included in correct_answer
   entry_fee: number;
-  question_number: number; // 1-based for display
+  question_number: number;
 }
 
 export const vipPillsApi = {

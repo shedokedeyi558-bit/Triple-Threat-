@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useApp } from "@/context/AppContext";
 import { pillsApi, type PillPack, type PillPackPill, ApiError } from "@/lib/api";
 import Link from "next/link";
-import { AlertCircle, Package, ArrowRight, Zap, Clock, Crown } from "lucide-react";
+import { AlertCircle, Package, ArrowRight, Zap, Clock, ClipboardCheck } from "lucide-react";
 
 // Category colour map
 const CAT_COLOR: Record<string, string> = {
@@ -135,14 +135,14 @@ function GridPackCard({ pack, onClick }: { pack: PillPack; onClick: () => void }
   );
 }
 
-// ── VIP banner ────────────────────────────────────────────────────────────
-function VipBanner({ packs, onTap }: { packs: PillPack[]; onTap: (pack: PillPack) => void }) {
+// ── Specials banner ────────────────────────────────────────────────────────
+function SpecialsBanner({ packs, onTap }: { packs: PillPack[]; onTap: (pack: PillPack) => void }) {
   if (packs.length === 0) return null;
   return (
     <section>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-        <Crown size={15} style={{ color: "var(--accent-amber)" }} />
-        <h2 style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>VIP Challenges</h2>
+        <ClipboardCheck size={15} style={{ color: "var(--accent-amber)" }} />
+        <h2 style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Specials</h2>
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {packs.map((pack) => {
@@ -159,12 +159,12 @@ function VipBanner({ packs, onTap }: { packs: PillPack[]; onTap: (pack: PillPack
               }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ fontSize: 9, fontWeight: 900, padding: "2px 7px", borderRadius: 4, background: "linear-gradient(135deg,#E8A33D,#FFD060)", color: "#000" }}>VIP</span>
+                  <span style={{ fontSize: 9, fontWeight: 900, padding: "2px 7px", borderRadius: 4, background: "linear-gradient(135deg,#E8A33D,#FFD060)", color: "#000" }}>SPECIAL</span>
                   <p style={{ fontSize: 13, fontWeight: 700, color: "#FFE082", margin: 0 }}>{pack.name}</p>
                 </div>
-                <Zap size={14} style={{ color: "var(--accent-amber)", opacity: 0.8 }} />
+                <ClipboardCheck size={14} style={{ color: "var(--accent-amber)", opacity: 0.8 }} />
               </div>
-              <p style={{ fontSize: 10, color: "rgba(232,163,61,0.6)", margin: "0 0 10px" }}>10 questions · answer all to win</p>
+              <p style={{ fontSize: 10, color: "rgba(232,163,61,0.6)", margin: "0 0 10px" }}>Exam-style · answer to pass · one attempt</p>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <p style={{ fontSize: 12, fontFamily: "monospace", fontWeight: 700, color: "rgba(232,163,61,0.85)", margin: 0 }}>₦{price.toLocaleString()} entry</p>
                 <p style={{ fontSize: 16, fontFamily: "monospace", fontWeight: 900, color: "#FFD060", margin: 0 }}>₦{prize.toLocaleString()}</p>
@@ -381,8 +381,8 @@ export default function PillsPage() {
             </div>
           )}
 
-          {/* VIP section */}
-          <VipBanner packs={vipPacks} onTap={(pack) => router.push(`/pills/vip/${pack.id}/play`)} />
+          {/* Specials section */}
+          <SpecialsBanner packs={vipPacks} onTap={(pack) => router.push(`/pills/vip/${pack.id}/play`)} />
 
         </div>
       )}
