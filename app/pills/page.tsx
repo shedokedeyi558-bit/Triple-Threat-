@@ -108,11 +108,12 @@ function GridPackCard({ pack, onClick }: { pack: PillPack; onClick: () => void }
     <motion.button initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} whileTap={{ scale: 0.97 }}
       onClick={onClick}
       style={{
-        width: "100%", boxSizing: "border-box", borderRadius: 12, padding: 0,
+        flexShrink: 0,
+        width: 148,
+        boxSizing: "border-box", borderRadius: 12, padding: 0,
         textAlign: "left", cursor: "pointer", overflow: "hidden",
         border: "1px solid var(--border-subtle)", backgroundColor: "var(--bg-card)",
-        // Equal-height flex column — footer always anchors at same vertical position
-        display: "flex", flexDirection: "column", alignSelf: "stretch",
+        display: "flex", flexDirection: "column",
       }}>
       <div style={{ padding: "12px 12px 0", display: "flex", flexDirection: "column", flex: 1, gap: 8 }}>
         {/* Top row: icon circle + category pill badge */}
@@ -400,16 +401,19 @@ export default function PillsPage() {
             </section>
           )}
 
-          {/* More packs — 2-col grid */}
+          {/* Standard Packs — horizontal scroll row */}
           {standardPacks2.length > 0 && (
             <section>
               <p style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", color: "var(--text-muted)", marginBottom: 10 }}>
                 Standard Packs
               </p>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, alignItems: "stretch" }}>
-                {standardPacks2.map((pack) => (
-                  <GridPackCard key={pack.id} pack={pack} onClick={() => handlePackClick(pack)} />
-                ))}
+              {/* Horizontal scroll — page height stays fixed regardless of pack count */}
+              <div style={{ width: "100%", minWidth: 0, overflowX: "auto", overflowY: "hidden", WebkitOverflowScrolling: "touch" }}>
+                <div style={{ display: "flex", gap: 10, minWidth: "min-content", paddingBottom: 4 }}>
+                  {standardPacks2.map((pack) => (
+                    <GridPackCard key={pack.id} pack={pack} onClick={() => handlePackClick(pack)} />
+                  ))}
+                </div>
               </div>
             </section>
           )}
