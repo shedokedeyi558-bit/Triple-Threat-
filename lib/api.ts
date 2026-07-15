@@ -1016,6 +1016,12 @@ export const adminApi = {
       { method: "DELETE", token: getAdminToken() }
     ),
 
+  deletePillPackForce: (packId: string) =>
+    request<{ message: string }>(
+      `/api/admin/pills/packs/${packId}?force=true`,
+      { method: "DELETE", token: getAdminToken() }
+    ),
+
   addPillToPack: (packId: string, data: {
     question: string;
     format: "multiple_choice" | "type_answer";

@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useApp } from "@/context/AppContext";
 import { pillsApi, type PillPack, type PillPackPill, ApiError } from "@/lib/api";
 import Link from "next/link";
-import { AlertCircle, Package, ArrowRight, Zap, Clock, ClipboardCheck } from "lucide-react";
+import { AlertCircle, Package, ArrowRight, Clock, ClipboardCheck } from "lucide-react";
 
 // Category colour map
 const CAT_COLOR: Record<string, string> = {
@@ -113,19 +113,20 @@ function GridPackCard({ pack, onClick }: { pack: PillPack; onClick: () => void }
         border: "1px solid var(--border-subtle)", backgroundColor: "var(--bg-card)", display: "flex", flexDirection: "column",
       }}>
       <div style={{ height: 3, backgroundColor: color, width: "100%" }} />
-      <div style={{ padding: "12px 13px 14px", flex: 1, display: "flex", flexDirection: "column", gap: 8 }}>
-        {/* Icon + category */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div style={{ width: 32, height: 32, borderRadius: "50%", backgroundColor: `${color}20`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <Package size={15} style={{ color }} />
-          </div>
-          <span style={{ fontSize: 9, fontWeight: 700, color: "var(--text-muted)" }}>{available}p left</span>
-        </div>
+      <div style={{ padding: "12px 13px 14px", flex: 1, display: "flex", flexDirection: "column", gap: 7 }}>
+        {/* Category label */}
+        <span style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", color }}>
+          {pack.category}
+        </span>
         {/* Name — allow 2-line wrap */}
         <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", margin: 0, lineHeight: 1.35, wordBreak: "break-word" }}>
           {pack.name}
         </p>
-        <p style={{ fontSize: 10, color: "var(--text-muted)", margin: 0 }}>{pack.pills.length} pills inside</p>
+        {/* Availability — clear stat, no abbreviation */}
+        <p style={{ fontSize: 10, color: "var(--text-muted)", margin: 0 }}>
+          {available} available
+        </p>
+        {/* Price + arrow */}
         <div style={{ marginTop: "auto", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <p style={{ fontSize: 12, fontFamily: "monospace", fontWeight: 700, color: "var(--accent-amber)", margin: 0 }}>₦{price.toLocaleString()}</p>
           <ArrowRight size={12} style={{ color }} />
