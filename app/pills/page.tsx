@@ -296,14 +296,31 @@ export default function PillsPage() {
   useEffect(() => {
     if (!state.isAuthenticated) { router.push("/auth"); return; }
 
-    // Load standard packs and specials independently — don't let one failure hide the other
+    // Load standard packs — also extract any specials that sneak in (is_vip: true)
     pillsApi.getPacks()
-      .then((d) => setAllPacks((d.packs ?? []).filter((p) => p.status === "active")))
+      .then((d) => {
+        const active = (d.packs ?? []).filter((p) => p.status === "active");
+        // Separate specials from standard — backend now sends is_vip on every pack
+        const standards = active.filter((p) => !p.is_vip && (p as any).pack_type !== "special");
+        const specials = active.filter((p) => p.is_vip || (p as any).pack_type === "special");
+        setAllPacks(standards);
+        if (specials.length > 0) setSpecialPacks(specials);
+      })
       .catch((e) => setError(e instanceof ApiError ? e.message : "Failed to load packs"));
 
+    // Also try the dedicated specials endpoint — merge results, deduplicate by id
     pillsApi.getSpecials()
-      .then((d) => setSpecialPacks((d.packs ?? []).filter((p) => p.status === "active")))
-      .catch(() => setSpecialPacks([])) // silent on specials failure — section just won't show
+      .then((d) => {
+        const active = (d.packs ?? []).filter((p) => p.status === "active");
+        if (active.length > 0) {
+          setSpecialPacks((prev) => {
+            const existing = new Set(prev.map((p) => p.id));
+            const merged = [...prev, ...active.filter((p) => !existing.has(p.id))];
+            return merged;
+          });
+        }
+      })
+      .catch(() => { /* silent — standard packs fallback handles it */ })
       .finally(() => setLoading(false));
   }, [state.isAuthenticated, router]);
 
