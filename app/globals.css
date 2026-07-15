@@ -192,3 +192,49 @@ body {
 .btn-danger {
   @apply w-full py-4 rounded-xl bg-red-600 text-white font-bold text-lg active:scale-95 transition-transform;
 }
+
+/* Standard Pack card — responsive width in horizontal scroll row ────────── */
+/* Mobile (<768px): ~44vw shows 2 cards + peek of 3rd                        */
+/* Tablet (768-1023px): ~30vw shows ~3 cards                                 */
+/* Desktop (≥1024px): ~22vw shows ~4 cards, more breathing room per card    */
+.pack-card {
+  flex: 0 0 clamp(150px, 44vw, 200px);
+}
+@media (min-width: 768px) {
+  .pack-card {
+    flex-basis: clamp(200px, 30vw, 260px);
+  }
+}
+@media (min-width: 1024px) {
+  .pack-card {
+    flex-basis: clamp(240px, 22vw, 320px);
+  }
+}
+
+/* Pack card internals scale at larger breakpoints ─────────────────────────── */
+.pack-card .pack-card-body {
+  padding: 12px 12px 0;
+}
+.pack-card .pack-card-name {
+  font-size: 13px;
+}
+.pack-card .pack-card-footer {
+  margin: 0 12px;
+  padding-top: 12px;
+  padding-bottom: 12px;
+  margin-top: 12px;
+}
+@media (min-width: 1024px) {
+  .pack-card .pack-card-body {
+    padding: 16px 16px 0;
+  }
+  .pack-card .pack-card-name {
+    font-size: 14px;
+  }
+  .pack-card .pack-card-footer {
+    margin: 0 16px;
+    padding-top: 14px;
+    padding-bottom: 14px;
+    margin-top: 14px;
+  }
+}

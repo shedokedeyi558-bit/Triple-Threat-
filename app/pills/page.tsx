@@ -107,15 +107,14 @@ function GridPackCard({ pack, onClick }: { pack: PillPack; onClick: () => void }
   return (
     <motion.button initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} whileTap={{ scale: 0.97 }}
       onClick={onClick}
+      className="pack-card"
       style={{
-        flexShrink: 0,
-        width: 148,
         boxSizing: "border-box", borderRadius: 12, padding: 0,
         textAlign: "left", cursor: "pointer", overflow: "hidden",
         border: "1px solid var(--border-subtle)", backgroundColor: "var(--bg-card)",
         display: "flex", flexDirection: "column",
       }}>
-      <div style={{ padding: "12px 12px 0", display: "flex", flexDirection: "column", flex: 1, gap: 8 }}>
+      <div className="pack-card-body" style={{ display: "flex", flexDirection: "column", flex: 1, gap: 8 }}>
         {/* Top row: icon circle + category pill badge */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div style={{ width: 30, height: 30, borderRadius: "50%", backgroundColor: `${color}18`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
@@ -132,17 +131,12 @@ function GridPackCard({ pack, onClick }: { pack: PillPack; onClick: () => void }
           </span>
         </div>
         {/* Pack name — flex-grow pushes footer down equally for all cards */}
-        <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", margin: 0, lineHeight: 1.35, wordBreak: "break-word", flexGrow: 1 }}>
+        <p className="pack-card-name" style={{ fontWeight: 700, color: "var(--text-primary)", margin: 0, lineHeight: 1.35, wordBreak: "break-word", flexGrow: 1 }}>
           {pack.name}
         </p>
       </div>
       {/* Footer — always anchored at bottom via flex column above */}
-      <div style={{
-        margin: "0 12px", paddingTop: 12, paddingBottom: 12,
-        marginTop: 12,
-        borderTop: "1px solid var(--border-hairline)",
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-      }}>
+      <div className="pack-card-footer" style={{ borderTop: "1px solid var(--border-hairline)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <p style={{ fontSize: 12, fontFamily: "monospace", fontWeight: 700, color: "var(--accent-amber)", margin: 0 }}>₦{price.toLocaleString()}</p>
           <span style={{ fontSize: 9, color: "var(--text-muted)" }}>{available} left</span>
