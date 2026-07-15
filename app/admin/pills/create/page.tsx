@@ -575,27 +575,6 @@ export default function CreatePillPackPage() {
               </div>
             </div>
 
-            {/* Color picker */}
-            <div>
-              <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Pill Color</label>
-              <div className="flex gap-2 flex-wrap">
-                {PILL_COLORS.map((c) => (
-                  <button
-                    key={c}
-                    type="button"
-                    onClick={() => updateDraft({ color: c })}
-                    className="w-8 h-8 rounded-full transition-all active:scale-90"
-                    style={{
-                      backgroundColor: c,
-                      outline: draft.color === c ? `2px solid white` : "none",
-                      outlineOffset: 2,
-                      opacity: draft.color === c ? 1 : 0.5,
-                    }}
-                  />
-                ))}
-              </div>
-            </div>
-
             <button
               type="button"
               onClick={addPill}

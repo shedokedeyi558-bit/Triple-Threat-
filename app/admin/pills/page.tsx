@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { adminApi, ApiError } from "@/lib/api";
-import { Loader2, Plus, Package, Eye, EyeOff, Trash2, ClipboardCheck, Star } from "lucide-react";
+import { Loader2, Plus, Package, Eye, EyeOff, Trash2, ClipboardCheck, Star, MoreHorizontal } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface PillPack {
@@ -17,15 +17,6 @@ interface PillPack {
   available_count?: number;
   played_count?: number;
 }
-
-const statusBadge = (s: string) => {
-  switch (s) {
-    case "active":   return "bg-[#4C6FFF]/15 text-[#4C6FFF] border border-[#4C6FFF]/30";
-    case "inactive": return "bg-gray-800 text-gray-500";
-    case "draft":    return "bg-yellow-900/20 text-yellow-500 border border-yellow-700/30";
-    default:         return "bg-gray-800 text-gray-500";
-  }
-};
 
 // ── Force-delete confirmation dialog ────────────────────────────────────────
 function ForceDeleteDialog({ pack, onConfirm, onCancel, deleting }: {
@@ -44,26 +35,17 @@ function ForceDeleteDialog({ pack, onConfirm, onCancel, deleting }: {
         <div>
           <p className="font-bold text-base text-white mb-1">Force delete pack?</p>
           <p className="text-sm text-gray-400 leading-relaxed">
-            This permanently deletes <span className="font-semibold text-white">{pack.name}</span> and all its pills, regardless of status. This cannot be undone.
+            Permanently deletes <span className="font-semibold text-white">{pack.name}</span> and all its pills. Cannot be undone.
           </p>
         </div>
         <div>
-          <label className="text-[11px] uppercase tracking-widest font-bold text-gray-500 block mb-1.5">
-            Type the pack name to confirm
-          </label>
-          <input
-            type="text" placeholder={pack.name} value={typed}
-            onChange={(e) => setTyped(e.target.value)}
+          <label className="text-[11px] uppercase tracking-widest font-bold text-gray-500 block mb-1.5">Type pack name to confirm</label>
+          <input type="text" placeholder={pack.name} value={typed} onChange={(e) => setTyped(e.target.value)}
             className="w-full rounded-xl px-4 py-2.5 text-sm outline-none"
-            style={{ backgroundColor: "var(--bg-base)", border: "1px solid var(--border-subtle)", color: "var(--text-primary)" }}
-          />
+            style={{ backgroundColor: "var(--bg-base)", border: "1px solid var(--border-subtle)", color: "var(--text-primary)" }} />
         </div>
-        <div className="flex gap-2 pt-1">
-          <button onClick={onCancel}
-            className="flex-1 py-2.5 rounded-xl text-sm font-bold border text-gray-400"
-            style={{ border: "1px solid var(--border-subtle)" }}>
-            Cancel
-          </button>
+        <div className="flex gap-2">
+          <button onClick={onCancel} className="flex-1 py-2.5 rounded-xl text-sm font-bold text-gray-400 border" style={{ border: "1px solid var(--border-subtle)" }}>Cancel</button>
           <button onClick={onConfirm} disabled={!matches || deleting}
             className="flex-1 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-40"
             style={{ backgroundColor: "#ef4444", color: "#fff" }}>
@@ -85,6 +67,7 @@ export default function AdminPillsPage() {
   const [deleting, setDeleting] = useState<string | null>(null);
   const [featuring, setFeaturing] = useState<string | null>(null);
   const [forceDeleteTarget, setForceDeleteTarget] = useState<PillPack | null>(null);
+  const [expandedActions, setExpandedActions] = useState<string | null>(null);
 
   useEffect(() => { fetchPacks(); }, []);
 
@@ -119,7 +102,6 @@ export default function AdminPillsPage() {
       await adminApi.featurePillPack(pack.id, newFeatured);
       setPacks((prev) => prev.map((p) => ({
         ...p,
-        // Only one pack can be featured — clear others when featuring a new one
         is_featured: p.id === pack.id ? newFeatured : (newFeatured ? false : p.is_featured),
       })));
     } catch (err) {
@@ -132,7 +114,7 @@ export default function AdminPillsPage() {
   const handleDelete = async (pack: PillPack) => {
     const availableCount = pack.available_count ?? pack.pills.filter((p) => p.status === "available").length;
     if (availableCount > 0) {
-      setError(`Cannot delete "${pack.name}" — it still has ${availableCount} unplayed pill(s). Deactivate it first, or use Force Delete.`);
+      setError(`Cannot delete "${pack.name}" — ${availableCount} unplayed pill(s). Use Force Delete to override.`);
       return;
     }
     if (!window.confirm(`Delete "${pack.name}"?\n\nThis cannot be undone.`)) return;
@@ -163,14 +145,15 @@ export default function AdminPillsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-black text-white">Pill Packs</h1>
-          <p className="text-gray-500 text-sm mt-0.5">Manage all pill pack games</p>
+          <p className="text-gray-500 text-sm mt-0.5">{packs.length} pack{packs.length !== 1 ? "s" : ""}</p>
         </div>
         <button onClick={() => router.push("/admin/pills/create")}
-          className="flex items-center gap-2 px-4 py-2.5 font-bold rounded-xl hover:opacity-90 text-sm transition-opacity"
+          className="flex items-center gap-2 px-4 py-2.5 font-bold rounded-xl text-sm"
           style={{ backgroundColor: "var(--accent-indigo)", color: "white" }}>
           <Plus size={15} /> Create New Pack
         </button>
@@ -184,132 +167,127 @@ export default function AdminPillsPage() {
       )}
 
       {loading ? (
-        <div className="flex justify-center py-20">
-          <Loader2 size={28} className="text-[#4C6FFF] animate-spin" />
-        </div>
+        <div className="flex justify-center py-20"><Loader2 size={28} className="text-[#4C6FFF] animate-spin" /></div>
       ) : packs.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 text-center">
           <Package size={40} className="text-gray-700 mb-4" />
           <p className="text-gray-500 font-semibold">No pill packs yet</p>
-          <p className="text-gray-700 text-sm mt-1">Create your first pack to get started</p>
-          <button onClick={() => router.push("/admin/pills/create")}
-            className="mt-4 text-sm font-bold hover:underline" style={{ color: "var(--accent-indigo)" }}>
+          <button onClick={() => router.push("/admin/pills/create")} className="mt-4 text-sm font-bold hover:underline" style={{ color: "var(--accent-indigo)" }}>
             Create First Pack →
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="space-y-2">
           {packs.map((pack, i) => {
-            const availableCount = pack.available_count ?? pack.pills.filter((p) => p.status === "available").length;
-            const playedCount = pack.played_count ?? pack.pills.filter((p) => p.status === "played").length;
+            const available = pack.available_count ?? pack.pills.filter((p) => p.status === "available").length;
+            const played = pack.played_count ?? pack.pills.filter((p) => p.status === "played").length;
+            const total = pack.pills.length;
             const isSpecial = !!pack.is_vip;
-            const canSafeDelete = pack.status !== "active" && availableCount === 0;
+            const canSafeDelete = pack.status !== "active" && available === 0;
+            const isExpanded = expandedActions === pack.id;
 
             return (
-              <motion.div key={pack.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
-                className="bg-card border border-[#2A2A2A] rounded-2xl p-5 space-y-4"
-                style={isSpecial ? { borderColor: "rgba(232,163,61,0.3)", boxShadow: "0 0 16px rgba(232,163,61,0.08)" } : {}}>
+              <motion.div key={pack.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}
+                className="border rounded-xl overflow-hidden"
+                style={{ borderColor: isSpecial ? "rgba(232,163,61,0.25)" : "var(--border-hairline)", backgroundColor: "var(--bg-card)" }}>
 
-                {/* Header */}
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-1">{pack.category}</p>
+                {/* Main row */}
+                <div className="flex items-center gap-3 px-4 py-3 cursor-pointer" onClick={() => router.push(`/admin/pills/${pack.id}`)}>
+
+                  {/* Category + name + badges */}
+                  <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="text-white font-black text-lg leading-tight">{pack.name}</h3>
-                      {/* Featured badge — standard packs only */}
-                      {pack.is_featured && !isSpecial && (
-                        <span className="text-[9px] font-black px-2 py-0.5 rounded flex items-center gap-1 flex-shrink-0"
-                          style={{ backgroundColor: "rgba(76,111,255,0.15)", color: "var(--accent-indigo)", border: "1px solid rgba(76,111,255,0.3)" }}>
-                          <Star size={9} /> FEATURED
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-gray-500 flex-shrink-0">{pack.category}</span>
+                      <span className="text-sm font-semibold text-white truncate">{pack.name}</span>
+                      {isSpecial && (
+                        <span className="text-[9px] font-black px-1.5 py-0.5 rounded flex items-center gap-0.5 flex-shrink-0"
+                          style={{ backgroundColor: "rgba(232,163,61,0.15)", color: "var(--accent-amber)", border: "1px solid rgba(232,163,61,0.3)" }}>
+                          <ClipboardCheck size={8} /> SPECIAL
                         </span>
                       )}
-                      {/* Special badge */}
-                      {isSpecial && (
-                        <span className="text-[9px] font-black px-2 py-0.5 rounded flex items-center gap-1 flex-shrink-0"
-                          style={{ backgroundColor: "rgba(232,163,61,0.15)", color: "var(--accent-amber)", border: "1px solid rgba(232,163,61,0.3)", boxShadow: "0 0 8px rgba(232,163,61,0.2)" }}>
-                          <ClipboardCheck size={9} /> SPECIAL
+                      {pack.is_featured && !isSpecial && (
+                        <span className="text-[9px] font-black px-1.5 py-0.5 rounded flex items-center gap-0.5 flex-shrink-0"
+                          style={{ backgroundColor: "rgba(76,111,255,0.12)", color: "var(--accent-indigo)", border: "1px solid rgba(76,111,255,0.25)" }}>
+                          <Star size={8} fill="currentColor" /> FEATURED
                         </span>
                       )}
                     </div>
                   </div>
-                  <span className={`text-[10px] font-black px-2.5 py-1 rounded-lg flex-shrink-0 ${statusBadge(pack.status)}`}>
+
+                  {/* Inline stats */}
+                  <div className="flex items-center gap-3 flex-shrink-0 text-[11px]">
+                    <span className="text-gray-600">{total}t</span>
+                    <span style={{ color: "var(--accent-indigo)" }}>{available}av</span>
+                    <span className="text-gray-500">{played}pl</span>
+                  </div>
+
+                  {/* Status badge */}
+                  <span className={`text-[9px] font-black px-2 py-0.5 rounded flex-shrink-0 ${
+                    pack.status === "active" ? "bg-[#4C6FFF]/15 text-[#4C6FFF] border border-[#4C6FFF]/30"
+                    : pack.status === "inactive" ? "bg-gray-800 text-gray-500"
+                    : "bg-yellow-900/20 text-yellow-500"
+                  }`}>
                     {pack.status.toUpperCase()}
                   </span>
-                </div>
 
-                {/* Pills preview */}
-                <div className="flex items-center gap-2 flex-wrap">
-                  {pack.pills.slice(0, 8).map((pill) => (
-                    <div key={pill.id} className="w-7 h-7 rounded-full"
-                      style={{ background: pill.color, opacity: pill.status === "played" ? 0.25 : 1, boxShadow: pill.status !== "played" ? `0 0 8px ${pill.color}50` : "none" }} />
-                  ))}
-                  {pack.pills.length > 8 && <span className="text-gray-600 text-xs">+{pack.pills.length - 8} more</span>}
-                  <span className="text-gray-500 text-xs ml-1">{pack.pills.length} pill{pack.pills.length !== 1 ? "s" : ""}</span>
-                </div>
-
-                {/* Stats */}
-                <div className="grid grid-cols-3 gap-2 text-center">
-                  <div className="bg-[#111] rounded-xl p-2.5">
-                    <p className="text-[10px] text-gray-600 mb-0.5">Total</p>
-                    <p className="text-white font-bold text-sm">{pack.pills.length}</p>
-                  </div>
-                  <div className="bg-[#111] rounded-xl p-2.5">
-                    <p className="text-[10px] text-gray-600 mb-0.5">Available</p>
-                    <p className="font-bold text-sm" style={{ color: "var(--accent-indigo)" }}>{availableCount}</p>
-                  </div>
-                  <div className="bg-[#111] rounded-xl p-2.5">
-                    <p className="text-[10px] text-gray-600 mb-0.5">Played</p>
-                    <p className="text-gray-400 font-bold text-sm">{playedCount}</p>
-                  </div>
-                </div>
-
-                {/* Actions */}
-                <div className="space-y-2 pt-1 border-t border-[#1E1E1E]">
-                  <div className="flex gap-2">
-                    {/* Activate / Deactivate */}
-                    <button onClick={() => handleToggleStatus(pack)} disabled={toggling === pack.id}
-                      className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-colors disabled:opacity-50 ${
-                        pack.status === "active"
-                          ? "bg-red-900/20 border border-red-700/30 text-red-400 hover:bg-red-900/30"
-                          : "bg-[#4C6FFF]/10 border border-[#4C6FFF]/20 text-[#4C6FFF] hover:bg-[#4C6FFF]/20"
-                      }`}>
-                      {toggling === pack.id ? <Loader2 size={13} className="animate-spin" /> : pack.status === "active" ? <EyeOff size={13} /> : <Eye size={13} />}
-                      {pack.status === "active" ? "Deactivate" : "Activate"}
-                    </button>
-
-                    {/* Feature toggle — standard packs only, active only */}
-                    {!isSpecial && pack.status === "active" && (
-                      <button onClick={() => handleFeature(pack)} disabled={featuring === pack.id}
-                        className="px-3 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors disabled:opacity-50"
-                        style={pack.is_featured
-                          ? { backgroundColor: "rgba(76,111,255,0.2)", border: "1px solid rgba(76,111,255,0.4)", color: "var(--accent-indigo)" }
-                          : { backgroundColor: "rgba(76,111,255,0.06)", border: "1px solid rgba(76,111,255,0.15)", color: "var(--text-muted)" }
-                        }>
-                        {featuring === pack.id
-                          ? <Loader2 size={13} className="animate-spin" />
-                          : <Star size={13} fill={pack.is_featured ? "currentColor" : "none"} />
-                        }
-                        {pack.is_featured ? "Featured" : "Feature"}
-                      </button>
-                    )}
-
-                    {/* Safe delete */}
-                    {canSafeDelete && (
-                      <button onClick={() => handleDelete(pack)} disabled={deleting === pack.id}
-                        className="px-3 py-2.5 rounded-xl text-xs font-bold border border-red-700/30 bg-red-900/20 text-red-400 hover:bg-red-900/30 transition-colors disabled:opacity-50 flex items-center gap-1.5">
-                        {deleting === pack.id ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
-                        Delete
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Force delete — always available, secondary/muted styling */}
-                  <button onClick={() => setForceDeleteTarget(pack)}
-                    className="w-full py-1.5 rounded-lg text-[11px] font-semibold text-gray-600 hover:text-red-400 transition-colors flex items-center justify-center gap-1.5">
-                    <Trash2 size={11} />
-                    Force delete (test packs)
+                  {/* Action toggle */}
+                  <button onClick={(e) => { e.stopPropagation(); setExpandedActions(isExpanded ? null : pack.id); }}
+                    className="p-1.5 rounded-lg hover:bg-[#1A1A1A] transition-colors flex-shrink-0"
+                    style={{ color: "var(--text-muted)" }}>
+                    <MoreHorizontal size={15} />
                   </button>
                 </div>
+
+                {/* Expanded actions */}
+                <AnimatePresence>
+                  {isExpanded && (
+                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.15 }}
+                      className="border-t overflow-hidden"
+                      style={{ borderColor: "var(--border-hairline)" }}>
+                      <div className="px-4 py-3 flex items-center gap-2 flex-wrap">
+
+                        {/* Activate / Deactivate */}
+                        <button onClick={() => handleToggleStatus(pack)} disabled={toggling === pack.id}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors disabled:opacity-50 ${
+                            pack.status === "active"
+                              ? "bg-red-900/20 border border-red-700/30 text-red-400"
+                              : "bg-[#4C6FFF]/10 border border-[#4C6FFF]/20 text-[#4C6FFF]"
+                          }`}>
+                          {toggling === pack.id ? <Loader2 size={11} className="animate-spin" /> : pack.status === "active" ? <EyeOff size={11} /> : <Eye size={11} />}
+                          {pack.status === "active" ? "Deactivate" : "Activate"}
+                        </button>
+
+                        {/* Feature — standard only, active only */}
+                        {!isSpecial && pack.status === "active" && (
+                          <button onClick={() => handleFeature(pack)} disabled={featuring === pack.id}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors disabled:opacity-50"
+                            style={pack.is_featured
+                              ? { backgroundColor: "rgba(76,111,255,0.2)", border: "1px solid rgba(76,111,255,0.4)", color: "var(--accent-indigo)" }
+                              : { backgroundColor: "rgba(76,111,255,0.06)", border: "1px solid rgba(76,111,255,0.15)", color: "var(--text-muted)" }}>
+                            {featuring === pack.id ? <Loader2 size={11} className="animate-spin" /> : <Star size={11} fill={pack.is_featured ? "currentColor" : "none"} />}
+                            {pack.is_featured ? "Featured" : "Set Featured"}
+                          </button>
+                        )}
+
+                        {/* Safe delete */}
+                        {canSafeDelete && (
+                          <button onClick={() => handleDelete(pack)} disabled={deleting === pack.id}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border border-red-700/30 bg-red-900/20 text-red-400 transition-colors disabled:opacity-50">
+                            {deleting === pack.id ? <Loader2 size={11} className="animate-spin" /> : <Trash2 size={11} />}
+                            Delete
+                          </button>
+                        )}
+
+                        {/* Force delete — always */}
+                        <button onClick={() => { setForceDeleteTarget(pack); setExpandedActions(null); }}
+                          className="ml-auto text-[11px] font-semibold text-gray-600 hover:text-red-400 transition-colors flex items-center gap-1">
+                          <Trash2 size={10} /> Force delete
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </motion.div>
             );
           })}
@@ -319,12 +297,8 @@ export default function AdminPillsPage() {
       {/* Force-delete dialog */}
       <AnimatePresence>
         {forceDeleteTarget && (
-          <ForceDeleteDialog
-            pack={forceDeleteTarget}
-            onConfirm={handleForceDelete}
-            onCancel={() => setForceDeleteTarget(null)}
-            deleting={deleting === forceDeleteTarget.id}
-          />
+          <ForceDeleteDialog pack={forceDeleteTarget} onConfirm={handleForceDelete}
+            onCancel={() => setForceDeleteTarget(null)} deleting={deleting === forceDeleteTarget.id} />
         )}
       </AnimatePresence>
     </div>

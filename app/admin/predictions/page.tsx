@@ -15,8 +15,13 @@ interface PredictionRow {
   slots_filled: number;
   max_slots: number;
   status: "active" | "locked" | "completed" | "cancelled";
+  display_status?: "active" | "locked" | "completed" | "cancelled";
   countdown_end: string;
 }
+
+// display_status is the computed real state (e.g. expired countdown = "locked" even if stored as "active")
+const effectiveStatus = (pred: PredictionRow) =>
+  (pred.display_status ?? pred.status) as string;
 
 const statusBadge = (s: string) => {
   const config: Record<string, string> = {
@@ -54,6 +59,7 @@ export default function AdminPredictionsPage() {
           slots_filled: g.slots_filled || 0,
           max_slots: g.max_slots || 0,
           status: (g.status || "active") as "active" | "locked" | "completed" | "cancelled",
+          display_status: (g.display_status || g.status || "active") as "active" | "locked" | "completed" | "cancelled",
           countdown_end: g.countdown_end || "",
         }));
       setPredictions(predictions);
@@ -147,6 +153,7 @@ export default function AdminPredictionsPage() {
         <div className="space-y-3">
           {predictions.map((pred, i) => {
             const isPastDeadline = new Date(pred.countdown_end).getTime() < Date.now();
+            const dispStatus = effectiveStatus(pred);
             return (
               <motion.div
                 key={pred.id}
@@ -163,8 +170,8 @@ export default function AdminPredictionsPage() {
                       <h3 className="text-sm font-semibold truncate" style={{ color: "var(--text-primary)" }}>
                         {pred.question}
                       </h3>
-                      <span className={`text-[9px] font-bold px-2 py-0.5 rounded border flex-shrink-0 ${statusBadge(pred.status)}`}>
-                        {pred.status.toUpperCase()}
+                      <span className={`text-[9px] font-bold px-2 py-0.5 rounded border flex-shrink-0 ${statusBadge(dispStatus)}`}>
+                        {dispStatus.toUpperCase()}
                       </span>
                     </div>
                     <div className="flex items-center gap-4 text-xs flex-wrap" style={{ color: "var(--text-secondary)" }}>
@@ -183,7 +190,7 @@ export default function AdminPredictionsPage() {
                   </div>
 
                   <div className="flex items-center gap-2 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-                    {isPastDeadline && pred.status === "locked" && (
+                    {(isPastDeadline || dispStatus === "locked") && dispStatus !== "completed" && dispStatus !== "cancelled" && (
                       <button
                         onClick={() => handleRevealAnswer(pred.id)}
                         disabled={revealing === pred.id}
@@ -202,7 +209,7 @@ export default function AdminPredictionsPage() {
                         )}
                       </button>
                     )}
-                    {(pred.status === "completed" || pred.status === "cancelled") && (
+                    {(dispStatus === "completed" || dispStatus === "cancelled") && (
                       <button
                         onClick={() => handleDelete(pred)}
                         disabled={deleting === pred.id}
