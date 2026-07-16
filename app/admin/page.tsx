@@ -8,7 +8,7 @@ import { CreatePillPackForm } from "@/components/admin/CreatePillPackForm";
 import { CreateTimeMachineForm } from "@/components/admin/CreateTimeMachineForm";
 import {
   Users, AlertCircle, Banknote, Gamepad2,
-  ChevronRight, Package, Clock, Zap, TrendingUp, Activity,
+  ChevronRight, Package, Clock, Zap, Activity,
 } from "lucide-react";
 
 interface RecentPack {

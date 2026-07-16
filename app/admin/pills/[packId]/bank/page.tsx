@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { adminApi, type PackQuestion, ApiError } from "@/lib/api";
 import {
-  ChevronLeft, Plus, Pencil, Trash2, AlertTriangle, CheckCircle2,
+  ChevronLeft, Plus, Pencil, Trash2, AlertTriangle,
   ArrowUpDown, ArrowUp, ArrowDown, Loader2, X, Save, BookOpen,
 } from "lucide-react";
 
@@ -54,7 +54,6 @@ function BankHealth({ total, questionCount }: { total: number; questionCount: nu
 }
 
 // ── Question form (add / edit) ────────────────────────────────────────────────
-const COLORS = ["#4C6FFF","#8B5CF6","#F59E0B","#10B981","#EF4444","#EC4899"];
 
 function QuestionForm({ initial, onSave, onCancel, saving }: {
   initial?: Partial<PackQuestion>;
@@ -148,7 +147,7 @@ function DeleteConfirm({ question, onConfirm, onCancel, deleting }: {
           <p style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Delete question?</p>
         </div>
         <p style={{ fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.55, marginBottom: 18 }}>
-          "{question.question.slice(0, 80)}{question.question.length > 80 ? "…" : ""}"
+          &ldquo;{question.question.slice(0, 80)}{question.question.length > 80 ? "…" : ""}&rdquo;
         </p>
         <p style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 18 }}>
           This removes the question from the bank. Players who already answered it are unaffected.
