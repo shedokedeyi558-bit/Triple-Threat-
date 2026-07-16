@@ -587,7 +587,8 @@ export const specialsApi = {
   start: (packId: string) =>
     request<VipStartResponse>(`/api/pills/special/start`, {
       method: "POST",
-      body: { pack_id: packId },
+      // Backend validates against camelCase `packId` — send both names to be safe
+      body: { pack_id: packId, packId },
       token: getToken(),
     }),
 
