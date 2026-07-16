@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { adminApi, ApiError } from "@/lib/api";
-import { Loader2, Plus, Package, Eye, EyeOff, Trash2, ClipboardCheck, Star, BookOpen } from "lucide-react";
+import { Loader2, Plus, Package, Eye, EyeOff, Trash2, ClipboardCheck, Star, BookOpen, BarChart2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface PillPack {
@@ -274,6 +274,13 @@ export default function AdminPillsPage() {
                             Delete
                           </button>
                         )}
+
+                        {/* View stats — all packs */}
+                        <button onClick={() => router.push(`/admin/pills/${pack.id}/stats`)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors"
+                          style={{ backgroundColor: "rgba(76,111,255,0.08)", border: "1px solid rgba(76,111,255,0.2)", color: "var(--accent-indigo)" }}>
+                          <BarChart2 size={11} /> Stats
+                        </button>
 
                         {/* Force delete — always */}
                         <button onClick={() => { setForceDeleteTarget(pack); setExpandedActions(null); }}
