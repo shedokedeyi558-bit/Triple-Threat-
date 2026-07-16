@@ -548,6 +548,20 @@ export interface PillPack {
   pills: PillPackPill[];
 }
 
+export interface PackQuestion {
+  id: string;
+  question: string;
+  format: "multiple_choice" | "type_answer";
+  options?: string[];
+  correct_answer: string;
+  timer: number;
+  times_shown: number;
+  times_correct: number;
+  correct_rate: number;          // 0–100 percentage, computed by backend
+  status: "active" | "inactive" | "deleted";
+  created_at: string;
+}
+
 // ─── SPECIALS ─────────────────────────────────────────────────────────────────
 // Exam-style: admin-configurable question count, total time, pass threshold.
 // No per-question feedback — scores revealed at end only.
@@ -1056,6 +1070,32 @@ export const adminApi = {
     request<{ pill: { id: string } }>(
       `/api/admin/pills/packs/${packId}/pills`,
       { method: "POST", body: data, token: getAdminToken() }
+    ),
+
+  // Question bank management (Prompts 9 & 10)
+  getPackQuestions: (packId: string) =>
+    request<{
+      pack: { id: string; name: string; category: string; question_count: number | null };
+      questions: PackQuestion[];
+      stats: { total: number; bank_size: number; coverage_ratio: number };
+    }>(`/api/admin/pills/packs/${packId}/questions`, { token: getAdminToken() }),
+
+  updatePackQuestion: (packId: string, questionId: string, data: {
+    question?: string;
+    format?: "multiple_choice" | "type_answer";
+    options?: string[];
+    correct_answer?: string;
+    timer?: number;
+  }) =>
+    request<{ question: PackQuestion }>(
+      `/api/admin/pills/packs/${packId}/questions/${questionId}`,
+      { method: "PATCH", body: data, token: getAdminToken() }
+    ),
+
+  deletePackQuestion: (packId: string, questionId: string) =>
+    request<{ message: string }>(
+      `/api/admin/pills/packs/${packId}/questions/${questionId}`,
+      { method: "DELETE", token: getAdminToken() }
     ),
 
   // Withdrawals — PUT for approve/reject

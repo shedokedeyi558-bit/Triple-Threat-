@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { adminApi, ApiError } from "@/lib/api";
-import { Loader2, Plus, Package, Eye, EyeOff, Trash2, ClipboardCheck, Star } from "lucide-react";
+import { Loader2, Plus, Package, Eye, EyeOff, Trash2, ClipboardCheck, Star, BookOpen } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface PillPack {
@@ -280,6 +280,15 @@ export default function AdminPillsPage() {
                           className="ml-auto text-[11px] font-semibold text-gray-600 hover:text-red-400 transition-colors flex items-center gap-1">
                           <Trash2 size={10} /> Force delete
                         </button>
+
+                        {/* Manage bank — Specials only (have a question bank) */}
+                        {isSpecial && (
+                          <button onClick={() => router.push(`/admin/pills/${pack.id}/bank`)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors"
+                            style={{ backgroundColor: "rgba(232,163,61,0.08)", border: "1px solid rgba(232,163,61,0.2)", color: "var(--accent-amber)" }}>
+                            <BookOpen size={11} /> Manage Bank
+                          </button>
+                        )}
                       </div>
                     </motion.div>
                   )}
