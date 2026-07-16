@@ -95,7 +95,7 @@ function ExamQuestion({ question, format, options, onSubmit, isLoading, question
   const submit = (ans: string) => { if (!ans.trim() || isLoading) return; onSubmit(ans.trim()); };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 24, userSelect: "none" }} onContextMenu={(e) => e.preventDefault()}>
       <div>
         <p style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.09em", color: "var(--accent-amber)", marginBottom: 12 }}>
           Question {questionNum} of {totalQuestions}

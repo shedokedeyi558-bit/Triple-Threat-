@@ -45,7 +45,7 @@ export default function PillPlay({
   const isValid = format === "multiple_choice" ? selectedOption !== null : textAnswer.trim() !== "";
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" style={{ userSelect: "none" }} onContextMenu={(e) => e.preventDefault()}>
       <div>
         <p className="text-xs text-[#888] uppercase tracking-tight font-bold">{category}</p>
         <h2 className="text-2xl font-bold mt-4 leading-tight" style={{ color: "var(--text-primary)" }}>{question}</h2>
