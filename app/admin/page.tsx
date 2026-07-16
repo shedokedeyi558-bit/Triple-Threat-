@@ -56,7 +56,7 @@ export default function AdminDashboard() {
       try {
         const [statsRes, gamesRes, packsRes, blitzRes] = await Promise.allSettled([
           adminApi.getStats(),
-          adminApi.getGames({ limit: 5 }),
+          adminApi.getGames({ limit: 20, game_type: "predictions" }),
           adminApi.getPillPacks(),
           adminApi.getBlitzTournaments(),
         ]);
@@ -64,8 +64,8 @@ export default function AdminDashboard() {
         if (statsRes.status === "fulfilled") setStats(statsRes.value);
         if (gamesRes.status === "fulfilled") {
           setPredictions(
-            (gamesRes.value.games as any[])
-              .filter((g) => g.game_type === "predictions")
+            ((gamesRes.value.games as any[]) || [])
+              .filter((g) => g.category || g.countdown_end)
               .slice(0, 3) as RecentPrediction[]
           );
         }
@@ -477,7 +477,7 @@ export default function AdminDashboard() {
                   Time Machine
                 </h2>
                 <p className="text-xs mt-0.5" style={{ color: "var(--text-secondary)" }}>
-                  {predictions.length > 0 ? `${predictions.length} active` : "No predictions yet"}
+                  {predictions.length > 0 ? `${predictions.length} prediction${predictions.length !== 1 ? "s" : ""}` : "No predictions yet"}
                 </p>
               </div>
             </div>
