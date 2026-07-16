@@ -544,6 +544,7 @@ export interface PillPack {
   required_correct?: number | null;  // server-enforced pass threshold
   entry_window_end?: string | null;
   available_question_count?: number | null;
+  quiz_expires_at?: string | null;          // ISO timestamp — pack entry closes at this time
   pills: PillPackPill[];
 }
 

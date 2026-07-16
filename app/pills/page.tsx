@@ -24,6 +24,30 @@ function formatTimer(sec?: number) {
   return sec >= 60 ? `${Math.floor(sec / 60)}m` : `${sec}s`;
 }
 
+// ── Live expiry countdown for quiz_expires_at ─────────────────────────────
+function usePackExpiry(expiresAt?: string | null) {
+  const [secondsLeft, setSecondsLeft] = useState<number>(() =>
+    expiresAt ? Math.max(0, Math.floor((new Date(expiresAt).getTime() - Date.now()) / 1000)) : -1
+  );
+  useEffect(() => {
+    if (!expiresAt) return;
+    const tick = () => {
+      const s = Math.max(0, Math.floor((new Date(expiresAt).getTime() - Date.now()) / 1000));
+      setSecondsLeft(s);
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [expiresAt]);
+  if (!expiresAt) return { label: null, expired: false };
+  if (secondsLeft <= 0) return { label: "Ended", expired: true };
+  const h = Math.floor(secondsLeft / 3600);
+  const m = Math.floor((secondsLeft % 3600) / 60);
+  const s = secondsLeft % 60;
+  const label = h > 0 ? `Ends in ${h}h ${m}m` : m > 0 ? `Ends in ${m}m ${s}s` : `Ends in ${s}s`;
+  return { label, expired: false };
+}
+
 // ── Category chip filter ──────────────────────────────────────────────────
 function CategoryChips({ categories, active, onChange }: {
   categories: string[]; active: string; onChange: (c: string) => void;
@@ -54,17 +78,17 @@ function HeroPack({ pack, onClick }: { pack: PillPack; onClick: () => void }) {
   const timer = (pack.pills[0] as any)?.timer as number | undefined;
   const timerLabel = formatTimer(timer);
   const available = pack.pills.filter((p) => p.status === "available").length;
+  const { label: expiryLabel, expired } = usePackExpiry(pack.quiz_expires_at);
 
   return (
-    <motion.button initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} whileTap={{ scale: 0.98 }}
-      onClick={onClick}
+    <motion.button initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} whileTap={{ scale: expired ? 1 : 0.98 }}
+      onClick={expired ? undefined : onClick}
       style={{
         width: "100%", boxSizing: "border-box", borderRadius: 16, padding: 0, textAlign: "left",
-        cursor: "pointer", overflow: "hidden", border: `1.5px solid ${color}50`,
+        cursor: expired ? "default" : "pointer", overflow: "hidden", border: `1.5px solid ${color}50`,
         backgroundColor: "var(--bg-card)", position: "relative",
-        boxShadow: `0 4px 32px ${color}20`,
+        boxShadow: `0 4px 32px ${color}20`, opacity: expired ? 0.6 : 1,
       }}>
-      {/* Radial glow */}
       <div style={{ position: "absolute", top: -40, right: -40, width: 180, height: 180, borderRadius: "50%", backgroundColor: color, opacity: 0.07, pointerEvents: "none" }} />
       <div style={{ height: 3, background: `linear-gradient(90deg, transparent, ${color}, transparent)` }} />
       <div style={{ padding: "18px 20px", position: "relative" }}>
@@ -73,24 +97,34 @@ function HeroPack({ pack, onClick }: { pack: PillPack; onClick: () => void }) {
             {pack.category}
           </span>
           <span style={{ fontSize: 10, color: "var(--text-muted)" }}>{available}/{pack.pills.length} available</span>
+          {expiryLabel && (
+            <span style={{ fontSize: 9, fontWeight: 600, color: expired ? "#f87171" : "var(--accent-amber)", display: "flex", alignItems: "center", gap: 3 }}>
+              <Clock size={9} /> {expiryLabel}
+            </span>
+          )}
         </div>
         <p style={{ fontSize: 19, fontWeight: 800, color: "var(--text-primary)", margin: "0 0 6px", lineHeight: 1.3 }}>{pack.name}</p>
         <p style={{ fontSize: 12, color: "var(--text-secondary)", margin: "0 0 16px" }}>
-          Answer fast{timerLabel ? ` in ${timerLabel}` : ""}, win instantly
+          {expired ? "This pack has ended" : `Answer fast${timerLabel ? ` in ${timerLabel}` : ""}, win instantly`}
         </p>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
           <div style={{ display: "flex", gap: 16 }}>
             <div>
               <p style={{ fontSize: 9, color: "var(--text-muted)", margin: "0 0 2px", textTransform: "uppercase", letterSpacing: "0.06em" }}>Entry</p>
-              <p style={{ fontSize: 16, fontFamily: "monospace", fontWeight: 700, color: "var(--accent-amber)", margin: 0 }}>₦{price.toLocaleString()}</p>
+              {expired
+                ? <p style={{ fontSize: 16, fontWeight: 700, color: "#f87171", margin: 0 }}>Ended</p>
+                : <p style={{ fontSize: 16, fontFamily: "monospace", fontWeight: 700, color: "var(--accent-amber)", margin: 0 }}>₦{price.toLocaleString()}</p>
+              }
             </div>
-            <div>
-              <p style={{ fontSize: 9, color: "var(--text-muted)", margin: "0 0 2px", textTransform: "uppercase", letterSpacing: "0.06em" }}>Win up to</p>
-              <p style={{ fontSize: 16, fontFamily: "monospace", fontWeight: 700, color, margin: 0 }}>₦{prize.toLocaleString()}</p>
-            </div>
+            {!expired && (
+              <div>
+                <p style={{ fontSize: 9, color: "var(--text-muted)", margin: "0 0 2px", textTransform: "uppercase", letterSpacing: "0.06em" }}>Win up to</p>
+                <p style={{ fontSize: 16, fontFamily: "monospace", fontWeight: 700, color, margin: 0 }}>₦{prize.toLocaleString()}</p>
+              </div>
+            )}
           </div>
-          <div style={{ padding: "8px 16px", borderRadius: 10, backgroundColor: color, color: "#000", fontSize: 13, fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}>
-            Play <ArrowRight size={13} />
+          <div style={{ padding: "8px 16px", borderRadius: 10, backgroundColor: expired ? "rgba(239,68,68,0.15)" : color, color: expired ? "#f87171" : "#000", fontSize: 13, fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}>
+            {expired ? "Ended" : <>Play <ArrowRight size={13} /></>}
           </div>
         </div>
       </div>
@@ -103,47 +137,51 @@ function GridPackCard({ pack, onClick }: { pack: PillPack; onClick: () => void }
   const color = catColor(pack.category);
   const price = pack.pills[0]?.price ?? 0;
   const available = pack.pills.filter((p) => p.status === "available").length;
+  const { label: expiryLabel, expired } = usePackExpiry(pack.quiz_expires_at);
 
   return (
-    <motion.button initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} whileTap={{ scale: 0.97 }}
-      onClick={onClick}
+    <motion.button initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} whileTap={{ scale: expired ? 1 : 0.97 }}
+      onClick={expired ? undefined : onClick}
       className="pack-card"
       style={{
         boxSizing: "border-box", borderRadius: 12, padding: 0,
-        textAlign: "left", cursor: "pointer", overflow: "hidden",
+        textAlign: "left", cursor: expired ? "default" : "pointer", overflow: "hidden",
         border: "1px solid var(--border-subtle)", backgroundColor: "var(--bg-card)",
-        display: "flex", flexDirection: "column",
+        display: "flex", flexDirection: "column", opacity: expired ? 0.55 : 1,
       }}>
       <div className="pack-card-body" style={{ display: "flex", flexDirection: "column", flex: 1, gap: 8 }}>
-        {/* Top row: icon circle + category pill badge */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div style={{ width: 30, height: 30, borderRadius: "50%", backgroundColor: `${color}18`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
             <Package size={14} style={{ color }} />
           </div>
-          {/* Category pill badge — tinted background, not plain text */}
           <span style={{
             fontSize: 9, fontFamily: "monospace", fontWeight: 700,
             textTransform: "uppercase", letterSpacing: "0.06em",
-            color, padding: "2px 7px", borderRadius: 20,
-            backgroundColor: `${color}18`,
+            color, padding: "2px 7px", borderRadius: 20, backgroundColor: `${color}18`,
           }}>
             {pack.category}
           </span>
         </div>
-        {/* Pack name — flex-grow pushes footer down equally for all cards */}
         <p className="pack-card-name" style={{ fontWeight: 700, color: "var(--text-primary)", margin: 0, lineHeight: 1.35, wordBreak: "break-word", flexGrow: 1 }}>
           {pack.name}
         </p>
+        {expiryLabel && (
+          <p style={{ fontSize: 9, fontWeight: 600, color: expired ? "#f87171" : "var(--accent-amber)", margin: 0, display: "flex", alignItems: "center", gap: 3 }}>
+            <Clock size={9} style={{ flexShrink: 0 }} /> {expiryLabel}
+          </p>
+        )}
       </div>
-      {/* Footer — always anchored at bottom via flex column above */}
       <div className="pack-card-footer" style={{ borderTop: "1px solid var(--border-hairline)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <p style={{ fontSize: 12, fontFamily: "monospace", fontWeight: 700, color: "var(--accent-amber)", margin: 0 }}>₦{price.toLocaleString()}</p>
-          <span style={{ fontSize: 9, color: "var(--text-muted)" }}>{available} left</span>
+          {expired ? (
+            <p style={{ fontSize: 12, fontWeight: 700, color: "#f87171", margin: 0 }}>Ended</p>
+          ) : (
+            <p style={{ fontSize: 12, fontFamily: "monospace", fontWeight: 700, color: "var(--accent-amber)", margin: 0 }}>₦{price.toLocaleString()}</p>
+          )}
+          {!expired && <span style={{ fontSize: 9, color: "var(--text-muted)" }}>{available} left</span>}
         </div>
-        {/* Arrow in tinted square button */}
-        <div style={{ width: 24, height: 24, borderRadius: 6, backgroundColor: `${color}18`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-          <ArrowRight size={12} style={{ color }} />
+        <div style={{ width: 24, height: 24, borderRadius: 6, backgroundColor: expired ? "rgba(239,68,68,0.08)" : `${color}18`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          <ArrowRight size={12} style={{ color: expired ? "#f87171" : color, opacity: expired ? 0.5 : 1 }} />
         </div>
       </div>
     </motion.button>
@@ -193,25 +231,25 @@ function PillSheet({ pack, pill, onConfirm, onClose, balance, bonusBalance }: {
   const color = isSpecial ? "var(--accent-amber)" : catColor(pack.category);
   const cardColor = catColor(pack.category);
 
-  // Entry fee / prize — prefer pack-level fields, fall back to first pill
   const entryFee  = pack.entry_fee  ?? pill.price;
   const prize     = pack.prize_amount ?? pill.prize;
   const canAfford = balance + bonusBalance >= entryFee;
   const bonusUsed = Math.min(bonusBalance, entryFee);
   const realUsed  = entryFee - bonusUsed;
 
-  // Specials metadata — use required_correct as the enforcement source of truth
   const qCount    = pack.question_count ?? null;
   const timeMins  = pack.time_limit_minutes ?? null;
   const passReq   = pack.required_correct ?? pack.pass_threshold ?? null;
 
-  // Challenge phrase — branch on question_count presence
+  const { label: expiryLabel, expired } = usePackExpiry(pack.quiz_expires_at);
+
   const challengePhrase = isSpecial && qCount != null
     ? `Answer ${qCount} questions${timeMins != null ? ` in ${timeMins} minute${timeMins !== 1 ? "s" : ""}` : ""}${passReq != null ? ` — get ${passReq} or more right to win` : " — pass to win"}.`
     : `Answer correctly and win instantly.`;
 
   const timerSec   = (pill as any).timer as number | undefined;
   const timerLabel = !isSpecial ? formatTimer(timerSec) : null;
+  const canStart   = canAfford && !expired;
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -241,6 +279,16 @@ function PillSheet({ pack, pill, onConfirm, onClose, balance, bonusBalance }: {
             <p style={{ fontSize: 12, color: "var(--text-secondary)", margin: "2px 0 0" }}>{pack.category}</p>
           </div>
         </div>
+
+        {/* Expiry countdown */}
+        {expiryLabel && (
+          <div style={{ borderRadius: 8, padding: "8px 12px", marginBottom: 12, backgroundColor: expired ? "rgba(239,68,68,0.08)" : "rgba(232,163,61,0.06)", border: `1px solid ${expired ? "rgba(239,68,68,0.2)" : "rgba(232,163,61,0.15)"}`, display: "flex", alignItems: "center", gap: 6 }}>
+            <Clock size={12} style={{ color: expired ? "#f87171" : "var(--accent-amber)", flexShrink: 0 }} />
+            <span style={{ fontSize: 12, fontWeight: 600, color: expired ? "#f87171" : "var(--accent-amber)" }}>
+              {expiryLabel}
+            </span>
+          </div>
+        )}
 
         {/* Challenge phrase */}
         <div style={{ borderRadius: 12, padding: "14px 16px", backgroundColor: isSpecial ? "rgba(232,163,61,0.06)" : `${cardColor}10`, border: `1px solid ${isSpecial ? "rgba(232,163,61,0.2)" : `${cardColor}25`}`, marginBottom: 16 }}>
@@ -286,27 +334,32 @@ function PillSheet({ pack, pill, onConfirm, onClose, balance, bonusBalance }: {
         </div>
 
         {/* Bonus breakdown */}
-        {bonusUsed > 0 && canAfford && (
+        {bonusUsed > 0 && canAfford && !expired && (
           <p style={{ fontSize: 11, textAlign: "center", color: "var(--accent-amber)", marginBottom: 10 }}>
             ₦{bonusUsed.toLocaleString()} from bonus credit{realUsed > 0 ? ` + ₦${realUsed.toLocaleString()} from balance` : " (fully covered)"}
           </p>
         )}
-        {!canAfford && (
+        {!canAfford && !expired && (
           <p style={{ textAlign: "center", color: "#f87171", fontSize: 13, marginBottom: 10 }}>
             Insufficient balance. <Link href="/wallet" style={{ textDecoration: "underline", fontWeight: 600 }}>Add funds</Link>
           </p>
         )}
+        {expired && (
+          <p style={{ textAlign: "center", color: "#f87171", fontSize: 13, fontWeight: 600, marginBottom: 10 }}>
+            This special has ended
+          </p>
+        )}
 
         {/* CTA */}
-        <button onClick={onConfirm} disabled={!canAfford}
+        <button onClick={canStart ? onConfirm : undefined} disabled={!canStart}
           style={{
             width: "100%", padding: "14px 0", borderRadius: 11, border: "none",
-            backgroundColor: isSpecial ? "var(--accent-amber)" : cardColor,
-            color: "#000", fontSize: 14, fontWeight: 800,
-            cursor: canAfford ? "pointer" : "not-allowed", opacity: canAfford ? 1 : 0.4,
+            backgroundColor: expired ? "rgba(239,68,68,0.12)" : isSpecial ? "var(--accent-amber)" : cardColor,
+            color: expired ? "#f87171" : "#000", fontSize: 14, fontWeight: 800,
+            cursor: canStart ? "pointer" : "not-allowed", opacity: canStart ? 1 : 0.45,
             marginBottom: 10,
           }}>
-          Start &amp; Pay ₦{entryFee.toLocaleString()}
+          {expired ? "Entry Closed" : `Start & Pay ₦${entryFee.toLocaleString()}`}
         </button>
         <button onClick={onClose}
           style={{ width: "100%", padding: "10px 0", border: "none", background: "none", fontSize: 13, fontWeight: 600, color: "var(--text-secondary)", cursor: "pointer" }}>

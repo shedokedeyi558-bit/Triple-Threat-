@@ -8,6 +8,30 @@ import { pillsApi, type PillPack, ApiError } from "@/lib/api";
 import { ChevronLeft, ClipboardCheck, ArrowRight, Clock, AlertCircle, Package } from "lucide-react";
 import Link from "next/link";
 
+// ── Live expiry countdown for quiz_expires_at ─────────────────────────────
+function usePackExpiry(expiresAt?: string | null) {
+  const [secondsLeft, setSecondsLeft] = useState<number>(() =>
+    expiresAt ? Math.max(0, Math.floor((new Date(expiresAt).getTime() - Date.now()) / 1000)) : -1
+  );
+  useEffect(() => {
+    if (!expiresAt) return;
+    const tick = () => {
+      const s = Math.max(0, Math.floor((new Date(expiresAt).getTime() - Date.now()) / 1000));
+      setSecondsLeft(s);
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [expiresAt]);
+  if (!expiresAt) return { label: null, expired: false };
+  if (secondsLeft <= 0) return { label: "Ended", expired: true };
+  const h = Math.floor(secondsLeft / 3600);
+  const m = Math.floor((secondsLeft % 3600) / 60);
+  const s = secondsLeft % 60;
+  const label = h > 0 ? `Ends in ${h}h ${m}m` : m > 0 ? `Ends in ${m}m ${s}s` : `Ends in ${s}s`;
+  return { label, expired: false };
+}
+
 // ── Special confirm sheet ─────────────────────────────────────────────────
 function SpecialConfirmSheet({ pack, balance, bonusBalance, onConfirm, onClose }: {
   pack: PillPack; balance: number; bonusBalance: number;
@@ -21,6 +45,8 @@ function SpecialConfirmSheet({ pack, balance, bonusBalance, onConfirm, onClose }
   const canAfford = balance + bonusBalance >= entryFee;
   const bonusUsed = Math.min(bonusBalance, entryFee);
   const realUsed  = entryFee - bonusUsed;
+  const { label: expiryLabel, expired } = usePackExpiry(pack.quiz_expires_at);
+  const canStart  = canAfford && !expired;
 
   const challengePhrase = qCount != null
     ? `Answer ${qCount} questions${timeMins != null ? ` in ${timeMins} minute${timeMins !== 1 ? "s" : ""}` : ""}${passReq != null ? ` — get ${passReq} or more right to win` : " — pass to win"}.`
@@ -57,6 +83,14 @@ function SpecialConfirmSheet({ pack, balance, bonusBalance, onConfirm, onClose }
           <p style={{ fontSize: 12, color: "rgba(232,163,61,0.65)", margin: "4px 0 0" }}>One attempt only · prizes paid instantly on pass</p>
         </div>
 
+        {/* Expiry countdown */}
+        {expiryLabel && (
+          <div style={{ borderRadius: 8, padding: "8px 12px", marginBottom: 12, backgroundColor: expired ? "rgba(239,68,68,0.08)" : "rgba(232,163,61,0.06)", border: `1px solid ${expired ? "rgba(239,68,68,0.2)" : "rgba(232,163,61,0.15)"}`, display: "flex", alignItems: "center", gap: 6 }}>
+            <Clock size={12} style={{ color: expired ? "#f87171" : "var(--accent-amber)", flexShrink: 0 }} />
+            <span style={{ fontSize: 12, fontWeight: 600, color: expired ? "#f87171" : "var(--accent-amber)" }}>{expiryLabel}</span>
+          </div>
+        )}
+
         {/* Stats grid */}
         <div style={{ display: "grid", gridTemplateColumns: qCount != null ? "1fr 1fr 1fr" : "1fr 1fr", gap: 8, marginBottom: 16 }}>
           <div style={{ borderRadius: 10, padding: "10px 8px", textAlign: "center", border: "1px solid var(--border-subtle)", backgroundColor: "var(--bg-base)" }}>
@@ -75,20 +109,25 @@ function SpecialConfirmSheet({ pack, balance, bonusBalance, onConfirm, onClose }
           )}
         </div>
 
-        {bonusUsed > 0 && canAfford && (
+        {bonusUsed > 0 && canAfford && !expired && (
           <p style={{ fontSize: 11, textAlign: "center", color: "var(--accent-amber)", marginBottom: 10 }}>
             ₦{bonusUsed.toLocaleString()} from bonus credit{realUsed > 0 ? ` + ₦${realUsed.toLocaleString()} from balance` : " (fully covered)"}
           </p>
         )}
-        {!canAfford && (
+        {!canAfford && !expired && (
           <p style={{ textAlign: "center", color: "#f87171", fontSize: 13, marginBottom: 10 }}>
             Insufficient balance. <Link href="/wallet" style={{ textDecoration: "underline", fontWeight: 600 }}>Add funds</Link>
           </p>
         )}
+        {expired && (
+          <p style={{ textAlign: "center", color: "#f87171", fontSize: 13, fontWeight: 600, marginBottom: 10 }}>
+            This special has ended
+          </p>
+        )}
 
-        <button onClick={onConfirm} disabled={!canAfford}
-          style={{ width: "100%", padding: "14px 0", borderRadius: 11, border: "none", backgroundColor: "var(--accent-amber)", color: "#000", fontSize: 14, fontWeight: 800, cursor: canAfford ? "pointer" : "not-allowed", opacity: canAfford ? 1 : 0.4, marginBottom: 10 }}>
-          Start &amp; Pay ₦{entryFee.toLocaleString()}
+        <button onClick={canStart ? onConfirm : undefined} disabled={!canStart}
+          style={{ width: "100%", padding: "14px 0", borderRadius: 11, border: "none", backgroundColor: expired ? "rgba(239,68,68,0.12)" : "var(--accent-amber)", color: expired ? "#f87171" : "#000", fontSize: 14, fontWeight: 800, cursor: canStart ? "pointer" : "not-allowed", opacity: canStart ? 1 : 0.45, marginBottom: 10 }}>
+          {expired ? "Entry Closed" : `Start & Pay ₦${entryFee.toLocaleString()}`}
         </button>
         <button onClick={onClose}
           style={{ width: "100%", padding: "10px 0", border: "none", background: "none", fontSize: 13, fontWeight: 600, color: "var(--text-secondary)", cursor: "pointer" }}>
@@ -111,57 +150,66 @@ const catColor = (cat: string) => CAT_COLOR[cat] ?? "#4C6FFF";
 
 // ── Hero special card ─────────────────────────────────────────────────────
 function HeroSpecial({ pack, onClick }: { pack: PillPack; onClick: () => void }) {
-  const price = pack.pills[0]?.price ?? 0;
-  const prize = pack.pills[0]?.prize ?? 0;
+  const price = pack.entry_fee ?? pack.pills[0]?.price ?? 0;
+  const prize = pack.prize_amount ?? pack.pills[0]?.prize ?? 0;
   const total = pack.pills.length;
+  const { label: expiryLabel, expired } = usePackExpiry(pack.quiz_expires_at);
 
   return (
-    <motion.button initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} whileTap={{ scale: 0.98 }}
-      onClick={onClick}
+    <motion.button initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} whileTap={{ scale: expired ? 1 : 0.98 }}
+      onClick={expired ? undefined : onClick}
       style={{
         width: "100%", boxSizing: "border-box", borderRadius: 16, padding: 0,
-        textAlign: "left", cursor: "pointer", overflow: "hidden", position: "relative",
+        textAlign: "left", cursor: expired ? "default" : "pointer", overflow: "hidden", position: "relative",
         background: "linear-gradient(135deg, #1a1200 0%, #2c1e00 45%, #1a1200 100%)",
-        border: "1.5px solid rgba(232,163,61,0.6)",
-        boxShadow: "0 0 0 1px rgba(232,163,61,0.12), 0 6px 32px rgba(232,163,61,0.28)",
+        border: `1.5px solid ${expired ? "rgba(239,68,68,0.35)" : "rgba(232,163,61,0.6)"}`,
+        boxShadow: expired ? "none" : "0 0 0 1px rgba(232,163,61,0.12), 0 6px 32px rgba(232,163,61,0.28)",
+        opacity: expired ? 0.65 : 1,
       }}>
-      {/* Shimmer */}
-      <motion.div animate={{ x: ["-100%", "200%"] }} transition={{ duration: 3.5, repeat: Infinity, repeatDelay: 2.5 }}
-        style={{ position: "absolute", inset: 0, width: "40%", background: "linear-gradient(90deg,transparent,rgba(232,163,61,0.06),transparent)", pointerEvents: "none" }} />
-      {/* Top accent */}
-      <div style={{ height: 2, background: "linear-gradient(90deg,transparent,rgba(232,163,61,0.8),rgba(255,200,80,1),rgba(232,163,61,0.8),transparent)" }} />
+      {!expired && (
+        <motion.div animate={{ x: ["-100%", "200%"] }} transition={{ duration: 3.5, repeat: Infinity, repeatDelay: 2.5 }}
+          style={{ position: "absolute", inset: 0, width: "40%", background: "linear-gradient(90deg,transparent,rgba(232,163,61,0.06),transparent)", pointerEvents: "none" }} />
+      )}
+      <div style={{ height: 2, background: expired ? "rgba(239,68,68,0.4)" : "linear-gradient(90deg,transparent,rgba(232,163,61,0.8),rgba(255,200,80,1),rgba(232,163,61,0.8),transparent)" }} />
 
       <div style={{ padding: "18px 18px 14px", position: "relative" }}>
-        {/* Tag */}
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-          <span style={{ fontSize: 9, fontWeight: 900, padding: "2px 8px", borderRadius: 4, background: "linear-gradient(135deg,#E8A33D,#FFD060)", color: "#000", letterSpacing: "0.06em" }}>
-            BIGGEST PRIZE
+          <span style={{ fontSize: 9, fontWeight: 900, padding: "2px 8px", borderRadius: 4, background: expired ? "rgba(239,68,68,0.2)" : "linear-gradient(135deg,#E8A33D,#FFD060)", color: expired ? "#f87171" : "#000", letterSpacing: "0.06em" }}>
+            {expired ? "ENDED" : "BIGGEST PRIZE"}
           </span>
           <span style={{ fontSize: 10, color: "rgba(232,163,61,0.55)" }}>{pack.category}</span>
+          {expiryLabel && !expired && (
+            <span style={{ fontSize: 9, fontWeight: 600, color: "var(--accent-amber)", display: "flex", alignItems: "center", gap: 3 }}>
+              <Clock size={9} /> {expiryLabel}
+            </span>
+          )}
         </div>
-        {/* Pack name */}
-        <p style={{ fontSize: 20, fontWeight: 800, color: "#FFE082", margin: "0 0 6px", lineHeight: 1.25 }}>{pack.name}</p>
-        {/* Spec line */}
+        <p style={{ fontSize: 20, fontWeight: 800, color: expired ? "rgba(255,255,255,0.5)" : "#FFE082", margin: "0 0 6px", lineHeight: 1.25 }}>{pack.name}</p>
         <p style={{ fontSize: 11, color: "rgba(232,163,61,0.6)", margin: "0 0 16px" }}>
           {total}-question exam · answer to pass · one attempt
         </p>
-        {/* Entry + Prize */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 14 }}>
           <div>
             <p style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", margin: "0 0 3px", textTransform: "uppercase", letterSpacing: "0.06em" }}>Entry</p>
-            <p style={{ fontSize: 15, fontFamily: "monospace", fontWeight: 700, color: "rgba(232,163,61,0.85)", margin: 0 }}>₦{price.toLocaleString()}</p>
+            {expired
+              ? <p style={{ fontSize: 15, fontWeight: 700, color: "#f87171", margin: 0 }}>Ended</p>
+              : <p style={{ fontSize: 15, fontFamily: "monospace", fontWeight: 700, color: "rgba(232,163,61,0.85)", margin: 0 }}>₦{price.toLocaleString()}</p>
+            }
           </div>
-          <div style={{ textAlign: "right" }}>
-            <p style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", margin: "0 0 3px", textTransform: "uppercase", letterSpacing: "0.06em" }}>Top prize</p>
-            <p style={{ fontSize: 22, fontFamily: "monospace", fontWeight: 900, color: "#FFD060", margin: 0 }}>₦{prize.toLocaleString()}</p>
-          </div>
+          {!expired && (
+            <div style={{ textAlign: "right" }}>
+              <p style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", margin: "0 0 3px", textTransform: "uppercase", letterSpacing: "0.06em" }}>Top prize</p>
+              <p style={{ fontSize: 22, fontFamily: "monospace", fontWeight: 900, color: "#FFD060", margin: 0 }}>₦{prize.toLocaleString()}</p>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* CTA strip */}
-      <div style={{ padding: "10px 18px", background: "rgba(232,163,61,0.12)", borderTop: "1px solid rgba(232,163,61,0.2)", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-        <ClipboardCheck size={14} style={{ color: "var(--accent-amber)" }} />
-        <span style={{ fontSize: 13, fontWeight: 700, color: "var(--accent-amber)" }}>Enter Special →</span>
+      <div style={{ padding: "10px 18px", background: expired ? "rgba(239,68,68,0.08)" : "rgba(232,163,61,0.12)", borderTop: `1px solid ${expired ? "rgba(239,68,68,0.2)" : "rgba(232,163,61,0.2)"}`, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+        <ClipboardCheck size={14} style={{ color: expired ? "#f87171" : "var(--accent-amber)" }} />
+        <span style={{ fontSize: 13, fontWeight: 700, color: expired ? "#f87171" : "var(--accent-amber)" }}>
+          {expired ? "Entry Closed" : "Enter Special →"}
+        </span>
       </div>
     </motion.button>
   );
@@ -169,28 +217,39 @@ function HeroSpecial({ pack, onClick }: { pack: PillPack; onClick: () => void })
 
 // ── Compact special row ───────────────────────────────────────────────────
 function SpecialRow({ pack, onClick }: { pack: PillPack; onClick: () => void }) {
-  const price = pack.pills[0]?.price ?? 0;
-  const prize = pack.pills[0]?.prize ?? 0;
+  const price = pack.entry_fee ?? pack.pills[0]?.price ?? 0;
+  const prize = pack.prize_amount ?? pack.pills[0]?.prize ?? 0;
   const color = catColor(pack.category);
+  const { label: expiryLabel, expired } = usePackExpiry(pack.quiz_expires_at);
+
   return (
-    <motion.button initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} whileTap={{ scale: 0.98 }}
-      onClick={onClick}
+    <motion.button initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} whileTap={{ scale: expired ? 1 : 0.98 }}
+      onClick={expired ? undefined : onClick}
       style={{
         width: "100%", boxSizing: "border-box", borderRadius: 12, padding: "12px 14px",
-        textAlign: "left", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12,
+        textAlign: "left", cursor: expired ? "default" : "pointer",
+        display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12,
         background: "linear-gradient(135deg, #1a1200, #2a1e00, #1a1200)",
-        border: "1px solid rgba(232,163,61,0.35)",
+        border: `1px solid ${expired ? "rgba(239,68,68,0.2)" : "rgba(232,163,61,0.35)"}`,
+        opacity: expired ? 0.6 : 1,
       }}>
       <div style={{ minWidth: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
           <span style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color, padding: "1px 5px", borderRadius: 3, backgroundColor: `${color}20` }}>{pack.category}</span>
+          {expiryLabel && (
+            <span style={{ fontSize: 9, fontWeight: 600, color: expired ? "#f87171" : "var(--accent-amber)", display: "flex", alignItems: "center", gap: 2 }}>
+              <Clock size={8} /> {expiryLabel}
+            </span>
+          )}
         </div>
-        <p style={{ fontSize: 13, fontWeight: 700, color: "#FFE082", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{pack.name}</p>
-        <p style={{ fontSize: 10, color: "rgba(232,163,61,0.55)", margin: "2px 0 0" }}>₦{price.toLocaleString()} entry</p>
+        <p style={{ fontSize: 13, fontWeight: 700, color: expired ? "rgba(255,255,255,0.45)" : "#FFE082", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{pack.name}</p>
+        <p style={{ fontSize: 10, color: expired ? "#f87171" : "rgba(232,163,61,0.55)", margin: "2px 0 0" }}>
+          {expired ? "Entry closed" : `₦${price.toLocaleString()} entry`}
+        </p>
       </div>
       <div style={{ textAlign: "right", flexShrink: 0 }}>
-        <p style={{ fontSize: 14, fontFamily: "monospace", fontWeight: 900, color: "#FFD060", margin: 0 }}>₦{prize.toLocaleString()}</p>
-        <ArrowRight size={12} style={{ color: "rgba(232,163,61,0.6)", marginTop: 4 }} />
+        {!expired && <p style={{ fontSize: 14, fontFamily: "monospace", fontWeight: 900, color: "#FFD060", margin: 0 }}>₦{prize.toLocaleString()}</p>}
+        <ArrowRight size={12} style={{ color: expired ? "#f87171" : "rgba(232,163,61,0.6)", marginTop: 4, opacity: expired ? 0.4 : 1 }} />
       </div>
     </motion.button>
   );
