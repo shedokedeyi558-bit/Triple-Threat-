@@ -478,7 +478,7 @@ export default function AdminDashboard() {
           </Link>
         </motion.div>
 
-        {/* Mobile: Pill Packs */}
+        {/* Mobile: Pill Packs — aggregated live stats */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -490,22 +490,48 @@ export default function AdminDashboard() {
             borderLeft: "3px solid var(--accent-indigo)",
           }}
         >
-          <Link
-            href="/admin/pills"
-            className="flex items-center justify-between"
-          >
-            <div className="flex items-center gap-2">
-              <Package size={14} style={{ color: "var(--accent-indigo)" }} />
-              <div>
-                <h2 className="font-headline font-semibold text-sm" style={{ color: "var(--text-primary)" }}>
-                  Pill Packs
-                </h2>
-                <p className="text-xs mt-0.5" style={{ color: "var(--text-secondary)" }}>
-                  {totalActivePacks > 0 ? `${totalActivePacks} active` : "No active packs"}
-                </p>
+          <Link href="/admin/pills" className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 min-w-0">
+              <Package size={14} style={{ color: "var(--accent-indigo)", flexShrink: 0 }} />
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <h2 className="font-headline font-semibold text-sm" style={{ color: "var(--text-primary)" }}>
+                    Pill Packs
+                  </h2>
+                  {liveStats.length > 0 && (
+                    <div className="flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+                      <span className="text-[9px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>Live</span>
+                    </div>
+                  )}
+                </div>
+                {liveStats.length > 0 ? (() => {
+                  const totalLive = liveStats.reduce((s, p) => s + p.in_progress, 0);
+                  const totalWon  = liveStats.reduce((s, p) => s + p.won, 0);
+                  const totalLost = liveStats.reduce((s, p) => s + p.lost, 0);
+                  const totalAttempts = liveStats.reduce((s, p) => s + p.total_attempts, 0);
+                  const aggWinRate = totalAttempts > 0 ? Math.round((totalWon / totalAttempts) * 100) : null;
+                  const winRateHigh = aggWinRate != null && totalAttempts >= 10 && aggWinRate > 70;
+                  return (
+                    <div className="flex items-center gap-3 mt-1 flex-wrap">
+                      <span className="text-[11px] font-semibold text-blue-400">{totalLive} live</span>
+                      <span className="text-[11px] font-semibold" style={{ color: "var(--accent-amber)" }}>{totalWon} won</span>
+                      <span className="text-[11px] font-semibold text-gray-500">{totalLost} lost</span>
+                      {aggWinRate != null && totalAttempts >= 10 && (
+                        <span className="text-[11px] font-semibold" style={{ color: winRateHigh ? "#fbbf24" : "var(--text-muted)" }}>
+                          {aggWinRate}% win rate{winRateHigh ? " · Too easy" : ""}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })() : (
+                  <p className="text-xs mt-0.5" style={{ color: "var(--text-secondary)" }}>
+                    {totalActivePacks > 0 ? `${totalActivePacks} active` : "No active packs"}
+                  </p>
+                )}
               </div>
             </div>
-            <ChevronRight size={16} style={{ color: "var(--text-muted)" }} />
+            <ChevronRight size={16} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
           </Link>
         </motion.div>
 
