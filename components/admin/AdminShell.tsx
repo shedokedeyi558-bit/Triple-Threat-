@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useAdmin } from "@/context/AdminContext";
 import { AdminSidebar } from "./AdminSidebar";
 import { AdminLogin } from "./AdminLogin";
-import { Menu, X, Package, Clock, Zap, Settings, Home, Users, CreditCard, BarChart2, LogOut, Loader2 } from "lucide-react";
+import { Menu, X, Settings, Home, Users, CreditCard, BarChart2, LogOut, Loader2, Megaphone } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -82,30 +82,13 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         {/* Mobile menu dropdown — only items NOT in the bottom tab bar */}
         {mobileMenuOpen && (
           <div className="lg:hidden border-b px-4 py-3 space-y-1" style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-base)" }}>
-            <p className="text-[10px] font-semibold uppercase tracking-widest px-3 pb-1" style={{ color: "var(--text-muted)" }}>Games</p>
             <Link
-              href="/admin/pills"
+              href="/admin/notifications"
               className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
-              style={{ color: "var(--text-secondary)" }}
+              style={{ color: "var(--accent-amber)" }}
               onClick={() => setMobileMenuOpen(false)}
             >
-              <Package size={14} style={{ color: "var(--accent-indigo)" }} /> Pill Packs
-            </Link>
-            <Link
-              href="/admin/predictions"
-              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
-              style={{ color: "var(--text-secondary)" }}
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              <Clock size={14} style={{ color: "var(--accent-violet)" }} /> Time Machine
-            </Link>
-            <Link
-              href="/admin/blitz"
-              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
-              style={{ color: "var(--text-secondary)" }}
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              <Zap size={14} style={{ color: "var(--accent-amber)" }} /> Blitz
+              <Megaphone size={14} style={{ color: "var(--accent-amber)" }} /> Broadcast Message
             </Link>
             <div className="pt-2 border-t" style={{ borderColor: "var(--border-hairline)" }}>
               <Link
