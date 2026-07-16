@@ -20,6 +20,9 @@ const navItems = [
 // Pages that render the app shell (player-facing)
 const SHELL_PATHS = ["/pills", "/events", "/blitz", "/wallet", "/profile", "/time-machine", "/predictions"];
 
+// Pages that deliberately suppress the shell (full-screen immersive flows)
+const SHELL_SUPPRESS_PATHS = ["/pills/vip/", "/pills/play/", "/blitz/"];
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { state, dispatch, hydrated } = useApp();
   const pathname = usePathname();
@@ -27,6 +30,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [loggingOut, setLoggingOut] = useState(false);
 
   const isProtected = SHELL_PATHS.some((p) => pathname.startsWith(p));
+  const isSuppressed = SHELL_SUPPRESS_PATHS.some((p) => pathname.startsWith(p));
 
   if (!hydrated && isProtected) {
     return (
@@ -36,7 +40,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     );
   }
 
-  const showShell = state.isAuthenticated && isProtected;
+  const showShell = state.isAuthenticated && isProtected && !isSuppressed;
   if (!showShell) return <>{children}</>;
 
   const isActive = (href: string) => {
