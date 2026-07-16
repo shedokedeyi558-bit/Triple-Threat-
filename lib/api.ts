@@ -1080,6 +1080,29 @@ export const adminApi = {
       stats: { total: number; bank_size: number; coverage_ratio: number };
     }>(`/api/admin/pills/packs/${packId}/questions`, { token: getAdminToken() }),
 
+  getPackLiveStats: (packId: string) =>
+    request<{
+      pack_id: string;
+      in_progress: number;
+      won: number;
+      lost: number;
+      total_attempts: number;
+      win_rate: number;    // 0–100 percentage
+    }>(`/api/admin/pills/packs/${packId}/stats`, { token: getAdminToken() }),
+
+  getAllPacksLiveStats: () =>
+    request<{
+      packs: {
+        pack_id: string;
+        pack_name: string;
+        in_progress: number;
+        won: number;
+        lost: number;
+        total_attempts: number;
+        win_rate: number;
+      }[];
+    }>(`/api/admin/pills/packs/stats`, { token: getAdminToken() }),
+
   updatePackQuestion: (packId: string, questionId: string, data: {
     question?: string;
     format?: "multiple_choice" | "type_answer";

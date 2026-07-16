@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { adminApi, type AdminStats, type BlitzTournament, ApiError } from "@/lib/api";
@@ -8,7 +8,7 @@ import { CreatePillPackForm } from "@/components/admin/CreatePillPackForm";
 import { CreateTimeMachineForm } from "@/components/admin/CreateTimeMachineForm";
 import {
   Users, AlertCircle, Banknote, Gamepad2,
-  ChevronRight, Package, Clock, Zap,
+  ChevronRight, Package, Clock, Zap, TrendingUp, Activity,
 } from "lucide-react";
 
 interface RecentPack {
@@ -50,6 +50,28 @@ export default function AdminDashboard() {
   const [error, setError] = useState("");
   const [showPillForm, setShowPillForm] = useState(false);
   const [showTimeMachineForm, setShowTimeMachineForm] = useState(false);
+
+  // Live pack stats — polled every 12s independently of the main load
+  interface PackLiveStat {
+    pack_id: string; pack_name: string;
+    in_progress: number; won: number; lost: number;
+    total_attempts: number; win_rate: number;
+  }
+  const [liveStats, setLiveStats] = useState<PackLiveStat[]>([]);
+  const liveTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const fetchLiveStats = async () => {
+    try {
+      const res = await adminApi.getAllPacksLiveStats();
+      setLiveStats(res.packs ?? []);
+    } catch { /* silent — widget degrades gracefully */ }
+  };
+
+  useEffect(() => {
+    fetchLiveStats();
+    liveTimerRef.current = setInterval(fetchLiveStats, 12000);
+    return () => { if (liveTimerRef.current) clearInterval(liveTimerRef.current); };
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -201,7 +223,7 @@ export default function AdminDashboard() {
 
       {/* Game Summary Cards */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Pill Packs - Indigo (Desktop) */}
+        {/* Pill Packs - Indigo (Desktop) — with live per-pack stats */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -213,56 +235,89 @@ export default function AdminDashboard() {
             borderLeft: "3px solid var(--accent-indigo)",
           }}
         >
-          <div className="flex items-center gap-2 mb-4">
-            <Package size={14} style={{ color: "var(--accent-indigo)" }} />
-            <h2 className="font-headline font-semibold text-sm" style={{ color: "var(--text-primary)" }}>
-              Pill Packs
-            </h2>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Package size={14} style={{ color: "var(--accent-indigo)" }} />
+              <h2 className="font-headline font-semibold text-sm" style={{ color: "var(--text-primary)" }}>
+                Pill Packs
+              </h2>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Activity size={10} style={{ color: "var(--accent-indigo)" }} className="animate-pulse" />
+              <span className="text-[9px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>Live</span>
+            </div>
           </div>
+
           {loading ? (
             <div className="space-y-2">
-              {[1, 2].map((i) => <div key={i} className="h-8 rounded animate-pulse" style={{ backgroundColor: "var(--bg-base)" }} />)}
+              {[1, 2].map((i) => <div key={i} className="h-10 rounded animate-pulse" style={{ backgroundColor: "var(--bg-base)" }} />)}
             </div>
-          ) : packs.length === 0 ? (
+          ) : liveStats.length === 0 && packs.length === 0 ? (
             <div className="py-8 text-center">
-              <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
-                No packs yet
-              </p>
-              <button
-                onClick={() => setShowPillForm(true)}
-                className="text-xs font-semibold mt-3 inline-block"
-                style={{ color: "var(--accent-indigo)" }}
-              >
+              <p className="text-xs" style={{ color: "var(--text-secondary)" }}>No packs yet</p>
+              <button onClick={() => setShowPillForm(true)} className="text-xs font-semibold mt-3 inline-block" style={{ color: "var(--accent-indigo)" }}>
                 + create pack
               </button>
             </div>
           ) : (
             <div className="space-y-2 mb-4">
-              {packs.map((pack) => (
-                <div
-                  key={pack.id}
-                  className="flex items-center justify-between p-2 rounded-lg"
-                  style={{ backgroundColor: "var(--bg-base)" }}
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <div className="flex gap-0.5">
-                      {pack.pills.slice(0, 3).map((p) => (
-                        <span
-                          key={p.id}
-                          className="w-2 h-2 rounded-full"
-                          style={{ background: p.color, opacity: p.status === "played" ? 0.3 : 1 }}
-                        />
-                      ))}
+              {(liveStats.length > 0 ? liveStats.slice(0, 4) : packs.map(p => ({
+                pack_id: p.id, pack_name: p.name,
+                in_progress: 0, won: 0, lost: 0, total_attempts: 0, win_rate: 0,
+              }))).map((s) => {
+                const winRateHigh = s.total_attempts >= 5 && s.win_rate > 70;
+                const winRateLow  = s.total_attempts >= 5 && s.win_rate < 15;
+                return (
+                  <div key={s.pack_id} className="rounded-lg p-2.5" style={{ backgroundColor: "var(--bg-base)" }}>
+                    {/* Pack name + win rate flag */}
+                    <div className="flex items-center justify-between gap-2 mb-1.5">
+                      <p className="text-xs font-semibold truncate" style={{ color: "var(--text-primary)" }}>{s.pack_name}</p>
+                      <div className="flex items-center gap-1.5 flex-shrink-0">
+                        {winRateHigh && (
+                          <span style={{ fontSize: 8, fontWeight: 700, padding: "1px 5px", borderRadius: 3, backgroundColor: "rgba(251,191,36,0.12)", color: "#fbbf24", border: "1px solid rgba(251,191,36,0.2)" }}>
+                            Too easy
+                          </span>
+                        )}
+                        {winRateLow && (
+                          <span style={{ fontSize: 8, fontWeight: 700, padding: "1px 5px", borderRadius: 3, backgroundColor: "rgba(239,68,68,0.1)", color: "#f87171", border: "1px solid rgba(239,68,68,0.2)" }}>
+                            Low wins
+                          </span>
+                        )}
+                        {s.total_attempts >= 5 && (
+                          <span className="text-[10px] font-mono font-bold" style={{ color: winRateHigh ? "#fbbf24" : winRateLow ? "#f87171" : "var(--text-secondary)" }}>
+                            {s.win_rate.toFixed(0)}% win
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <p className="text-xs font-semibold truncate" style={{ color: "var(--text-primary)" }}>
-                      {pack.name}
-                    </p>
+                    {/* Live counters */}
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+                        <span className="text-[10px] font-semibold text-blue-400">{s.in_progress}</span>
+                        <span className="text-[9px]" style={{ color: "var(--text-muted)" }}>live</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: "var(--accent-amber)" }} />
+                        <span className="text-[10px] font-semibold" style={{ color: "var(--accent-amber)" }}>{s.won}</span>
+                        <span className="text-[9px]" style={{ color: "var(--text-muted)" }}>won</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-gray-600" />
+                        <span className="text-[10px] font-semibold text-gray-500">{s.lost}</span>
+                        <span className="text-[9px]" style={{ color: "var(--text-muted)" }}>lost</span>
+                      </div>
+                      {/* Win rate mini bar */}
+                      {s.total_attempts >= 5 && (
+                        <div className="flex-1 h-1 rounded-full overflow-hidden ml-1" style={{ backgroundColor: "#1E1E1E" }}>
+                          <div className="h-full rounded-full transition-all duration-500"
+                            style={{ width: `${s.win_rate}%`, backgroundColor: winRateHigh ? "#fbbf24" : winRateLow ? "#ef4444" : "#34d399" }} />
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded flex-shrink-0 ml-1 ${statusBadge(pack.status)}`}>
-                    {pack.status}
-                  </span>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
           <Link
