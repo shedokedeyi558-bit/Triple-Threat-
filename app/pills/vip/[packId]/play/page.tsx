@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useApp } from "@/context/AppContext";
-import { vipPillsApi, type VipStartResponse, type VipAnswerResponse, ApiError } from "@/lib/api";
+import { specialsApi, type VipStartResponse, type VipAnswerResponse, ApiError } from "@/lib/api";
 import { Confetti } from "@/components/ui/Confetti";
 import { ChevronLeft, XCircle, Trophy, Loader2, Clock, ClipboardCheck, BanIcon } from "lucide-react";
 
@@ -136,7 +136,7 @@ export default function SpecialsPlayPage() {
   const packId = params.packId as string;
 
   const [phase, setPhase]               = useState<Phase>("loading");
-  const [sessionId, setSessionId]       = useState<string | null>(null);
+  const [attemptId, setAttemptId]       = useState<string | null>(null);
   const [currentQ, setCurrentQ]         = useState<VipStartResponse["question"] | null>(null);
   const [questionIndex, setQuestionIndex] = useState(0);
   const [totalQuestions, setTotal]      = useState(10);
@@ -176,8 +176,8 @@ export default function SpecialsPlayPage() {
     }
     setPhase("loading"); setError(null); stopTimer();
     try {
-      const res: VipStartResponse = await vipPillsApi.start(packId);
-      setSessionId(res.session_id);
+      const res: VipStartResponse = await specialsApi.start(packId);
+      setAttemptId(res.session_id);
       setPackName(res.pack_name);
       setEntryFee(res.entry_fee);
       setTotal(res.total_questions);
@@ -203,10 +203,10 @@ export default function SpecialsPlayPage() {
   useEffect(() => { start(); }, [start]);
 
   const handleAnswer = async (answer: string) => {
-    if (!sessionId) return;
+    if (!attemptId) return;
     setSubmitting(true);
     try {
-      const res: VipAnswerResponse = await vipPillsApi.answer(sessionId, answer);
+      const res: VipAnswerResponse = await specialsApi.answer(attemptId, answer);
       if (res.streak_complete) {
         // Exam complete — show result regardless of pass/fail
         stopTimer();

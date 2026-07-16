@@ -536,11 +536,11 @@ export interface PillPack {
   pills: PillPackPill[];
 }
 
-// ─── SPECIALS (formerly VIP) ──────────────────────────────────────────────────
+// ─── SPECIALS ─────────────────────────────────────────────────────────────────
 // Exam-style: admin-configurable question count, total time, pass threshold.
 // No per-question feedback — scores revealed at end only.
-// POST /api/pills/vip/start — returns session
-// POST /api/pills/vip/answer/:sessionId — submit answer for current question
+// POST /api/pills/special/start  — returns attempt
+// POST /api/pills/special/answer/:attemptId — submit answer for current question
 
 export interface VipStartResponse {
   session_id: string;
@@ -583,17 +583,16 @@ export interface VipAnswerResponse {
   question_number: number;
 }
 
-export const vipPillsApi = {
+export const specialsApi = {
   start: (packId: string) =>
-    request<VipStartResponse>(`/api/pills/vip/start`, {
+    request<VipStartResponse>(`/api/pills/special/start`, {
       method: "POST",
-      // Send both field names — backend may expect either packId or pack_id
-      body: { pack_id: packId, packId },
+      body: { pack_id: packId },
       token: getToken(),
     }),
 
-  answer: (sessionId: string, answer: string) =>
-    request<VipAnswerResponse>(`/api/pills/vip/answer/${sessionId}`, {
+  answer: (attemptId: string, answer: string) =>
+    request<VipAnswerResponse>(`/api/pills/special/answer/${attemptId}`, {
       method: "POST",
       body: { answer },
       token: getToken(),
