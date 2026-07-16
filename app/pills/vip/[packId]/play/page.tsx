@@ -428,12 +428,7 @@ export default function SpecialsPlayPage() {
                   <p style={{ fontSize: 34, fontFamily: "monospace", fontWeight: 900, color: "var(--accent-amber)", margin: 0 }}>+₦{finalPrize.toLocaleString()}</p>
                 </div>
               )}
-              {!passed && (
-                <div style={{ borderRadius: 10, padding: "14px 20px", textAlign: "center", border: "1px solid rgba(239,68,68,0.2)", backgroundColor: "rgba(239,68,68,0.05)", width: "100%", maxWidth: 360 }}>
-                  <p style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.08em", color: "#f87171", marginBottom: 4 }}>Entry Fee Lost</p>
-                  <p style={{ fontSize: 20, fontFamily: "monospace", fontWeight: 700, color: "#f87171", margin: 0 }}>₦{entryFee.toLocaleString()}</p>
-                </div>
-              )}
+
               <div style={{ display: "flex", gap: 12, width: "100%", maxWidth: 360 }}>
                 {passed && (
                   <button onClick={() => router.push("/wallet")}
@@ -459,10 +454,6 @@ export default function SpecialsPlayPage() {
               <div>
                 <h2 style={{ fontSize: 26, fontWeight: 900, color: "var(--text-primary)", marginBottom: 6 }}>Time&apos;s Up</h2>
                 <p style={{ fontSize: 14, color: "var(--text-muted)" }}>You reached question {displayQ} of {totalQuestions} before time ran out.</p>
-              </div>
-              <div style={{ borderRadius: 12, padding: "14px 24px", border: "1px solid rgba(239,68,68,0.2)", backgroundColor: "rgba(239,68,68,0.05)", width: "100%", maxWidth: 360 }}>
-                <p style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.08em", color: "#f87171", marginBottom: 4 }}>Entry Fee Lost</p>
-                <p style={{ fontSize: 22, fontFamily: "monospace", fontWeight: 700, color: "#f87171", margin: 0 }}>₦{entryFee.toLocaleString()}</p>
               </div>
               <p style={{ fontSize: 12, color: "var(--text-muted)", maxWidth: 300 }}>This is a one-attempt Special. Re-entry is not available.</p>
               <button onClick={() => router.push("/pills")}
