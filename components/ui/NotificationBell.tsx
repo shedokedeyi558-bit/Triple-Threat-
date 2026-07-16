@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Bell, X, Trophy, TrendingUp, AlertCircle, CheckCircle, Zap, Clock } from "lucide-react";
+import { Bell, X, Trophy, TrendingUp, AlertCircle, CheckCircle, Zap, Clock, Megaphone } from "lucide-react";
 import { notificationsApi, type Notification } from "@/lib/api";
 
 function notifIcon(type: Notification["type"]) {
@@ -13,6 +13,7 @@ function notifIcon(type: Notification["type"]) {
     case "withdrawal_rejected":  return <AlertCircle size={14} className="text-red-400" />;
     case "blitz_starting":       return <Zap size={14} className="text-yellow-400" />;
     case "new_event":            return <Clock size={14} className="text-blue-400" />;
+    case "announcement":         return <Megaphone size={14} style={{ color: "var(--accent-amber)" }} />;
     default:                     return <Bell size={14} className="text-gray-400" />;
   }
 }
@@ -84,43 +85,84 @@ export function NotificationBell() {
 
       <AnimatePresence>
         {open && (
-          <motion.div
-            initial={{ opacity: 0, y: 8, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 8, scale: 0.95 }}
-            transition={{ duration: 0.15 }}
-            className="absolute right-0 top-12 w-80 bg-[#111] border border-[#1E1E1E] rounded-2xl overflow-hidden shadow-2xl z-50"
-          >
-            <div className="flex items-center justify-between px-4 py-3 border-b border-[#1A1A1A]">
-              <p className="text-white font-bold text-sm">Notifications</p>
-              <button onClick={() => setOpen(false)} className="text-gray-600 hover:text-white transition-colors">
-                <X size={15} />
-              </button>
-            </div>
-
-            <div className="max-h-80 overflow-y-auto divide-y divide-[#1A1A1A]">
-              {notifications.length === 0 ? (
-                <div className="py-10 text-center">
-                  <Bell size={24} className="text-gray-700 mx-auto mb-2" />
-                  <p className="text-gray-500 text-sm">No notifications yet</p>
-                </div>
-              ) : (
-                notifications.map((n) => (
-                  <div key={n.id} className={`flex items-start gap-3 px-4 py-3 transition-colors ${!n.read ? "bg-[#4C6FFF]/[0.03]" : ""}`}>
-                    <div className="w-7 h-7 rounded-lg bg-[#1A1A1A] flex items-center justify-center flex-shrink-0 mt-0.5">
-                      {notifIcon(n.type)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className={`text-sm font-semibold leading-tight ${!n.read ? "text-white" : "text-gray-400"}`}>{n.title}</p>
-                      <p className="text-gray-600 text-xs mt-0.5 leading-relaxed">{n.message}</p>
-                      <p className="text-gray-700 text-[10px] mt-1">{formatTime(n.created_at)}</p>
-                    </div>
-                    {!n.read && <div className="w-1.5 h-1.5 rounded-full flex-shrink-0 mt-2" style={{ backgroundColor: "var(--accent-indigo)" }} />}
+          <>
+            {/* Mobile: full-width fixed overlay anchored to top */}
+            <motion.div
+              initial={{ opacity: 0, y: 8, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 8, scale: 0.95 }}
+              transition={{ duration: 0.15 }}
+              className="lg:hidden fixed left-2 right-2 bg-[#111] border border-[#1E1E1E] rounded-2xl overflow-hidden shadow-2xl z-50"
+              style={{ top: 64 }}
+            >
+              <div className="flex items-center justify-between px-4 py-3 border-b border-[#1A1A1A]">
+                <p className="text-white font-bold text-sm">Notifications</p>
+                <button onClick={() => setOpen(false)} className="text-gray-600 hover:text-white transition-colors">
+                  <X size={15} />
+                </button>
+              </div>
+              <div className="max-h-72 overflow-y-auto divide-y divide-[#1A1A1A]">
+                {notifications.length === 0 ? (
+                  <div className="py-10 text-center">
+                    <Bell size={24} className="text-gray-700 mx-auto mb-2" />
+                    <p className="text-gray-500 text-sm">No notifications yet</p>
                   </div>
-                ))
-              )}
-            </div>
-          </motion.div>
+                ) : (
+                  notifications.map((n) => (
+                    <div key={n.id} className={`flex items-start gap-3 px-4 py-3 transition-colors ${!n.read ? "bg-[#4C6FFF]/[0.03]" : ""}`}>
+                      <div className="w-7 h-7 rounded-lg bg-[#1A1A1A] flex items-center justify-center flex-shrink-0 mt-0.5">
+                        {notifIcon(n.type)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-sm font-semibold leading-tight ${!n.read ? "text-white" : "text-gray-400"}`}>{n.title}</p>
+                        <p className="text-gray-600 text-xs mt-0.5 leading-relaxed">{n.message}</p>
+                        <p className="text-gray-700 text-[10px] mt-1">{formatTime(n.created_at)}</p>
+                      </div>
+                      {!n.read && <div className="w-1.5 h-1.5 rounded-full flex-shrink-0 mt-2" style={{ backgroundColor: "var(--accent-indigo)" }} />}
+                    </div>
+                  ))
+                )}
+              </div>
+            </motion.div>
+
+            {/* Desktop: absolute dropdown */}
+            <motion.div
+              initial={{ opacity: 0, y: 8, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 8, scale: 0.95 }}
+              transition={{ duration: 0.15 }}
+              className="hidden lg:block absolute right-0 top-12 w-80 bg-[#111] border border-[#1E1E1E] rounded-2xl overflow-hidden shadow-2xl z-50"
+            >
+              <div className="flex items-center justify-between px-4 py-3 border-b border-[#1A1A1A]">
+                <p className="text-white font-bold text-sm">Notifications</p>
+                <button onClick={() => setOpen(false)} className="text-gray-600 hover:text-white transition-colors">
+                  <X size={15} />
+                </button>
+              </div>
+              <div className="max-h-80 overflow-y-auto divide-y divide-[#1A1A1A]">
+                {notifications.length === 0 ? (
+                  <div className="py-10 text-center">
+                    <Bell size={24} className="text-gray-700 mx-auto mb-2" />
+                    <p className="text-gray-500 text-sm">No notifications yet</p>
+                  </div>
+                ) : (
+                  notifications.map((n) => (
+                    <div key={n.id} className={`flex items-start gap-3 px-4 py-3 transition-colors ${!n.read ? "bg-[#4C6FFF]/[0.03]" : ""}`}>
+                      <div className="w-7 h-7 rounded-lg bg-[#1A1A1A] flex items-center justify-center flex-shrink-0 mt-0.5">
+                        {notifIcon(n.type)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-sm font-semibold leading-tight ${!n.read ? "text-white" : "text-gray-400"}`}>{n.title}</p>
+                        <p className="text-gray-600 text-xs mt-0.5 leading-relaxed">{n.message}</p>
+                        <p className="text-gray-700 text-[10px] mt-1">{formatTime(n.created_at)}</p>
+                      </div>
+                      {!n.read && <div className="w-1.5 h-1.5 rounded-full flex-shrink-0 mt-2" style={{ backgroundColor: "var(--accent-indigo)" }} />}
+                    </div>
+                  ))
+                )}
+              </div>
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
     </div>

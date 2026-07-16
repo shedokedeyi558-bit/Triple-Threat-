@@ -1212,7 +1212,7 @@ export const adminApi = {
 
 export interface Notification {
   id: string;
-  type: "win" | "loss" | "new_event" | "withdrawal_approved" | "withdrawal_rejected" | "blitz_starting" | "prediction_result";
+  type: "win" | "loss" | "new_event" | "withdrawal_approved" | "withdrawal_rejected" | "blitz_starting" | "prediction_result" | "announcement";
   title: string;
   message: string;
   read: boolean;
@@ -1230,6 +1230,15 @@ export const notificationsApi = {
       method: "PUT",
       body: id ? { id } : {},
       token: getToken(),
+    }),
+};
+
+export const adminNotificationsApi = {
+  broadcast: (title: string, message: string) =>
+    request<{ message: string; sent_count: number }>("/api/admin/notifications/broadcast", {
+      method: "POST",
+      body: { title, message, type: "announcement" },
+      token: getAdminToken(),
     }),
 };
 
