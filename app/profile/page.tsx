@@ -385,16 +385,6 @@ export default function ProfilePage() {
         )}
       </motion.div>
 
-      {/* Logout — mobile only */}
-      <motion.button
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.15 }}
-        onClick={handleLogout}
-        className="lg:hidden mt-5 w-full flex items-center justify-center gap-2.5 py-4 rounded-2xl border border-red-900/30 text-red-400 font-bold text-sm hover:bg-red-900/10 transition-colors"
-      >
-        <LogOut size={16} /> Log Out
-      </motion.button>
 
     </div>
   );
