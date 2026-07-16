@@ -533,6 +533,17 @@ export interface PillPack {
   status: "active" | "inactive" | "draft";
   is_vip?: boolean;
   is_featured?: boolean;
+  pack_type?: string;                // "special" for Specials packs
+  // New fields from updated pack-details endpoints:
+  entry_fee?: number;                // pack-level entry fee (mirrors pills[0].price)
+  prize_amount?: number;             // pack-level prize
+  question_count?: number | null;    // null for standard Pills; number for Specials
+  total_time_seconds?: number | null;
+  time_limit_minutes?: number | null; // pre-converted by backend — use directly
+  pass_threshold?: number | null;    // display copy only — use required_correct for enforcement
+  required_correct?: number | null;  // server-enforced pass threshold
+  entry_window_end?: string | null;
+  available_question_count?: number | null;
   pills: PillPackPill[];
 }
 

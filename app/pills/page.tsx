@@ -184,18 +184,34 @@ function SpecialsTeaserBanner({ packs, onClick }: { packs: PillPack[]; onClick: 
   );
 }
 
-// ── Pill confirm sheet (2-phase: preview → confirm) ───────────────────────
+// ── Pre-challenge confirm sheet (standard Pills + Specials) ──────────────
 function PillSheet({ pack, pill, onConfirm, onClose, balance, bonusBalance }: {
   pack: PillPack; pill: PillPackPill; onConfirm: () => void; onClose: () => void;
   balance: number; bonusBalance: number;
 }) {
-  const [phase, setPhase] = useState<"preview" | "confirm">("preview");
-  const color = catColor(pack.category);
-  const canAfford = balance + bonusBalance >= pill.price;
-  const bonusUsed = Math.min(bonusBalance, pill.price);
-  const realUsed = pill.price - bonusUsed;
-  const timerSec = (pill as any).timer as number | undefined;
-  const timerLabel = formatTimer(timerSec);
+  const isSpecial = pack.question_count != null || pack.is_vip || (pack as any).pack_type === "special";
+  const color = isSpecial ? "var(--accent-amber)" : catColor(pack.category);
+  const cardColor = catColor(pack.category);
+
+  // Entry fee / prize — prefer pack-level fields, fall back to first pill
+  const entryFee  = pack.entry_fee  ?? pill.price;
+  const prize     = pack.prize_amount ?? pill.prize;
+  const canAfford = balance + bonusBalance >= entryFee;
+  const bonusUsed = Math.min(bonusBalance, entryFee);
+  const realUsed  = entryFee - bonusUsed;
+
+  // Specials metadata — use required_correct as the enforcement source of truth
+  const qCount    = pack.question_count ?? null;
+  const timeMins  = pack.time_limit_minutes ?? null;
+  const passReq   = pack.required_correct ?? pack.pass_threshold ?? null;
+
+  // Challenge phrase — branch on question_count presence
+  const challengePhrase = isSpecial && qCount != null
+    ? `Answer ${qCount} questions${timeMins != null ? ` in ${timeMins} minute${timeMins !== 1 ? "s" : ""}` : ""}${passReq != null ? ` — get ${passReq} or more right to win` : " — pass to win"}.`
+    : `Answer correctly and win instantly.`;
+
+  const timerSec   = (pill as any).timer as number | undefined;
+  const timerLabel = !isSpecial ? formatTimer(timerSec) : null;
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -205,84 +221,97 @@ function PillSheet({ pack, pill, onConfirm, onClose, balance, bonusBalance }: {
       <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
         transition={{ type: "spring", stiffness: 340, damping: 32 }}
         onClick={(e) => e.stopPropagation()}
-        style={{ position: "relative", width: "100%", maxWidth: 420, borderRadius: "24px 24px 0 0", padding: "28px 24px 32px", backgroundColor: "var(--bg-card)" }}>
+        style={{ position: "relative", width: "100%", maxWidth: 440, borderRadius: "24px 24px 0 0", padding: "28px 24px 36px", backgroundColor: "var(--bg-card)" }}>
         <div style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: "#333", margin: "0 auto 20px" }} />
-        <AnimatePresence mode="wait">
-          {phase === "preview" ? (
-            <motion.div key="preview" initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -16 }}
-              style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <div style={{ width: 44, height: 44, borderRadius: "50%", backgroundColor: color, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                  <Package size={20} color="#fff" />
-                </div>
-                <div>
-                  <p style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>{pack.name}</p>
-                  <p style={{ fontSize: 12, color: "var(--text-secondary)", margin: 0 }}>{pack.category}</p>
-                </div>
-              </div>
-              <div style={{ borderRadius: 12, padding: "14px 16px", backgroundColor: `${color}12`, border: `1px solid ${color}30` }}>
-                <p style={{ fontSize: 14, fontWeight: 600, lineHeight: 1.5, color: "var(--text-primary)", margin: 0 }}>
-                  {timerLabel ? `Think you can answer this in ${timerLabel}?` : "Think you can answer this correctly?"}
-                </p>
-                <p style={{ fontSize: 12, color: "var(--text-secondary)", margin: "4px 0 0" }}>
-                  Get it right and win <span style={{ fontFamily: "monospace", fontWeight: 700, color }}>₦{pill.prize.toLocaleString()}</span>
-                  {timerLabel && ` — you'll have ${timerLabel} on the clock`}.
-                </p>
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: timerLabel ? "1fr 1fr 1fr" : "1fr 1fr", gap: 8 }}>
-                <div style={{ borderRadius: 10, padding: "10px 8px", textAlign: "center", border: "1px solid var(--border-subtle)", backgroundColor: "var(--bg-base)" }}>
-                  <p style={{ fontSize: 9, color: "var(--text-muted)", margin: "0 0 3px", textTransform: "uppercase" }}>Entry</p>
-                  <p style={{ fontSize: 14, fontFamily: "monospace", fontWeight: 700, color: "var(--accent-amber)", margin: 0 }}>₦{pill.price.toLocaleString()}</p>
-                </div>
-                <div style={{ borderRadius: 10, padding: "10px 8px", textAlign: "center", border: `1px solid ${color}40`, backgroundColor: `${color}08` }}>
-                  <p style={{ fontSize: 9, color: "var(--text-muted)", margin: "0 0 3px", textTransform: "uppercase" }}>Prize</p>
-                  <p style={{ fontSize: 14, fontFamily: "monospace", fontWeight: 700, color, margin: 0 }}>₦{pill.prize.toLocaleString()}</p>
-                </div>
-                {timerLabel && (
-                  <div style={{ borderRadius: 10, padding: "10px 8px", textAlign: "center", border: "1px solid var(--border-subtle)", backgroundColor: "var(--bg-base)" }}>
-                    <p style={{ fontSize: 9, color: "var(--text-muted)", margin: "0 0 3px", textTransform: "uppercase" }}>Time</p>
-                    <p style={{ fontSize: 13, fontFamily: "monospace", fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>{timerLabel}</p>
-                  </div>
-                )}
-              </div>
-              <button onClick={() => setPhase("confirm")}
-                style={{ width: "100%", padding: "13px 0", borderRadius: 10, border: "none", backgroundColor: color, color: "#000", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
-                {"I'm In — Show Entry Fee"}
-              </button>
-              <button onClick={onClose} style={{ width: "100%", padding: "10px 0", border: "none", background: "none", fontSize: 13, fontWeight: 600, color: "var(--text-secondary)", cursor: "pointer" }}>
-                Not now
-              </button>
-            </motion.div>
-          ) : (
-            <motion.div key="confirm" initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -16 }}
-              style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              <p style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Confirm Entry</p>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                <div style={{ borderRadius: 10, padding: "10px 12px", textAlign: "center", border: "1px solid var(--accent-amber)", backgroundColor: "rgba(232,163,61,0.08)" }}>
-                  <p style={{ fontSize: 11, color: "var(--text-secondary)", margin: "0 0 4px" }}>You Pay</p>
-                  <p style={{ fontSize: 17, fontFamily: "monospace", fontWeight: 700, color: "var(--accent-amber)", margin: 0 }}>₦{pill.price.toLocaleString()}</p>
-                </div>
-                <div style={{ borderRadius: 10, padding: "10px 12px", textAlign: "center", border: `1px solid ${color}40`, backgroundColor: `${color}08` }}>
-                  <p style={{ fontSize: 11, color: "var(--text-secondary)", margin: "0 0 4px" }}>You Win</p>
-                  <p style={{ fontSize: 17, fontFamily: "monospace", fontWeight: 700, color, margin: 0 }}>₦{pill.prize.toLocaleString()}</p>
-                </div>
-              </div>
-              {bonusUsed > 0 && canAfford && (
-                <p style={{ fontSize: 11, textAlign: "center", color: "var(--accent-amber)" }}>
-                  ₦{bonusUsed.toLocaleString()} from bonus credit{realUsed > 0 ? ` + ₦${realUsed.toLocaleString()} from balance` : " (fully covered)"}
-                </p>
+
+        {/* Pack identity row */}
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
+          <div style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: isSpecial ? "rgba(232,163,61,0.12)" : `${cardColor}20`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, border: isSpecial ? "1px solid rgba(232,163,61,0.3)" : "none" }}>
+            <Package size={20} style={{ color: isSpecial ? "var(--accent-amber)" : cardColor }} />
+          </div>
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              {isSpecial && (
+                <span style={{ fontSize: 8, fontWeight: 800, padding: "2px 6px", borderRadius: 3, textTransform: "uppercase", letterSpacing: "0.07em", backgroundColor: "rgba(232,163,61,0.15)", color: "var(--accent-amber)" }}>
+                  SPECIAL
+                </span>
               )}
-              {!canAfford && <p style={{ textAlign: "center", color: "#f87171", fontSize: 13 }}>Insufficient balance. <Link href="/wallet" style={{ textDecoration: "underline", fontWeight: 600 }}>Add funds</Link></p>}
-              <button onClick={onConfirm} disabled={!canAfford}
-                style={{ width: "100%", padding: "13px 0", borderRadius: 10, border: "none", backgroundColor: color, color: "#000", fontSize: 14, fontWeight: 700, cursor: canAfford ? "pointer" : "not-allowed", opacity: canAfford ? 1 : 0.4 }}>
-                Pay ₦{pill.price.toLocaleString()} &amp; Start
-              </button>
-              <button onClick={() => setPhase("preview")} style={{ width: "100%", padding: "10px 0", border: "none", background: "none", fontSize: 13, fontWeight: 600, color: "var(--text-secondary)", cursor: "pointer" }}>
-                Back
-              </button>
-            </motion.div>
+              <p style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>{pack.name}</p>
+            </div>
+            <p style={{ fontSize: 12, color: "var(--text-secondary)", margin: "2px 0 0" }}>{pack.category}</p>
+          </div>
+        </div>
+
+        {/* Challenge phrase */}
+        <div style={{ borderRadius: 12, padding: "14px 16px", backgroundColor: isSpecial ? "rgba(232,163,61,0.06)" : `${cardColor}10`, border: `1px solid ${isSpecial ? "rgba(232,163,61,0.2)" : `${cardColor}25`}`, marginBottom: 16 }}>
+          <p style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.55, color: "var(--text-primary)", margin: 0 }}>
+            {challengePhrase}
+          </p>
+          {!isSpecial && (
+            <p style={{ fontSize: 12, color: "var(--text-secondary)", margin: "4px 0 0" }}>
+              Get it right and win{" "}
+              <span style={{ fontFamily: "monospace", fontWeight: 700, color: cardColor }}>₦{prize.toLocaleString()}</span>
+              {timerLabel ? ` — you'll have ${timerLabel} on the clock` : ""}.
+            </p>
           )}
-        </AnimatePresence>
+          {isSpecial && (
+            <p style={{ fontSize: 12, color: "rgba(232,163,61,0.65)", margin: "4px 0 0" }}>
+              One attempt only · prizes paid instantly on pass
+            </p>
+          )}
+        </div>
+
+        {/* Stats grid */}
+        <div style={{ display: "grid", gridTemplateColumns: isSpecial && qCount != null ? "1fr 1fr 1fr" : timerLabel ? "1fr 1fr 1fr" : "1fr 1fr", gap: 8, marginBottom: 16 }}>
+          <div style={{ borderRadius: 10, padding: "10px 8px", textAlign: "center", border: "1px solid var(--border-subtle)", backgroundColor: "var(--bg-base)" }}>
+            <p style={{ fontSize: 9, color: "var(--text-muted)", margin: "0 0 3px", textTransform: "uppercase" }}>Entry</p>
+            <p style={{ fontSize: 14, fontFamily: "monospace", fontWeight: 700, color: "var(--accent-amber)", margin: 0 }}>₦{entryFee.toLocaleString()}</p>
+          </div>
+          <div style={{ borderRadius: 10, padding: "10px 8px", textAlign: "center", border: `1px solid ${isSpecial ? "rgba(232,163,61,0.3)" : `${cardColor}40`}`, backgroundColor: isSpecial ? "rgba(232,163,61,0.06)" : `${cardColor}08` }}>
+            <p style={{ fontSize: 9, color: "var(--text-muted)", margin: "0 0 3px", textTransform: "uppercase" }}>Prize</p>
+            <p style={{ fontSize: 14, fontFamily: "monospace", fontWeight: 700, color: isSpecial ? "var(--accent-amber)" : cardColor, margin: 0 }}>₦{prize.toLocaleString()}</p>
+          </div>
+          {isSpecial && qCount != null && (
+            <div style={{ borderRadius: 10, padding: "10px 8px", textAlign: "center", border: "1px solid var(--border-subtle)", backgroundColor: "var(--bg-base)" }}>
+              <p style={{ fontSize: 9, color: "var(--text-muted)", margin: "0 0 3px", textTransform: "uppercase" }}>Questions</p>
+              <p style={{ fontSize: 14, fontFamily: "monospace", fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>{qCount}</p>
+            </div>
+          )}
+          {!isSpecial && timerLabel && (
+            <div style={{ borderRadius: 10, padding: "10px 8px", textAlign: "center", border: "1px solid var(--border-subtle)", backgroundColor: "var(--bg-base)" }}>
+              <p style={{ fontSize: 9, color: "var(--text-muted)", margin: "0 0 3px", textTransform: "uppercase" }}>Time</p>
+              <p style={{ fontSize: 13, fontFamily: "monospace", fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>{timerLabel}</p>
+            </div>
+          )}
+        </div>
+
+        {/* Bonus breakdown */}
+        {bonusUsed > 0 && canAfford && (
+          <p style={{ fontSize: 11, textAlign: "center", color: "var(--accent-amber)", marginBottom: 10 }}>
+            ₦{bonusUsed.toLocaleString()} from bonus credit{realUsed > 0 ? ` + ₦${realUsed.toLocaleString()} from balance` : " (fully covered)"}
+          </p>
+        )}
+        {!canAfford && (
+          <p style={{ textAlign: "center", color: "#f87171", fontSize: 13, marginBottom: 10 }}>
+            Insufficient balance. <Link href="/wallet" style={{ textDecoration: "underline", fontWeight: 600 }}>Add funds</Link>
+          </p>
+        )}
+
+        {/* CTA */}
+        <button onClick={onConfirm} disabled={!canAfford}
+          style={{
+            width: "100%", padding: "14px 0", borderRadius: 11, border: "none",
+            backgroundColor: isSpecial ? "var(--accent-amber)" : cardColor,
+            color: "#000", fontSize: 14, fontWeight: 800,
+            cursor: canAfford ? "pointer" : "not-allowed", opacity: canAfford ? 1 : 0.4,
+            marginBottom: 10,
+          }}>
+          Start &amp; Pay ₦{entryFee.toLocaleString()}
+        </button>
+        <button onClick={onClose}
+          style={{ width: "100%", padding: "10px 0", border: "none", background: "none", fontSize: 13, fontWeight: 600, color: "var(--text-secondary)", cursor: "pointer" }}>
+          Not now
+        </button>
       </motion.div>
     </motion.div>
   );
@@ -351,9 +380,18 @@ export default function PillsPage() {
   if (!state.isAuthenticated) return null;
 
   const handlePackClick = (pack: PillPack) => {
-    // Specials route to the exam flow
-    if (pack.is_vip || (pack as any).pack_type === "special") {
-      router.push(`/pills/vip/${pack.id}/play`);
+    // All packs go through the confirm sheet — never charge on card tap
+    const isSpecial = pack.is_vip || (pack as any).pack_type === "special" || pack.question_count != null;
+    if (isSpecial) {
+      // Use a synthetic pill-like object for Specials so PillSheet has entry_fee/prize
+      const syntheticPill: PillPackPill = {
+        id: pack.id,
+        color: "var(--accent-amber)",
+        price: pack.entry_fee ?? pack.pills[0]?.price ?? 0,
+        prize: pack.prize_amount ?? pack.pills[0]?.prize ?? 0,
+        status: "available",
+      };
+      setSheet({ pack, pill: syntheticPill });
       return;
     }
     const firstAvail = pack.pills.find((p) => p.status === "available");
@@ -434,7 +472,16 @@ export default function PillsPage() {
             pack={sheet.pack} pill={sheet.pill}
             balance={state.player?.balance ?? 0}
             bonusBalance={state.player?.bonus_balance ?? 0}
-            onConfirm={() => { const pill = sheet.pill; setSheet(null); router.push(`/pills/play/${pill.id}`); }}
+        onConfirm={() => {
+          const { pack, pill } = sheet;
+          const isSpecial = pack.is_vip || (pack as any).pack_type === "special" || pack.question_count != null;
+          setSheet(null);
+          if (isSpecial) {
+            router.push(`/pills/vip/${pack.id}/play`);
+          } else {
+            router.push(`/pills/play/${pill.id}`);
+          }
+        }}
             onClose={() => setSheet(null)}
           />
         )}

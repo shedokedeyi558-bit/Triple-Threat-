@@ -5,9 +5,101 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useApp } from "@/context/AppContext";
 import { pillsApi, type PillPack, ApiError } from "@/lib/api";
-import { ChevronLeft, ClipboardCheck, ArrowRight, Clock, AlertCircle } from "lucide-react";
+import { ChevronLeft, ClipboardCheck, ArrowRight, Clock, AlertCircle, Package } from "lucide-react";
+import Link from "next/link";
 
-// Category colour map
+// ── Special confirm sheet ─────────────────────────────────────────────────
+function SpecialConfirmSheet({ pack, balance, bonusBalance, onConfirm, onClose }: {
+  pack: PillPack; balance: number; bonusBalance: number;
+  onConfirm: () => void; onClose: () => void;
+}) {
+  const entryFee  = pack.entry_fee  ?? pack.pills[0]?.price ?? 0;
+  const prize     = pack.prize_amount ?? pack.pills[0]?.prize ?? 0;
+  const qCount    = pack.question_count ?? null;
+  const timeMins  = pack.time_limit_minutes ?? null;
+  const passReq   = pack.required_correct ?? pack.pass_threshold ?? null;
+  const canAfford = balance + bonusBalance >= entryFee;
+  const bonusUsed = Math.min(bonusBalance, entryFee);
+  const realUsed  = entryFee - bonusUsed;
+
+  const challengePhrase = qCount != null
+    ? `Answer ${qCount} questions${timeMins != null ? ` in ${timeMins} minute${timeMins !== 1 ? "s" : ""}` : ""}${passReq != null ? ` — get ${passReq} or more right to win` : " — pass to win"}.`
+    : `Complete the exam — pass to win the prize.`;
+
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "flex-end", justifyContent: "center" }}
+      onClick={onClose}>
+      <div style={{ position: "absolute", inset: 0, backgroundColor: "rgba(0,0,0,0.85)", backdropFilter: "blur(5px)" }} />
+      <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
+        transition={{ type: "spring", stiffness: 340, damping: 32 }}
+        onClick={(e) => e.stopPropagation()}
+        style={{ position: "relative", width: "100%", maxWidth: 440, borderRadius: "24px 24px 0 0", padding: "28px 24px 36px", backgroundColor: "var(--bg-card)" }}>
+        <div style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: "#333", margin: "0 auto 20px" }} />
+
+        {/* Identity */}
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
+          <div style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: "rgba(232,163,61,0.12)", border: "1px solid rgba(232,163,61,0.3)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <Package size={20} style={{ color: "var(--accent-amber)" }} />
+          </div>
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{ fontSize: 8, fontWeight: 800, padding: "2px 6px", borderRadius: 3, textTransform: "uppercase", letterSpacing: "0.07em", backgroundColor: "rgba(232,163,61,0.15)", color: "var(--accent-amber)" }}>SPECIAL</span>
+              <p style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>{pack.name}</p>
+            </div>
+            <p style={{ fontSize: 12, color: "var(--text-secondary)", margin: "2px 0 0" }}>{pack.category}</p>
+          </div>
+        </div>
+
+        {/* Challenge phrase */}
+        <div style={{ borderRadius: 12, padding: "14px 16px", backgroundColor: "rgba(232,163,61,0.06)", border: "1px solid rgba(232,163,61,0.2)", marginBottom: 16 }}>
+          <p style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.55, color: "var(--text-primary)", margin: 0 }}>{challengePhrase}</p>
+          <p style={{ fontSize: 12, color: "rgba(232,163,61,0.65)", margin: "4px 0 0" }}>One attempt only · prizes paid instantly on pass</p>
+        </div>
+
+        {/* Stats grid */}
+        <div style={{ display: "grid", gridTemplateColumns: qCount != null ? "1fr 1fr 1fr" : "1fr 1fr", gap: 8, marginBottom: 16 }}>
+          <div style={{ borderRadius: 10, padding: "10px 8px", textAlign: "center", border: "1px solid var(--border-subtle)", backgroundColor: "var(--bg-base)" }}>
+            <p style={{ fontSize: 9, color: "var(--text-muted)", margin: "0 0 3px", textTransform: "uppercase" }}>Entry</p>
+            <p style={{ fontSize: 14, fontFamily: "monospace", fontWeight: 700, color: "var(--accent-amber)", margin: 0 }}>₦{entryFee.toLocaleString()}</p>
+          </div>
+          <div style={{ borderRadius: 10, padding: "10px 8px", textAlign: "center", border: "1px solid rgba(232,163,61,0.3)", backgroundColor: "rgba(232,163,61,0.06)" }}>
+            <p style={{ fontSize: 9, color: "var(--text-muted)", margin: "0 0 3px", textTransform: "uppercase" }}>Prize</p>
+            <p style={{ fontSize: 14, fontFamily: "monospace", fontWeight: 700, color: "var(--accent-amber)", margin: 0 }}>₦{prize.toLocaleString()}</p>
+          </div>
+          {qCount != null && (
+            <div style={{ borderRadius: 10, padding: "10px 8px", textAlign: "center", border: "1px solid var(--border-subtle)", backgroundColor: "var(--bg-base)" }}>
+              <p style={{ fontSize: 9, color: "var(--text-muted)", margin: "0 0 3px", textTransform: "uppercase" }}>Questions</p>
+              <p style={{ fontSize: 14, fontFamily: "monospace", fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>{qCount}</p>
+            </div>
+          )}
+        </div>
+
+        {bonusUsed > 0 && canAfford && (
+          <p style={{ fontSize: 11, textAlign: "center", color: "var(--accent-amber)", marginBottom: 10 }}>
+            ₦{bonusUsed.toLocaleString()} from bonus credit{realUsed > 0 ? ` + ₦${realUsed.toLocaleString()} from balance` : " (fully covered)"}
+          </p>
+        )}
+        {!canAfford && (
+          <p style={{ textAlign: "center", color: "#f87171", fontSize: 13, marginBottom: 10 }}>
+            Insufficient balance. <Link href="/wallet" style={{ textDecoration: "underline", fontWeight: 600 }}>Add funds</Link>
+          </p>
+        )}
+
+        <button onClick={onConfirm} disabled={!canAfford}
+          style={{ width: "100%", padding: "14px 0", borderRadius: 11, border: "none", backgroundColor: "var(--accent-amber)", color: "#000", fontSize: 14, fontWeight: 800, cursor: canAfford ? "pointer" : "not-allowed", opacity: canAfford ? 1 : 0.4, marginBottom: 10 }}>
+          Start &amp; Pay ₦{entryFee.toLocaleString()}
+        </button>
+        <button onClick={onClose}
+          style={{ width: "100%", padding: "10px 0", border: "none", background: "none", fontSize: 13, fontWeight: 600, color: "var(--text-secondary)", cursor: "pointer" }}>
+          Not now
+        </button>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+// ── Category colour map ───────────────────────────────────────────────────
 const CAT_COLOR: Record<string, string> = {
   Football: "#4C6FFF", Basketball: "#7C6FE8", Cricket: "#E8A33D",
   Crypto: "#8B5CF6", Politics: "#EC4899", Entertainment: "#FFD700",
@@ -111,6 +203,7 @@ export default function SpecialsPage() {
   const [packs, setPacks] = useState<PillPack[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [confirmPack, setConfirmPack] = useState<PillPack | null>(null);
 
   useEffect(() => {
     if (!state.isAuthenticated) { router.push("/auth"); return; }
@@ -177,7 +270,7 @@ export default function SpecialsPage() {
 
           {/* Hero — biggest prize Special */}
           {heroPack && (
-            <HeroSpecial pack={heroPack} onClick={() => router.push(`/pills/vip/${heroPack.id}/play`)} />
+            <HeroSpecial pack={heroPack} onClick={() => setConfirmPack(heroPack)} />
           )}
 
           {/* More specials */}
@@ -188,7 +281,7 @@ export default function SpecialsPage() {
               </p>
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {morePacks.map((pack) => (
-                  <SpecialRow key={pack.id} pack={pack} onClick={() => router.push(`/pills/vip/${pack.id}/play`)} />
+                  <SpecialRow key={pack.id} pack={pack} onClick={() => setConfirmPack(pack)} />
                 ))}
               </div>
             </section>
@@ -196,6 +289,19 @@ export default function SpecialsPage() {
 
         </div>
       )}
+
+      {/* Confirm sheet */}
+      <AnimatePresence>
+        {confirmPack && (
+          <SpecialConfirmSheet
+            pack={confirmPack}
+            balance={state.player?.balance ?? 0}
+            bonusBalance={state.player?.bonus_balance ?? 0}
+            onConfirm={() => { const p = confirmPack; setConfirmPack(null); router.push(`/pills/vip/${p.id}/play`); }}
+            onClose={() => setConfirmPack(null)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
