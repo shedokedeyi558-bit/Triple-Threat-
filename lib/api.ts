@@ -539,8 +539,8 @@ export interface PillPack {
 // ─── SPECIALS ─────────────────────────────────────────────────────────────────
 // Exam-style: admin-configurable question count, total time, pass threshold.
 // No per-question feedback — scores revealed at end only.
-// POST /api/pills/special/start  — returns attempt
-// POST /api/pills/special/answer/:attemptId — submit answer for current question
+// POST /api/pills/vip/start        — returns attempt (backend route, live on Railway)
+// POST /api/pills/vip/answer/:id   — submit answer for current question
 
 export interface VipStartResponse {
   session_id: string;
@@ -585,7 +585,7 @@ export interface VipAnswerResponse {
 
 export const specialsApi = {
   start: (packId: string) =>
-    request<VipStartResponse>(`/api/pills/special/start`, {
+    request<VipStartResponse>(`/api/pills/vip/start`, {
       method: "POST",
       // Backend validates against camelCase `packId` — send both names to be safe
       body: { pack_id: packId, packId },
@@ -593,7 +593,7 @@ export const specialsApi = {
     }),
 
   answer: (attemptId: string, answer: string) =>
-    request<VipAnswerResponse>(`/api/pills/special/answer/${attemptId}`, {
+    request<VipAnswerResponse>(`/api/pills/vip/answer/${attemptId}`, {
       method: "POST",
       body: { answer },
       token: getToken(),
