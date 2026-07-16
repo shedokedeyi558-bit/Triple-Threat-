@@ -1065,7 +1065,7 @@ export const adminApi = {
     options?: string[];
     correct_answer: string;
     timer: number;
-    color: string;
+    color?: string;
   }) =>
     request<{ pill: { id: string } }>(
       `/api/admin/pills/packs/${packId}/pills`,
