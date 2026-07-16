@@ -43,6 +43,7 @@ const statusBadge = (s: string) => {
 export default function AdminDashboard() {
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [packs, setPacks] = useState<RecentPack[]>([]);
+  const [totalActivePacks, setTotalActivePacks] = useState(0);
   const [predictions, setPredictions] = useState<RecentPrediction[]>([]);
   const [blitz, setBlitz] = useState<BlitzTournament[]>([]);
   const [loading, setLoading] = useState(true);
@@ -69,7 +70,9 @@ export default function AdminDashboard() {
           );
         }
         if (packsRes.status === "fulfilled") {
-          setPacks((packsRes.value.packs || []).slice(0, 3) as RecentPack[]);
+          const allPacks = (packsRes.value.packs || []) as RecentPack[];
+          setTotalActivePacks(allPacks.filter((p) => p.status === "active").length);
+          setPacks(allPacks.slice(0, 3));
         }
         if (blitzRes.status === "fulfilled") {
           setBlitz(
@@ -190,7 +193,7 @@ export default function AdminDashboard() {
               </span>
             </div>
             <p className="font-mono text-xl font-bold" style={{ color: "var(--text-primary)" }}>
-              {(blitz.length + predictions.length + packs.filter((p) => p.status === "active").length).toString()}
+              {(blitz.length + predictions.length + totalActivePacks).toString()}
             </p>
           </motion.div>
         </div>
@@ -443,10 +446,7 @@ export default function AdminDashboard() {
                   Pill Packs
                 </h2>
                 <p className="text-xs mt-0.5" style={{ color: "var(--text-secondary)" }}>
-                  {(() => {
-                    const activePacks = packs.filter((p) => p.status === "active");
-                    return activePacks.length > 0 ? `${activePacks.length} active` : "No active packs";
-                  })()}
+                  {totalActivePacks > 0 ? `${totalActivePacks} active` : "No active packs"}
                 </p>
               </div>
             </div>
