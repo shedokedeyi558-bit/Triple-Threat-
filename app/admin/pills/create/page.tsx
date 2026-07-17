@@ -280,7 +280,7 @@ export default function CreatePillPackPage() {
             </h1>
           </div>
           <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
-            {pills.length} pill{pills.length !== 1 ? "s" : ""} added
+            {isVip ? "Specials pack — questions managed after creation" : `${pills.length} pill${pills.length !== 1 ? "s" : ""} added`}
           </p>
         </div>
       </div>
@@ -484,7 +484,7 @@ export default function CreatePillPackPage() {
             />
           </div>
           <div>
-            <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Prize per Pill (₦) *</label>
+            <label className={labelCls} style={{ color: "var(--text-secondary)" }}>{isVip ? "Prize (₦) *" : "Prize per Pill (₦) *"}</label>
             <input
               className={inputCls}
               type="number"
@@ -496,7 +496,9 @@ export default function CreatePillPackPage() {
           </div>
         </div>
         <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>
-          All pills in this pack share the same entry fee and prize.
+          {isVip
+            ? "Entry fee and prize apply to the whole exam pack."
+            : "All pills in this pack share the same entry fee and prize."}
         </p>
       </div>
 
