@@ -1,10 +1,85 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { adminApi, ApiError } from "@/lib/api";
-import { Loader2, Plus, Package, Eye, EyeOff, Trash2, ClipboardCheck, Star, BookOpen, BarChart2 } from "lucide-react";
+import { Loader2, Plus, Package, Eye, EyeOff, Trash2, ClipboardCheck, Star, BookOpen, BarChart2, TrendingUp, Activity } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+
+// ── Inline live stats strip — mounts when a pack row is expanded ─────────────
+function PackStatsMini({ packId }: { packId: string }) {
+  const [stats, setStats] = useState<{
+    in_progress: number; won: number; lost: number;
+    total_attempts: number; win_rate: number;
+  } | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const fetch = async () => {
+    try {
+      const res = await adminApi.getPackLiveStats(packId);
+      setStats(res);
+    } catch { /* silent */ }
+  };
+
+  useEffect(() => {
+    fetch();
+    timerRef.current = setInterval(fetch, 12000);
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [packId]);
+
+  if (!stats) return null;
+
+  const hasData = stats.total_attempts >= 5;
+  const winRateHigh = hasData && stats.win_rate > 70;
+  const winRateLow  = hasData && stats.win_rate < 15;
+  const barColor = !hasData ? "#333" : winRateHigh ? "#fbbf24" : winRateLow ? "#ef4444" : "#34d399";
+
+  return (
+    <div style={{
+      margin: "0 16px 0", padding: "10px 12px", borderRadius: 8,
+      backgroundColor: "var(--bg-base)", border: "1px solid var(--border-hairline)",
+    }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+        <Activity size={9} style={{ color: "var(--accent-indigo)" }} className="animate-pulse" />
+        <span style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", color: "var(--text-muted)" }}>Live</span>
+        {hasData && (
+          <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 4 }}>
+            {winRateHigh && <span style={{ fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 3, backgroundColor: "rgba(251,191,36,0.12)", color: "#fbbf24", border: "1px solid rgba(251,191,36,0.2)" }}>Too easy</span>}
+            {winRateLow  && <span style={{ fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 3, backgroundColor: "rgba(239,68,68,0.1)", color: "#f87171", border: "1px solid rgba(239,68,68,0.2)" }}>Low wins</span>}
+          </div>
+        )}
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+          <span style={{ width: 6, height: 6, borderRadius: "50%", backgroundColor: "#60a5fa", display: "inline-block" }} className="animate-pulse" />
+          <span style={{ fontSize: 11, fontWeight: 700, color: "#60a5fa" }}>{stats.in_progress}</span>
+          <span style={{ fontSize: 10, color: "var(--text-muted)" }}>live</span>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+          <span style={{ width: 6, height: 6, borderRadius: "50%", backgroundColor: "var(--accent-amber)", display: "inline-block" }} />
+          <span style={{ fontSize: 11, fontWeight: 700, color: "var(--accent-amber)" }}>{stats.won}</span>
+          <span style={{ fontSize: 10, color: "var(--text-muted)" }}>won</span>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+          <span style={{ width: 6, height: 6, borderRadius: "50%", backgroundColor: "#4b5563", display: "inline-block" }} />
+          <span style={{ fontSize: 11, fontWeight: 700, color: "#6b7280" }}>{stats.lost}</span>
+          <span style={{ fontSize: 10, color: "var(--text-muted)" }}>lost</span>
+        </div>
+        {/* Win-rate bar */}
+        <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 6 }}>
+          <TrendingUp size={10} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
+          <div style={{ flex: 1, height: 4, borderRadius: 2, backgroundColor: "#1E1E1E", overflow: "hidden" }}>
+            <div style={{ height: "100%", borderRadius: 2, width: `${hasData ? stats.win_rate : 0}%`, backgroundColor: barColor, transition: "width 0.5s ease" }} />
+          </div>
+          <span style={{ fontSize: 11, fontFamily: "monospace", fontWeight: 700, minWidth: 36, textAlign: "right", color: !hasData ? "var(--text-muted)" : barColor }}>
+            {hasData ? `${stats.win_rate.toFixed(0)}%` : "—"}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 interface PillPack {
   id: string;
@@ -241,6 +316,10 @@ export default function AdminPillsPage() {
                       transition={{ duration: 0.15 }}
                       className="border-t overflow-hidden"
                       style={{ borderColor: "var(--border-hairline)" }}>
+                      {/* Live stats strip — polls every 12s while row is expanded */}
+                      <div className="pt-3 pb-1">
+                        <PackStatsMini packId={pack.id} />
+                      </div>
                       <div className="px-4 py-3 flex items-center gap-2 flex-wrap">
 
                         {/* Activate / Deactivate */}
