@@ -1126,41 +1126,41 @@ export const adminApi = {
     options?: string[]; correct_answer: string; timer: number;
   }[]) =>
     request<{ inserted: number; errors: { index: number; error: string }[] }>(
-      `/api/admin/pills/packs/${packId}/questions/bulk`,
+      `/api/admin/specials-bank/packs/${packId}/bulk-add`,
       { method: "POST", body: { questions }, token: getAdminToken() }
     ),
 
   cloneBankFromPack: (targetPackId: string, sourcePackId: string) =>
     request<{ inserted: number }>(
-      `/api/admin/pills/packs/${targetPackId}/questions/clone`,
-      { method: "POST", body: { source_pack_id: sourcePackId }, token: getAdminToken() }
+      `/api/admin/specials-bank/packs/${targetPackId}/clone-from/${sourcePackId}`,
+      { method: "POST", token: getAdminToken() }
     ),
 
   // Draft library (unattached question pool)
   getLibraryQuestions: () =>
-    request<{ questions: PackQuestion[] }>("/api/admin/library/questions", { token: getAdminToken() }),
+    request<{ questions: PackQuestion[] }>("/api/admin/specials-bank/library", { token: getAdminToken() }),
 
   addLibraryQuestion: (data: {
     question: string; format: "multiple_choice" | "type_answer";
     options?: string[]; correct_answer: string; timer: number;
   }) =>
-    request<{ question: PackQuestion }>("/api/admin/library/questions", {
+    request<{ question: PackQuestion }>("/api/admin/specials-bank/library", {
       method: "POST", body: data, token: getAdminToken()
     }),
 
   updateLibraryQuestion: (id: string, data: Partial<PackQuestion>) =>
-    request<{ question: PackQuestion }>(`/api/admin/library/questions/${id}`, {
+    request<{ question: PackQuestion }>(`/api/admin/specials-bank/library/${id}`, {
       method: "PATCH", body: data, token: getAdminToken()
     }),
 
   deleteLibraryQuestion: (id: string) =>
-    request<{ message: string }>(`/api/admin/library/questions/${id}`, {
+    request<{ message: string }>(`/api/admin/specials-bank/library/${id}`, {
       method: "DELETE", token: getAdminToken()
     }),
 
   importFromLibrary: (packId: string, questionIds: string[]) =>
     request<{ inserted: number }>(
-      `/api/admin/pills/packs/${packId}/questions/import`,
+      `/api/admin/specials-bank/packs/${packId}/import`,
       { method: "POST", body: { question_ids: questionIds }, token: getAdminToken() }
     ),
 
