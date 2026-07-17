@@ -489,11 +489,12 @@ export default function LandingPage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-8">
             {/* Logo Column */}
             <div>
-              <div className="flex items-center gap-2 mb-3">
-                <img src="/bitlyfe-mark.svg" alt="BitLyfe" width={16} height={16} />
-                <span className="font-headline text-sm font-semibold" style={{ color: "var(--text-primary)" }}>bitlyfe</span>
+              <div className="flex items-center gap-3 mb-3">
+                <img src="/bitlyfe-mark.svg" alt="BitLyfe" width={40} height={40}
+                  style={{ filter: "drop-shadow(0 0 8px rgba(76,111,255,0.6)) brightness(1.3)" }} />
+                <span className="font-headline text-xl font-black" style={{ color: "var(--text-primary)", letterSpacing: "-0.02em" }}>bitlyfe</span>
               </div>
-              <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
+              <p className="text-sm font-semibold" style={{ color: "var(--accent-amber)" }}>
                 Real stakes, real fast
               </p>
             </div>
