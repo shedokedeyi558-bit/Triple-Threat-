@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useAdmin } from "@/context/AdminContext";
 import { AdminSidebar } from "./AdminSidebar";
 import { AdminLogin } from "./AdminLogin";
-import { Menu, X, Settings, Home, Users, CreditCard, BarChart2, LogOut, Loader2, Megaphone } from "lucide-react";
+import { Menu, X, Settings, Home, Users, CreditCard, BarChart2, LogOut, Loader2, Megaphone, BookOpen } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -91,6 +91,15 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               <Megaphone size={14} style={{ color: "var(--accent-amber)" }} /> Broadcast Message
             </Link>
             <div className="pt-2 border-t" style={{ borderColor: "var(--border-hairline)" }}>
+              {/* Content tools */}
+              <Link
+                href="/admin/library"
+                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+                style={{ color: "var(--text-secondary)" }}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <BookOpen size={14} style={{ color: "var(--accent-indigo)" }} /> Question Library
+              </Link>
               <Link
                 href="/admin/settings"
                 className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
