@@ -1121,6 +1121,49 @@ export const adminApi = {
       { method: "DELETE", token: getAdminToken() }
     ),
 
+  bulkUploadQuestions: (packId: string, questions: {
+    question: string; format: "multiple_choice" | "type_answer";
+    options?: string[]; correct_answer: string; timer: number;
+  }[]) =>
+    request<{ inserted: number; errors: { index: number; error: string }[] }>(
+      `/api/admin/pills/packs/${packId}/questions/bulk`,
+      { method: "POST", body: { questions }, token: getAdminToken() }
+    ),
+
+  cloneBankFromPack: (targetPackId: string, sourcePackId: string) =>
+    request<{ inserted: number }>(
+      `/api/admin/pills/packs/${targetPackId}/questions/clone`,
+      { method: "POST", body: { source_pack_id: sourcePackId }, token: getAdminToken() }
+    ),
+
+  // Draft library (unattached question pool)
+  getLibraryQuestions: () =>
+    request<{ questions: PackQuestion[] }>("/api/admin/library/questions", { token: getAdminToken() }),
+
+  addLibraryQuestion: (data: {
+    question: string; format: "multiple_choice" | "type_answer";
+    options?: string[]; correct_answer: string; timer: number;
+  }) =>
+    request<{ question: PackQuestion }>("/api/admin/library/questions", {
+      method: "POST", body: data, token: getAdminToken()
+    }),
+
+  updateLibraryQuestion: (id: string, data: Partial<PackQuestion>) =>
+    request<{ question: PackQuestion }>(`/api/admin/library/questions/${id}`, {
+      method: "PATCH", body: data, token: getAdminToken()
+    }),
+
+  deleteLibraryQuestion: (id: string) =>
+    request<{ message: string }>(`/api/admin/library/questions/${id}`, {
+      method: "DELETE", token: getAdminToken()
+    }),
+
+  importFromLibrary: (packId: string, questionIds: string[]) =>
+    request<{ inserted: number }>(
+      `/api/admin/pills/packs/${packId}/questions/import`,
+      { method: "POST", body: { question_ids: questionIds }, token: getAdminToken() }
+    ),
+
   // Withdrawals — PUT for approve/reject
   getWithdrawals: (status?: string, page = 1, limit = 20) =>
     request<{ withdrawals: AdminWithdrawal[]; total: number }>("/api/admin/withdrawals", {

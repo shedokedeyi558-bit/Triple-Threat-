@@ -129,13 +129,44 @@ export default function CreatePillPackPage() {
     if (!packCategory.trim()) { setError("Category required"); return; }
     if (!packEntryFee || Number(packEntryFee) <= 0) { setError("Entry fee required"); return; }
     if (!packPrize || Number(packPrize) <= 0) { setError("Prize required"); return; }
+
+    // Specials: skip pill entry — create pack then land on bank management
+    if (isVip) {
+      if (Number(specialRequiredCorrect) > Number(specialQuestionCount)) {
+        setError("Pass threshold cannot exceed question count"); return;
+      }
+      setLoading(true);
+      setError("");
+      const idempotencyKey = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      try {
+        setLoadingStep("Creating pack...");
+        const packRes = await adminApi.createPillPack({
+          name: packName.trim(),
+          category: packCategory.trim(),
+          entry_fee: Number(packEntryFee),
+          prize: Number(packPrize),
+          is_vip: true,
+          question_count: Number(specialQuestionCount) || 10,
+          total_time_seconds: Number(specialTotalTime) || 900,
+          required_correct: Number(specialRequiredCorrect) || 8,
+          idempotency_key: idempotencyKey,
+        } as any);
+        const packId = (packRes as any).pack?.id ?? (packRes as any).id;
+        if (!packId) { setError("Pack created but no ID returned"); setLoading(false); return; }
+        localStorage.removeItem(DRAFT_KEY);
+        setCreateSuccess(true);
+        setLoadingStep("Pack created!");
+        setLoading(false);
+        setTimeout(() => router.push(`/admin/pills/${packId}/bank?new=1`), 800);
+      } catch (err) {
+        setError(`Pack creation failed: ${err instanceof ApiError ? err.message : err instanceof Error ? err.message : "Unknown error"}`);
+        setLoading(false);
+      }
+      return;
+    }
+
+    // Standard pack flow (unchanged)
     if (pills.length === 0) { setError("Add at least one pill"); return; }
-    if (isVip && pills.length < Number(specialQuestionCount || 5)) {
-      setError(`Specials require at least ${specialQuestionCount} questions — ${pills.length} added so far`); return;
-    }
-    if (isVip && Number(specialRequiredCorrect) > Number(specialQuestionCount)) {
-      setError("Pass threshold cannot exceed question count"); return;
-    }
 
     // Validate all pills before hitting the backend
     for (let i = 0; i < pills.length; i++) {
@@ -469,7 +500,8 @@ export default function CreatePillPackPage() {
         </p>
       </div>
 
-      {/* Add Pill Form — collapsible */}
+      {/* Add Pill Form — Standard packs only */}
+      {!isVip && (
       <div
         className="border rounded-2xl overflow-hidden"
         style={{ borderColor: "var(--border-subtle)", backgroundColor: "var(--bg-card)" }}
@@ -587,9 +619,10 @@ export default function CreatePillPackPage() {
           </div>
         )}
       </div>
+      )} {/* end !isVip */}
 
-      {/* Pills list — fixed height scroll container so page doesn't grow */}
-      {pills.length > 0 && (
+      {/* Pills list — standard packs only */}
+      {!isVip && pills.length > 0 && (
         <div>
           <div className="flex items-center justify-between px-1 mb-2">
             <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>
@@ -635,8 +668,8 @@ export default function CreatePillPackPage() {
         </div>
       )}
 
-      {/* Publish */}
-      {pills.length > 0 && packName.trim() && packCategory.trim() && (
+      {/* Publish — standard packs only */}
+      {!isVip && pills.length > 0 && packName.trim() && packCategory.trim() && (
         <motion.button
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
@@ -651,6 +684,25 @@ export default function CreatePillPackPage() {
             <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin flex-shrink-0" />{loadingStep}</>
           ) : (
             <><CheckCircle size={18} />Create Pack ({pills.length} pill{pills.length !== 1 ? "s" : ""})</>
+          )}
+        </motion.button>
+      )}
+      {/* Specials: Create Pack & go to bank */}
+      {isVip && packName.trim() && packCategory.trim() && packEntryFee && packPrize && (
+        <motion.button
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          onClick={handleCreate}
+          disabled={loading || createSuccess}
+          className="w-full py-4 rounded-xl font-black text-base flex items-center justify-center gap-2 transition-all hover:opacity-90 disabled:opacity-60"
+          style={{ backgroundColor: createSuccess ? "rgba(232,163,61,0.3)" : "var(--accent-amber)", color: "#000" }}
+        >
+          {createSuccess ? (
+            <><CheckCircle size={18} /> Redirecting to Question Bank…</>
+          ) : loading ? (
+            <><div className="w-4 h-4 border-2 border-black/20 border-t-black/60 rounded-full animate-spin flex-shrink-0" />{loadingStep}</>
+          ) : (
+            <><CheckCircle size={18} />Create Pack &amp; Add Questions</>
           )}
         </motion.button>
       )}

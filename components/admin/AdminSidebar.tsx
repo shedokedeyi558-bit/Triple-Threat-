@@ -7,7 +7,7 @@ import { removeAdminToken } from "@/lib/api";
 import Image from "next/image";
 import {
   LayoutDashboard, Users, CreditCard,
-  BarChart2, Settings, LogOut, Package, Clock, Zap, Megaphone
+  BarChart2, Settings, LogOut, Package, Clock, Zap, Megaphone, Library
 } from "lucide-react";
 
 interface NavGroup {
@@ -32,6 +32,7 @@ const navGroups: NavGroup[] = [
     name: "Games",
     items: [
       { href: "/admin/pills", label: "Pill Packs", icon: Package, color: "var(--accent-indigo)" },
+      { href: "/admin/library", label: "Library", icon: Library, color: "var(--accent-amber)" },
       { href: "/admin/predictions", label: "Time Machine", icon: Clock, color: "var(--accent-violet)" },
       { href: "/admin/blitz", label: "Blitz", icon: Zap, color: "var(--accent-amber)" },
     ],
