@@ -721,10 +721,10 @@ export const predictionsApi = {
       token: getToken(),
     }),
 
-  submit: (predictionId: string, answer: string) =>
+  submit: (predictionId: string, answer: string, idempotencyKey?: string) =>
     request<PredictionSubmitResponse>("/api/predictions/submit", {
       method: "POST",
-      body: { predictionId, answer },
+      body: { predictionId, answer, ...(idempotencyKey ? { idempotency_key: idempotencyKey } : {}) },
       token: getToken(),
     }),
 

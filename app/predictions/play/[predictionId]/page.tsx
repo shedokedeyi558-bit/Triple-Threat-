@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useApp } from "@/context/AppContext";
@@ -194,14 +194,19 @@ function PredictionSubmit({
   onSubmit,
   submitting,
   error,
+  submitAttempted,
 }: {
   prediction: PredictionData;
   onSubmit: (answer: string) => void;
   submitting: boolean;
   error: string | null;
+  submitAttempted: boolean;
 }) {
   const [answer, setAnswer] = useState("");
   const countdown = useCountdown(prediction.countdown_end);
+
+  // When countdown expires and NO submit was ever initiated, lock without any network call
+  const timesUpNoSubmit = countdown.expired && !submitAttempted && !submitting;
 
   return (
     <div className="space-y-5">
@@ -214,10 +219,10 @@ function PredictionSubmit({
         </h1>
       </div>
 
-      {/* Entry paid confirmation — indigo, not green */}
+      {/* Entry paid confirmation */}
       <div className="rounded-xl p-4 flex items-center gap-3 border" style={{ backgroundColor: "rgba(76,111,255,0.06)", borderColor: "rgba(76,111,255,0.2)" }}>
         <CheckCircle2 size={18} className="flex-shrink-0" style={{ color: "var(--accent-indigo)" }} />
-        <p className="text-sm font-semibold" style={{ color: "var(--accent-indigo)" }}>Entry paid — now submit your prediction</p>
+        <p className="text-sm font-semibold" style={{ color: "var(--accent-indigo)" }}>Entry paid — submit your prediction before the deadline</p>
       </div>
 
       <div
@@ -234,6 +239,7 @@ function PredictionSubmit({
         }
       </div>
 
+      {/* Active input state */}
       {!countdown.expired && (
         <>
           <div className="space-y-2">
@@ -264,12 +270,31 @@ function PredictionSubmit({
             style={{ backgroundColor: "var(--accent-indigo)", color: "#fff" }}
           >
             {submitting ? <Loader2 size={18} className="animate-spin" /> : null}
-            {submitting ? "Submitting..." : "Lock In Prediction"}
+            {submitting ? "Submitting…" : "Lock In Prediction"}
           </motion.button>
+
+          {submitting && (
+            <p className="text-xs text-center" style={{ color: "var(--text-muted)" }}>
+              Connecting… will retry once if this takes a moment
+            </p>
+          )}
         </>
       )}
 
-      {countdown.expired && (
+      {/* Time's up — no submit was initiated */}
+      {timesUpNoSubmit && (
+        <div className="rounded-xl p-5 text-center border space-y-2"
+          style={{ backgroundColor: "rgba(107,114,128,0.06)", borderColor: "rgba(107,114,128,0.2)" }}>
+          <Lock size={22} className="mx-auto" style={{ color: "#6b7280" }} />
+          <p className="font-bold text-sm" style={{ color: "var(--text-secondary)" }}>Time&apos;s up — no prediction submitted</p>
+          <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+            The deadline passed before you submitted. Your entry fee is retained but no answer is locked in.
+          </p>
+        </div>
+      )}
+
+      {/* Locked while submit is in-flight */}
+      {countdown.expired && !timesUpNoSubmit && !submitting && (
         <div className="rounded-xl p-4 text-center border" style={{ backgroundColor: "var(--bg-card)", borderColor: "rgba(194,65,12,0.25)" }}>
           <p className="font-bold text-sm" style={{ color: "var(--accent-amber)" }}>Deadline passed — predictions are now locked</p>
         </div>
@@ -285,12 +310,14 @@ function PredictionWaiting({
   setResult,
   setPageState,
   onNotParticipant,
+  submittedByPlayer,
 }: {
   answer: string;
   predictionId: string;
   setResult: React.Dispatch<React.SetStateAction<Result | null>>;
   setPageState: React.Dispatch<React.SetStateAction<PageState>>;
   onNotParticipant?: () => void;
+  submittedByPlayer?: boolean;
 }) {
   const [checking, setChecking] = useState(false);
 
@@ -325,13 +352,26 @@ function PredictionWaiting({
     <div className="space-y-5">
       <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
         className="text-center pt-4">
-        {/* Checkmark — indigo, not green */}
+        {/* Icon — indigo = submitted, gray = timed out unanswered */}
         <div className="inline-flex items-center justify-center w-20 h-20 rounded-full mb-5"
-          style={{ backgroundColor: "rgba(76,111,255,0.1)", border: "2px solid rgba(76,111,255,0.2)" }}>
-          <CheckCircle2 size={40} style={{ color: "var(--accent-indigo)" }} />
+          style={submittedByPlayer === false
+            ? { backgroundColor: "rgba(107,114,128,0.1)", border: "2px solid rgba(107,114,128,0.2)" }
+            : { backgroundColor: "rgba(76,111,255,0.1)", border: "2px solid rgba(76,111,255,0.2)" }}>
+          {submittedByPlayer === false
+            ? <Lock size={40} style={{ color: "#6b7280" }} />
+            : <CheckCircle2 size={40} style={{ color: "var(--accent-indigo)" }} />}
         </div>
-        <h2 className="font-black text-2xl" style={{ color: "var(--text-primary)" }}>Prediction Submitted!</h2>
-        <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>Your answer is locked in</p>
+        {submittedByPlayer === false ? (
+          <>
+            <h2 className="font-black text-2xl" style={{ color: "var(--text-primary)" }}>Time&apos;s up — not submitted</h2>
+            <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>The deadline passed before an answer was locked in</p>
+          </>
+        ) : (
+          <>
+            <h2 className="font-black text-2xl" style={{ color: "var(--text-primary)" }}>Prediction Submitted!</h2>
+            <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>Your answer is locked in</p>
+          </>
+        )}
       </motion.div>
 
       <div className="rounded-2xl p-5 text-center border"
@@ -449,6 +489,9 @@ export default function PredictionPlayPage() {
   const [entering, setEntering] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [notParticipant, setNotParticipant] = useState(false);
+  // Track whether the player ever initiated a submit — used to distinguish
+  // "time's up without submitting" from "submitted (even via retry)"
+  const submitAttemptedRef = useRef(false);
 
   useEffect(() => {
     if (!state.isAuthenticated) { router.push("/auth"); return; }
@@ -584,25 +627,61 @@ export default function PredictionPlayPage() {
   };
 
   const handleSubmit = async (answer: string) => {
+    submitAttemptedRef.current = true;
     setSubmitting(true);
     setError(null);
+
+    // Stable idempotency key for this answer — same key used on retry
+    const idempotencyKey = `${predictionId}:${answer}:${Date.now()}`;
+
+    const attemptSubmit = () =>
+      withTimeout(predictionsApi.submit(predictionId, answer, idempotencyKey), 8000);
+
     try {
-      await withTimeout(predictionsApi.submit(predictionId, answer), 15000);
+      await attemptSubmit();
       setUserAnswer(answer);
       setPageState("locked");
-    } catch (err) {
-      if (err instanceof ApiError) {
-        if (err.status === 409 || err.message.toLowerCase().includes("already submitted")) {
+    } catch (firstErr) {
+      // On timeout, retry once with the same idempotency key
+      const isTimeout = firstErr instanceof Error &&
+        firstErr.message.toLowerCase().includes("taking longer");
+      if (isTimeout) {
+        try {
+          await attemptSubmit();
           setUserAnswer(answer);
           setPageState("locked");
-        } else if (err.message.toLowerCase().includes("not participated")) {
+          return;
+        } catch (retryErr) {
+          // Retry also timed out or failed — fall through to error handling below
+          if (retryErr instanceof ApiError) {
+            // Check same-answer 409 on retry too
+            if (retryErr.status === 409 || retryErr.message.toLowerCase().includes("already submitted")) {
+              // If the server locked our answer in — treat as success
+              setUserAnswer(answer);
+              setPageState("locked");
+              return;
+            }
+          }
+          setError("Unable to reach the server — please check your connection and try again");
+          return;
+        }
+      }
+
+      // Not a timeout — handle original error
+      if (firstErr instanceof ApiError) {
+        if (firstErr.status === 409 || firstErr.message.toLowerCase().includes("already submitted")) {
+          // Same answer already locked — success, not an error
+          setUserAnswer(answer);
+          setPageState("locked");
+        } else if (firstErr.message.toLowerCase().includes("not participated")) {
           setError(null);
           setPageState("detail");
         } else {
-          setError(err.message);
+          // Genuine conflict (different locked answer) or server error
+          setError(firstErr.message);
         }
       } else {
-        setError(err instanceof Error ? err.message : "Failed to submit");
+        setError(firstErr instanceof Error ? firstErr.message : "Failed to submit");
       }
     } finally {
       setSubmitting(false);
@@ -635,7 +714,7 @@ export default function PredictionPlayPage() {
 
         {pageState === "submit" && prediction && (
           <motion.div key="submit" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
-            <PredictionSubmit prediction={prediction} onSubmit={handleSubmit} submitting={submitting} error={error} />
+            <PredictionSubmit prediction={prediction} onSubmit={handleSubmit} submitting={submitting} error={error} submitAttempted={submitAttemptedRef.current} />
           </motion.div>
         )}
 
@@ -647,6 +726,7 @@ export default function PredictionPlayPage() {
               setResult={setResult}
               setPageState={setPageState}
               onNotParticipant={() => setNotParticipant(true)}
+              submittedByPlayer={!!userAnswer}
             />
           </motion.div>
         )}
