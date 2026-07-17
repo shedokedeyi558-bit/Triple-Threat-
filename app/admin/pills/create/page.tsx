@@ -92,6 +92,8 @@ export default function CreatePillPackPage() {
   const [specialQuestionCount, setSpecialQCount] = useState<number | "">(10);
   const [specialTotalTime, setSpecialTotalTime] = useState<number | "">(900); // 15 min default
   const [specialRequiredCorrect, setSpecialReqCorrect] = useState<number | "">(8);
+  const [specialExpiryOption, setSpecialExpiryOption] = useState<"none"|"24h"|"48h"|"7d"|"custom">("none");
+  const [specialExpiryCustom, setSpecialExpiryCustom] = useState<string>("");
   const [formOpen, setFormOpen] = useState(true);
   const [sampleCategory, setSampleCategory] = useState<SampleCategory>("Mixed");
   const [sampleCount, setSampleCount] = useState("5");
@@ -198,6 +200,12 @@ export default function CreatePillPackPage() {
           question_count: Number(specialQuestionCount) || 10,
           total_time_seconds: Number(specialTotalTime) || 900,
           required_correct: Number(specialRequiredCorrect) || 8,
+          quiz_expires_at: (() => {
+            if (specialExpiryOption === "none") return undefined;
+            if (specialExpiryOption === "custom") return specialExpiryCustom ? new Date(specialExpiryCustom).toISOString() : undefined;
+            const ms: Record<string, number> = { "24h": 86400000, "48h": 172800000, "7d": 604800000 };
+            return new Date(Date.now() + ms[specialExpiryOption]).toISOString();
+          })(),
         } : {}),
         idempotency_key: idempotencyKey,
       } as any);
@@ -356,6 +364,37 @@ export default function CreatePillPackPage() {
               {pills.length}/{specialQuestionCount} questions added
             </p>
           )}
+          {/* Entry window expiry */}
+          <div className="border rounded-xl p-4 space-y-3" style={{ borderColor: "rgba(232,163,61,0.2)", backgroundColor: "rgba(232,163,61,0.03)" }}>
+            <div>
+              <p className={labelCls} style={{ color: "var(--text-secondary)" }}>Entry window closes (optional)</p>
+              <div className="flex gap-2 flex-wrap mt-1.5">
+                {([["none","No expiry"],["24h","24 hours"],["48h","48 hours"],["7d","7 days"],["custom","Custom"]] as const).map(([val, label]) => (
+                  <button key={val} type="button" onClick={() => setSpecialExpiryOption(val)}
+                    className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+                    style={{
+                      backgroundColor: specialExpiryOption === val ? "rgba(232,163,61,0.2)" : "transparent",
+                      border: specialExpiryOption === val ? "1px solid rgba(232,163,61,0.5)" : "1px solid var(--border-hairline)",
+                      color: specialExpiryOption === val ? "var(--accent-amber)" : "var(--text-muted)",
+                    }}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {specialExpiryOption === "custom" && (
+              <div>
+                <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Exact date &amp; time</label>
+                <input type="datetime-local" className={inputCls} value={specialExpiryCustom}
+                  onChange={(e) => setSpecialExpiryCustom(e.target.value)} />
+              </div>
+            )}
+            <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>
+              {specialExpiryOption === "none"
+                ? "Pack stays open indefinitely — players can enter at any time."
+                : "After this window closes, the pack shows as Ended and new entries are blocked."}
+            </p>
+          </div>
         </div>
       )}
 

@@ -494,7 +494,7 @@ export default function LandingPage() {
                   style={{ filter: "drop-shadow(0 0 8px rgba(76,111,255,0.6)) brightness(1.3)" }} />
                 <span className="font-headline text-xl font-black" style={{ color: "var(--text-primary)", letterSpacing: "-0.02em" }}>bitlyfe</span>
               </div>
-              <p className="text-sm font-semibold" style={{ color: "var(--accent-amber)" }}>
+              <p className="text-xs font-semibold" style={{ color: "var(--accent-amber)" }}>
                 Real stakes, real fast
               </p>
             </div>
