@@ -155,84 +155,278 @@ function DeleteConfirm({ question, onConfirm, onCancel, deleting }: {
   );
 }
 
-// ── Bulk upload panel ─────────────────────────────────────────────────────────
+// ── Bulk upload panel — spreadsheet table entry + file upload ────────────────
+import React from "react";
+
+type BulkRow = {
+  id: string;
+  question: string;
+  opt1: string; opt2: string; opt3: string; opt4: string;
+  correct_answer: string;
+  timer: number;
+  _errors?: string[];
+};
+
+const emptyRow = (): BulkRow => ({
+  id: Math.random().toString(36).slice(2),
+  question: "", opt1: "", opt2: "", opt3: "", opt4: "",
+  correct_answer: "", timer: 30,
+});
+
+function rowToQuestion(r: BulkRow) {
+  const opts = [r.opt1, r.opt2, r.opt3, r.opt4].filter(Boolean);
+  return { question: r.question.trim(), format: "multiple_choice" as const, options: opts, correct_answer: r.correct_answer.trim(), timer: r.timer };
+}
+
+function validateRows(rows: BulkRow[]): BulkRow[] {
+  return rows.map(r => {
+    const errs: string[] = [];
+    if (!r.question.trim()) errs.push("Question required");
+    const opts = [r.opt1, r.opt2, r.opt3, r.opt4].filter(Boolean);
+    if (opts.length < 2) errs.push("Need at least 2 options");
+    if (!r.correct_answer) errs.push("Select correct answer");
+    else if (!opts.includes(r.correct_answer)) errs.push("Correct answer must match an option");
+    return { ...r, _errors: errs };
+  });
+}
+
+function parseTabSeparated(text: string): BulkRow[] {
+  const lines = text.trim().split(/\r?\n/).filter(l => l.trim());
+  const first = lines[0]?.toLowerCase() ?? "";
+  const start = first.includes("question") || first.includes("option") ? 1 : 0;
+  return lines.slice(start).map(line => {
+    const cols = line.split("\t").map(c => c.trim().replace(/^"|"$/g, ""));
+    const r = emptyRow();
+    r.question = cols[0] ?? "";
+    r.opt1 = cols[1] ?? ""; r.opt2 = cols[2] ?? "";
+    r.opt3 = cols[3] ?? ""; r.opt4 = cols[4] ?? "";
+    const maybeAns = cols[5]?.trim() ?? "";
+    const opts = [r.opt1, r.opt2, r.opt3, r.opt4].filter(Boolean);
+    r.correct_answer = opts.includes(maybeAns) ? maybeAns : "";
+    r.timer = Number(cols[6]) || 30;
+    return r;
+  }).filter(r => r.question);
+}
+
+function parseCsvFile(text: string): BulkRow[] {
+  const lines = text.trim().split(/\r?\n/);
+  const header = lines[0].split(",").map(h => h.trim().toLowerCase().replace(/['"]/g, ""));
+  const qi = header.indexOf("question");
+  const o1 = header.indexOf("option_1"); const o2 = header.indexOf("option_2");
+  const o3 = header.indexOf("option_3"); const o4 = header.indexOf("option_4");
+  const ca = header.indexOf("correct_answer"); const ti = header.indexOf("timer");
+  if (qi === -1 || ca === -1) return [];
+  return lines.slice(1).filter(l => l.trim()).map(line => {
+    const cols = line.match(/(".*?"|[^,]+)(?=,|$)/g)?.map(c => c.replace(/^"|"$/g, "").trim()) ?? [];
+    const r = emptyRow();
+    r.question = cols[qi] ?? ""; r.opt1 = o1 >= 0 ? (cols[o1] ?? "") : "";
+    r.opt2 = o2 >= 0 ? (cols[o2] ?? "") : ""; r.opt3 = o3 >= 0 ? (cols[o3] ?? "") : "";
+    r.opt4 = o4 >= 0 ? (cols[o4] ?? "") : ""; r.correct_answer = ca >= 0 ? (cols[ca] ?? "") : "";
+    r.timer = ti >= 0 ? (Number(cols[ti]) || 30) : 30;
+    return r;
+  }).filter(r => r.question);
+}
+
+function SpreadsheetTable({ rows, onChange, onDelete, onPaste }: {
+  rows: BulkRow[];
+  onChange: (id: string, field: keyof BulkRow, val: string | number) => void;
+  onDelete: (id: string) => void;
+  onPaste: (e: React.ClipboardEvent) => void;
+}) {
+  const cellSt: React.CSSProperties = { padding: "6px 8px", backgroundColor: "var(--bg-base)", border: "1px solid var(--border-hairline)", borderRadius: 4, color: "var(--text-primary)", fontSize: 11, outline: "none", width: "100%", boxSizing: "border-box" };
+  return (
+    <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }} onPaste={onPaste}>
+      <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 720, fontSize: 11 }}>
+        <thead>
+          <tr style={{ backgroundColor: "var(--bg-base)" }}>
+            {["Question *", "Option 1", "Option 2", "Option 3", "Option 4", "Correct Answer *", "Time (s)", ""].map((h, i) => (
+              <th key={i} style={{ padding: "6px 8px", textAlign: "left", fontWeight: 700, color: "var(--text-muted)", fontSize: 9, textTransform: "uppercase", letterSpacing: "0.06em", borderBottom: "1px solid var(--border-hairline)", whiteSpace: "nowrap" }}>{h}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => {
+            const opts = [row.opt1, row.opt2, row.opt3, row.opt4].filter(Boolean);
+            return (
+              <tr key={row.id} style={{ backgroundColor: row._errors?.length ? "rgba(239,68,68,0.04)" : "transparent" }}>
+                <td style={{ padding: "4px", minWidth: 200 }}>
+                  <input value={row.question} onChange={e => onChange(row.id, "question", e.target.value)} placeholder="Type question…" style={{ ...cellSt, minWidth: 190 }} />
+                </td>
+                {(["opt1","opt2","opt3","opt4"] as const).map((f, i) => (
+                  <td key={f} style={{ padding: "4px", minWidth: 100 }}>
+                    <input value={row[f]} onChange={e => {
+                      const nv = e.target.value;
+                      onChange(row.id, f, nv);
+                      if (row.correct_answer === row[f] && row.correct_answer !== nv) onChange(row.id, "correct_answer", "");
+                    }} placeholder={`Option ${i+1}`} style={{ ...cellSt, minWidth: 90 }} />
+                  </td>
+                ))}
+                <td style={{ padding: "4px", minWidth: 120 }}>
+                  <select value={row.correct_answer} onChange={e => onChange(row.id, "correct_answer", e.target.value)}
+                    style={{ ...cellSt, minWidth: 110, cursor: "pointer", color: row.correct_answer ? "var(--accent-amber)" : "var(--text-muted)" }}>
+                    <option value="">— select —</option>
+                    {opts.map(o => <option key={o} value={o}>{o.length > 30 ? o.slice(0,30)+"…" : o}</option>)}
+                  </select>
+                </td>
+                <td style={{ padding: "4px", minWidth: 60 }}>
+                  <input type="number" value={row.timer} onChange={e => onChange(row.id, "timer", Number(e.target.value)||30)} min={5} max={3600} style={{ ...cellSt, width: 56 }} />
+                </td>
+                <td style={{ padding: "4px 8px" }}>
+                  <button onClick={() => onDelete(row.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", padding: 2 }} title="Remove"><X size={13} /></button>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+      {rows.some(r => r._errors?.length) && (
+        <div style={{ marginTop: 8, padding: "6px 10px", borderRadius: 6, backgroundColor: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.2)" }}>
+          {rows.filter(r => r._errors?.length).map((r, i) => (
+            <p key={r.id} style={{ fontSize: 10, color: "#f87171", margin: "1px 0" }}>Row {i+1}: {r._errors!.join(" · ")}</p>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function BulkUploadPanel({ packId, onDone, onCancel }: { packId: string; onDone: () => void; onCancel: () => void }) {
-  const [raw, setRaw] = useState("");
-  const [uploading, setUploading] = useState(false);
-  const [result, setResult] = useState<{ inserted: number; errors: { index: number; error: string }[] } | null>(null);
-  const [parseError, setParseError] = useState("");
+  const [tab, setTab] = React.useState<"table"|"file">("table");
+  const [rows, setRows] = React.useState<BulkRow[]>([emptyRow(), emptyRow()]);
+  const [uploading, setUploading] = React.useState(false);
+  const [result, setResult] = React.useState<{ inserted: number; errors: { index: number; error: string }[] }|null>(null);
+  const [uploadError, setUploadError] = React.useState("");
+  const [fileRows, setFileRows] = React.useState<BulkRow[]|null>(null);
+  const [fileError, setFileError] = React.useState("");
+  const fileRef = React.useRef<HTMLInputElement>(null);
 
-  const exampleCsv = `question,format,options,correct_answer,timer
-"What is 2+2?",multiple_choice,"2|3|4|5",4,30
-"Name a mammal",type_answer,,Dog,30`;
+  const updateRow = (id: string, field: keyof BulkRow, val: string|number) => {
+    setRows(prev => prev.map(r => r.id === id ? { ...r, [field]: val, _errors: undefined } : r));
+    setResult(null);
+  };
 
-  const handleUpload = async () => {
-    setParseError(""); setResult(null);
-    let parsed: { question: string; format: "multiple_choice"|"type_answer"; options?: string[]; correct_answer: string; timer: number }[] = [];
+  const handleTablePaste = (e: React.ClipboardEvent) => {
+    const text = e.clipboardData.getData("text/plain");
+    if (!text.includes("\t")) return;
+    e.preventDefault();
+    const parsed = parseTabSeparated(text);
+    if (parsed.length > 0) setRows(prev => [...prev.filter(r => r.question.trim()), ...parsed, emptyRow()]);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]; if (!file) return;
+    setFileError(""); setFileRows(null);
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const parsed = parseCsvFile(ev.target?.result as string);
+        if (!parsed.length) { setFileError("No valid rows found. Check headers: question, option_1, option_2, option_3, option_4, correct_answer"); return; }
+        setFileRows(validateRows(parsed));
+      } catch { setFileError("Could not parse file."); }
+    };
+    reader.readAsText(file); e.target.value = "";
+  };
+
+  const handleSubmit = async (sourceRows: BulkRow[]) => {
+    const validated = validateRows(sourceRows);
+    if (tab === "table") setRows(validated); else setFileRows(validated);
+    if (validated.some(r => r._errors?.length)) return;
+    const questions = sourceRows.filter(r => r.question.trim()).map(rowToQuestion);
+    if (!questions.length) { setUploadError("No filled rows to submit."); return; }
+    setUploading(true); setUploadError(""); setResult(null);
     try {
-      // Try JSON first
-      const trimmed = raw.trim();
-      if (trimmed.startsWith("[") || trimmed.startsWith("{")) {
-        const data = JSON.parse(trimmed);
-        parsed = Array.isArray(data) ? data : [data];
-      } else {
-        // CSV parse — skip header
-        const lines = trimmed.split("\n").filter(l => l.trim());
-        const header = lines[0].toLowerCase();
-        if (!header.includes("question")) { setParseError("CSV must have a header row: question, format, options, correct_answer, timer"); return; }
-        for (let i = 1; i < lines.length; i++) {
-          const cols = lines[i].match(/(".*?"|[^,]+)(?=,|$)/g)?.map(c => c.replace(/^"|"$/g,"").trim()) ?? [];
-          const q = cols[0] ?? ""; const fmt = (cols[1] ?? "multiple_choice") as "multiple_choice"|"type_answer";
-          const opts = cols[2] ? cols[2].split("|").map(o=>o.trim()).filter(Boolean) : undefined;
-          const ans = cols[3] ?? ""; const t = Number(cols[4] ?? 30);
-          if (q && ans) parsed.push({ question: q, format: fmt, options: opts, correct_answer: ans, timer: t || 30 });
-        }
-      }
-    } catch { setParseError("Could not parse input. Use JSON array or CSV format."); return; }
-    if (parsed.length === 0) { setParseError("No questions found in input."); return; }
-    setUploading(true);
-    try {
-      const res = await adminApi.bulkUploadQuestions(packId, parsed);
+      const res = await adminApi.bulkUploadQuestions(packId, questions);
       setResult(res);
       if (res.inserted > 0) setTimeout(() => { onDone(); }, 1500);
-    } catch (err) {
-      setParseError(err instanceof ApiError ? err.message : "Upload failed");
-    } finally { setUploading(false); }
+    } catch (err) { setUploadError(err instanceof ApiError ? err.message : "Upload failed"); }
+    finally { setUploading(false); }
   };
+
+  const filledRows = rows.filter(r => r.question.trim());
 
   return (
     <div style={{ borderRadius: 12, padding: 18, border: "1px solid rgba(76,111,255,0.25)", backgroundColor: "var(--bg-card)", marginBottom: 16 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <Upload size={14} style={{ color: "var(--accent-indigo)" }} />
-          <p style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", color: "var(--accent-indigo)", margin: 0 }}>Bulk Upload</p>
+          <p style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", color: "var(--accent-indigo)", margin: 0 }}>Bulk Add Questions</p>
         </div>
         <button onClick={onCancel} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)" }}><X size={14} /></button>
       </div>
-      <p style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 10 }}>
-        Paste JSON array or CSV. CSV format: <code style={{ backgroundColor: "#1E1E1E", padding: "1px 4px", borderRadius: 3 }}>question, format, options (pipe-separated), correct_answer, timer</code>
-      </p>
-      <details style={{ marginBottom: 10 }}>
-        <summary style={{ fontSize: 11, color: "var(--text-muted)", cursor: "pointer" }}>Show CSV example</summary>
-        <pre style={{ fontSize: 10, color: "var(--text-secondary)", backgroundColor: "#111", padding: "8px 10px", borderRadius: 6, marginTop: 6, overflowX: "auto" }}>{exampleCsv}</pre>
-      </details>
-      <textarea value={raw} onChange={e => setRaw(e.target.value)} rows={8} placeholder='[{"question":"...","format":"multiple_choice","options":["A","B"],"correct_answer":"A","timer":30}]'
-        style={{ width: "100%", boxSizing: "border-box", padding: "10px 12px", borderRadius: 8, border: "1px solid var(--border-subtle)", backgroundColor: "var(--bg-base)", color: "var(--text-primary)", fontSize: 12, resize: "vertical", outline: "none", fontFamily: "monospace", marginBottom: 10 }} />
-      {parseError && <p style={{ fontSize: 11, color: "#f87171", marginBottom: 8 }}>{parseError}</p>}
+      <div style={{ display: "flex", gap: 4, padding: 3, borderRadius: 8, backgroundColor: "var(--bg-base)", border: "1px solid var(--border-hairline)", marginBottom: 14, width: "fit-content" }}>
+        {(["table","file"] as const).map(t => (
+          <button key={t} onClick={() => setTab(t)}
+            style={{ padding: "6px 14px", borderRadius: 6, border: "none", cursor: "pointer", fontSize: 11, fontWeight: 700, transition: "all .15s", backgroundColor: tab===t ? "var(--accent-indigo)" : "transparent", color: tab===t ? "#fff" : "var(--text-secondary)" }}>
+            {t === "table" ? "Spreadsheet Entry" : "Upload CSV File"}
+          </button>
+        ))}
+      </div>
+      {tab === "table" && (
+        <>
+          <p style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 10 }}>
+            Type questions directly, or <strong style={{ color: "var(--text-primary)" }}>copy from Google Sheets / Excel and paste anywhere in the table</strong> — rows auto-fill. Column order: Question · Opt 1–4 · Correct Answer · Timer.
+          </p>
+          <SpreadsheetTable rows={rows} onChange={updateRow} onDelete={id => setRows(prev => prev.filter(r => r.id !== id))} onPaste={handleTablePaste} />
+          <div style={{ display: "flex", gap: 8, marginTop: 10, alignItems: "center" }}>
+            <button onClick={() => setRows(prev => [...prev, emptyRow()])}
+              style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 12px", borderRadius: 7, border: "1px solid var(--border-subtle)", backgroundColor: "transparent", color: "var(--text-secondary)", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
+              <Plus size={12} /> Add row
+            </button>
+            <span style={{ fontSize: 10, color: "var(--text-muted)" }}>{filledRows.length} filled row{filledRows.length!==1?"s":""}</span>
+            <button onClick={() => handleSubmit(rows)} disabled={uploading || !filledRows.length}
+              style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 6, padding: "8px 18px", borderRadius: 8, border: "none", backgroundColor: "var(--accent-indigo)", color: "#fff", fontSize: 12, fontWeight: 700, cursor: uploading||!filledRows.length?"not-allowed":"pointer", opacity: !filledRows.length?0.45:1 }}>
+              {uploading ? <Loader2 size={12} className="animate-spin" /> : <Upload size={12} />}
+              {uploading ? "Saving…" : `Save all (${filledRows.length})`}
+            </button>
+          </div>
+        </>
+      )}
+      {tab === "file" && (
+        <>
+          <p style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 10 }}>
+            Upload a <strong style={{ color: "var(--text-primary)" }}>.csv</strong> with headers: <code style={{ backgroundColor: "#1E1E1E", padding: "1px 4px", borderRadius: 3 }}>question, option_1, option_2, option_3, option_4, correct_answer, timer</code>. Preview appears before saving.
+          </p>
+          <button onClick={() => fileRef.current?.click()}
+            style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 8, border: "1px dashed rgba(76,111,255,0.4)", backgroundColor: "rgba(76,111,255,0.06)", color: "var(--accent-indigo)", fontSize: 12, fontWeight: 700, cursor: "pointer", marginBottom: 12 }}>
+            <Upload size={13} /> Choose CSV file
+          </button>
+          <input ref={fileRef} type="file" accept=".csv,.txt" onChange={handleFileChange} style={{ display: "none" }} />
+          {fileError && <p style={{ fontSize: 11, color: "#f87171", marginBottom: 10 }}>{fileError}</p>}
+          {fileRows && (
+            <>
+              <p style={{ fontSize: 11, fontWeight: 700, color: "var(--text-primary)", marginBottom: 8 }}>
+                Preview — {fileRows.length} rows{fileRows.filter(r=>r._errors?.length).length ? ` · ${fileRows.filter(r=>r._errors?.length).length} errors` : " · no errors"}
+              </p>
+              <SpreadsheetTable
+                rows={fileRows}
+                onChange={(id,f,v) => setFileRows(prev => prev!.map(r => r.id===id ? {...r,[f]:v,_errors:undefined} : r))}
+                onDelete={id => setFileRows(prev => prev!.filter(r=>r.id!==id))}
+                onPaste={e => { const t=e.clipboardData.getData("text/plain"); if(!t.includes("\t"))return; e.preventDefault(); setFileRows(prev=>[...(prev??[]),...parseTabSeparated(t)]); }}
+              />
+              <div style={{ display: "flex", gap: 8, marginTop: 10, alignItems: "center" }}>
+                <button onClick={() => setFileRows(null)} style={{ padding: "7px 14px", borderRadius: 7, border: "1px solid var(--border-subtle)", backgroundColor: "transparent", color: "var(--text-secondary)", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>Clear</button>
+                <button onClick={() => handleSubmit(fileRows)} disabled={uploading||!fileRows.filter(r=>r.question.trim()).length}
+                  style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 6, padding: "8px 18px", borderRadius: 8, border: "none", backgroundColor: "var(--accent-indigo)", color: "#fff", fontSize: 12, fontWeight: 700, cursor: uploading?"not-allowed":"pointer", opacity: !fileRows.filter(r=>r.question.trim()).length?0.45:1 }}>
+                  {uploading ? <Loader2 size={12} className="animate-spin" /> : <Upload size={12} />}
+                  {uploading ? "Saving…" : `Save ${fileRows.filter(r=>r.question.trim()).length} rows`}
+                </button>
+              </div>
+            </>
+          )}
+        </>
+      )}
+      {uploadError && <p style={{ fontSize: 11, color: "#f87171", marginTop: 8 }}>{uploadError}</p>}
       {result && (
-        <p style={{ fontSize: 11, color: result.inserted > 0 ? "#34d399" : "#f87171", marginBottom: 8 }}>
-          {result.inserted > 0 ? `✓ ${result.inserted} question${result.inserted!==1?"s":""} added` : "No questions were added"}
-          {result.errors.length > 0 ? ` · ${result.errors.length} error${result.errors.length!==1?"s":""}` : ""}
+        <p style={{ fontSize: 11, color: result.inserted>0?"#34d399":"#f87171", marginTop: 8 }}>
+          {result.inserted>0 ? `✓ ${result.inserted} question${result.inserted!==1?"s":""} added` : "No questions added"}
+          {result.errors.length>0 ? ` · ${result.errors.length} error${result.errors.length!==1?"s":""}` : ""}
         </p>
       )}
-      <button onClick={handleUpload} disabled={!raw.trim() || uploading}
-        style={{ padding: "9px 18px", borderRadius: 8, border: "none", backgroundColor: "var(--accent-indigo)", color: "#fff", fontSize: 12, fontWeight: 700, cursor: !raw.trim() || uploading ? "not-allowed" : "pointer", opacity: !raw.trim() || uploading ? 0.45 : 1, display: "flex", alignItems: "center", gap: 6 }}>
-        {uploading ? <Loader2 size={12} className="animate-spin" /> : <Upload size={12} />}
-        {uploading ? "Uploading..." : `Upload${raw.trim() ? "" : " (paste questions first)"}`}
-      </button>
     </div>
   );
 }
+
+
 
 // ── Clone from pack modal ─────────────────────────────────────────────────────
 function CloneModal({ packId, currentPackId, onDone, onCancel }: {
