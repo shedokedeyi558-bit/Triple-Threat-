@@ -1078,7 +1078,7 @@ export const adminApi = {
       pack: { id: string; name: string; category: string; question_count: number | null };
       questions: PackQuestion[];
       stats: { total: number; bank_size: number; coverage_ratio: number };
-    }>(`/api/admin/pills/packs/${packId}/questions`, { token: getAdminToken() }),
+    }>(`/api/admin/specials-bank/packs/${packId}/questions`, { token: getAdminToken() }),
 
   getPackLiveStats: (packId: string) =>
     request<{
