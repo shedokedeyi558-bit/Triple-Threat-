@@ -43,15 +43,17 @@ export default function ProfilePage() {
   };
 
   const handleCopyCode = (code: string) => {
-    navigator.clipboard.writeText(`https://bitlyfe.app/auth?ref=${code}`).then(() => {
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
+    navigator.clipboard.writeText(`${appUrl}/auth?ref=${code}`).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
   };
 
   const handleWhatsAppShare = (code: string) => {
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
     const text = encodeURIComponent(
-      `Win real Naira on BitLyfe! Play trivia pills, make predictions and compete in live tournaments. Join with my link and get ₦200 bonus credit on your first game:\nhttps://bitlyfe.app/auth?ref=${code}`
+      `Win real Naira on BitLyfe! Play trivia pills, make predictions and compete in live tournaments. Join with my link and get ₦200 bonus credit on your first game:\n${appUrl}/auth?ref=${code}`
     );
     window.open(`https://wa.me/?text=${text}`, "_blank");
   };
@@ -289,28 +291,37 @@ export default function ProfilePage() {
 
           {referralStats ? (
             <>
-              {/* Referral code + copy */}
-              <div className="rounded-xl p-4 border flex items-center justify-between gap-3"
-                style={{ backgroundColor: "var(--bg-base)", borderColor: "var(--border-subtle)" }}>
-                <div className="min-w-0">
-                  <p className="text-[10px] text-gray-600 uppercase tracking-widest mb-1">Your referral link</p>
-                  <p className="text-sm font-mono font-bold truncate" style={{ color: "var(--accent-amber)" }}>
-                    bitlyfe.app/auth?ref={referralStats.referral_code}
-                  </p>
-                  <p className="text-[10px] mt-1" style={{ color: "var(--text-muted)" }}>
-                    Friends who join earn you ₦200 bonus credit, usable on any game
-                  </p>
+              {/* Referral code + copy — guard against null/empty code */}
+              {referralStats.referral_code ? (
+                <div className="rounded-xl p-4 border flex items-center justify-between gap-3"
+                  style={{ backgroundColor: "var(--bg-base)", borderColor: "var(--border-subtle)" }}>
+                  <div className="min-w-0">
+                    <p className="text-[10px] text-gray-600 uppercase tracking-widest mb-1">Your referral link</p>
+                    <p className="text-sm font-mono font-bold truncate" style={{ color: "var(--accent-amber)" }}>
+                      {(process.env.NEXT_PUBLIC_APP_URL || "").replace(/^https?:\/\//, "")}/auth?ref={referralStats.referral_code}
+                    </p>
+                    <p className="text-[10px] mt-1" style={{ color: "var(--text-muted)" }}>
+                      Friends who join earn you ₦200 bonus credit, usable on any game
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => handleCopyCode(referralStats.referral_code)}
+                    className="flex-shrink-0 p-2 rounded-lg transition-colors"
+                    style={{ backgroundColor: copied ? "rgba(76,111,255,0.15)" : "rgba(76,111,255,0.1)", color: "var(--accent-indigo)" }}
+                  >
+                    {copied ? <Check size={16} /> : <Copy size={16} />}
+                  </button>
                 </div>
-                <button
-                  onClick={() => handleCopyCode(referralStats.referral_code)}
-                  className="flex-shrink-0 p-2 rounded-lg transition-colors"
-                  style={{ backgroundColor: copied ? "rgba(76,111,255,0.15)" : "rgba(76,111,255,0.1)", color: "var(--accent-indigo)" }}
-                >
-                  {copied ? <Check size={16} /> : <Copy size={16} />}
-                </button>
-              </div>
+              ) : (
+                <div className="rounded-xl p-4 border flex items-center gap-3"
+                  style={{ backgroundColor: "var(--bg-base)", borderColor: "var(--border-subtle)" }}>
+                  <Loader2 size={14} className="animate-spin flex-shrink-0" style={{ color: "var(--text-muted)" }} />
+                  <p className="text-sm" style={{ color: "var(--text-muted)" }}>Loading your referral code…</p>
+                </div>
+              )}
 
-              {/* WhatsApp share */}
+              {/* WhatsApp share — only when code is valid */}
+              {referralStats.referral_code && (
               <button
                 onClick={() => handleWhatsAppShare(referralStats.referral_code)}
                 className="w-full py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all"
@@ -321,8 +332,7 @@ export default function ProfilePage() {
                 </svg>
                 Share on WhatsApp
               </button>
-
-              {/* Stats row */}
+              )}
               <div className="grid grid-cols-3 gap-3">
                 {[
                   { label: "Referred", value: referralStats.referred_count, color: "var(--text-primary)" },
