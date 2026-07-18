@@ -231,7 +231,6 @@ export default function EventsPage() {
   const [myPreds, setMyPreds] = useState<MyPrediction[]>([]);
   const [openLoading, setOpenLoading] = useState(true);
   const [mineLoading, setMineLoading] = useState(false);
-  const [mineFetched, setMineFetched] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -242,25 +241,22 @@ export default function EventsPage() {
       .finally(() => setOpenLoading(false));
   }, [state.isAuthenticated, router]);
 
-  // Lazy-load mine only when tab is selected
+  // Fetch mine fresh every time the tab is selected — no caching
   const fetchMine = useCallback(async () => {
-    if (mineFetched) return;
     setMineLoading(true);
     try {
       const res = await predictionsApi.getMine();
       setMyPreds(res.predictions ?? []);
-      setMineFetched(true);
     } catch (e) {
       if (e instanceof ApiError && (e.status === 404 || e.status === 500)) {
         setMyPreds([]);
-        setMineFetched(true);
       } else {
         setError(e instanceof ApiError ? e.message : "Failed to load your predictions");
       }
     } finally {
       setMineLoading(false);
     }
-  }, [mineFetched]);
+  }, []);
 
   useEffect(() => {
     if (tab === "mine" || tab === "settled") fetchMine();
@@ -281,7 +277,7 @@ export default function EventsPage() {
 
       {/* Segment tabs */}
       <div style={{ marginBottom: 20 }}>
-        <SegTabs active={tab} onChange={setTab} mineCt={mineFetched ? active.length : 0} settledCt={mineFetched ? settled.length : 0} />
+        <SegTabs active={tab} onChange={setTab} mineCt={active.length} settledCt={settled.length} />
       </div>
 
       {error && (
