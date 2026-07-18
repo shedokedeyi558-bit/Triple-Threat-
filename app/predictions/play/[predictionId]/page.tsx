@@ -570,30 +570,42 @@ export default function PredictionPlayPage() {
       if (isLocked) {
         try {
           const myAnswer = await predictionsApi.getMyAnswer(predictionId);
-          setUserAnswer(myAnswer.answer);
-        } catch { /* not submitted — show locked state anyway */ }
+          setUserAnswer(myAnswer.answer || null);
+        } catch {
+          // getMyAnswer failed — try falling back to my-predictions to check state
+          try {
+            const mine = await predictionsApi.getMine();
+            const match = mine.predictions.find((p) => p.id === predictionId);
+            if (match && (match.my_answer || (match as any).state === "submitted_waiting")) {
+              setUserAnswer(match.my_answer || "submitted");
+            }
+          } catch { /* stay null — show as unsubmitted */ }
+        }
         setPageState("locked");
         return;
       }
 
       // Still open — check if player already entered (paid) or submitted.
-      // getMyAnswer returns:
-      //   200 with answer  → already submitted → locked/waiting state
-      //   404              → not entered at all → show detail/enter
-      //   any other error  → surface as actual error (network, 500, etc.)
       try {
         const myAnswer = await predictionsApi.getMyAnswer(predictionId);
-        // Successful response = player already submitted an answer
-        setUserAnswer(myAnswer.answer);
+        setUserAnswer(myAnswer.answer || null);
         setPageState("locked");
         return;
       } catch (err) {
         if (err instanceof ApiError && err.status === 404) {
-          // Not entered yet — show detail screen
+          // Try my-predictions as fallback before showing detail
+          try {
+            const mine = await predictionsApi.getMine();
+            const match = mine.predictions.find((p) => p.id === predictionId);
+            if (match) {
+              setUserAnswer(match.my_answer || ((match as any).state === "submitted_waiting" ? "submitted" : null));
+              setPageState("locked");
+              return;
+            }
+          } catch { /* not found in mine either — not entered */ }
           setPageState("detail");
           return;
         }
-        // Any other error (network, 500) — not silently swallowed
         throw err;
       }
 
