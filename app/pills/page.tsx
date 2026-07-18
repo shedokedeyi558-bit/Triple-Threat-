@@ -145,7 +145,7 @@ function GridPackCard({ pack, onClick }: { pack: PillPack; onClick: () => void }
       className="pack-card"
       style={{
         boxSizing: "border-box", borderRadius: 12, padding: 0,
-        textAlign: "left", cursor: expired ? "default" : "pointer", overflow: "hidden",
+        textAlign: "left", cursor: expired ? "default" : "pointer",
         border: "1px solid var(--border-subtle)", backgroundColor: "var(--bg-card)",
         display: "flex", flexDirection: "column", opacity: expired ? 0.55 : 1,
       }}>
@@ -162,7 +162,7 @@ function GridPackCard({ pack, onClick }: { pack: PillPack; onClick: () => void }
             {pack.category}
           </span>
         </div>
-        <p className="pack-card-name" style={{ fontWeight: 700, color: "var(--text-primary)", margin: 0, lineHeight: 1.35, wordBreak: "break-word", flexGrow: 1 }}>
+        <p className="pack-card-name" style={{ fontWeight: 700, color: "var(--text-primary)", margin: 0, lineHeight: 1.35, flexGrow: 1 }}>
           {pack.name}
         </p>
         {expiryLabel && (
