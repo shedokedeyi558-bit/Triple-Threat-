@@ -161,7 +161,12 @@ function MineCard({ p, onClick }: { p: MyPrediction; onClick: () => void }) {
       <div style={{ position: "absolute", inset: 0, backgroundColor: color, opacity: 0.03, pointerEvents: "none" }} />
       <div style={{ position: "relative" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 7 }}>
-          <span style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", padding: "2px 6px", borderRadius: 4, backgroundColor: `${color}22`, color }}>{p.category}</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", padding: "2px 6px", borderRadius: 4, backgroundColor: `${color}22`, color }}>{p.category}</span>
+            {p.participated_at && (
+              <span style={{ fontSize: 9, color: "var(--text-muted)" }}>Entered {fmtEntryTime(p.participated_at)}</span>
+            )}
+          </div>
           <span style={{ fontSize: 12, fontFamily: "monospace", fontWeight: 800, color: countdown.expired ? "var(--text-muted)" : color }}>{countdown.expired ? "Locked" : countdown.short}</span>
         </div>
         <p style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.4, color: "var(--text-primary)", margin: "0 0 11px" }}>{p.question}</p>
@@ -205,7 +210,7 @@ function SettledCard({ p, onClick }: { p: MyPrediction; onClick: () => void }) {
       style={{ width: "100%", boxSizing: "border-box", borderRadius: 10, padding: "11px 14px", textAlign: "left", cursor: "pointer", backgroundColor: "var(--bg-card)", border: "1px solid rgba(255,255,255,0.06)", borderLeft: `3px solid ${won ? "var(--accent-amber)" : lost ? "rgba(248,113,113,0.6)" : color}` }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 7 }}>
         <span style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", padding: "2px 6px", borderRadius: 4, backgroundColor: `${color}22`, color }}>{p.category}</span>
-        <span style={{ fontSize: 10, color: "var(--text-muted)" }}>{new Date(p.participated_at).toLocaleDateString("en-NG",{month:"short",day:"numeric"})}</span>
+        <span style={{ fontSize: 10, color: "var(--text-muted)" }}>{fmtEntryTime(p.participated_at)}</span>
       </div>
       <p style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.4, color: "var(--text-primary)", margin: "0 0 10px" }}>{p.question}</p>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 8 }}>
@@ -227,6 +232,12 @@ function SettledCard({ p, onClick }: { p: MyPrediction; onClick: () => void }) {
 
 function CardSkeleton() {
   return <div className="skeleton" style={{ height: 100, borderRadius: 10, marginBottom: 10 }} />;
+}
+
+function fmtEntryTime(iso: string): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return d.toLocaleString("en-NG", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
 // ── Main page ──────────────────────────────────────────────────────────────
