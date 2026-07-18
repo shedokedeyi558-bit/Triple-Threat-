@@ -273,6 +273,16 @@ export interface TransactionsResponse {
   limit: number;
 }
 
+export interface BankOption {
+  name: string;
+  code: string;
+}
+
+export interface ResolveAccountResponse {
+  account_name: string;
+  account_number: string;
+}
+
 export interface WithdrawResponse {
   message: string;
   withdrawal: { id: string; amount: number; status: string };
@@ -298,9 +308,20 @@ export const walletApi = {
       token: getToken(), params: { page, limit },
     }),
 
-  withdraw: (amount: number, method: string, accountNumber: string, bankName: string) =>
+  getBanks: () =>
+    request<{ banks: BankOption[] }>("/api/wallet/banks", { token: getToken() }),
+
+  resolveAccount: (accountNumber: string, bankCode: string) =>
+    request<ResolveAccountResponse>("/api/wallet/resolve-account", {
+      token: getToken(),
+      params: { account_number: accountNumber, bank_code: bankCode },
+    }),
+
+  withdraw: (amount: number, accountNumber: string, bankName: string, bankCode: string) =>
     request<WithdrawResponse>("/api/wallet/withdraw", {
-      method: "POST", body: { amount, method, accountNumber, bankName }, token: getToken(),
+      method: "POST",
+      body: { amount, accountNumber, bankName, bankCode },
+      token: getToken(),
     }),
 };
 

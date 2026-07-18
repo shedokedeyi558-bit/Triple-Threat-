@@ -1,15 +1,14 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useApp } from "@/context/AppContext";
-import { ArrowDownLeft, ArrowUpRight, Loader2, Ticket, Pill, Zap } from "lucide-react";
-import { walletApi, playerApi, referralApi, ApiError, type ApiTransaction, type ReferralTicket } from "@/lib/api";
+import { ArrowDownLeft, ArrowUpRight, Loader2, Ticket, Pill, Zap, CheckCircle2, AlertCircle, Search, ChevronDown } from "lucide-react";
+import { walletApi, playerApi, referralApi, ApiError, type ApiTransaction, type BankOption } from "@/lib/api";
 import { withTimeout } from "@/lib/withTimeout";
 import Link from "next/link";
 
 const quickAmounts = [500, 1000, 2000, 5000];
-const banks = ["GTBank", "Access Bank", "Zenith Bank", "First Bank", "UBA", "OPay", "PalmPay", "Kuda", "Moniepoint"];
 
 function formatDate(iso: string) {
   const d = new Date(iso);
@@ -57,20 +56,121 @@ function TxRow({ tx }: { tx: ApiTransaction }) {
   );
 }
 
-  const inp = "w-full rounded-xl px-4 py-3.5 text-sm outline-none transition-colors placeholder:opacity-50";
+const inp = "w-full rounded-xl px-4 py-3.5 text-sm outline-none transition-colors placeholder:opacity-50";
+
+// ── Bank picker with search ───────────────────────────────────────────────────
+function BankPicker({ banks, value, onChange, disabled }: {
+  banks: BankOption[];
+  value: BankOption | null;
+  onChange: (b: BankOption) => void;
+  disabled?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const filtered = query
+    ? banks.filter((b) => b.name.toLowerCase().includes(query.toLowerCase()))
+    : banks;
+
+  return (
+    <div ref={ref} style={{ position: "relative" }}>
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => setOpen((o) => !o)}
+        style={{
+          width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
+          padding: "12px 16px", borderRadius: 12, border: "1px solid var(--border-subtle)",
+          backgroundColor: "var(--bg-base)", color: value ? "var(--text-primary)" : "rgba(255,255,255,0.35)",
+          fontSize: 14, cursor: disabled ? "not-allowed" : "pointer", opacity: disabled ? 0.6 : 1,
+          textAlign: "left",
+        }}
+      >
+        <span>{value ? value.name : "Select bank..."}</span>
+        <ChevronDown size={15} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
+      </button>
+      {open && (
+        <div style={{
+          position: "absolute", top: "calc(100% + 6px)", left: 0, right: 0, zIndex: 50,
+          backgroundColor: "var(--bg-card)", border: "1px solid var(--border-subtle)",
+          borderRadius: 12, overflow: "hidden", boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
+        }}>
+          {/* Search */}
+          <div style={{ padding: "8px 10px", borderBottom: "1px solid var(--border-hairline)", display: "flex", alignItems: "center", gap: 8 }}>
+            <Search size={13} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
+            <input
+              autoFocus
+              type="text"
+              placeholder="Search banks..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              style={{
+                flex: 1, background: "none", border: "none", outline: "none",
+                fontSize: 13, color: "var(--text-primary)",
+              }}
+            />
+          </div>
+          {/* List */}
+          <div style={{ maxHeight: 220, overflowY: "auto" }}>
+            {filtered.length === 0 ? (
+              <p style={{ padding: "12px 16px", fontSize: 13, color: "var(--text-muted)" }}>No banks found</p>
+            ) : filtered.map((b) => (
+              <button
+                key={b.code}
+                type="button"
+                onClick={() => { onChange(b); setOpen(false); setQuery(""); }}
+                style={{
+                  width: "100%", textAlign: "left", padding: "10px 16px", fontSize: 13, border: "none",
+                  backgroundColor: value?.code === b.code ? "rgba(76,111,255,0.1)" : "transparent",
+                  color: value?.code === b.code ? "var(--accent-indigo)" : "var(--text-primary)",
+                  cursor: "pointer",
+                }}
+              >
+                {b.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function WalletPage() {
   const { state, dispatch } = useApp();
   const [tab, setTab] = useState<"deposit" | "withdraw">("deposit");
+
+  // ── Deposit state ──
   const [depositAmt, setDepositAmt] = useState("");
   const [depositLoading, setDepositLoading] = useState(false);
   const [depositError, setDepositError] = useState("");
+
+  // ── Withdraw state ──
   const [withdrawAmt, setWithdrawAmt] = useState("");
-  const [bank, setBank] = useState("");
+  const [selectedBank, setSelectedBank] = useState<BankOption | null>(null);
   const [accNum, setAccNum] = useState("");
+  const [resolvedName, setResolvedName] = useState<string | null>(null);
+  const [resolving, setResolving] = useState(false);
+  const [resolveError, setResolveError] = useState("");
+  const [confirmed, setConfirmed] = useState(false);
   const [withdrawLoading, setWithdrawLoading] = useState(false);
   const [withdrawMsg, setWithdrawMsg] = useState("");
   const [withdrawError, setWithdrawError] = useState("");
+
+  // ── Bank list ──
+  const [banks, setBanks] = useState<BankOption[]>([]);
+  const [banksLoading, setBanksLoading] = useState(false);
+
+  // ── Shared ──
   const [transactions, setTransactions] = useState<ApiTransaction[]>([]);
   const [txLoading, setTxLoading] = useState(true);
   const [tickets, setTickets] = useState<Array<{ code: string; expires_at: string; type?: string }>>([]);
@@ -90,18 +190,47 @@ export default function WalletPage() {
       .then((data) => setTransactions(data.transactions))
       .catch(() => {})
       .finally(() => setTxLoading(false));
-    
-    // Fetch spend summary
     playerApi.getSpendSummary()
       .then((data) => setSpendSummary(data))
       .catch(() => {});
-    
-    // Fetch real tickets from referral API
     referralApi.getTickets()
       .then((data) => setTickets(data.tickets.filter(t => t.status === "active").map(t => ({ code: t.code, expires_at: t.expires_at, type: t.type }))))
       .catch(() => setTickets([]))
       .finally(() => setTicketsLoading(false));
   }, [refreshBalance]);
+
+  // Load bank list once when withdraw tab is first opened
+  const banksLoadedRef = useRef(false);
+  const handleTabChange = useCallback((t: "deposit" | "withdraw") => {
+    setTab(t);
+    setDepositError("");
+    setWithdrawError("");
+    setWithdrawMsg("");
+    if (t === "withdraw" && !banksLoadedRef.current) {
+      banksLoadedRef.current = true;
+      setBanksLoading(true);
+      walletApi.getBanks()
+        .then((d) => setBanks(d.banks ?? []))
+        .catch(() => setBanks([]))
+        .finally(() => setBanksLoading(false));
+    }
+  }, []);
+
+  // When account number reaches 10 digits and a bank is selected, auto-resolve
+  useEffect(() => {
+    // Reset resolve state whenever account number or bank changes
+    setResolvedName(null);
+    setResolveError("");
+    setConfirmed(false);
+
+    if (accNum.length === 10 && selectedBank) {
+      setResolving(true);
+      walletApi.resolveAccount(accNum, selectedBank.code)
+        .then((d) => setResolvedName(d.account_name))
+        .catch((err) => setResolveError(err instanceof ApiError ? err.message : "Could not verify account"))
+        .finally(() => setResolving(false));
+    }
+  }, [accNum, selectedBank]);
 
   const handleDeposit = async () => {
     const amt = parseInt(depositAmt, 10);
@@ -120,16 +249,24 @@ export default function WalletPage() {
   const handleWithdraw = async () => {
     const amt = parseInt(withdrawAmt, 10);
     if (!amt || amt < 1000) { setWithdrawError("Minimum withdrawal is ₦1,000"); return; }
-    if (!bank) { setWithdrawError("Select a bank"); return; }
+    if (!selectedBank) { setWithdrawError("Select a bank"); return; }
     if (accNum.length < 10) { setWithdrawError("Enter a valid 10-digit account number"); return; }
+    if (!confirmed || !resolvedName) { setWithdrawError("Confirm the account name before submitting"); return; }
     if (state.player && state.player.balance < amt) { setWithdrawError("Insufficient balance"); return; }
     setWithdrawError("");
     setWithdrawLoading(true);
     try {
-      const data = await withTimeout(walletApi.withdraw(amt, bank, accNum, bank), 18000);
+      const data = await withTimeout(
+        walletApi.withdraw(amt, accNum, selectedBank.name, selectedBank.code),
+        18000
+      );
       setWithdrawMsg(data.message);
       dispatch({ type: "UPDATE_BALANCE", balance: data.newBalance });
-      setWithdrawAmt(""); setBank(""); setAccNum("");
+      setWithdrawAmt("");
+      setSelectedBank(null);
+      setAccNum("");
+      setResolvedName(null);
+      setConfirmed(false);
       walletApi.getTransactions().then((d) => setTransactions(d.transactions)).catch(() => {});
     } catch (err) {
       setWithdrawError(err instanceof ApiError ? err.message : "Withdrawal failed. Try again.");
@@ -227,7 +364,7 @@ export default function WalletPage() {
             {(["deposit", "withdraw"] as const).map((t) => (
               <button
                 key={t}
-                onClick={() => { setTab(t); setDepositError(""); setWithdrawError(""); setWithdrawMsg(""); }}
+                onClick={() => handleTabChange(t)}
                 className="flex-1 py-4 text-sm font-bold capitalize transition-all border-b-2 -mb-px active:opacity-70"
                 style={{
                   borderColor: tab === t ? "var(--accent-amber)" : "transparent",
@@ -289,39 +426,135 @@ export default function WalletPage() {
                 </>
               ) : (
                 <>
+                  {/* ── Amount ── */}
                   <div>
                     <label className="text-[11px] font-bold uppercase tracking-widest mb-2 block" style={{ color: "var(--text-muted)" }}>Amount (₦)</label>
                     <input type="number" placeholder="Min ₦1,000" value={withdrawAmt}
                       onChange={(e) => setWithdrawAmt(e.target.value)} className={inp}
                       style={{ backgroundColor: "var(--bg-base)", borderColor: "var(--border-subtle)", color: "var(--text-primary)", border: "1px solid" }} />
                   </div>
+
+                  {/* ── Bank picker ── */}
                   <div>
                     <label className="text-[11px] font-bold uppercase tracking-widest mb-2 block" style={{ color: "var(--text-muted)" }}>Bank</label>
-                    <select value={bank} onChange={(e) => setBank(e.target.value)} className={inp}
-                      style={{ backgroundColor: "var(--bg-base)", borderColor: "var(--border-subtle)", color: "var(--text-primary)", border: "1px solid" }}>
-                      <option value="">Select bank...</option>
-                      {banks.map((b) => <option key={b} value={b}>{b}</option>)}
-                    </select>
+                    {banksLoading ? (
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 16px", borderRadius: 12, border: "1px solid var(--border-subtle)", backgroundColor: "var(--bg-base)" }}>
+                        <Loader2 size={14} className="animate-spin" style={{ color: "var(--text-muted)" }} />
+                        <span style={{ fontSize: 13, color: "var(--text-muted)" }}>Loading banks...</span>
+                      </div>
+                    ) : (
+                      <BankPicker
+                        banks={banks}
+                        value={selectedBank}
+                        onChange={(b) => setSelectedBank(b)}
+                      />
+                    )}
                   </div>
+
+                  {/* ── Account number ── */}
                   <div>
                     <label className="text-[11px] font-bold uppercase tracking-widest mb-2 block" style={{ color: "var(--text-muted)" }}>Account Number</label>
-                    <input type="tel" inputMode="numeric" placeholder="10-digit number" value={accNum}
-                      onChange={(e) => setAccNum(e.target.value.replace(/\D/g, "").slice(0, 10))} className={inp}
-                      style={{ backgroundColor: "var(--bg-base)", borderColor: "var(--border-subtle)", color: "var(--text-primary)", border: "1px solid" }} />
+                    <input
+                      type="tel" inputMode="numeric" placeholder="10-digit number"
+                      value={accNum}
+                      onChange={(e) => setAccNum(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                      className={inp}
+                      style={{ backgroundColor: "var(--bg-base)", borderColor: "var(--border-subtle)", color: "var(--text-primary)", border: "1px solid" }}
+                    />
                   </div>
+
+                  {/* ── Account resolution ── */}
+                  {accNum.length === 10 && selectedBank && (
+                    <AnimatePresence mode="wait">
+                      {resolving && (
+                        <motion.div key="resolving"
+                          initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                          style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 14px", borderRadius: 12, border: "1px solid var(--border-hairline)", backgroundColor: "var(--bg-base)" }}>
+                          <Loader2 size={13} className="animate-spin" style={{ color: "var(--text-muted)" }} />
+                          <span style={{ fontSize: 12, color: "var(--text-muted)" }}>Verifying account...</span>
+                        </motion.div>
+                      )}
+
+                      {!resolving && resolveError && (
+                        <motion.div key="resolve-err"
+                          initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                          style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 14px", borderRadius: 12, border: "1px solid rgba(239,68,68,0.3)", backgroundColor: "rgba(239,68,68,0.06)" }}>
+                          <AlertCircle size={13} style={{ color: "#f87171", flexShrink: 0 }} />
+                          <span style={{ fontSize: 12, color: "#f87171" }}>{resolveError}</span>
+                        </motion.div>
+                      )}
+
+                      {!resolving && resolvedName && (
+                        <motion.div key="resolved"
+                          initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                          style={{ borderRadius: 12, border: "1px solid rgba(76,111,255,0.25)", backgroundColor: "rgba(76,111,255,0.06)", overflow: "hidden" }}>
+                          <div style={{ padding: "12px 14px" }}>
+                            <p style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-muted)", marginBottom: 4 }}>
+                              Account name
+                            </p>
+                            <p style={{ fontSize: 15, fontWeight: 800, color: "var(--accent-indigo)", letterSpacing: "0.01em" }}>
+                              {resolvedName}
+                            </p>
+                          </div>
+                          {/* Confirm strip */}
+                          {!confirmed ? (
+                            <button
+                              onClick={() => setConfirmed(true)}
+                              style={{
+                                width: "100%", padding: "10px 14px", fontSize: 12, fontWeight: 700,
+                                border: "none", borderTop: "1px solid rgba(76,111,255,0.2)",
+                                backgroundColor: "rgba(76,111,255,0.12)", color: "var(--accent-indigo)",
+                                cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 6,
+                              }}
+                            >
+                              <CheckCircle2 size={13} style={{ opacity: 0.6 }} />
+                              Yes, this is my account — confirm
+                            </button>
+                          ) : (
+                            <div style={{
+                              padding: "10px 14px", fontSize: 12, fontWeight: 700,
+                              borderTop: "1px solid rgba(76,111,255,0.2)",
+                              backgroundColor: "rgba(76,111,255,0.18)", color: "var(--accent-indigo)",
+                              display: "flex", alignItems: "center", gap: 6,
+                            }}>
+                              <CheckCircle2 size={13} />
+                              Account confirmed
+                            </div>
+                          )}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  )}
+
+                  {/* ── Success / Error messages ── */}
                   {withdrawMsg && (
-                    <div className="rounded-xl p-3 text-xs font-semibold text-center border" style={{ backgroundColor: "rgba(232, 163, 61, 0.1)", borderColor: "var(--accent-amber)", color: "var(--accent-amber)" }}>✓ {withdrawMsg}</div>
+                    <div className="rounded-xl p-3 text-xs font-semibold text-center border" style={{ backgroundColor: "rgba(232, 163, 61, 0.1)", borderColor: "var(--accent-amber)", color: "var(--accent-amber)" }}>
+                      {withdrawMsg}
+                    </div>
                   )}
                   {withdrawError && <p className="text-red-400 text-xs">{withdrawError}</p>}
+
+                  {/* ── Submit ── */}
                   <button
                     onClick={handleWithdraw}
-                    disabled={withdrawLoading || !withdrawAmt || parseInt(withdrawAmt) < 1000 || !bank || accNum.length < 10}
+                    disabled={
+                      withdrawLoading ||
+                      !withdrawAmt || parseInt(withdrawAmt) < 1000 ||
+                      !selectedBank ||
+                      accNum.length < 10 ||
+                      !confirmed
+                    }
                     className="w-full py-4 font-black rounded-xl disabled:opacity-40 flex items-center justify-center gap-2 text-sm"
                     style={{ backgroundColor: "var(--accent-amber)", color: "#000" }}
                   >
                     {withdrawLoading ? <Loader2 size={16} className="animate-spin" /> : null}
                     {withdrawLoading ? "Processing..." : "Request Withdrawal →"}
                   </button>
+                  {!confirmed && accNum.length === 10 && selectedBank && !resolving && resolvedName && (
+                    <p className="text-[11px] text-center" style={{ color: "var(--text-muted)" }}>
+                      Confirm the account name above before submitting
+                    </p>
+                  )}
                 </>
               )}
             </motion.div>
