@@ -112,15 +112,36 @@ export default function AdminPredictionDetailPage() {
     const loadPrediction = async () => {
       try {
         const res = await adminApi.getPrediction(id);
-        const pred = res.prediction as PredictionDetail;
+        const raw = res.prediction as any;
+
+        // ── Normalize field names ─────────────────────────────────────────
+        // Backend may send `fee` (player-facing name) instead of `entry_fee`,
+        // `current_participants` instead of `slots_filled`, etc.
+        // Apply the same normalization the list page uses so the detail page
+        // never receives `undefined` for a numeric field it calls .toLocaleString() on.
+        const pred: PredictionDetail = {
+          id:                  raw.id,
+          question:            raw.question            ?? "",
+          category:            raw.category            ?? "General",
+          entry_fee:           raw.entry_fee           ?? raw.fee                  ?? 0,
+          prize_per_winner:    raw.prize_per_winner    ?? raw.prizePerWinner       ?? 0,
+          slots_filled:        raw.slots_filled        ?? raw.current_participants ?? 0,
+          max_slots:           raw.max_slots           ?? raw.maxSlots             ?? 0,
+          status:              raw.status              ?? "active",
+          countdown_end:       raw.countdown_end       ?? raw.countdownEnd        ?? "",
+          correct_answer:      raw.correct_answer      ?? null,
+          answer_revealed_at:  raw.answer_revealed_at  ?? null,
+        };
+
         setPrediction(pred);
+
         // Use the participants_summary from the detail endpoint if present —
         // it's two cheap COUNT queries, no row fetching needed.
-        if ((res.prediction as any).participants_summary) {
-          const ps = (res.prediction as any).participants_summary;
+        if (raw.participants_summary) {
+          const ps = raw.participants_summary;
           setSummary({
-            total: ps.total ?? 0,
-            submitted: ps.submitted ?? 0,
+            total:              ps.total              ?? 0,
+            submitted:          ps.submitted          ?? 0,
             pending_submission: ps.pending_submission ?? 0,
           });
         }
@@ -162,8 +183,22 @@ export default function AdminPredictionDetailPage() {
         adminApi.getPrediction(id),
         adminApi.getPredictionParticipants(id),
       ]);
-      setPrediction(updated.prediction as PredictionDetail);
-      setParticipants(updatedParts.participations ?? []);
+      const updatedRaw = updated.prediction as any;
+      setPrediction({
+        id:                 updatedRaw.id,
+        question:           updatedRaw.question            ?? "",
+        category:           updatedRaw.category            ?? "General",
+        entry_fee:          updatedRaw.entry_fee           ?? updatedRaw.fee                  ?? 0,
+        prize_per_winner:   updatedRaw.prize_per_winner    ?? updatedRaw.prizePerWinner       ?? 0,
+        slots_filled:       updatedRaw.slots_filled        ?? updatedRaw.current_participants ?? 0,
+        max_slots:          updatedRaw.max_slots           ?? updatedRaw.maxSlots             ?? 0,
+        status:             updatedRaw.status              ?? "active",
+        countdown_end:      updatedRaw.countdown_end       ?? updatedRaw.countdownEnd        ?? "",
+        correct_answer:     updatedRaw.correct_answer      ?? null,
+        answer_revealed_at: updatedRaw.answer_revealed_at  ?? null,
+      });
+      const rows = updatedParts.participations ?? (updatedParts as any).participants ?? [];
+      setParticipants(rows);
       if (updatedParts.summary) setSummary(updatedParts.summary);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to reveal answer");
@@ -230,9 +265,9 @@ export default function AdminPredictionDetailPage() {
           </div>
           <div className="grid grid-cols-3 gap-3 text-center text-xs">
             {[
-              { label: "Participants", value: revealResult.total_participants },
-              { label: "Correct",      value: revealResult.total_correct },
-              { label: "Total paid",   value: `₦${revealResult.total_paid.toLocaleString()}` },
+              { label: "Participants", value: revealResult.total_participants ?? 0 },
+              { label: "Correct",      value: revealResult.total_correct ?? 0 },
+              { label: "Total paid",   value: `₦${(revealResult.total_paid ?? 0).toLocaleString()}` },
             ].map((s) => (
               <div key={s.label} className="rounded-lg p-2"
                 style={{ backgroundColor: "rgba(232,163,61,0.12)" }}>
@@ -292,9 +327,9 @@ export default function AdminPredictionDetailPage() {
             {/* Stats grid */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {[
-                { label: "Entry fee",    value: `₦${prediction.entry_fee.toLocaleString()}`,         color: "var(--accent-indigo)" },
-                { label: "Prize/winner", value: `₦${prediction.prize_per_winner.toLocaleString()}`,  color: "var(--accent-amber)" },
-                { label: "Entries",      value: `${prediction.slots_filled}/${prediction.max_slots}`, color: "var(--text-primary)" },
+                { label: "Entry fee",    value: `₦${(prediction.entry_fee ?? 0).toLocaleString()}`,         color: "var(--accent-indigo)" },
+                { label: "Prize/winner", value: `₦${(prediction.prize_per_winner ?? 0).toLocaleString()}`,  color: "var(--accent-amber)" },
+                { label: "Entries",      value: `${prediction.slots_filled ?? 0}/${prediction.max_slots ?? 0}`, color: "var(--text-primary)" },
                 {
                   label: "Deadline",
                   value: prediction.countdown_end ? fmtDate(prediction.countdown_end) : "—",
