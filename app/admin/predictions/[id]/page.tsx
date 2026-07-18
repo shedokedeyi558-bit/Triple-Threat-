@@ -95,7 +95,7 @@ export default function AdminPredictionDetailPage() {
         setSummary(res.summary);
       } else {
         const total     = rows.length;
-        const submitted = rows.filter((p) => p.has_submitted || !!p.answer).length;
+        const submitted = rows.filter((p: { has_submitted?: boolean; answer?: string | null }) => p.has_submitted || !!p.answer).length;
         setSummary({ total, submitted, pending_submission: total - submitted });
       }
     } catch {
