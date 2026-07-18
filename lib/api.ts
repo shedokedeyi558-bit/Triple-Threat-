@@ -684,8 +684,6 @@ export interface PredictionResultResponse {
   newBalance: number;
 }
 
-// A single entry in the player's participation history.
-// Returned by GET /api/predictions/mine.
 export interface MyPrediction {
   id: string;                          // prediction id
   question: string;
@@ -710,9 +708,20 @@ export const predictionsApi = {
   getOne: (predictionId: string) =>
     request<{ prediction: PredictionData }>(`/api/predictions/${predictionId}`, { token: getToken() }),
 
-  // Returns all predictions the player has entered (active + settled)
-  getMine: () =>
-    request<{ predictions: MyPrediction[] }>("/api/predictions/mine", { token: getToken() }),
+  // Returns all predictions the player has entered
+  // Backend uses GET /api/predictions/my-predictions?status=active|settled
+  getMine: async (): Promise<{ predictions: MyPrediction[] }> => {
+    const [activeRes, settledRes] = await Promise.allSettled([
+      request<{ predictions: MyPrediction[] }>("/api/predictions/my-predictions", { token: getToken(), params: { status: "active" } }),
+      request<{ predictions: MyPrediction[] }>("/api/predictions/my-predictions", { token: getToken(), params: { status: "settled" } }),
+    ]);
+    const active = activeRes.status === "fulfilled" ? (activeRes.value.predictions ?? []) : [];
+    const settled = settledRes.status === "fulfilled" ? (settledRes.value.predictions ?? []) : [];
+    // Deduplicate by id in case backend returns overlapping results
+    const seen = new Set<string>();
+    const all = [...active, ...settled].filter(p => seen.has(p.id) ? false : (seen.add(p.id), true));
+    return { predictions: all };
+  },
 
   enter: (predictionId: string) =>
     request<PredictionEnterResponse>("/api/predictions/enter", {
