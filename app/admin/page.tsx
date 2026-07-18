@@ -78,7 +78,7 @@ export default function AdminDashboard() {
       try {
         const [statsRes, gamesRes, packsRes, blitzRes] = await Promise.allSettled([
           adminApi.getStats(),
-          adminApi.getGames({ limit: 20, game_type: "predictions" }),
+          adminApi.getPredictions({ limit: 20 }),
           adminApi.getPillPacks(),
           adminApi.getBlitzTournaments(),
         ]);
@@ -86,8 +86,7 @@ export default function AdminDashboard() {
         if (statsRes.status === "fulfilled") setStats(statsRes.value);
         if (gamesRes.status === "fulfilled") {
           setPredictions(
-            ((gamesRes.value.games as any[]) || [])
-              .filter((g) => g.category || g.countdown_end)
+            ((gamesRes.value.predictions as any[]) || [])
               .slice(0, 3) as RecentPrediction[]
           );
         }

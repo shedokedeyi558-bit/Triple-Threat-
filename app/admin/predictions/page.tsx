@@ -47,22 +47,21 @@ export default function AdminPredictionsPage() {
 
   const fetchPredictions = async () => {
     try {
-      const res = await adminApi.getGames({ limit: 1000 });
-      const predictions = ((res.games || []) as any[])
-        .filter((g) => g.category || g.countdown_end)
-        .map((g) => ({
-          id: g.id,
-          question: g.question || "Unnamed prediction",
-          category: g.category || "General",
-          entry_fee: g.entry_fee || 0,
-          prize_per_winner: g.prize_per_winner || 0,
-          slots_filled: g.slots_filled || 0,
-          max_slots: g.max_slots || 0,
-          status: (g.status || "active") as "active" | "locked" | "completed" | "cancelled",
-          display_status: (g.display_status || g.status || "active") as "active" | "locked" | "completed" | "cancelled",
-          countdown_end: g.countdown_end || "",
-        }));
-      setPredictions(predictions);
+      // Use the dedicated predictions endpoint — not the legacy /admin/games route
+      const res = await adminApi.getPredictions({ limit: 1000 });
+      const rows = ((res.predictions || []) as any[]).map((g) => ({
+        id: g.id,
+        question: g.question || "Unnamed prediction",
+        category: g.category || "General",
+        entry_fee: g.entry_fee || g.fee || 0,
+        prize_per_winner: g.prize_per_winner || 0,
+        slots_filled: g.slots_filled || 0,
+        max_slots: g.max_slots || 0,
+        status: (g.status || "active") as "active" | "locked" | "completed" | "cancelled",
+        display_status: (g.display_status || g.status || "active") as "active" | "locked" | "completed" | "cancelled",
+        countdown_end: g.countdown_end || "",
+      }));
+      setPredictions(rows);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to load predictions");
     } finally {

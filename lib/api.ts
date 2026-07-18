@@ -1302,6 +1302,12 @@ export const adminApi = {
       token: getAdminToken(),
     }),
 
+  getPredictions: (params?: Record<string, string | number>) =>
+    request<{ predictions: any[]; total?: number }>(
+      "/api/admin/predictions",
+      { token: getAdminToken(), params }
+    ),
+
   getPredictionParticipants: (id: string) =>
     request<{
       participations: {
