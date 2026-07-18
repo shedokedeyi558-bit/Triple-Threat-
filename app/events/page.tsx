@@ -176,12 +176,18 @@ function MineCard({ p, onClick }: { p: MyPrediction; onClick: () => void }) {
           </div>
         ) : (
           <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-            <Clock size={11} style={{ color: "var(--accent-amber)" }} />
-            <span style={{ fontSize: 11, fontWeight: 700, color: "var(--accent-amber)" }}>Awaiting your answer</span>
+            <Clock size={11} style={{ color: countdown.expired ? "var(--text-muted)" : "var(--accent-amber)" }} />
+            <span style={{ fontSize: 11, fontWeight: 700, color: countdown.expired ? "var(--text-muted)" : "var(--accent-amber)" }}>
+              {countdown.expired ? "Entered · no answer submitted" : "Awaiting your answer"}
+            </span>
           </div>
         )}
         {!submitted && (
-          <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 6, backgroundColor: "var(--accent-indigo)", color: "#fff" }}>Submit now</span>
+          countdown.expired ? (
+            <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)", fontStyle: "italic" }}>Deadline passed</span>
+          ) : (
+            <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 6, backgroundColor: "var(--accent-indigo)", color: "#fff" }}>Submit now</span>
+          )
         )}
       </div>
     </motion.button>
