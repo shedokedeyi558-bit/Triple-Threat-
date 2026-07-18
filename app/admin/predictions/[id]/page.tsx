@@ -13,7 +13,7 @@ import {
 interface Participant {
   id: string;
   player_id: string;
-  player_phone: string;
+  player_phone: string | null;   // null if player record not found in lookup
   player_name?: string | null;
   answer: string | null;
   has_submitted: boolean;
@@ -52,8 +52,10 @@ const STATUS_COLOR: Record<string, string> = {
   cancelled: "#f87171",
 };
 
-const maskPhone = (ph: string) =>
-  ph.length >= 8 ? `${ph.slice(0, 4)}***${ph.slice(-4)}` : ph;
+const maskPhone = (ph: string | null | undefined): string => {
+  if (!ph) return "—";
+  return ph.length >= 8 ? `${ph.slice(0, 4)}***${ph.slice(-4)}` : ph;
+};
 
 const fmtDate = (iso: string) =>
   new Date(iso).toLocaleString("en-NG", {

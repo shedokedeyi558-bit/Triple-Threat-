@@ -1314,7 +1314,7 @@ export const adminApi = {
       participations?: {
         id: string;
         player_id: string;
-        player_phone: string;
+        player_phone: string | null;
         player_name?: string | null;
         answer: string | null;
         has_submitted: boolean;
@@ -1326,7 +1326,7 @@ export const adminApi = {
       participants?: {
         id: string;
         player_id: string;
-        player_phone: string;
+        player_phone: string | null;
         player_name?: string | null;
         answer: string | null;
         has_submitted: boolean;
