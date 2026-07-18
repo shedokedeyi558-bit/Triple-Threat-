@@ -215,7 +215,7 @@ export default function AdminDashboard() {
               </span>
             </div>
             <p className="font-mono text-xl font-bold" style={{ color: "var(--text-primary)" }}>
-              {(blitz.length + predictions.length + totalActivePacks).toString()}
+              {(blitz.length + (stats?.predictions?.live ?? predictions.filter(p => p.status === "active" || p.status === "locked").length) + totalActivePacks).toString()}
             </p>
           </motion.div>
         </div>
@@ -341,11 +341,21 @@ export default function AdminDashboard() {
             borderLeft: "3px solid var(--accent-violet)",
           }}
         >
-          <div className="flex items-center gap-2 mb-4">
-            <Clock size={14} style={{ color: "var(--accent-violet)" }} />
-            <h2 className="font-headline font-semibold text-sm" style={{ color: "var(--text-primary)" }}>
-              Time Machine
-            </h2>
+          <div className="flex items-center justify-between gap-2 mb-4">
+            <div className="flex items-center gap-2">
+              <Clock size={14} style={{ color: "var(--accent-violet)" }} />
+              <h2 className="font-headline font-semibold text-sm" style={{ color: "var(--text-primary)" }}>
+                Time Machine
+              </h2>
+            </div>
+            {!loading && (() => {
+              const live = stats?.predictions?.live ?? predictions.filter(p => p.status === "active" || p.status === "locked").length;
+              return live > 0 ? (
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded" style={{ backgroundColor: "rgba(124,111,232,0.15)", color: "var(--accent-violet)" }}>
+                  {live} live
+                </span>
+              ) : null;
+            })()}
           </div>
           {loading ? (
             <div className="space-y-2">
@@ -558,7 +568,10 @@ export default function AdminDashboard() {
                   Time Machine
                 </h2>
                 <p className="text-xs mt-0.5" style={{ color: "var(--text-secondary)" }}>
-                  {predictions.length > 0 ? `${predictions.length} prediction${predictions.length !== 1 ? "s" : ""}` : "No predictions yet"}
+                  {(() => {
+                    const live = stats?.predictions?.live ?? predictions.filter(p => p.status === "active" || p.status === "locked").length;
+                    return live > 0 ? `${live} live` : "No active events";
+                  })()}
                 </p>
               </div>
             </div>

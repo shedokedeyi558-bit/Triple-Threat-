@@ -313,6 +313,15 @@ export interface AdminStats {
   profitToday: number;
   totalPlayers: number;
   pendingWithdrawals: number;
+  // Prediction stats (added by backend)
+  predictions?: {
+    live?: number;      // active + locked — needs admin attention
+    total?: number;
+    active?: number;
+    locked?: number;
+    completed?: number;
+    cancelled?: number;
+  };
 }
 
 export interface AdminQuestion {
