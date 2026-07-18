@@ -152,7 +152,8 @@ function OpenRow({ p, onClick }: { p: PredictionData; onClick: () => void }) {
 function MineCard({ p, onClick }: { p: MyPrediction; onClick: () => void }) {
   const color = catColor(p.category);
   const countdown = useCountdown(p.countdown_end);
-  const submitted = !!p.my_answer;
+  // Support both state field (new backend) and needs_submission (old)
+  const submitted = p.state ? p.state !== "entered_not_submitted" : !p.needs_submission;
   return (
     <motion.button initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} whileTap={{ scale: 0.985 }}
       onClick={onClick}
@@ -246,7 +247,6 @@ export default function EventsPage() {
     setMineLoading(true);
     try {
       const res = await predictionsApi.getMine();
-      console.log("[Events] getMine raw response:", JSON.stringify(res.predictions?.slice(0, 3)));
       setMyPreds(res.predictions ?? []);
     } catch (e) {
       console.error("[Events] getMine error:", e);
@@ -271,8 +271,18 @@ export default function EventsPage() {
   const heroEvent = sortedOpen[0] ?? null;
   const restOpen = sortedOpen.slice(1);
 
-  const active = myPreds.filter((p) => p.status === "active" || p.status === "locked" || (p.status === "completed" && p.won === null && p.correct_answer === null));
-  const settled = myPreds.filter((p) => (p.status === "completed" && (p.won !== null || p.correct_answer !== null)) || p.status === "cancelled");
+  // Helper: determine if a prediction is "active" (in play, awaiting reveal)
+  const isActive = (p: MyPrediction) => {
+    if (p.state) return p.state === "entered_not_submitted" || p.state === "submitted_waiting";
+    return p.status === "active" || p.status === "locked" || (p.status === "completed" && p.won === null && p.correct_answer === null);
+  };
+  const isSettled = (p: MyPrediction) => {
+    if (p.state) return p.state === "completed_won" || p.state === "completed_lost" || p.state === "cancelled";
+    return (p.status === "completed" && (p.won !== null || p.correct_answer !== null)) || p.status === "cancelled";
+  };
+
+  const active = myPreds.filter(isActive);
+  const settled = myPreds.filter(isSettled);
 
   return (
     <div style={{ width: "100%", maxWidth: "100vw", overflowX: "hidden", boxSizing: "border-box", padding: "20px 16px 100px" }}>

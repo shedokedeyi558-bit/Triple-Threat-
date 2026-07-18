@@ -700,13 +700,14 @@ export interface MyPrediction {
   fee: number;
   prize_per_winner: number;
   countdown_end: string;
-  status: "active" | "locked" | "completed" | "cancelled";
+  status?: "active" | "locked" | "completed" | "cancelled"; // may not be present
+  state?: string;   // backend sends: "entered_not_submitted" | "submitted_waiting" | "completed_won" | "completed_lost" | "cancelled"
   // Participation fields
-  my_answer: string | null;            // null = entered but not yet submitted
-  needs_submission: boolean;           // entered but no answer yet
-  correct_answer: string | null;       // null until admin reveals
-  won: boolean | null;                 // null until revealed
-  prize_won: number | null;            // null until won
+  my_answer: string | null;
+  needs_submission: boolean;
+  correct_answer: string | null;
+  won: boolean | null;
+  prize_won: number | null;
   participated_at: string;
 }
 
