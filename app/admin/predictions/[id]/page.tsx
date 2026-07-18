@@ -86,14 +86,16 @@ export default function AdminPredictionDetailPage() {
   const loadParticipants = async () => {
     try {
       const res = await adminApi.getPredictionParticipants(id);
-      setParticipants(res.participations ?? []);
+      // Backend may return either `participations` or `participants` — handle both
+      const rows = res.participations ?? (res as any).participants ?? [];
+      setParticipants(rows);
 
       // Use server summary when present; derive it from the list as fallback
       if (res.summary) {
         setSummary(res.summary);
       } else {
-        const total     = res.participations?.length ?? 0;
-        const submitted = res.participations?.filter((p) => p.has_submitted || !!p.answer).length ?? 0;
+        const total     = rows.length;
+        const submitted = rows.filter((p) => p.has_submitted || !!p.answer).length;
         setSummary({ total, submitted, pending_submission: total - submitted });
       }
     } catch {

@@ -1311,7 +1311,19 @@ export const adminApi = {
 
   getPredictionParticipants: (id: string) =>
     request<{
-      participations: {
+      participations?: {
+        id: string;
+        player_id: string;
+        player_phone: string;
+        player_name?: string | null;
+        answer: string | null;
+        has_submitted: boolean;
+        is_correct: boolean | null;
+        amount_won: number;
+        participated_at: string;
+        submitted_at?: string | null;
+      }[];
+      participants?: {
         id: string;
         player_id: string;
         player_phone: string;
