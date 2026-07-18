@@ -163,8 +163,10 @@ function MineCard({ p, onClick }: { p: MyPrediction; onClick: () => void }) {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 7 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <span style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", padding: "2px 6px", borderRadius: 4, backgroundColor: `${color}22`, color }}>{p.category}</span>
-            {p.participated_at && (
-              <span style={{ fontSize: 9, color: "var(--text-muted)" }}>Entered {fmtEntryTime(p.participated_at)}</span>
+            {(p.participated_at || (p as any).entered_at || (p as any).created_at) && (
+              <span style={{ fontSize: 9, color: "var(--text-muted)" }}>
+                Entered {fmtEntryTime(p.participated_at || (p as any).entered_at || (p as any).created_at)}
+              </span>
             )}
           </div>
           <span style={{ fontSize: 12, fontFamily: "monospace", fontWeight: 800, color: countdown.expired ? "var(--text-muted)" : color }}>{countdown.expired ? "Locked" : countdown.short}</span>
@@ -234,9 +236,10 @@ function CardSkeleton() {
   return <div className="skeleton" style={{ height: 100, borderRadius: 10, marginBottom: 10 }} />;
 }
 
-function fmtEntryTime(iso: string): string {
+function fmtEntryTime(iso?: string | null): string {
   if (!iso) return "";
   const d = new Date(iso);
+  if (isNaN(d.getTime())) return "";
   return d.toLocaleString("en-NG", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
