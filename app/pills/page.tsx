@@ -137,7 +137,9 @@ function GridPackCard({ pack, onClick }: { pack: PillPack; onClick: () => void }
   const color = catColor(pack.category);
   const price = pack.pills[0]?.price ?? 0;
   const available = pack.pills.filter((p) => p.status === "available").length;
-  const soldOut = available === 0;
+  const pending  = pack.pills.filter((p) => p.status === "pending").length;
+  const hasPending = pending > 0;
+  const soldOut = available === 0 && !hasPending;
   const { label: expiryLabel, expired } = usePackExpiry(pack.quiz_expires_at);
   const blocked = soldOut || expired;
 
@@ -168,9 +170,15 @@ function GridPackCard({ pack, onClick }: { pack: PillPack; onClick: () => void }
           {pack.name}
         </p>
         {/* Sold-out badge — Standard Pills only, shown when no available pills remain */}
-        {soldOut && (
+        {soldOut && !hasPending && (
           <p style={{ fontSize: 9, fontWeight: 700, color: "var(--text-muted)", margin: 0, textTransform: "uppercase", letterSpacing: "0.06em" }}>
             Sold out
+          </p>
+        )}
+        {/* Resume badge — player has a paid-but-not-answered pill */}
+        {hasPending && (
+          <p style={{ fontSize: 9, fontWeight: 700, color: "var(--accent-amber)", margin: 0, display: "flex", alignItems: "center", gap: 3 }}>
+            Resume available
           </p>
         )}
         {expiryLabel && !soldOut && (
@@ -181,8 +189,10 @@ function GridPackCard({ pack, onClick }: { pack: PillPack; onClick: () => void }
       </div>
       <div className="pack-card-footer" style={{ borderTop: "1px solid var(--border-hairline)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          {soldOut ? (
+          {soldOut && !hasPending ? (
             <p style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", margin: 0 }}>0 left</p>
+          ) : hasPending ? (
+            <p style={{ fontSize: 11, fontWeight: 700, color: "var(--accent-amber)", margin: 0 }}>Resume</p>
           ) : expired ? (
             <p style={{ fontSize: 12, fontWeight: 700, color: "#f87171", margin: 0 }}>Ended</p>
           ) : (
@@ -272,6 +282,7 @@ function PillSheet({ pack, pill, onConfirm, onClose, balance, bonusBalance }: {
   const [paying, setPaying] = useState(false);
   const [payError, setPayError] = useState("");
   const [prefetched, setPrefetched] = useState<import("@/lib/api").PillOpenResponse | null>(null);
+  const [wasResumed, setWasResumed] = useState(false);
 
   const handlePay = async () => {
     if (paying) return;
@@ -280,6 +291,7 @@ function PillSheet({ pack, pill, onConfirm, onClose, balance, bonusBalance }: {
     try {
       const data = await pillsApi.open(pill.id);
       setPrefetched(data);
+      setWasResumed(!!data.resumed);
       setStep("ready");
     } catch (err) {
       setPayError(err instanceof ApiError ? err.message : "Payment failed — please try again");
@@ -408,8 +420,10 @@ function PillSheet({ pack, pill, onConfirm, onClose, balance, bonusBalance }: {
                   opacity: canStart && !paying ? 1 : 0.45, marginBottom: 10,
                   display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
                 {paying
-                  ? <><Loader2 size={15} className="animate-spin" />Paying...</>
-                  : expired ? "Entry Closed" : `Pay ₦${entryFee.toLocaleString()}`
+                  ? <><Loader2 size={15} className="animate-spin" />Loading...</>
+                  : expired ? "Entry Closed"
+                  : pill.status === "pending" ? "Resume"
+                  : `Pay ₦${entryFee.toLocaleString()}`
                 }
               </button>
             )}
@@ -446,10 +460,17 @@ function PillSheet({ pack, pill, onConfirm, onClose, balance, bonusBalance }: {
                 )}
               </p>
             </div>
-            {/* Paid confirmation */}
-            <p style={{ textAlign: "center", fontSize: 12, fontWeight: 600, color: "var(--text-muted)", marginBottom: 18 }}>
-              ✓ ₦{entryFee.toLocaleString()} paid — question is loaded and waiting
-            </p>
+            {/* Paid confirmation — only shown for fresh payment, not resume */}
+            {!wasResumed && (
+              <p style={{ textAlign: "center", fontSize: 12, fontWeight: 600, color: "var(--text-muted)", marginBottom: 18 }}>
+                ✓ ₦{entryFee.toLocaleString()} paid — question is loaded and waiting
+              </p>
+            )}
+            {wasResumed && (
+              <p style={{ textAlign: "center", fontSize: 12, fontWeight: 600, color: "var(--text-muted)", marginBottom: 18 }}>
+                Your question is ready — pick up where you left off
+              </p>
+            )}
             <button onClick={() => onConfirm(prefetched)}
               style={{ width: "100%", padding: "14px 0", borderRadius: 11, border: "none",
                 backgroundColor: cardColor, color: "#000", fontSize: 15, fontWeight: 800,
@@ -544,10 +565,12 @@ export default function PillsPage() {
       setSheet({ pack, pill: syntheticPill });
       return;
     }
-    // Standard pack — check for sold-out before opening sheet
-    const firstAvail = pack.pills.find((p) => p.status === "available");
-    if (firstAvail) setSheet({ pack, pill: firstAvail });
-    // If no available pills, the card is already visually disabled — do nothing
+    // Standard pack — prefer a pending (paid, not answered) pill for resume; else first available
+    const pendingPill = pack.pills.find((p) => p.status === "pending");
+    const firstAvail  = pack.pills.find((p) => p.status === "available");
+    const target = pendingPill ?? firstAvail;
+    if (target) setSheet({ pack, pill: target });
+    // If no available or pending pills, the card is already visually disabled — do nothing
   };
 
   return (

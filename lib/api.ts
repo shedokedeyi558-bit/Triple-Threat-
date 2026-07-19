@@ -539,6 +539,7 @@ export interface PillOpenResponse {
   timer: number;
   prize: number;
   entryFee: number;
+  resumed?: boolean;  // true when pill was paid but never answered — no charge occurred
 }
 
 export interface PillSubmitResponse {
@@ -553,7 +554,7 @@ export interface PillPackPill {
   color: string;
   price: number;
   prize: number;
-  status: "available" | "played";
+  status: "available" | "pending" | "played";  // pending = paid but not yet answered
 }
 
 export interface PillPack {
