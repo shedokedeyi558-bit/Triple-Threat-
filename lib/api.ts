@@ -1112,6 +1112,24 @@ export const adminApi = {
       { method: "POST", body: data, token: getAdminToken() }
     ),
 
+  // Standard pack pill detail — returns all pills with question content
+  getStandardPackPills: (packId: string) =>
+    request<{
+      pack: { id: string; name: string; category: string; status: string };
+      pills: {
+        id: string;
+        question: string;
+        format: "multiple_choice" | "type_answer";
+        options: string[] | null;
+        correct_answer: string;
+        timer: number;
+        price: number;
+        prize: number;
+        status: "available" | "played";
+        color: string;
+      }[];
+    }>(`/api/admin/pills/packs/${packId}/pills`, { token: getAdminToken() }),
+
   // Question bank management (Prompts 9 & 10)
   getPackQuestions: (packId: string) =>
     request<{

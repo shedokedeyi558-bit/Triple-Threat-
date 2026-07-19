@@ -361,6 +361,15 @@ export default function AdminPillsPage() {
                           <BarChart2 size={11} /> Stats
                         </button>
 
+                        {/* View pills — Standard packs only */}
+                        {!isSpecial && (
+                          <button onClick={() => router.push(`/admin/pills/${pack.id}/pills`)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors"
+                            style={{ backgroundColor: "rgba(124,111,232,0.08)", border: "1px solid rgba(124,111,232,0.2)", color: "var(--accent-violet)" }}>
+                            <Eye size={11} /> View Pills
+                          </button>
+                        )}
+
                         {/* Force delete — always */}
                         <button onClick={() => { setForceDeleteTarget(pack); setExpandedActions(null); }}
                           className="ml-auto text-[11px] font-semibold text-gray-600 hover:text-red-400 transition-colors flex items-center gap-1">
