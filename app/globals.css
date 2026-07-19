@@ -252,3 +252,38 @@ body {
 
 /* Hero carousel — hide scrollbar across all browsers */
 .hero-carousel::-webkit-scrollbar { display: none; }
+
+/* Specials hero card — diagonal wipe + pulsing border + live dot ──────── */
+@keyframes specials-wipe {
+  0%   { transform: translateX(-120%) skewX(-20deg); opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { transform: translateX(260%) skewX(-20deg); opacity: 0; }
+}
+@keyframes specials-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(232,163,61,0); border-color: rgba(232,163,61,0.35); }
+  50%       { box-shadow: 0 0 18px 2px rgba(232,163,61,0.18); border-color: rgba(232,163,61,0.6); }
+}
+@keyframes live-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.55; transform: scale(1.5); }
+}
+
+.specials-hero-card { animation: specials-glow 3.5s ease-in-out infinite; }
+
+.specials-wipe {
+  position: absolute; inset: 0;
+  background: linear-gradient(105deg, transparent 30%, rgba(232,163,61,0.08) 50%, transparent 70%);
+  animation: specials-wipe 5s ease-in-out infinite;
+  animation-delay: 1.2s;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.live-dot {
+  display: inline-block;
+  width: 7px; height: 7px; border-radius: 50%;
+  background-color: #4ade80;
+  animation: live-pulse 1.8s ease-in-out infinite;
+  flex-shrink: 0;
+}

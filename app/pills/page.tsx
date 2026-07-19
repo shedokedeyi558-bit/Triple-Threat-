@@ -210,36 +210,97 @@ function GridPackCard({ pack, onClick }: { pack: PillPack; onClick: () => void }
   );
 }
 
-// ── Specials teaser banner (compact, routes to /pills/specials) ───────────
+// ── Specials hero card ────────────────────────────────────────────────────
 function SpecialsTeaserBanner({ packs, onClick }: { packs: PillPack[]; onClick: () => void }) {
-  if (packs.length === 0) return null;
-  const topPrize = Math.max(...packs.map((p) => p.pills[0]?.prize ?? 0));
+  // Compute live count: active packs whose quiz_expires_at hasn't passed (or has no expiry)
+  const now = Date.now();
+  const livePacks = packs.filter((p) => {
+    if (p.status !== "active") return false;
+    if (p.quiz_expires_at && new Date(p.quiz_expires_at).getTime() <= now) return false;
+    return true;
+  });
+
+  if (livePacks.length === 0) {
+    // No live specials — show a quiet "check back" state
+    return (
+      <motion.button initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} whileTap={{ scale: 0.98 }}
+        onClick={onClick}
+        style={{
+          width: "100%", boxSizing: "border-box", borderRadius: 14, padding: "16px 18px",
+          textAlign: "left", cursor: "pointer", position: "relative", overflow: "hidden",
+          background: "linear-gradient(135deg, #111 0%, #161200 100%)",
+          border: "1px solid rgba(232,163,61,0.15)",
+          display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12,
+        }}>
+        <div>
+          <p style={{ fontSize: 9, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.12em", color: "var(--accent-amber)", margin: "0 0 4px" }}>Specials</p>
+          <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-muted)", margin: 0 }}>Check back soon — new challenges dropping</p>
+        </div>
+        <ArrowRight size={14} style={{ color: "rgba(232,163,61,0.4)", flexShrink: 0 }} />
+      </motion.button>
+    );
+  }
+
+  // Top prize across live packs
+  const topPrize = Math.max(...livePacks.map((p) => p.prize_amount ?? p.pills[0]?.prize ?? 0));
+
   return (
     <motion.button initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} whileTap={{ scale: 0.98 }}
       onClick={onClick}
+      className="specials-hero-card"
       style={{
-        width: "100%", boxSizing: "border-box", borderRadius: 14, padding: "14px 16px",
-        textAlign: "left", cursor: "pointer", position: "relative", overflow: "hidden",
-        background: "linear-gradient(135deg, #1a1200 0%, #2a1e00 50%, #1a1200 100%)",
-        border: "1px solid rgba(232,163,61,0.5)",
-        boxShadow: "0 4px 20px rgba(232,163,61,0.18)",
-        display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12,
+        width: "100%", boxSizing: "border-box", borderRadius: 16,
+        padding: "18px 18px 16px", textAlign: "left", cursor: "pointer",
+        position: "relative", overflow: "hidden",
+        background: "linear-gradient(135deg, #1a1200 0%, #251a00 45%, #1a1200 100%)",
+        border: "1px solid rgba(232,163,61,0.35)",
       }}>
-      {/* Shimmer */}
-      <motion.div animate={{ x: ["-100%", "200%"] }} transition={{ duration: 4, repeat: Infinity, repeatDelay: 3 }}
-        style={{ position: "absolute", top: 0, left: 0, width: "35%", height: "100%", background: "linear-gradient(90deg,transparent,rgba(232,163,61,0.06),transparent)", pointerEvents: "none" }} />
-      <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0, position: "relative" }}>
-        <div style={{ width: 36, height: 36, borderRadius: 8, backgroundColor: "rgba(232,163,61,0.15)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-          <ClipboardCheck size={18} style={{ color: "var(--accent-amber)" }} />
-        </div>
-        <div style={{ minWidth: 0 }}>
-          <p style={{ fontSize: 13, fontWeight: 800, color: "#FFE082", margin: 0 }}>Specials</p>
-          <p style={{ fontSize: 11, color: "rgba(232,163,61,0.65)", margin: "2px 0 0", whiteSpace: "nowrap" }}>
-            {packs.length} challenge{packs.length !== 1 ? "s" : ""} live · up to ₦{topPrize.toLocaleString()}
-          </p>
+
+      {/* CSS diagonal wipe glow — pure CSS, no JS */}
+      <div className="specials-wipe" aria-hidden />
+
+      {/* Ambient corner glow */}
+      <div style={{ position: "absolute", bottom: -30, right: -30, width: 120, height: 120,
+        borderRadius: "50%", backgroundColor: "rgba(232,163,61,0.07)", pointerEvents: "none" }} />
+
+      {/* Row 1: label + live indicator */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10, position: "relative" }}>
+        <span style={{ fontSize: 9, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.12em", color: "var(--accent-amber)" }}>
+          Specials
+        </span>
+        <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+          <span className="live-dot" />
+          <span style={{ fontSize: 10, fontWeight: 700, color: "#4ade80" }}>
+            {livePacks.length} live now
+          </span>
         </div>
       </div>
-      <ArrowRight size={16} style={{ color: "var(--accent-amber)", flexShrink: 0, opacity: 0.8 }} />
+
+      {/* Row 2: top prize label + amount */}
+      <div style={{ position: "relative", marginBottom: 10 }}>
+        <p style={{ fontSize: 10, color: "rgba(232,163,61,0.55)", margin: "0 0 3px", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+          Top prize this week
+        </p>
+        <p style={{ fontSize: 30, fontFamily: "monospace", fontWeight: 900, color: "#FFE082",
+          margin: 0, letterSpacing: "-0.02em", lineHeight: 1.1 }}>
+          ₦{topPrize.toLocaleString()}
+        </p>
+      </div>
+
+      {/* Row 3: description */}
+      <p style={{ fontSize: 12, color: "rgba(232,163,61,0.6)", margin: "0 0 14px", lineHeight: 1.55, position: "relative" }}>
+        Exam-format challenges. One shared timer, one attempt each — top scorers split the pool.
+      </p>
+
+      {/* CTA */}
+      <div style={{ display: "flex", alignItems: "center", gap: 4, position: "relative" }}>
+        <span style={{ fontSize: 13, fontWeight: 700, color: "var(--accent-amber)",
+          textDecoration: "underline", textUnderlineOffset: 3, textDecorationColor: "rgba(232,163,61,0.5)" }}>
+          View challenges
+        </span>
+        <ArrowRight size={13} style={{ color: "var(--accent-amber)" }} />
+      </div>
+
     </motion.button>
   );
 }
