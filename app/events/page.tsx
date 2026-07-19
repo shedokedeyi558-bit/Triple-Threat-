@@ -60,50 +60,52 @@ function SegTabs({ active, onChange, mineCt, settledCt }: {
   );
 }
 
-// ── Hero event card (soonest-closing open event) ──────────────────────────
-function HeroEvent({ p, onClick }: { p: PredictionData; onClick: () => void }) {
+// ── Open event card (all events use this — full design with progress bar + CTA) ──
+function OpenEventCard({ p, onClick }: { p: PredictionData; onClick: () => void }) {
   const color = catColor(p.category);
   const countdown = useCountdown(p.countdown_end);
   const fill = Math.round((p.slots_filled / p.max_slots) * 100);
   return (
-    <motion.button initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} whileTap={{ scale: 0.98 }}
+    <motion.button initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} whileTap={{ scale: 0.98 }}
       onClick={onClick}
       style={{
-        width: "100%", boxSizing: "border-box", borderRadius: 16, padding: 0, textAlign: "left",
+        width: "100%", boxSizing: "border-box", borderRadius: 14, padding: 0, textAlign: "left",
         cursor: "pointer", overflow: "hidden", backgroundColor: "var(--bg-card)",
-        border: `1.5px solid ${color}50`, boxShadow: `0 4px 24px ${color}18`, position: "relative",
+        border: `1px solid ${color}40`, position: "relative",
       }}>
-      <div style={{ position: "absolute", top: -30, right: -30, width: 140, height: 140, borderRadius: "50%", backgroundColor: color, opacity: 0.06, pointerEvents: "none" }} />
-      <div style={{ height: 3, background: `linear-gradient(90deg, transparent, ${color}, transparent)` }} />
-      <div style={{ padding: "16px 18px 14px", position: "relative" }}>
-        {/* Category + countdown */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+      {/* Subtle ambient glow blob */}
+      <div style={{ position: "absolute", top: -24, right: -24, width: 100, height: 100, borderRadius: "50%", backgroundColor: color, opacity: 0.05, pointerEvents: "none" }} />
+      {/* Category-coloured top rule */}
+      <div style={{ height: 2, background: `linear-gradient(90deg, transparent, ${color}90, transparent)` }} />
+      <div style={{ padding: "14px 16px 12px", position: "relative" }}>
+        {/* Category chip + countdown */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 9 }}>
           <span style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", padding: "2px 8px", borderRadius: 20, backgroundColor: `${color}20`, color }}>
             {p.category}
           </span>
-          <span style={{ fontSize: 15, fontFamily: "monospace", fontWeight: 800, color: countdown.expired ? "var(--text-muted)" : "var(--accent-amber)", letterSpacing: "-0.02em" }}>
+          <span style={{ fontSize: 13, fontFamily: "monospace", fontWeight: 800, color: countdown.expired ? "var(--text-muted)" : "var(--accent-amber)", letterSpacing: "-0.02em" }}>
             {countdown.expired ? "Closed" : `${countdown.short} left`}
           </span>
         </div>
         {/* Question */}
-        <p style={{ fontSize: 16, fontWeight: 700, lineHeight: 1.45, color: "var(--text-primary)", margin: "0 0 14px" }}>
+        <p style={{ fontSize: 14, fontWeight: 700, lineHeight: 1.45, color: "var(--text-primary)", margin: "0 0 12px" }}>
           {p.question}
         </p>
-        {/* Entry + prize row */}
-        <div style={{ display: "flex", gap: 20, marginBottom: 12 }}>
+        {/* Entry + prize */}
+        <div style={{ display: "flex", gap: 18, marginBottom: 10 }}>
           <div>
-            <p style={{ fontSize: 9, color: "var(--text-muted)", margin: "0 0 2px", textTransform: "uppercase" }}>Entry</p>
-            <p style={{ fontSize: 15, fontFamily: "monospace", fontWeight: 700, color: "var(--accent-amber)", margin: 0 }}>₦{p.fee.toLocaleString()}</p>
+            <p style={{ fontSize: 9, color: "var(--text-muted)", margin: "0 0 1px", textTransform: "uppercase", letterSpacing: "0.06em" }}>Entry</p>
+            <p style={{ fontSize: 14, fontFamily: "monospace", fontWeight: 700, color: "var(--accent-amber)", margin: 0 }}>₦{p.fee.toLocaleString()}</p>
           </div>
           <div>
-            <p style={{ fontSize: 9, color: "var(--text-muted)", margin: "0 0 2px", textTransform: "uppercase" }}>Prize pool</p>
-            <p style={{ fontSize: 15, fontFamily: "monospace", fontWeight: 700, color, margin: 0 }}>₦{p.prize_per_winner.toLocaleString()}</p>
+            <p style={{ fontSize: 9, color: "var(--text-muted)", margin: "0 0 1px", textTransform: "uppercase", letterSpacing: "0.06em" }}>Prize pool</p>
+            <p style={{ fontSize: 14, fontFamily: "monospace", fontWeight: 700, color, margin: 0 }}>₦{p.prize_per_winner.toLocaleString()}</p>
           </div>
         </div>
-        {/* Participation bar */}
+        {/* Spots progress bar */}
         <div>
-          <div style={{ height: 4, borderRadius: 2, backgroundColor: "var(--border-subtle)", overflow: "hidden", marginBottom: 5 }}>
-            <motion.div initial={{ width: 0 }} animate={{ width: `${fill}%` }} transition={{ duration: 0.7 }}
+          <div style={{ height: 3, borderRadius: 2, backgroundColor: "var(--border-subtle)", overflow: "hidden", marginBottom: 4 }}>
+            <motion.div initial={{ width: 0 }} animate={{ width: `${fill}%` }} transition={{ duration: 0.6 }}
               style={{ height: "100%", borderRadius: 2, backgroundColor: color }} />
           </div>
           <div style={{ display: "flex", justifyContent: "space-between" }}>
@@ -114,35 +116,9 @@ function HeroEvent({ p, onClick }: { p: PredictionData; onClick: () => void }) {
           </div>
         </div>
       </div>
-      <div style={{ padding: "8px 18px", backgroundColor: `${color}0D`, borderTop: `1px solid ${color}25`, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+      {/* CTA footer */}
+      <div style={{ padding: "8px 16px", backgroundColor: `${color}0D`, borderTop: `1px solid ${color}20`, display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
         <span style={{ fontSize: 12, fontWeight: 700, color }}>Enter Event <ArrowRight size={12} style={{ display: "inline" }} /></span>
-      </div>
-    </motion.button>
-  );
-}
-
-// ── Compact open event row ────────────────────────────────────────────────
-function OpenRow({ p, onClick }: { p: PredictionData; onClick: () => void }) {
-  const color = catColor(p.category);
-  const countdown = useCountdown(p.countdown_end);
-  return (
-    <motion.button initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} whileTap={{ scale: 0.985 }}
-      onClick={onClick}
-      style={{
-        width: "100%", boxSizing: "border-box", borderRadius: 10, padding: "11px 14px 0",
-        textAlign: "left", cursor: "pointer", backgroundColor: "var(--bg-card)",
-        border: "1px solid rgba(255,255,255,0.06)", borderLeft: `3px solid ${color}`, overflow: "hidden",
-      }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 7 }}>
-        <span style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", padding: "2px 6px", borderRadius: 4, backgroundColor: `${color}22`, color }}>{p.category}</span>
-        <span style={{ fontSize: 12, fontFamily: "monospace", fontWeight: 800, color: countdown.expired ? "var(--text-muted)" : color, letterSpacing: "-0.02em" }}>
-          {countdown.expired ? "Closed" : countdown.short}
-        </span>
-      </div>
-      <p style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.4, color: "var(--text-primary)", margin: "0 0 11px" }}>{p.question}</p>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "7px 0", borderTop: `1px dashed ${color}40` }}>
-        <p style={{ fontSize: 11, fontFamily: "monospace", fontWeight: 700, color: "var(--accent-amber)", margin: 0 }}>₦{p.fee.toLocaleString()} entry</p>
-        <p style={{ fontSize: 11, fontFamily: "monospace", fontWeight: 700, color, margin: 0 }}>₦{p.prize_per_winner.toLocaleString()} prize</p>
       </div>
     </motion.button>
   );
@@ -288,8 +264,6 @@ export default function EventsPage() {
 
   // Sort open events — soonest closing first
   const sortedOpen = [...openPreds].sort((a, b) => new Date(a.countdown_end).getTime() - new Date(b.countdown_end).getTime());
-  const heroEvent = sortedOpen[0] ?? null;
-  const restOpen = sortedOpen.slice(1);
 
   // Helper: determine if a prediction is "active" (in play, awaiting reveal)
   const isActive = (p: MyPrediction) => {
@@ -333,8 +307,7 @@ export default function EventsPage() {
               </div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                {heroEvent && <HeroEvent p={heroEvent} onClick={() => router.push(`/predictions/play/${heroEvent.id}`)} />}
-                {restOpen.map((p) => <OpenRow key={p.id} p={p} onClick={() => router.push(`/predictions/play/${p.id}`)} />)}
+                {sortedOpen.map((p) => <OpenEventCard key={p.id} p={p} onClick={() => router.push(`/predictions/play/${p.id}`)} />)}
               </div>
             )}
           </motion.div>
