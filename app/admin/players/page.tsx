@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { adminApi, type AdminPlayer, ApiError } from "@/lib/api";
-import { Search, Shield, ShieldOff, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
+import { Search, ChevronDown, ChevronUp, Loader2, ExternalLink } from "lucide-react";
 
 export default function PlayersPage() {
+  const router = useRouter();
   const [players, setPlayers] = useState<AdminPlayer[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -150,6 +152,15 @@ export default function PlayersPage() {
                       {new Date(p.created_at).toLocaleDateString("en-NG", { month: "short", day: "numeric", year: "numeric" })}
                     </span>
                   </div>
+
+                  {/* Open detail page */}
+                  <button
+                    onClick={() => router.push(`/admin/players/${p.id}`)}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-semibold text-sm border"
+                    style={{ backgroundColor: "rgba(76,111,255,0.06)", borderColor: "rgba(76,111,255,0.2)", color: "var(--accent-indigo)" }}
+                  >
+                    <ExternalLink size={14} /> View full profile
+                  </button>
 
                   <button
                     onClick={() => handleToggleBan(p)}

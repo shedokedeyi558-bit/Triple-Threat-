@@ -366,11 +366,51 @@ export interface AdminPlayer {
   phone: string;
   name: string | null;
   balance: number;
+  bonus_balance: number;
   games_played: number;
   games_won: number;
   total_won: number;
   status: "active" | "banned";
   created_at: string;
+}
+
+export interface AdminPlayerDetail extends AdminPlayer {
+  email?: string | null;
+  ban_reason?: string | null;
+  ban_history?: { reason: string; banned_at: string; banned_by?: string }[];
+  referred_by?: { id: string; phone: string; name: string | null } | null;
+  stats?: {
+    games_played: number;
+    games_won: number;
+    win_rate: number;
+    total_won: number;
+    total_spent: number;
+  };
+}
+
+export interface AdminActivityRow {
+  id: string;
+  type: string;
+  description: string;
+  amount: number;
+  reference: string | null;
+  created_at: string;
+}
+
+export interface AdminReferralRow {
+  id: string;
+  phone: string;
+  name: string | null;
+  status: string;
+  bonus_amount: number;
+  created_at: string;
+}
+
+export interface AdminNote {
+  id: string;
+  content: string;
+  created_at: string;
+  created_by?: string;
 }
 
 export interface AdminWithdrawal {
@@ -1038,9 +1078,41 @@ export const adminApi = {
       token: getAdminToken(), params,
     }),
 
+  getPlayerDetail: (id: string) =>
+    request<{ player: AdminPlayerDetail }>(`/api/admin/players/${id}`, {
+      token: getAdminToken(),
+    }),
+
+  getPlayerActivity: (id: string, page = 1, limit = 20) =>
+    request<{ transactions: AdminActivityRow[]; total: number }>(
+      `/api/admin/players/${id}/activity`,
+      { token: getAdminToken(), params: { page, limit } }
+    ),
+
+  getPlayerReferrals: (id: string) =>
+    request<{ referred_by: AdminPlayerDetail["referred_by"]; referrals: AdminReferralRow[] }>(
+      `/api/admin/players/${id}/referrals`,
+      { token: getAdminToken() }
+    ),
+
+  getPlayerNotes: (id: string) =>
+    request<{ notes: AdminNote[] }>(`/api/admin/players/${id}/notes`, {
+      token: getAdminToken(),
+    }),
+
+  addPlayerNote: (id: string, content: string) =>
+    request<{ note: AdminNote }>(`/api/admin/players/${id}/notes`, {
+      method: "POST", body: { content }, token: getAdminToken(),
+    }),
+
   toggleBan: (id: string) =>
     request<{ player: AdminPlayer; message: string }>(`/api/admin/players/${id}/ban`, {
       method: "PUT", token: getAdminToken(),
+    }),
+
+  banWithReason: (id: string, reason: string) =>
+    request<{ player: AdminPlayer; message: string }>(`/api/admin/players/${id}/ban`, {
+      method: "PUT", body: { reason }, token: getAdminToken(),
     }),
 
   // Settings
