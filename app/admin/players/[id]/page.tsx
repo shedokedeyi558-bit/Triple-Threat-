@@ -7,7 +7,7 @@ import { adminApi, ApiError,
   type AdminReferralRow, type AdminNote } from "@/lib/api";
 import {
   ArrowLeft, Loader2, Shield, ShieldOff, AlertCircle,
-  Activity, Users, MessageSquare, BarChart2, ChevronDown, ChevronUp, Plus, Send,
+  Activity, Users, MessageSquare, BarChart2, ChevronDown, ChevronUp, Plus,
 } from "lucide-react";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
