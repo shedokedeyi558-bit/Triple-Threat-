@@ -729,7 +729,9 @@ export interface MyPrediction {
   correct_answer: string | null;
   won: boolean | null;
   prize_won: number | null;
+  amount_won?: number | null;          // settled endpoint sends amount_won instead of prize_won
   participated_at: string;
+  completed_at?: string | null;        // present on settled predictions instead of countdown_end
 }
 
 export const predictionsApi = {

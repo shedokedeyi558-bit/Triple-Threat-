@@ -182,13 +182,17 @@ function SettledCard({ p, onClick }: { p: MyPrediction; onClick: () => void }) {
   const color = catColor(p.category);
   const won = p.won === true;
   const lost = p.won === false;
+  // Backend settled endpoint sends amount_won; active endpoint sends prize_won
+  const prizeWon = p.amount_won ?? p.prize_won ?? p.prize_per_winner ?? 0;
+  // Backend settled endpoint sends completed_at; use participated_at as fallback
+  const dateLabel = fmtEntryTime(p.completed_at ?? p.participated_at);
   return (
     <motion.button initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} whileTap={{ scale: 0.985 }}
       onClick={onClick}
       style={{ width: "100%", boxSizing: "border-box", borderRadius: 10, padding: "11px 14px", textAlign: "left", cursor: "pointer", backgroundColor: "var(--bg-card)", border: "1px solid rgba(255,255,255,0.06)", borderLeft: `3px solid ${won ? "var(--accent-amber)" : lost ? "rgba(248,113,113,0.6)" : color}` }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 7 }}>
         <span style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", padding: "2px 6px", borderRadius: 4, backgroundColor: `${color}22`, color }}>{p.category}</span>
-        <span style={{ fontSize: 10, color: "var(--text-muted)" }}>{fmtEntryTime(p.participated_at)}</span>
+        <span style={{ fontSize: 10, color: "var(--text-muted)" }}>{dateLabel}</span>
       </div>
       <p style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.4, color: "var(--text-primary)", margin: "0 0 10px" }}>{p.question}</p>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 8 }}>
@@ -201,7 +205,7 @@ function SettledCard({ p, onClick }: { p: MyPrediction; onClick: () => void }) {
           <p style={{ fontSize: 12, fontWeight: 700, color: p.correct_answer ? "var(--accent-amber)" : "var(--text-muted)", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontStyle: p.correct_answer ? "normal" : "italic" }}>{p.correct_answer ?? "Pending reveal"}</p>
         </div>
       </div>
-      {won && <p style={{ fontSize: 13, fontFamily: "monospace", fontWeight: 800, color: "var(--accent-amber)", margin: 0 }}>+₦{(p.prize_won ?? p.prize_per_winner).toLocaleString()}</p>}
+      {won && <p style={{ fontSize: 13, fontFamily: "monospace", fontWeight: 800, color: "var(--accent-amber)", margin: 0 }}>+₦{prizeWon.toLocaleString()}</p>}
       {lost && <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-muted)", margin: 0 }}>Not this time</p>}
       {!won && !lost && <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)", margin: 0, fontStyle: "italic" }}>Awaiting reveal</p>}
     </motion.button>
@@ -267,12 +271,24 @@ export default function EventsPage() {
 
   // Helper: determine if a prediction is "active" (in play, awaiting reveal)
   const isActive = (p: MyPrediction) => {
+    // Explicit state field (active endpoint)
     if (p.state) return p.state === "entered_not_submitted" || p.state === "submitted_waiting";
-    return p.status === "active" || p.status === "locked" || (p.status === "completed" && p.won === null && p.correct_answer === null);
+    // Explicit status field
+    if (p.status) return p.status === "active" || p.status === "locked" ||
+      (p.status === "completed" && p.won === null && p.correct_answer === null);
+    // Settled endpoint: has completed_at or a non-null won/correct_answer → not active
+    if (p.completed_at || p.won !== null || p.correct_answer !== null) return false;
+    // Fallback: no state, no status, no completed_at → assume active
+    return true;
   };
   const isSettled = (p: MyPrediction) => {
+    // Explicit state field
     if (p.state) return p.state === "completed_won" || p.state === "completed_lost" || p.state === "cancelled";
-    return (p.status === "completed" && (p.won !== null || p.correct_answer !== null)) || p.status === "cancelled";
+    // Explicit status field
+    if (p.status) return (p.status === "completed" && (p.won !== null || p.correct_answer !== null)) || p.status === "cancelled";
+    // Settled endpoint shape: has completed_at, or won is non-null, or correct_answer is present
+    // — these fields are absent on active predictions
+    return !!(p.completed_at || p.won !== null || p.correct_answer !== null || (p.amount_won ?? 0) > 0);
   };
 
   const active = myPreds.filter(isActive);
