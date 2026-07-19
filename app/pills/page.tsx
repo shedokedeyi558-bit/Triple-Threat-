@@ -423,16 +423,30 @@ function PillSheet({ pack, pill, onConfirm, onClose, balance, bonusBalance }: {
         {/* Step 2 — Ready screen (Standard Pills only, shown after payment confirms) */}
         {step === "ready" && prefetched && (
           <motion.div key="ready" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
-            <div style={{ borderRadius: 12, padding: "16px 18px", backgroundColor: `${cardColor}10`,
-              border: `1px solid ${cardColor}25`, marginBottom: 20, textAlign: "center" }}>
-              <p style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", margin: "0 0 6px" }}>
-                Ready when you are
+            {/* Category hint */}
+            <div style={{ display: "flex", justifyContent: "center", marginBottom: 14 }}>
+              <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em",
+                padding: "3px 10px", borderRadius: 20, backgroundColor: `${cardColor}20`, color: cardColor }}>
+                {pack.category}
+              </span>
+            </div>
+            {/* Challenge phrase */}
+            <div style={{ borderRadius: 12, padding: "18px 20px", backgroundColor: `${cardColor}10`,
+              border: `1px solid ${cardColor}25`, marginBottom: 18, textAlign: "center" }}>
+              <p style={{ fontSize: 15, fontWeight: 800, color: "var(--text-primary)", margin: "0 0 8px", lineHeight: 1.4 }}>
+                Think you&apos;re sharp enough to get this right?
               </p>
-              <p style={{ fontSize: 12, color: "var(--text-secondary)", margin: 0, lineHeight: 1.5 }}>
-                {challengePhrase}
-                {timerLabel && ` You'll have ${timerLabel} once the question appears.`}
+              <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: 0, lineHeight: 1.55 }}>
+                Answer correctly and win{" "}
+                <span style={{ fontFamily: "monospace", fontWeight: 800, color: cardColor }}>
+                  ₦{prize.toLocaleString()}
+                </span>.
+                {timerLabel && (
+                  <span style={{ color: "var(--text-muted)" }}> You&apos;ll have {timerLabel} on the clock.</span>
+                )}
               </p>
             </div>
+            {/* Paid confirmation */}
             <p style={{ textAlign: "center", fontSize: 12, fontWeight: 600, color: "var(--text-muted)", marginBottom: 18 }}>
               ✓ ₦{entryFee.toLocaleString()} paid — question is loaded and waiting
             </p>
