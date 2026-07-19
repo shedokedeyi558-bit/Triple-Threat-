@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useApp } from "@/context/AppContext";
 import { pillsApi, type PillPack, type PillPackPill, ApiError } from "@/lib/api";
 import Link from "next/link";
-import { AlertCircle, Package, ArrowRight, Clock, ClipboardCheck } from "lucide-react";
+import { AlertCircle, Package, ArrowRight, Clock, ClipboardCheck, Loader2 } from "lucide-react";
 
 // Category colour map
 const CAT_COLOR: Record<string, string> = {
@@ -235,9 +235,13 @@ function SpecialsTeaserBanner({ packs, onClick }: { packs: PillPack[]; onClick: 
 }
 
 // ── Pre-challenge confirm sheet (standard Pills + Specials) ──────────────
+// Standard Pills: two-step — Pay first, then Ready screen before question reveals
+type SheetStep = "confirm" | "paying" | "ready";
+
 function PillSheet({ pack, pill, onConfirm, onClose, balance, bonusBalance }: {
-  pack: PillPack; pill: PillPackPill; onConfirm: () => void; onClose: () => void;
-  balance: number; bonusBalance: number;
+  pack: PillPack; pill: PillPackPill;
+  onConfirm: (prefetched: import("@/lib/api").PillOpenResponse | null) => void;
+  onClose: () => void; balance: number; bonusBalance: number;
 }) {
   const isSpecial = pack.question_count != null || pack.is_vip || (pack as any).pack_type === "special";
   const color = isSpecial ? "var(--accent-amber)" : catColor(pack.category);
@@ -263,10 +267,31 @@ function PillSheet({ pack, pill, onConfirm, onClose, balance, bonusBalance }: {
   const timerLabel = !isSpecial ? formatTimer(timerSec) : null;
   const canStart   = canAfford && !expired;
 
+  // Two-step state — only used for Standard Pills
+  const [step, setStep] = useState<SheetStep>("confirm");
+  const [paying, setPaying] = useState(false);
+  const [payError, setPayError] = useState("");
+  const [prefetched, setPrefetched] = useState<import("@/lib/api").PillOpenResponse | null>(null);
+
+  const handlePay = async () => {
+    if (paying) return;
+    setPaying(true);
+    setPayError("");
+    try {
+      const data = await pillsApi.open(pill.id);
+      setPrefetched(data);
+      setStep("ready");
+    } catch (err) {
+      setPayError(err instanceof ApiError ? err.message : "Payment failed — please try again");
+    } finally {
+      setPaying(false);
+    }
+  };
+
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "flex-end", justifyContent: "center" }}
-      onClick={onClose}>
+      onClick={step === "ready" ? undefined : onClose}>
       <div style={{ position: "absolute", inset: 0, backgroundColor: "rgba(0,0,0,0.8)", backdropFilter: "blur(4px)" }} />
       <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
         transition={{ type: "spring", stiffness: 340, damping: 32 }}
@@ -362,21 +387,67 @@ function PillSheet({ pack, pill, onConfirm, onClose, balance, bonusBalance }: {
           </p>
         )}
 
-        {/* CTA */}
-        <button onClick={canStart ? onConfirm : undefined} disabled={!canStart}
-          style={{
-            width: "100%", padding: "14px 0", borderRadius: 11, border: "none",
-            backgroundColor: expired ? "rgba(239,68,68,0.12)" : isSpecial ? "var(--accent-amber)" : cardColor,
-            color: expired ? "#f87171" : "#000", fontSize: 14, fontWeight: 800,
-            cursor: canStart ? "pointer" : "not-allowed", opacity: canStart ? 1 : 0.45,
-            marginBottom: 10,
-          }}>
-          {expired ? "Entry Closed" : `Start & Pay ₦${entryFee.toLocaleString()}`}
-        </button>
-        <button onClick={onClose}
-          style={{ width: "100%", padding: "10px 0", border: "none", background: "none", fontSize: 13, fontWeight: 600, color: "var(--text-secondary)", cursor: "pointer" }}>
-          Not now
-        </button>
+        {/* CTA — Specials: original single-step. Standard Pills: Pay button */}
+        {step !== "ready" && (
+          <>
+            {payError && <p style={{ textAlign: "center", color: "#f87171", fontSize: 12, marginBottom: 10 }}>{payError}</p>}
+            {isSpecial ? (
+              <button onClick={canStart ? () => onConfirm(null) : undefined} disabled={!canStart}
+                style={{ width: "100%", padding: "14px 0", borderRadius: 11, border: "none",
+                  backgroundColor: expired ? "rgba(239,68,68,0.12)" : "var(--accent-amber)",
+                  color: expired ? "#f87171" : "#000", fontSize: 14, fontWeight: 800,
+                  cursor: canStart ? "pointer" : "not-allowed", opacity: canStart ? 1 : 0.45, marginBottom: 10 }}>
+                {expired ? "Entry Closed" : `Start & Pay ₦${entryFee.toLocaleString()}`}
+              </button>
+            ) : (
+              <button onClick={canStart && !paying ? handlePay : undefined} disabled={!canStart || paying}
+                style={{ width: "100%", padding: "14px 0", borderRadius: 11, border: "none",
+                  backgroundColor: expired ? "rgba(239,68,68,0.12)" : cardColor,
+                  color: expired ? "#f87171" : "#000", fontSize: 14, fontWeight: 800,
+                  cursor: canStart && !paying ? "pointer" : "not-allowed",
+                  opacity: canStart && !paying ? 1 : 0.45, marginBottom: 10,
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                {paying
+                  ? <><Loader2 size={15} className="animate-spin" />Paying...</>
+                  : expired ? "Entry Closed" : `Pay ₦${entryFee.toLocaleString()}`
+                }
+              </button>
+            )}
+            <button onClick={onClose}
+              style={{ width: "100%", padding: "10px 0", border: "none", background: "none", fontSize: 13, fontWeight: 600, color: "var(--text-secondary)", cursor: "pointer" }}>
+              Not now
+            </button>
+          </>
+        )}
+
+        {/* Step 2 — Ready screen (Standard Pills only, shown after payment confirms) */}
+        {step === "ready" && prefetched && (
+          <motion.div key="ready" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+            <div style={{ borderRadius: 12, padding: "16px 18px", backgroundColor: `${cardColor}10`,
+              border: `1px solid ${cardColor}25`, marginBottom: 20, textAlign: "center" }}>
+              <p style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", margin: "0 0 6px" }}>
+                Ready when you are
+              </p>
+              <p style={{ fontSize: 12, color: "var(--text-secondary)", margin: 0, lineHeight: 1.5 }}>
+                {challengePhrase}
+                {timerLabel && ` You'll have ${timerLabel} once the question appears.`}
+              </p>
+            </div>
+            <p style={{ textAlign: "center", fontSize: 12, fontWeight: 600, color: "var(--text-muted)", marginBottom: 18 }}>
+              ✓ ₦{entryFee.toLocaleString()} paid — question is loaded and waiting
+            </p>
+            <button onClick={() => onConfirm(prefetched)}
+              style={{ width: "100%", padding: "14px 0", borderRadius: 11, border: "none",
+                backgroundColor: cardColor, color: "#000", fontSize: 15, fontWeight: 800,
+                cursor: "pointer", marginBottom: 8 }}>
+              Start
+            </button>
+            <p style={{ textAlign: "center", fontSize: 11, color: "var(--text-muted)", margin: 0 }}>
+              Timer starts the moment you tap Start
+            </p>
+          </motion.div>
+        )}
+
       </motion.div>
     </motion.div>
   );
@@ -539,13 +610,19 @@ export default function PillsPage() {
             pack={sheet.pack} pill={sheet.pill}
             balance={state.player?.balance ?? 0}
             bonusBalance={state.player?.bonus_balance ?? 0}
-        onConfirm={() => {
+        onConfirm={(prefetched) => {
           const { pack, pill } = sheet;
           const isSpecial = pack.is_vip || (pack as any).pack_type === "special" || pack.question_count != null;
           setSheet(null);
           if (isSpecial) {
             router.push(`/pills/vip/${pack.id}/play`);
           } else {
+            // Store prefetched question in sessionStorage so play page skips the open() call
+            if (prefetched) {
+              try {
+                sessionStorage.setItem(`pill_prefetch_${pill.id}`, JSON.stringify(prefetched));
+              } catch { /* quota — silent, play page falls back to open() */ }
+            }
             router.push(`/pills/play/${pill.id}`);
           }
         }}

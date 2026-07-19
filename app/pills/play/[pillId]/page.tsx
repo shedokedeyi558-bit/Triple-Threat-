@@ -27,10 +27,23 @@ export default function PillPlayPage() {
   useEffect(() => {
     if (!state.isAuthenticated) { router.push("/auth"); return; }
 
+    // Check for prefetched question data from the two-step pay→start flow.
+    // If present, skip the open() call entirely — no network lag before timer starts.
+    try {
+      const cached = sessionStorage.getItem(`pill_prefetch_${pillId}`);
+      if (cached) {
+        sessionStorage.removeItem(`pill_prefetch_${pillId}`);
+        const d: PillOpenResponse = JSON.parse(cached);
+        setData(d);
+        setPhase("playing"); // go straight to playing — no "Revealing" delay
+        return;
+      }
+    } catch { /* sessionStorage unavailable — fall through to open() */ }
+
+    // Fallback: call open() directly (deducts payment + returns question)
     pillsApi.open(pillId)
       .then((d) => {
         setData(d);
-        // Short dramatic delay before showing question
         setTimeout(() => setPhase("playing"), 900);
       })
       .catch((err) => {
