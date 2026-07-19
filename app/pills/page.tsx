@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useApp } from "@/context/AppContext";
 import { pillsApi, type PillPack, type PillPackPill, ApiError } from "@/lib/api";
 import Link from "next/link";
-import { AlertCircle, Package, ArrowRight, Clock, ClipboardCheck, Loader2 } from "lucide-react";
+import { AlertCircle, Package, ArrowRight, Clock, ClipboardCheck, Loader2, ChevronRight } from "lucide-react";
 
 // Category colour map
 const CAT_COLOR: Record<string, string> = {
@@ -240,6 +240,87 @@ function SpecialsTeaserBanner({ packs, onClick }: { packs: PillPack[]; onClick: 
         </div>
       </div>
       <ArrowRight size={16} style={{ color: "var(--accent-amber)", flexShrink: 0, opacity: 0.8 }} />
+    </motion.button>
+  );
+}
+
+// ── Pack row — full-width vertical list item ─────────────────────────────
+function PackRow({ pack, onClick }: { pack: PillPack; onClick: () => void }) {
+  const color = catColor(pack.category);
+  const available = pack.pills.filter((p) => p.status === "available").length;
+  const pending   = pack.pills.filter((p) => p.status === "pending").length;
+  const hasPending = pending > 0;
+  const soldOut   = available === 0 && !hasPending;
+  const price     = pack.pills[0]?.price ?? 0;
+  const { label: expiryLabel, expired } = usePackExpiry(pack.quiz_expires_at);
+  const blocked   = (soldOut && !hasPending) || expired;
+
+  // Secondary line: "N left · M questions" (or state label)
+  const qCount = pack.question_count ?? pack.pills.length;
+  let subLabel: React.ReactNode;
+  if (hasPending) {
+    subLabel = <span style={{ color: "var(--accent-amber)", fontWeight: 700 }}>Resume available</span>;
+  } else if (soldOut) {
+    subLabel = <span style={{ color: "var(--text-muted)" }}>Sold out</span>;
+  } else if (expired) {
+    subLabel = <span style={{ color: "#f87171" }}>Ended</span>;
+  } else {
+    subLabel = (
+      <span>
+        <span style={{ color: "var(--accent-indigo)", fontWeight: 600 }}>{available} left</span>
+        {qCount > 0 && <span style={{ color: "var(--text-muted)" }}> · {qCount} question{qCount !== 1 ? "s" : ""}</span>}
+      </span>
+    );
+  }
+
+  return (
+    <motion.button
+      initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
+      whileTap={{ scale: blocked ? 1 : 0.985 }}
+      onClick={blocked ? undefined : onClick}
+      style={{
+        width: "100%", boxSizing: "border-box", display: "flex", alignItems: "center", gap: 12,
+        padding: "12px 14px", borderRadius: 12, textAlign: "left",
+        cursor: blocked ? "default" : "pointer",
+        backgroundColor: "var(--bg-card)", border: "1px solid var(--border-hairline)",
+        opacity: blocked ? 0.55 : 1,
+      }}>
+      {/* Category icon */}
+      <div style={{ width: 40, height: 40, borderRadius: 10, flexShrink: 0,
+        backgroundColor: `${color}18`, display: "flex", alignItems: "center", justifyContent: "center",
+        border: `1px solid ${color}25` }}>
+        <Package size={18} style={{ color }} />
+      </div>
+
+      {/* Text */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <p style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em",
+          color: "var(--text-muted)", margin: "0 0 2px" }}>
+          {pack.category}
+        </p>
+        <p style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", margin: "0 0 3px",
+          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {pack.name}
+        </p>
+        <p style={{ fontSize: 11, margin: 0, lineHeight: 1 }}>{subLabel}</p>
+      </div>
+
+      {/* Right side: price + chevron */}
+      <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+        {!blocked && !hasPending && (
+          <span style={{ fontSize: 13, fontFamily: "monospace", fontWeight: 700, color: "var(--accent-amber)" }}>
+            ₦{price.toLocaleString()}
+          </span>
+        )}
+        {hasPending && (
+          <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 8px", borderRadius: 6,
+            backgroundColor: "rgba(232,163,61,0.15)", color: "var(--accent-amber)",
+            border: "1px solid rgba(232,163,61,0.3)" }}>
+            Resume
+          </span>
+        )}
+        <ChevronRight size={14} style={{ color: blocked ? "var(--border-subtle)" : "var(--text-muted)" }} />
+      </div>
     </motion.button>
   );
 }
@@ -586,8 +667,8 @@ export default function PillsPage() {
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
           <div className="skeleton" style={{ height: 32, width: 200, borderRadius: 20 }} />
           <div className="skeleton" style={{ height: 140, borderRadius: 16 }} />
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            {[1,2,3,4].map((i) => <div key={i} className="skeleton" style={{ height: 130, borderRadius: 12 }} />)}
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {[1,2,3].map((i) => <div key={i} className="skeleton" style={{ height: 66, borderRadius: 12 }} />)}
           </div>
         </div>
       ) : (
@@ -608,19 +689,23 @@ export default function PillsPage() {
             </section>
           )}
 
-          {/* Standard Packs — horizontal scroll row */}
+          {/* Standard Packs — vertical list */}
           {standardPacks2.length > 0 && (
             <section>
-              <p style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", color: "var(--text-muted)", marginBottom: 10 }}>
-                Standard Packs
-              </p>
-              {/* Horizontal scroll — page height stays fixed regardless of pack count */}
-              <div style={{ width: "100%", minWidth: 0, overflowX: "auto", overflowY: "hidden", WebkitOverflowScrolling: "touch" }}>
-                <div style={{ display: "flex", gap: 10, minWidth: "min-content", paddingBottom: 4 }}>
-                  {standardPacks2.map((pack) => (
-                    <GridPackCard key={pack.id} pack={pack} onClick={() => handlePackClick(pack)} />
-                  ))}
-                </div>
+              <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 10 }}>
+                <p style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", color: "var(--text-muted)", margin: 0 }}>
+                  Standard Packs
+                </p>
+                <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
+                  {standardPacks2.filter(p =>
+                    p.pills.some(pill => pill.status === "available" || pill.status === "pending")
+                  ).length} available
+                </span>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {standardPacks2.map((pack) => (
+                  <PackRow key={pack.id} pack={pack} onClick={() => handlePackClick(pack)} />
+                ))}
               </div>
             </section>
           )}
