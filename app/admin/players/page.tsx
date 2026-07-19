@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { adminApi, type AdminPlayer, ApiError } from "@/lib/api";
-import { Search, ChevronDown, ChevronUp, Loader2, ExternalLink } from "lucide-react";
+import { Search, ChevronDown, ChevronUp, Loader2, ExternalLink, Shield, ShieldOff } from "lucide-react";
 
 export default function PlayersPage() {
   const router = useRouter();
