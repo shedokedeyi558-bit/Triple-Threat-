@@ -217,15 +217,15 @@ body {
 }
 .pack-card .pack-card-name {
   font-size: 13px;
-  /* Allow name to wrap up to 2 lines — clamp at 2, no hard truncation at card boundary */
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;           /* required for -webkit-line-clamp to fire */
+  /* Let the name wrap naturally within the card's fixed width.
+     No line-clamp — wrapping onto 2 lines is the intended behaviour.
+     min-height keeps all cards the same height when a name fits on 1 line. */
+  white-space: normal;
   overflow-wrap: break-word;
   word-break: break-word;
-  white-space: normal;
-  min-height: 2.7em; /* reserve space for 2 lines so single-line names don't shift layout */
+  overflow: visible;
+  min-height: 2.7em;
+  line-height: 1.35;
 }
 .pack-card .pack-card-footer {
   margin: 0 12px;
@@ -240,6 +240,7 @@ body {
   .pack-card .pack-card-name {
     font-size: 14px;
     min-height: 2.8em;
+    line-height: 1.35;
   }
   .pack-card .pack-card-footer {
     margin: 0 16px;

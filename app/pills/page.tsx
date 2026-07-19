@@ -164,7 +164,7 @@ function GridPackCard({ pack, onClick }: { pack: PillPack; onClick: () => void }
             {pack.category}
           </span>
         </div>
-        <p className="pack-card-name" style={{ fontWeight: 700, color: "var(--text-primary)", margin: 0, lineHeight: 1.35, flexGrow: 1 }}>
+        <p className="pack-card-name" style={{ fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
           {pack.name}
         </p>
         {/* Sold-out badge — Standard Pills only, shown when no available pills remain */}
