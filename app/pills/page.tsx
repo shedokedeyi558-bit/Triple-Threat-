@@ -137,17 +137,19 @@ function GridPackCard({ pack, onClick }: { pack: PillPack; onClick: () => void }
   const color = catColor(pack.category);
   const price = pack.pills[0]?.price ?? 0;
   const available = pack.pills.filter((p) => p.status === "available").length;
+  const soldOut = available === 0;
   const { label: expiryLabel, expired } = usePackExpiry(pack.quiz_expires_at);
+  const blocked = soldOut || expired;
 
   return (
-    <motion.button initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} whileTap={{ scale: expired ? 1 : 0.97 }}
-      onClick={expired ? undefined : onClick}
+    <motion.button initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} whileTap={{ scale: blocked ? 1 : 0.97 }}
+      onClick={blocked ? undefined : onClick}
       className="pack-card"
       style={{
         boxSizing: "border-box", borderRadius: 12, padding: 0,
-        textAlign: "left", cursor: expired ? "default" : "pointer",
+        textAlign: "left", cursor: blocked ? "default" : "pointer",
         border: "1px solid var(--border-subtle)", backgroundColor: "var(--bg-card)",
-        display: "flex", flexDirection: "column", opacity: expired ? 0.55 : 1,
+        display: "flex", flexDirection: "column", opacity: blocked ? 0.55 : 1,
       }}>
       <div className="pack-card-body" style={{ display: "flex", flexDirection: "column", flex: 1, gap: 8 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -165,7 +167,13 @@ function GridPackCard({ pack, onClick }: { pack: PillPack; onClick: () => void }
         <p className="pack-card-name" style={{ fontWeight: 700, color: "var(--text-primary)", margin: 0, lineHeight: 1.35, flexGrow: 1 }}>
           {pack.name}
         </p>
-        {expiryLabel && (
+        {/* Sold-out badge — Standard Pills only, shown when no available pills remain */}
+        {soldOut && (
+          <p style={{ fontSize: 9, fontWeight: 700, color: "var(--text-muted)", margin: 0, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+            Sold out
+          </p>
+        )}
+        {expiryLabel && !soldOut && (
           <p style={{ fontSize: 9, fontWeight: 600, color: expired ? "#f87171" : "var(--accent-amber)", margin: 0, display: "flex", alignItems: "center", gap: 3 }}>
             <Clock size={9} style={{ flexShrink: 0 }} /> {expiryLabel}
           </p>
@@ -173,15 +181,19 @@ function GridPackCard({ pack, onClick }: { pack: PillPack; onClick: () => void }
       </div>
       <div className="pack-card-footer" style={{ borderTop: "1px solid var(--border-hairline)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          {expired ? (
+          {soldOut ? (
+            <p style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", margin: 0 }}>0 left</p>
+          ) : expired ? (
             <p style={{ fontSize: 12, fontWeight: 700, color: "#f87171", margin: 0 }}>Ended</p>
           ) : (
-            <p style={{ fontSize: 12, fontFamily: "monospace", fontWeight: 700, color: "var(--accent-amber)", margin: 0 }}>₦{price.toLocaleString()}</p>
+            <>
+              <p style={{ fontSize: 12, fontFamily: "monospace", fontWeight: 700, color: "var(--accent-amber)", margin: 0 }}>₦{price.toLocaleString()}</p>
+              <span style={{ fontSize: 9, color: "var(--text-muted)" }}>{available} left</span>
+            </>
           )}
-          {!expired && <span style={{ fontSize: 9, color: "var(--text-muted)" }}>{available} left</span>}
         </div>
-        <div style={{ width: 24, height: 24, borderRadius: 6, backgroundColor: expired ? "rgba(239,68,68,0.08)" : `${color}18`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-          <ArrowRight size={12} style={{ color: expired ? "#f87171" : color, opacity: expired ? 0.5 : 1 }} />
+        <div style={{ width: 24, height: 24, borderRadius: 6, backgroundColor: blocked ? "rgba(255,255,255,0.04)" : `${color}18`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          <ArrowRight size={12} style={{ color: blocked ? "var(--text-muted)" : color, opacity: blocked ? 0.4 : 1 }} />
         </div>
       </div>
     </motion.button>
@@ -447,8 +459,10 @@ export default function PillsPage() {
       setSheet({ pack, pill: syntheticPill });
       return;
     }
+    // Standard pack — check for sold-out before opening sheet
     const firstAvail = pack.pills.find((p) => p.status === "available");
     if (firstAvail) setSheet({ pack, pill: firstAvail });
+    // If no available pills, the card is already visually disabled — do nothing
   };
 
   return (
