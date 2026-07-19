@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useApp } from "@/context/AppContext";
@@ -241,6 +241,68 @@ function SpecialsTeaserBanner({ packs, onClick }: { packs: PillPack[]; onClick: 
       </div>
       <ArrowRight size={16} style={{ color: "var(--accent-amber)", flexShrink: 0, opacity: 0.8 }} />
     </motion.button>
+  );
+}
+
+// ── Hero pack carousel — snap-scrollable, one card per view ─────────────
+function HeroCarousel({ packs, onPackClick }: { packs: PillPack[]; onPackClick: (p: PillPack) => void }) {
+  const [activeIdx, setActiveIdx] = useState(0);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Track which card is centred via IntersectionObserver on each card
+  useEffect(() => {
+    const container = scrollRef.current;
+    if (!container || packs.length <= 1) return;
+    const cards = Array.from(container.children) as HTMLElement[];
+    const obs = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting && e.intersectionRatio >= 0.6) {
+            setActiveIdx(cards.indexOf(e.target as HTMLElement));
+          }
+        });
+      },
+      { root: container, threshold: 0.6 }
+    );
+    cards.forEach((c) => obs.observe(c));
+    return () => obs.disconnect();
+  }, [packs.length]);
+
+  return (
+    <div>
+      {/* Scroll container */}
+      <div
+        ref={scrollRef}
+        style={{
+          display: "flex", overflowX: "auto", overflowY: "hidden",
+          scrollSnapType: "x mandatory", WebkitOverflowScrolling: "touch",
+          gap: 12,
+          // Hide scrollbar
+          scrollbarWidth: "none", msOverflowStyle: "none",
+        }}
+        className="hero-carousel"
+      >
+        {packs.map((pack) => (
+          <div key={pack.id} style={{ flex: "0 0 100%", scrollSnapAlign: "start" }}>
+            <HeroPack pack={pack} onClick={() => onPackClick(pack)} />
+          </div>
+        ))}
+      </div>
+
+      {/* Dot indicator — only when >1 pack */}
+      {packs.length > 1 && (
+        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 5, marginTop: 10 }}>
+          {packs.map((_, i) => (
+            <div key={i} style={{
+              width: i === activeIdx ? 16 : 5,
+              height: 5, borderRadius: 3, transition: "all 0.25s ease",
+              backgroundColor: i === activeIdx ? "var(--accent-indigo)" : "var(--border-subtle)",
+              opacity: i === activeIdx ? 1 : 0.5,
+            }} />
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -622,12 +684,10 @@ export default function PillsPage() {
     ? standardPacks
     : standardPacks.filter((p) => p.category === activeCategory);
 
-  // Hero: only show explicitly featured pack — no fallback to first pack
-  const featuredPack = filteredPacks.find((p) => p.is_featured) ?? null;
-  // Standard Packs: all packs if nothing featured, everything except featured if one exists
-  const standardPacks2 = featuredPack
-    ? filteredPacks.filter((p) => p !== featuredPack)
-    : filteredPacks;
+  // Hero: all explicitly featured packs — no fallback to first pack
+  const featuredPacks = filteredPacks.filter((p) => p.is_featured);
+  // Standard Packs: everything that isn't featured
+  const standardPacks2 = filteredPacks.filter((p) => !p.is_featured);
 
   if (!state.isAuthenticated) return null;
 
@@ -679,13 +739,13 @@ export default function PillsPage() {
             <CategoryChips categories={categories} active={activeCategory} onChange={setActiveCategory} />
           )}
 
-          {/* Featured today */}
-          {featuredPack && (
+          {/* Featured today — carousel when multiple featured packs */}
+          {featuredPacks.length > 0 && (
             <section>
               <p style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", color: "var(--text-muted)", marginBottom: 10 }}>
                 Featured today
               </p>
-              <HeroPack pack={featuredPack} onClick={() => handlePackClick(featuredPack)} />
+              <HeroCarousel packs={featuredPacks} onPackClick={handlePackClick} />
             </section>
           )}
 

@@ -249,3 +249,6 @@ body {
     margin-top: 14px;
   }
 }
+
+/* Hero carousel — hide scrollbar across all browsers */
+.hero-carousel::-webkit-scrollbar { display: none; }
