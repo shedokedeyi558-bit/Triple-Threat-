@@ -92,7 +92,7 @@ export default function CreatePillPackPage() {
   const [specialQuestionCount, setSpecialQCount] = useState<number | "">(10);
   const [specialTotalTime, setSpecialTotalTime] = useState<number | "">(900); // 15 min default
   const [specialRequiredCorrect, setSpecialReqCorrect] = useState<number | "">(8);
-  const [specialExpiryOption, setSpecialExpiryOption] = useState<"none"|"24h"|"48h"|"7d"|"custom">("none");
+  const [specialExpiryOption, setSpecialExpiryOption] = useState<"24h"|"48h"|"7d"|"custom">("24h");
   const [specialExpiryCustom, setSpecialExpiryCustom] = useState<string>("");
   const [formOpen, setFormOpen] = useState(true);
   const [sampleCategory, setSampleCategory] = useState<SampleCategory>("Mixed");
@@ -136,6 +136,10 @@ export default function CreatePillPackPage() {
     if (isVip) {
       if (Number(specialRequiredCorrect) > Number(specialQuestionCount)) {
         setError("Pass threshold cannot exceed question count"); return;
+      }
+      // Enforce expiry — required for Specials
+      if (specialExpiryOption === "custom" && !specialExpiryCustom) {
+        setError("Please set a custom expiry date and time"); return;
       }
       setLoading(true);
       setError("");
@@ -201,7 +205,6 @@ export default function CreatePillPackPage() {
           total_time_seconds: Number(specialTotalTime) || 900,
           required_correct: Number(specialRequiredCorrect) || 8,
           quiz_expires_at: (() => {
-            if (specialExpiryOption === "none") return undefined;
             if (specialExpiryOption === "custom") return specialExpiryCustom ? new Date(specialExpiryCustom).toISOString() : undefined;
             const ms: Record<string, number> = { "24h": 86400000, "48h": 172800000, "7d": 604800000 };
             return new Date(Date.now() + ms[specialExpiryOption]).toISOString();
@@ -367,9 +370,12 @@ export default function CreatePillPackPage() {
           {/* Entry window expiry */}
           <div className="border rounded-xl p-4 space-y-3" style={{ borderColor: "rgba(232,163,61,0.2)", backgroundColor: "rgba(232,163,61,0.03)" }}>
             <div>
-              <p className={labelCls} style={{ color: "var(--text-secondary)" }}>Entry window closes (optional)</p>
+              <p className={labelCls} style={{ color: "var(--text-secondary)" }}>Entry window closes <span style={{ color: "#f87171" }}>*</span></p>
+              <p className="text-[10px] mb-2" style={{ color: "var(--text-muted)" }}>
+                Required — after this window closes, new entries are blocked automatically.
+              </p>
               <div className="flex gap-2 flex-wrap mt-1.5">
-                {([["none","No expiry"],["24h","24 hours"],["48h","48 hours"],["7d","7 days"],["custom","Custom"]] as const).map(([val, label]) => (
+                {([["24h","24 hours"],["48h","48 hours"],["7d","7 days"],["custom","Custom"]] as const).map(([val, label]) => (
                   <button key={val} type="button" onClick={() => setSpecialExpiryOption(val)}
                     className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
                     style={{
@@ -384,16 +390,11 @@ export default function CreatePillPackPage() {
             </div>
             {specialExpiryOption === "custom" && (
               <div>
-                <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Exact date &amp; time</label>
+                <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Exact date &amp; time <span style={{ color: "#f87171" }}>*</span></label>
                 <input type="datetime-local" className={inputCls} value={specialExpiryCustom}
                   onChange={(e) => setSpecialExpiryCustom(e.target.value)} />
               </div>
             )}
-            <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>
-              {specialExpiryOption === "none"
-                ? "Pack stays open indefinitely — players can enter at any time."
-                : "After this window closes, the pack shows as Ended and new entries are blocked."}
-            </p>
           </div>
         </div>
       )}
