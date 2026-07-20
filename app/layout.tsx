@@ -3,7 +3,6 @@ import "./globals.css";
 import { AppProvider } from "@/context/AppContext";
 import { AppShell } from "@/components/ui/AppShell";
 import { ToastContainer } from "@/components/ui/Toast";
-import { PwaSplash } from "@/components/ui/PwaSplash";
 
 export const metadata: Metadata = {
   title: "BitLyfe — Play Smart. Win Real.",
@@ -35,7 +34,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: "#E8A33D",
+  themeColor: "#0B0E14",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -49,7 +48,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="bg-bg text-white antialiased" style={{ backgroundColor: "var(--bg-base)", color: "var(--text-primary)" }}>
         <AppProvider>
-          <PwaSplash />
           <AppShell>
             {children}
           </AppShell>
