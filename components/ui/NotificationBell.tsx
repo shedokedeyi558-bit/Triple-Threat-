@@ -171,13 +171,16 @@ export function NotificationBell() {
   const handleOpen = async () => {
     const next = !open;
     setOpen(next);
-    // Mark all read when opening (server-side) — doesn't affect visibility
-    if (next && unread > 0) {
-      try {
-        await notificationsApi.markRead();
-        setUnread(0);
-        setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-      } catch { /* silent */ }
+    // Always re-fetch fresh notifications when opening the panel
+    if (next) {
+      fetchNotifications().then(() => {
+        // After fresh fetch, mark all unread as read server-side
+        if (unread > 0) {
+          notificationsApi.markRead().catch(() => {});
+          setUnread(0);
+          setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+        }
+      });
     }
   };
 
