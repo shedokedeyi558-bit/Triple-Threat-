@@ -134,19 +134,43 @@ export default function AdminPlayerDetailPage() {
 
   useEffect(() => {
     if (!id) return;
-    Promise.all([
-      adminApi.getPlayerDetail(id),
-      adminApi.getPlayerActivity(id, 1, 20),
-      adminApi.getPlayerReferrals(id),
-      adminApi.getPlayerNotes(id),
-    ]).then(([detailRes, actRes, refRes, notesRes]) => {
-      setPlayer(detailRes.player);
-      setActivity(actRes.transactions ?? []);
-      setActTotal(actRes.total ?? 0);
-      setReferrals(refRes.referrals ?? []);
-      setReferredBy(refRes.referred_by ?? null);
-      setNotes(notesRes.notes ?? []);
-    }).catch((err) => setError(err instanceof ApiError ? err.message : "Failed to load player"))
+
+    // Core player detail — if the dedicated endpoint doesn't exist yet,
+    // fall back to finding this player in the list
+    const fetchPlayer = async (): Promise<AdminPlayerDetail> => {
+      try {
+        const res = await adminApi.getPlayerDetail(id);
+        return res.player;
+      } catch {
+        // Endpoint not yet deployed — find in players list as fallback
+        const list = await adminApi.getPlayers({ limit: 1000 });
+        const found = list.players.find((p) => p.id === id);
+        if (!found) throw new Error("Player not found");
+        return found as AdminPlayerDetail;
+      }
+    };
+
+    // Optional endpoints — fail silently if not yet deployed
+    const fetchActivity = () =>
+      adminApi.getPlayerActivity(id, 1, 20)
+        .catch(() => ({ transactions: [], total: 0 }));
+    const fetchReferrals = () =>
+      adminApi.getPlayerReferrals(id)
+        .catch(() => ({ referred_by: null, referrals: [] }));
+    const fetchNotes = () =>
+      adminApi.getPlayerNotes(id)
+        .catch(() => ({ notes: [] }));
+
+    Promise.all([fetchPlayer(), fetchActivity(), fetchReferrals(), fetchNotes()])
+      .then(([p, actRes, refRes, notesRes]) => {
+        setPlayer(p);
+        setActivity(actRes.transactions ?? []);
+        setActTotal(actRes.total ?? 0);
+        setReferrals(refRes.referrals ?? []);
+        setReferredBy(refRes.referred_by ?? null);
+        setNotes(notesRes.notes ?? []);
+      })
+      .catch((err) => setError(err instanceof ApiError ? err.message : "Failed to load player"))
       .finally(() => setLoading(false));
   }, [id]);
 
