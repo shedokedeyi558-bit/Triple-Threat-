@@ -45,6 +45,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600&family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Mono:wght@500&display=swap"
           rel="stylesheet"
         />
+        <link
+          href="https://api.fontshare.com/v2/css?f[]=clash-display@600,700,800&display=swap"
+          rel="stylesheet"
+        />
       </head>
       <body className="bg-bg text-white antialiased" style={{ backgroundColor: "var(--bg-base)", color: "var(--text-primary)" }}>
         <AppProvider>

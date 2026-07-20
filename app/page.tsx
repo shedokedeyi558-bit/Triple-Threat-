@@ -136,19 +136,19 @@ function Hero() {
             className="inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm font-medium"
             style={{ borderColor: "rgba(232,163,61,0.3)", backgroundColor: "rgba(232,163,61,0.1)", color: "var(--brand-amber)" }}>
             <Sparkles className="h-3.5 w-3.5" />
-            Nigeria&apos;s fastest real-money trivia
+            Nigerians are cashing out daily. Are you next?
           </motion.span>
 
           <motion.h1 variants={item}
-            className="mt-6 font-display text-5xl font-extrabold leading-[0.95] tracking-tight sm:text-6xl lg:text-7xl xl:text-8xl"
+            className="mt-6 font-display text-5xl font-extrabold leading-[0.92] tracking-tight sm:text-6xl lg:text-7xl xl:text-8xl"
             style={{ color: "var(--foreground)" }}>
-            Real Stakes.<br />
-            <span style={{ color: "var(--brand-amber)" }}>Real Fast.</span>
+            Your Knowledge<br />
+            <span style={{ color: "var(--brand-amber)" }}>Is Worth Money.</span>
           </motion.h1>
 
           <motion.p variants={item} className="mt-6 max-w-lg text-lg leading-relaxed" style={{ color: "var(--muted-foreground)" }}>
-            Answer a question, predict the future, win instantly. Pay a small entry, beat the clock,
-            and cash out — straight to your phone.
+            Answer one question. ₦200 in. Up to ₦600,000 out — straight to your phone.
+            No luck. No algorithm. Just you and what you know.
           </motion.p>
 
           <motion.div variants={item} className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">

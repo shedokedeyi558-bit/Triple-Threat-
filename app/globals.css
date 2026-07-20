@@ -345,6 +345,6 @@ body {
 .border-brand-amber  { border-color: var(--brand-amber); }
 .border-brand-green  { border-color: var(--brand-green); }
 .border-brand-bg     { border-color: var(--brand-bg); }
-.font-display { font-family: 'Space Grotesk', sans-serif; }
+.font-display { font-family: 'Clash Display', 'Space Grotesk', sans-serif; }
 .shadow-\[0_8px_30px_-6px_var\(--brand-amber\)\] { box-shadow: 0 8px 30px -6px var(--brand-amber); }
 .shadow-\[0_0_20px_-2px_var\(--brand-indigo\)\]   { box-shadow: 0 0 20px -2px var(--brand-indigo); }
