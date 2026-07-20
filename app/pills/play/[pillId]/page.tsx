@@ -54,6 +54,7 @@ export default function PillPlayPage() {
 
   const handleSubmit = async (answer: string) => {
     setSubmitting(true);
+    setError(null); // clear any previous error before each attempt
     const wasTimedOut = answer === "";
     try {
       const res = await pillsApi.submit(pillId, answer);
@@ -62,7 +63,6 @@ export default function PillPlayPage() {
       if (wasTimedOut) setTimedOut(true);
       setPhase("result");
     } catch (err) {
-      // Show the actual backend error message so submission failures are diagnosable
       const msg = err instanceof ApiError
         ? err.message
         : (err instanceof Error ? err.message : "Failed to submit answer");
@@ -84,7 +84,7 @@ export default function PillPlayPage() {
       </header>
 
       <div className="max-w-lg mx-auto px-4 py-6">
-        {error && (
+        {error && phase !== "result" && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
