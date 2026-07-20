@@ -62,8 +62,11 @@ export default function PillPlayPage() {
       if (wasTimedOut) setTimedOut(true);
       setPhase("result");
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Failed to submit answer");
-    } finally {
+      // Show the actual backend error message so submission failures are diagnosable
+      const msg = err instanceof ApiError
+        ? err.message
+        : (err instanceof Error ? err.message : "Failed to submit answer");
+      setError(msg);
       setSubmitting(false);
     }
   };
