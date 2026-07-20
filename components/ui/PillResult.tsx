@@ -68,24 +68,45 @@ export default function PillResult({ won, prize, correctAnswer, category, timedO
       </div>
 
       <div className="flex gap-3 pt-4">
-        {!won && (
-          <button
-            onClick={() => router.push("/pills")}
-            className="flex-1 bg-[#1A1A1A] font-bold uppercase tracking-tight rounded-xl py-3 min-h-12 transition-colors"
-            style={{ color: "var(--text-primary)", border: "1px solid #2A2A2A" }}
-            onMouseEnter={(e) => (e.currentTarget.style.borderColor = "var(--accent-indigo)")}
-            onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#2A2A2A")}
-          >
-            Try Again
-          </button>
+        {won ? (
+          <>
+            <button
+              onClick={() => router.push("/pills")}
+              className="flex-1 font-bold uppercase tracking-tight rounded-xl py-3 min-h-12 transition-colors"
+              style={{ backgroundColor: "var(--accent-indigo)", color: "#fff" }}
+            >
+              Play more
+            </button>
+            <button
+              onClick={() => router.push("/wallet")}
+              className="flex-1 font-bold uppercase tracking-tight rounded-xl py-3 min-h-12 transition-colors"
+              style={{ backgroundColor: "transparent", color: "var(--text-secondary)", border: "1px solid #2A2A2A" }}
+              onMouseEnter={(e) => (e.currentTarget.style.borderColor = "var(--accent-amber)")}
+              onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#2A2A2A")}
+            >
+              Withdraw
+            </button>
+          </>
+        ) : (
+          <>
+            <button
+              onClick={() => router.back()}
+              className="flex-1 bg-[#1A1A1A] font-bold uppercase tracking-tight rounded-xl py-3 min-h-12 transition-colors"
+              style={{ color: "var(--text-primary)", border: "1px solid #2A2A2A" }}
+              onMouseEnter={(e) => (e.currentTarget.style.borderColor = "var(--accent-indigo)")}
+              onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#2A2A2A")}
+            >
+              Try Again
+            </button>
+            <button
+              onClick={() => router.push("/pills")}
+              className="flex-1 font-bold uppercase tracking-tight rounded-xl py-3 min-h-12 transition-colors"
+              style={{ backgroundColor: "var(--accent-indigo)", color: "#fff" }}
+            >
+              Back
+            </button>
+          </>
         )}
-        <button
-          onClick={() => router.push(won ? "/wallet" : "/pills")}
-          className="flex-1 font-bold uppercase tracking-tight rounded-xl py-3 min-h-12 transition-colors"
-          style={{ backgroundColor: "var(--accent-indigo)", color: "#fff" }}
-        >
-          {won ? "Withdraw" : "Back"}
-        </button>
       </div>
     </motion.div>
   );
