@@ -34,8 +34,67 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   if (!hydrated && isProtected) {
     return (
-      <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center">
-        <div className="w-8 h-8 border-2 rounded-full animate-spin" style={{ borderColor: "rgba(76,111,255,0.3)", borderTopColor: "var(--accent-indigo)" }} />
+      <div style={{
+        minHeight: "100vh", backgroundColor: "#0A0A0A",
+        display: "flex", flexDirection: "column",
+        alignItems: "center", justifyContent: "center", gap: 0,
+        background: "radial-gradient(ellipse at 50% 40%, rgba(76,111,255,0.08) 0%, #0A0A0A 65%)",
+      }}>
+        {/* Logo mark — pulsing glow */}
+        <div style={{ position: "relative", marginBottom: 20 }}>
+          {/* Ambient glow ring */}
+          <div style={{
+            position: "absolute", inset: -20, borderRadius: "50%",
+            background: "radial-gradient(circle, rgba(76,111,255,0.18) 0%, transparent 70%)",
+            animation: "splash-pulse 2s ease-in-out infinite",
+          }} />
+          <Image src="/bitlyfe-mark.svg" alt="BitLyfe" width={64} height={64} priority
+            style={{ position: "relative", filter: "drop-shadow(0 0 18px rgba(76,111,255,0.45))", animation: "splash-bob 3s ease-in-out infinite" }} />
+        </div>
+
+        {/* Wordmark */}
+        <p style={{
+          fontFamily: "var(--font-headline, sans-serif)", fontSize: 22, fontWeight: 800,
+          letterSpacing: "-0.02em", color: "var(--text-primary)", margin: "0 0 6px",
+          animation: "splash-fadein 0.6s ease both",
+        }}>
+          bitlyfe
+        </p>
+        <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.16em", textTransform: "uppercase",
+          color: "var(--accent-amber)", margin: "0 0 40px", opacity: 0.7,
+          animation: "splash-fadein 0.9s ease both",
+        }}>
+          Real stakes · Real fast
+        </p>
+
+        {/* Loading bar */}
+        <div style={{ width: 80, height: 2, borderRadius: 1, backgroundColor: "rgba(76,111,255,0.15)", overflow: "hidden" }}>
+          <div style={{
+            height: "100%", borderRadius: 1,
+            background: "linear-gradient(90deg, var(--accent-indigo), var(--accent-amber))",
+            animation: "splash-bar 1.4s ease-in-out infinite",
+          }} />
+        </div>
+
+        <style>{`
+          @keyframes splash-pulse {
+            0%,100% { opacity: 0.6; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.12); }
+          }
+          @keyframes splash-bob {
+            0%,100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+          }
+          @keyframes splash-fadein {
+            from { opacity: 0; transform: translateY(8px); }
+            to   { opacity: 1; transform: translateY(0); }
+          }
+          @keyframes splash-bar {
+            0%   { width: 0%; margin-left: 0; }
+            50%  { width: 80%; margin-left: 0; }
+            100% { width: 0%; margin-left: 100%; }
+          }
+        `}</style>
       </div>
     );
   }
