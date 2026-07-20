@@ -267,11 +267,11 @@ export default function AdminPlayerDetailPage() {
       {/* ── Balance ── */}
       <Section title="Balance" icon={<span style={{ fontSize: 14 }}>₦</span>}>
         <div className="grid grid-cols-2 gap-3">
-          <StatCell label="Real balance" value={`₦${player.balance.toLocaleString()}`} color="var(--accent-amber)" />
+          <StatCell label="Real balance" value={`₦${(player.balance ?? 0).toLocaleString()}`} color="var(--accent-amber)" />
           <StatCell label="Bonus balance" value={`₦${(player.bonus_balance ?? 0).toLocaleString()}`} color="var(--accent-violet)" />
         </div>
         <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>
-          Total spendable: ₦{(player.balance + (player.bonus_balance ?? 0)).toLocaleString()} · Bonus credit is non-withdrawable
+          Total spendable: ₦{((player.balance ?? 0) + (player.bonus_balance ?? 0)).toLocaleString()} · Bonus credit is non-withdrawable
         </p>
       </Section>
 
@@ -281,13 +281,13 @@ export default function AdminPlayerDetailPage() {
           <StatCell label="Played"    value={stats?.games_played ?? player.games_played} />
           <StatCell label="Won"       value={stats?.games_won ?? player.games_won} color="var(--accent-amber)" />
           <StatCell label="Win rate"  value={`${winRate}%`} color={winRate > 50 ? "var(--accent-amber)" : "var(--text-primary)"} />
-          <StatCell label="Total won" value={`₦${(stats?.total_won ?? player.total_won).toLocaleString()}`} color="var(--accent-amber)" />
+          <StatCell label="Total won" value={`₦${(stats?.total_won ?? player.total_won ?? 0).toLocaleString()}`} color="var(--accent-amber)" />
         </div>
         {stats?.total_spent !== undefined && (
           <div className="flex items-center justify-between rounded-lg px-3 py-2 border"
             style={{ backgroundColor: "var(--bg-base)", borderColor: "var(--border-hairline)" }}>
             <span className="text-xs" style={{ color: "var(--text-muted)" }}>Total spent</span>
-            <span className="text-sm font-mono font-bold" style={{ color: "var(--text-secondary)" }}>₦{stats.total_spent.toLocaleString()}</span>
+            <span className="text-sm font-mono font-bold" style={{ color: "var(--text-secondary)" }}>₦{(stats.total_spent ?? 0).toLocaleString()}</span>
           </div>
         )}
       </Section>
@@ -353,9 +353,9 @@ export default function AdminPlayerDetailPage() {
                   <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
                     r.status === "completed" ? "bg-[#4C6FFF]/15 text-[#4C6FFF]" : "bg-gray-800 text-gray-500"
                   }`}>{r.status.toUpperCase()}</span>
-                  {r.bonus_amount > 0 && (
+                  {(r.bonus_amount ?? 0) > 0 && (
                     <p className="text-xs font-mono font-bold mt-0.5" style={{ color: "var(--accent-amber)" }}>
-                      +₦{r.bonus_amount.toLocaleString()}
+                      +₦{(r.bonus_amount ?? 0).toLocaleString()}
                     </p>
                   )}
                 </div>
