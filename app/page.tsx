@@ -117,10 +117,7 @@ function Hero() {
       <div className="relative z-10 mx-auto flex w-full max-w-7xl items-center justify-between px-5 py-6">
         {/* Logo */}
         <div className="flex items-center gap-2">
-          <span className="grid h-8 w-8 place-items-center rounded-lg"
-            style={{ backgroundColor: "var(--brand-indigo)", boxShadow: "0 0 20px -2px var(--brand-indigo)" }}>
-            <Zap className="h-4 w-4 fill-white text-white" strokeWidth={2.5} />
-          </span>
+          <img src="/bitlyfe-mark.svg" alt="BitLyfe" width={32} height={32} />
           <span className="font-display text-xl font-extrabold tracking-tight" style={{ color: "var(--foreground)" }}>
             Bit<span style={{ color: "var(--brand-amber)" }}>lyfe</span>
           </span>
@@ -409,10 +406,7 @@ function Footer() {
     <footer className="border-t py-10" style={{ borderColor: "var(--border)", backgroundColor: "var(--brand-bg)" }}>
       <div className="mx-auto flex w-full max-w-7xl flex-col items-center gap-6 px-5 sm:flex-row sm:justify-between">
         <div className="flex items-center gap-2">
-          <span className="grid h-7 w-7 place-items-center rounded-lg"
-            style={{ backgroundColor: "var(--brand-indigo)" }}>
-            <Zap className="h-3.5 w-3.5 fill-white text-white" strokeWidth={2.5} />
-          </span>
+          <img src="/bitlyfe-mark.svg" alt="BitLyfe" width={28} height={28} />
           <span className="font-display text-lg font-extrabold tracking-tight" style={{ color: "var(--foreground)" }}>
             Bit<span style={{ color: "var(--brand-amber)" }}>lyfe</span>
           </span>
