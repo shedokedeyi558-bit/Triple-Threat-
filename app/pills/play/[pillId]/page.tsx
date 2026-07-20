@@ -173,6 +173,7 @@ export default function PillPlayPage() {
                 correctAnswer={result.correctAnswer}
                 category={data.category}
                 timedOut={timedOut}
+                question={data.question}
               />
             </motion.div>
           )}
