@@ -221,7 +221,7 @@ export default function CreatePredictionPage() {
           <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>
             Payout Configuration
           </p>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 gap-3">
             <div>
               <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Entry Fee (₦) *</label>
               <input
@@ -242,7 +242,7 @@ export default function CreatePredictionPage() {
                 onChange={(e) => setPrizePerWinner(e.target.value)}
               />
             </div>
-            <div>
+            <div className="col-span-2">
               <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Max Slots *</label>
               <input
                 className={inputCls}
