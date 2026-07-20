@@ -156,7 +156,7 @@ export function NotificationBell() {
 
   useEffect(() => {
     fetchNotifications();
-    const id = setInterval(fetchNotifications, 30000);
+    const id = setInterval(fetchNotifications, 10000); // poll every 10s for timely unread badge
     return () => clearInterval(id);
   }, [fetchNotifications]);
 
@@ -171,16 +171,11 @@ export function NotificationBell() {
   const handleOpen = async () => {
     const next = !open;
     setOpen(next);
-    // Always re-fetch fresh notifications when opening the panel
-    if (next) {
-      fetchNotifications().then(() => {
-        // After fresh fetch, mark all unread as read server-side
-        if (unread > 0) {
-          notificationsApi.markRead().catch(() => {});
-          setUnread(0);
-          setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-        }
-      });
+    // Mark all unread as read server-side when opening
+    if (next && unread > 0) {
+      notificationsApi.markRead().catch(() => {});
+      setUnread(0);
+      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
     }
   };
 
