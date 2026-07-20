@@ -1,595 +1,453 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { useApp } from "@/context/AppContext";
 import Link from "next/link";
-import { motion } from "framer-motion";
-import { ArrowRight } from "lucide-react";
-import { blitzApi, pillsApi, predictionsApi } from "@/lib/api";
+import { useApp } from "@/context/AppContext";
+import { motion, useInView } from "framer-motion";
+import {
+  ArrowRight, Timer, Sparkles, Zap, Clock, GraduationCap,
+  Wallet, MousePointerClick, PartyPopper, Trophy,
+} from "lucide-react";
 
-export default function LandingPage() {
-  const { state } = useApp();
-  const router = useRouter();
+// ── CSS variables bridged to Tailwind inline styles ────────────────────────
+// We use inline style objects for the brand colors so no extra Tailwind config needed.
 
-  // Live stats — fail silently, fallbacks always show
-  const [liveStats, setLiveStats] = useState({
-    pills:       { stat: "Win up to ₦5,000", sub: "Answer in 30 sec · from ₦200" },
-    timeMachine: { stat: "Top prize ₦20,000", sub: "Predict right, collect instantly" },
-    blitz:       { stat: "Prize pools to ₦100,000", sub: "Next tournament · open now" },
-  });
-
-  useEffect(() => {
-    // Pills — try to get active packs count
-    pillsApi.getPacks().then((res) => {
-      const active = res.packs?.filter((p) => p.status === "active").length ?? 0;
-      if (active > 0) {
-        setLiveStats((prev) => ({
-          ...prev,
-          pills: { stat: "Win up to ₦5,000", sub: `${active} pack${active > 1 ? "s" : ""} live now · from ₦200` },
-        }));
-      }
-    }).catch(() => {});
-
-    // Time Machine — try to get active predictions count
-    predictionsApi.getActive().then((res) => {
-      const count = res.predictions?.length ?? 0;
-      if (count > 0) {
-        const next = res.predictions[0];
-        const slots = next?.max_slots
-          ? `${next.slots_filled ?? 0}/${next.max_slots} entered`
-          : `${count} open`;
-        setLiveStats((prev) => ({
-          ...prev,
-          timeMachine: { stat: "Top prize ₦20,000", sub: slots },
-        }));
-      }
-    }).catch(() => {});
-
-    // Blitz — try to get nearest open tournament
-    blitzApi.getAll().then((res) => {
-      const open = res.tournaments?.find((t) => t.status === "registration" || t.status === "active");
-      if (open) {
-        const pool = open.prize_pool > 0
-          ? `₦${open.prize_pool.toLocaleString("en-NG")} pool`
-          : "Prize pool live";
-        setLiveStats((prev) => ({
-          ...prev,
-          blitz: { stat: "Prize pools to ₦100,000", sub: `${pool} · ${open.total_registered} registered` },
-        }));
-      }
-    }).catch(() => {});
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Redirect to /pills if already authenticated
-  useEffect(() => {
-    if (state.isAuthenticated) {
-      router.push("/pills");
-    }
-  }, [state.isAuthenticated, router]);
-
-  const gameTickets = [
-    {
-      title: "Pills",
-      description: "30-second knowledge drops",
-      accentColor: "var(--accent-indigo)",
-      stat: liveStats.pills.stat,
-      sub: liveStats.pills.sub,
-    },
-    {
-      title: "Time Machine",
-      description: "Lock in your prediction before time's up",
-      accentColor: "#a78bfa",
-      stat: liveStats.timeMachine.stat,
-      sub: liveStats.timeMachine.sub,
-    },
-    {
-      title: "Blitz",
-      description: "Live tournaments — outscore everyone",
-      accentColor: "var(--accent-amber)",
-      stat: liveStats.blitz.stat,
-      sub: liveStats.blitz.sub,
-    },
-  ];
-
+// ── Gradient mesh background ───────────────────────────────────────────────
+function GradientMesh() {
   return (
-    <main className="min-h-screen bg-[--bg-base]" style={{ backgroundColor: "var(--bg-base)" }}>
-      {/* Navigation */}
-      <nav className="sticky top-0 z-50 border-b border-[--border-hairline]" style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-base)" }}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
-          {/* Logo */}
-          <div className="flex items-center gap-2">
-            <img src="/bitlyfe-mark.svg" alt="BitLyfe" width={32} height={32} />
-            <span className="font-headline text-base font-semibold" style={{ color: "var(--text-primary)" }}>bitlyfe</span>
-          </div>
-
-          {/* Desktop Nav */}
-          <div className="flex-1" />
-
-          {/* Desktop Login Button */}
-          <div className="flex items-center gap-4">
-            <Link
-              href="/signin"
-              className="px-4 py-2 text-sm font-medium border rounded-full transition-colors"
-              style={{
-                color: "var(--text-secondary)",
-                borderColor: "var(--border-subtle)",
-              }}
-            >
-              Log in
-            </Link>
-          </div>
-        </div>
-      </nav>
-
-      {/* Hero Section */}
-      <section id="games" className="px-4 sm:px-6 lg:px-8 py-16 lg:py-24">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-12 lg:gap-12 items-center">
-            {/* Left Column */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              className="space-y-8"
-            >
-              {/* Eyebrow */}
-              <div className="font-mono text-xs tracking-widest" style={{ color: "var(--accent-amber)" }}>
-                REAL STAKES, REAL FAST
-              </div>
-
-              {/* Headline */}
-              <h1 className="font-headline text-3xl sm:text-4xl lg:text-5xl leading-tight" style={{ color: "var(--text-primary)" }}>
-                Your knowledge is worth something.
-              </h1>
-
-              {/* Subtext */}
-              <p className="text-sm sm:text-base max-w-sm leading-relaxed" style={{ color: "var(--text-secondary)" }}>
-                Play quick challenges or strategic predictions. Verify your skill, build your winnings, cash out same day. No gatekeeping—just pure competition.
-              </p>
-
-              {/* Buttons */}
-              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-4">
-                <Link
-                  href="/auth"
-                  className="flex items-center justify-center gap-2 px-6 py-3 font-medium text-sm rounded-lg transition-all"
-                  style={{
-                    backgroundColor: "var(--accent-amber)",
-                    color: "#000",
-                  }}
-                >
-                  Play now <ArrowRight size={16} />
-                </Link>
-                <Link
-                  href="#how-it-works"
-                  className="flex items-center justify-center px-6 py-3 font-medium text-sm border rounded-lg transition-colors"
-                  style={{
-                    borderColor: "var(--border-subtle)",
-                    color: "var(--text-secondary)",
-                  }}
-                >
-                  See how it works
-                </Link>
-              </div>
-            </motion.div>
-
-            {/* Right Column - Game Ticket Cards */}
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              className="space-y-3 hidden lg:block"
-            >
-              {gameTickets.map((ticket, idx) => (
-                <motion.div
-                  key={ticket.title}
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.6, delay: 0.3 + idx * 0.1 }}
-                  className="rounded-r-xl overflow-hidden"
-                  style={{
-                    backgroundColor: "var(--bg-card)",
-                    borderLeft: `3px solid ${ticket.accentColor}`,
-                  }}
-                >
-                  <div className="p-4">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-headline font-semibold text-sm" style={{ color: "var(--text-primary)" }}>
-                          {ticket.title}
-                        </h3>
-                        <p className="text-xs mt-0.5 truncate" style={{ color: "var(--text-secondary)" }}>
-                          {ticket.description}
-                        </p>
-                      </div>
-                      <span className="font-mono text-sm font-bold whitespace-nowrap flex-shrink-0" style={{ color: ticket.accentColor }}>
-                        {ticket.stat}
-                      </span>
-                    </div>
-                    <p className="text-[10px] mt-2 font-mono" style={{ color: "var(--text-muted)" }}>
-                      {ticket.sub}
-                    </p>
-                  </div>
-                </motion.div>
-              ))}
-            </motion.div>
-          </div>
-
-          {/* Mobile - Stack Game Tickets Below Hero */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.4 }}
-            className="lg:hidden space-y-2 mt-12"
-          >
-            {gameTickets.map((ticket, idx) => (
-              <div
-                key={ticket.title}
-                className="rounded-r-xl overflow-hidden"
-                style={{
-                  backgroundColor: "var(--bg-card)",
-                  borderLeft: `3px solid ${ticket.accentColor}`,
-                }}
-              >
-                <div className="p-3 sm:p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-headline font-semibold text-sm" style={{ color: "var(--text-primary)" }}>
-                        {ticket.title}
-                      </h3>
-                      <p className="text-xs mt-0.5 truncate" style={{ color: "var(--text-secondary)" }}>
-                        {ticket.description}
-                      </p>
-                    </div>
-                    <span className="font-mono text-sm font-bold whitespace-nowrap flex-shrink-0" style={{ color: ticket.accentColor }}>
-                      {ticket.stat}
-                    </span>
-                  </div>
-                  <p className="text-[10px] mt-1.5 font-mono" style={{ color: "var(--text-muted)" }}>
-                    {ticket.sub}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </motion.div>
-        </div>
-      </section>
-
-      {/* ── SEE IT IN ACTION ── */}
-      <section className="px-4 sm:px-6 lg:px-8 py-16 lg:py-20 border-t" style={{ borderColor: "var(--border-hairline)" }}>
-        <div className="max-w-6xl mx-auto">
-          <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-            {/* Left: Headline & Text */}
-            <motion.div initial={{ opacity: 0, x: -20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}>
-              <h2 className="font-headline text-3xl lg:text-4xl font-semibold mb-4" style={{ color: "var(--text-primary)" }}>
-                Answer right, get paid on the spot.
-              </h2>
-              <p className="text-base leading-relaxed mb-6" style={{ color: "var(--text-secondary)" }}>
-                No long waits, no complicated withdrawals. Win a round, get your winnings instantly. Play from your phone, cash out whenever you want.
-              </p>
-              <ul className="space-y-3 text-sm">
-                {["Answer questions you know", "Get instant confirmation", "Cash out anytime"].map((item) => (
-                  <li key={item} className="flex gap-3" style={{ color: "var(--text-secondary)" }}>
-                    <span className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center" style={{ backgroundColor: "rgba(76,111,255,0.2)" }}>
-                      <span style={{ color: "var(--accent-indigo)" }}>✓</span>
-                    </span>
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </motion.div>
-
-            {/* Right: Mock Win Moment Card */}
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              className="flex justify-center"
-            >
-              <div
-                className="w-64 h-96 rounded-2xl shadow-2xl p-6 flex flex-col items-center justify-center relative overflow-hidden border"
-                style={{ borderColor: "var(--border-subtle)", backgroundColor: "var(--bg-card)" }}
-              >
-                {/* Animated floating +₦ elements */}
-                <style>{`
-                  @keyframes float-up-0 {
-                    0% { transform: translateY(0); opacity: 1; }
-                    100% { transform: translateY(-80px); opacity: 0; }
-                  }
-                  @keyframes float-up-1 {
-                    0% { transform: translateY(0); opacity: 1; }
-                    100% { transform: translateY(-80px); opacity: 0; }
-                  }
-                  @keyframes float-up-2 {
-                    0% { transform: translateY(0); opacity: 1; }
-                    100% { transform: translateY(-80px); opacity: 0; }
-                  }
-                  .float-up-0 { animation: float-up-0 2s ease-out 0s infinite; }
-                  .float-up-1 { animation: float-up-1 2s ease-out 0.5s infinite; }
-                  .float-up-2 { animation: float-up-2 2s ease-out 1s infinite; }
-                `}</style>
-                <div className="absolute float-up-0">
-                  <span className="text-xl font-mono font-bold" style={{ color: "var(--accent-indigo)" }}>+₦250</span>
-                </div>
-                <div className="absolute left-1/4 float-up-1">
-                  <span className="text-lg font-mono font-bold" style={{ color: "var(--accent-violet)" }}>+₦100</span>
-                </div>
-                <div className="absolute right-1/4 float-up-2">
-                  <span className="text-xl font-mono font-bold" style={{ color: "var(--accent-amber)" }}>+₦500</span>
-                </div>
-
-                {/* Main content */}
-                <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4 relative z-10" style={{ backgroundColor: "rgba(249,193,7,0.15)" }}>
-                  <motion.div
-                    animate={{ scale: [1, 1.1, 1] }}
-                    transition={{ duration: 2, repeat: Infinity }}
-                    className="w-full h-full rounded-full flex items-center justify-center"
-                  >
-                    <span className="text-2xl" style={{ color: "var(--accent-amber)" }}>✓</span>
-                  </motion.div>
-                </div>
-
-                <p className="text-2xl font-mono font-bold text-center mb-3 relative z-10" style={{ color: "var(--text-primary)" }}>
-                  Correct!
-                </p>
-                <p className="text-3xl font-mono font-black text-center mb-6 relative z-10" style={{ color: "var(--accent-indigo)" }}>
-                  +₦500
-                </p>
-
-                <div className="border-t w-full pt-4 relative z-10" style={{ borderColor: "var(--border-hairline)" }}>
-                  <p className="text-xs text-center mb-1" style={{ color: "var(--text-muted)" }}>Your balance</p>
-                  <p className="font-mono text-lg font-bold text-center" style={{ color: "var(--accent-indigo)" }}>
-                    ₦2,850
-                  </p>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── WHAT'S UP FOR GRABS ── */}
-      <section className="px-4 sm:px-6 lg:px-8 py-16 lg:py-20 border-t" style={{ borderColor: "var(--border-hairline)" }}>
-        <div className="max-w-4xl mx-auto text-center">
-          <motion.h2
-            initial={{ opacity: 0, y: 12 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="font-headline text-3xl lg:text-4xl font-semibold mb-2"
-            style={{ color: "var(--text-primary)" }}
-          >
-            Real naira. Every single mode.
-          </motion.h2>
-          <motion.p
-            initial={{ opacity: 0, y: 12 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.05 }}
-            className="text-sm mb-12"
-            style={{ color: "var(--text-secondary)" }}
-          >
-            Prize pools scale with participation. The more players, the bigger the pot.
-          </motion.p>
-
-          {/* Prize cards */}
-          <div className="grid md:grid-cols-3 gap-6 mb-6">
-            {[
-              { name: "Pills", upTo: "₦2,000", color: "var(--accent-indigo)", accent: "rgba(76,111,255,0.15)" },
-              { name: "Time Machine", upTo: "₦5,000", color: "#A78BFA", accent: "rgba(167,139,250,0.15)" },
-              { name: "Blitz", upTo: "₦50,000", color: "var(--accent-amber)", accent: "rgba(251,146,60,0.15)", emphasized: true },
-            ].map((prize) => (
-              <motion.div
-                key={prize.name}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: 0.1 }}
-                className={`rounded-2xl p-8 border transition-all ${
-                  prize.emphasized
-                    ? "lg:scale-105 lg:ring-2"
-                    : ""
-                }`}
-                style={{
-                  borderColor: prize.emphasized ? prize.color : "var(--border-subtle)",
-                  backgroundColor: prize.accent,
-                  ...(prize.emphasized && { boxShadow: `0 0 20px ${prize.color}30`, ringColor: prize.color }),
-                }}
-              >
-                <h3 className="font-headline text-base font-semibold mb-3" style={{ color: prize.color }}>
-                  {prize.name}
-                </h3>
-                <p className="font-mono text-3xl font-black" style={{ color: prize.color }}>
-                  {prize.upTo}
-                </p>
-                <p className="text-xs mt-2" style={{ color: "var(--text-muted)" }}>
-                  up to
-                </p>
-              </motion.div>
-            ))}
-          </div>
-
-          {/* Disclaimer */}
-          <motion.p
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.2 }}
-            className="text-xs"
-            style={{ color: "var(--text-muted)" }}
-          >
-            Actual prizes depend on entries and current registrations — shown live before you join.
-          </motion.p>
-        </div>
-      </section>
-
-      {/* How It Works - Games Section */}
-      <section id="how-it-works" className="px-4 sm:px-6 lg:px-8 py-16 lg:py-20 border-t" style={{ borderColor: "var(--border-hairline)" }}>
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="font-headline text-2xl sm:text-3xl" style={{ color: "var(--text-primary)" }}>
-              Three steps to start playing
-            </h2>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
-            {[
-              {
-                number: "1",
-                title: "Fund your wallet",
-                description: "Add funds via Paystack. Takes seconds.",
-              },
-              {
-                number: "2",
-                title: "Pick your mode",
-                description: "Pills for instant wins. Predictions for strategy. Blitz for tournaments.",
-              },
-              {
-                number: "3",
-                title: "Play and cash out",
-                description: "Win instantly or wait for results. Withdraw to your bank anytime.",
-              },
-            ].map((step, idx) => (
-              <motion.div
-                key={step.number}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: idx * 0.1 }}
-                viewport={{ once: true }}
-                className="rounded-xl p-6 border"
-                style={{
-                  backgroundColor: "var(--bg-card)",
-                  borderColor: "var(--border-subtle)",
-                }}
-              >
-                <div
-                  className="w-8 h-8 rounded-full flex items-center justify-center font-headline font-semibold text-xs mb-4"
-                  style={{
-                    backgroundColor: "var(--accent-amber)",
-                    color: "#000",
-                  }}
-                >
-                  {step.number}
-                </div>
-                <h3 className="font-headline font-semibold text-base mb-2" style={{ color: "var(--text-primary)" }}>
-                  {step.title}
-                </h3>
-                <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-                  {step.description}
-                </p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="border-t px-4 sm:px-6 lg:px-8 py-12" style={{ borderColor: "var(--border-hairline)" }}>
-        <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-8">
-            {/* Logo Column */}
-            <div>
-              <div className="flex items-center gap-3 mb-3">
-                <img src="/bitlyfe-mark.svg" alt="BitLyfe" width={40} height={40}
-                  style={{ filter: "drop-shadow(0 0 8px rgba(76,111,255,0.6)) brightness(1.3)" }} />
-                <span className="font-headline text-xl font-black" style={{ color: "var(--text-primary)", letterSpacing: "-0.02em" }}>bitlyfe</span>
-              </div>
-              <p className="text-xs font-semibold" style={{ color: "var(--accent-amber)" }}>
-                Real stakes, real fast
-              </p>
-            </div>
-
-            {/* Games Column */}
-            <div>
-              <h4 className="font-headline font-semibold text-xs mb-4 uppercase tracking-wider" style={{ color: "var(--text-primary)" }}>
-                Games
-              </h4>
-              <ul className="space-y-2">
-                <li>
-                  <Link href="/pills" className="text-xs" style={{ color: "var(--text-secondary)" }}>
-                    Pills
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/time-machine" className="text-xs" style={{ color: "var(--text-secondary)" }}>
-                    Time Machine
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/blitz" className="text-xs" style={{ color: "var(--text-secondary)" }}>
-                    Blitz
-                  </Link>
-                </li>
-              </ul>
-            </div>
-
-            {/* Info Column */}
-            <div>
-              <h4 className="font-headline font-semibold text-xs mb-4 uppercase tracking-wider" style={{ color: "var(--text-primary)" }}>
-                Info
-              </h4>
-              <ul className="space-y-2">
-                <li>
-                  <Link href="/#how-it-works" className="text-xs" style={{ color: "var(--text-secondary)" }}>
-                    How it works
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/support" className="text-xs" style={{ color: "var(--text-secondary)" }}>
-                    Support
-                  </Link>
-                </li>
-              </ul>
-            </div>
-
-            {/* Legal Column */}
-            <div>
-              <h4 className="font-headline font-semibold text-xs mb-4 uppercase tracking-wider" style={{ color: "var(--text-primary)" }}>
-                Legal
-              </h4>
-              <ul className="space-y-2">
-                <li>
-                  <Link href="/terms" className="text-xs" style={{ color: "var(--text-secondary)" }}>
-                    Terms
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/privacy" className="text-xs" style={{ color: "var(--text-secondary)" }}>
-                    Privacy
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/responsible-play" className="text-xs" style={{ color: "var(--text-secondary)" }}>
-                    Responsible play
-                  </Link>
-                </li>
-              </ul>
-            </div>
-          </div>
-
-          {/* Bottom Bar */}
-          <div className="border-t pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs" style={{ borderColor: "var(--border-hairline)", color: "var(--text-secondary)" }}>
-            <span>© 2026 bitlyfe</span>
-            <span>Payments secured by Paystack</span>
-            <Link href="/admin" className="hover:underline">
-              Admin
-            </Link>
-          </div>
-        </div>
-      </footer>
-    </main>
+    <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
+      <div className="animate-blob-1 absolute -left-[10%] top-[-15%] h-[55vh] w-[55vh] rounded-full blur-[100px]"
+        style={{ backgroundColor: "rgba(76,111,255,0.40)" }} />
+      <div className="animate-blob-2 absolute right-[-10%] top-[10%] h-[50vh] w-[50vh] rounded-full blur-[110px]"
+        style={{ backgroundColor: "rgba(124,111,232,0.35)" }} />
+      <div className="animate-blob-3 absolute bottom-[-20%] left-[25%] h-[45vh] w-[45vh] rounded-full blur-[120px]"
+        style={{ backgroundColor: "rgba(232,163,61,0.20)" }} />
+      <div className="absolute inset-0"
+        style={{ background: "radial-gradient(ellipse at center, transparent 35%, var(--brand-bg, #080B14) 95%)" }} />
+    </div>
   );
 }
 
-function StatItem({ label, value }: { label: string; value: string }) {
+// ── CountUp ────────────────────────────────────────────────────────────────
+function CountUp({ to, duration = 2, prefix = "" }: { to: number; duration?: number; prefix?: string }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const inView = useInView(ref, { once: true, margin: "-80px" });
+  const [value, setValue] = useState(0);
+  useEffect(() => {
+    if (!inView) return;
+    let raf = 0;
+    const start = performance.now();
+    const tick = (now: number) => {
+      const progress = Math.min((now - start) / (duration * 1000), 1);
+      const eased = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
+      setValue(Math.round(to * eased));
+      if (progress < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [inView, to, duration]);
+  return <span ref={ref}>{prefix}{value.toLocaleString("en-NG")}</span>;
+}
+
+// ── Winner ticker ─────────────────────────────────────────────────────────
+const WINNERS = [
+  { phone: "0803***7891", amount: "₦80,000" },
+  { phone: "0706***2214", amount: "₦12,500" },
+  { phone: "0813***0098", amount: "₦150,000" },
+  { phone: "0902***4471", amount: "₦5,000" },
+  { phone: "0817***6620", amount: "₦42,000" },
+  { phone: "0705***1183", amount: "₦25,000" },
+  { phone: "0809***9925", amount: "₦300,000" },
+  { phone: "0814***3307", amount: "₦18,750" },
+];
+
+function Ticker() {
+  const items = [...WINNERS, ...WINNERS];
   return (
-    <div className="flex flex-col items-center sm:items-start">
-      <div className="font-mono text-sm sm:text-base font-medium" style={{ color: "var(--text-primary)" }}>
-        {value}
+    <section aria-label="Recent winners"
+      className="relative flex overflow-hidden border-y py-4"
+      style={{ borderColor: "var(--border)", backgroundColor: "rgba(255,255,255,0.03)" }}>
+      <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-24"
+        style={{ background: "linear-gradient(to right, var(--brand-bg, #080B14), transparent)" }} />
+      <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-24"
+        style={{ background: "linear-gradient(to left, var(--brand-bg, #080B14), transparent)" }} />
+      <div className="animate-marquee flex shrink-0 items-center gap-4 pr-4">
+        {items.map((w, i) => (
+          <div key={i} className="flex items-center gap-2.5 whitespace-nowrap rounded-full border px-4 py-2 text-sm"
+            style={{ borderColor: "var(--border)", backgroundColor: "rgba(18,22,31,0.5)" }}>
+            <Trophy className="h-4 w-4" style={{ color: "var(--brand-amber)" }} />
+            <span className="font-mono" style={{ color: "var(--muted-foreground)" }}>{w.phone}</span>
+            <span style={{ color: "var(--muted-foreground)" }}>just won</span>
+            <span className="font-bold" style={{ color: "var(--brand-green)" }}>{w.amount}</span>
+          </div>
+        ))}
       </div>
-      <div className="text-xs mt-1" style={{ color: "var(--text-secondary)" }}>
-        {label}
+    </section>
+  );
+}
+
+// ── Countdown hook ────────────────────────────────────────────────────────
+function useCountdown(seconds: number) {
+  const [time, setTime] = useState(seconds);
+  useEffect(() => {
+    const id = setInterval(() => setTime((t) => (t <= 0 ? seconds : t - 1)), 1000);
+    return () => clearInterval(id);
+  }, [seconds]);
+  return time;
+}
+
+// ── Hero ──────────────────────────────────────────────────────────────────
+const container = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.12, delayChildren: 0.1 } },
+};
+const item = {
+  hidden: { opacity: 0, y: 24 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] as const } },
+};
+
+function Hero() {
+  const time = useCountdown(15);
+  const pct = (time / 15) * 100;
+  return (
+    <section className="relative flex min-h-screen flex-col overflow-hidden" style={{ backgroundColor: "var(--brand-bg)" }}>
+      <GradientMesh />
+      {/* Nav */}
+      <div className="relative z-10 mx-auto flex w-full max-w-7xl items-center justify-between px-5 py-6">
+        {/* Logo */}
+        <div className="flex items-center gap-2">
+          <span className="grid h-8 w-8 place-items-center rounded-lg"
+            style={{ backgroundColor: "var(--brand-indigo)", boxShadow: "0 0 20px -2px var(--brand-indigo)" }}>
+            <Zap className="h-4 w-4 fill-white text-white" strokeWidth={2.5} />
+          </span>
+          <span className="font-display text-xl font-extrabold tracking-tight" style={{ color: "var(--foreground)" }}>
+            Bit<span style={{ color: "var(--brand-amber)" }}>lyfe</span>
+          </span>
+        </div>
+        <Link href="/signin"
+          className="hidden rounded-full border px-5 py-2 text-sm font-semibold backdrop-blur-sm transition-colors hover:bg-white/10 sm:inline-block"
+          style={{ borderColor: "rgba(255,255,255,0.15)", color: "var(--foreground)", backgroundColor: "rgba(255,255,255,0.05)" }}>
+          Sign in
+        </Link>
       </div>
-    </div>
+
+      {/* Content */}
+      <div className="relative z-10 mx-auto grid w-full max-w-7xl flex-1 items-center gap-12 px-5 py-10 lg:grid-cols-[1.1fr_0.9fr] lg:py-16">
+        <motion.div variants={container} initial="hidden" animate="show" className="max-w-2xl">
+          <motion.span variants={item}
+            className="inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm font-medium"
+            style={{ borderColor: "rgba(232,163,61,0.3)", backgroundColor: "rgba(232,163,61,0.1)", color: "var(--brand-amber)" }}>
+            <Sparkles className="h-3.5 w-3.5" />
+            Nigeria&apos;s fastest real-money trivia
+          </motion.span>
+
+          <motion.h1 variants={item}
+            className="mt-6 font-display text-5xl font-extrabold leading-[0.95] tracking-tight sm:text-6xl lg:text-7xl xl:text-8xl"
+            style={{ color: "var(--foreground)" }}>
+            Real Stakes.<br />
+            <span style={{ color: "var(--brand-amber)" }}>Real Fast.</span>
+          </motion.h1>
+
+          <motion.p variants={item} className="mt-6 max-w-lg text-lg leading-relaxed" style={{ color: "var(--muted-foreground)" }}>
+            Answer a question, predict the future, win instantly. Pay a small entry, beat the clock,
+            and cash out — straight to your phone.
+          </motion.p>
+
+          <motion.div variants={item} className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
+            <Link href="/auth"
+              className="group inline-flex items-center justify-center gap-2 rounded-full px-7 py-4 text-base font-bold transition-transform hover:scale-[1.03] active:scale-100"
+              style={{ backgroundColor: "var(--brand-amber)", color: "#080B14", boxShadow: "0 8px 30px -6px var(--brand-amber)" }}>
+              Play Now — It&apos;s Free to Join
+              <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
+            </Link>
+            <span className="text-sm" style={{ color: "var(--muted-foreground)" }}>
+              Works like an app — no App Store needed. Add to home screen.
+            </span>
+          </motion.div>
+
+          <motion.div variants={item} className="mt-10 flex items-center gap-6 text-sm" style={{ color: "var(--muted-foreground)" }}>
+            <div>
+              <span className="block font-display text-2xl font-bold" style={{ color: "var(--foreground)" }}>₦2.4M+</span>
+              paid this week
+            </div>
+            <div className="h-8 w-px" style={{ backgroundColor: "var(--border)" }} />
+            <div>
+              <span className="block font-display text-2xl font-bold" style={{ color: "var(--foreground)" }}>12k+</span>
+              daily players
+            </div>
+          </motion.div>
+        </motion.div>
+
+        {/* Floating question pill card */}
+        <div className="relative flex justify-center lg:justify-end">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 30 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
+            className="w-full max-w-sm">
+            <motion.div
+              animate={{ y: [0, -14, 0] }}
+              transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+              className="relative rounded-[2rem] border p-6 shadow-2xl backdrop-blur-xl"
+              style={{ borderColor: "rgba(255,255,255,0.1)", backgroundColor: "rgba(18,22,31,0.7)" }}>
+              {/* glow pulse */}
+              <motion.div aria-hidden="true"
+                animate={{ opacity: [0.35, 0.7, 0.35] }}
+                transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                className="absolute -inset-px -z-10 rounded-[2rem] blur-2xl"
+                style={{ backgroundColor: "rgba(76,111,255,0.4)" }} />
+              <div className="flex items-center justify-between">
+                <span className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold"
+                  style={{ backgroundColor: "rgba(76,111,255,0.15)", color: "var(--brand-indigo)" }}>
+                  <span className="h-2 w-2 animate-pulse rounded-full" style={{ backgroundColor: "var(--brand-indigo)" }} />
+                  LIVE PILL
+                </span>
+                <span className="inline-flex items-center gap-1.5 text-sm font-bold" style={{ color: "var(--brand-amber)" }}>
+                  <Timer className="h-4 w-4" />
+                  0:{time.toString().padStart(2, "0")}
+                </span>
+              </div>
+              {/* countdown bar */}
+              <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full" style={{ backgroundColor: "rgba(255,255,255,0.1)" }}>
+                <div className="h-full rounded-full transition-[width] duration-1000 ease-linear"
+                  style={{ width: `${pct}%`, backgroundColor: "var(--brand-amber)" }} />
+              </div>
+              <p className="mt-5 font-display text-xl font-bold leading-snug" style={{ color: "var(--foreground)" }}>
+                Which Nigerian city is nicknamed the &ldquo;Centre of Excellence&rdquo;?
+              </p>
+              <div className="mt-5 grid gap-2.5">
+                {["Lagos", "Abuja", "Ibadan", "Kano"].map((opt, i) => (
+                  <button key={opt}
+                    className="flex items-center justify-between rounded-xl border px-4 py-3 text-left text-sm font-semibold transition-colors"
+                    style={i === 0
+                      ? { borderColor: "rgba(76,111,255,0.6)", backgroundColor: "rgba(76,111,255,0.15)", color: "var(--foreground)" }
+                      : { borderColor: "rgba(255,255,255,0.1)", backgroundColor: "rgba(255,255,255,0.05)", color: "var(--muted-foreground)" }}>
+                    <span>{opt}</span>
+                    <span className="grid h-5 w-5 place-items-center rounded-md border text-xs" style={{ borderColor: "rgba(255,255,255,0.15)" }}>
+                      {String.fromCharCode(65 + i)}
+                    </span>
+                  </button>
+                ))}
+              </div>
+              <div className="mt-5 flex items-center justify-between text-xs" style={{ color: "var(--muted-foreground)" }}>
+                <span>Entry: ₦200</span>
+                <span className="font-bold" style={{ color: "var(--brand-green)" }}>Win up to ₦600,000</span>
+              </div>
+            </motion.div>
+          </motion.div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ── Products ──────────────────────────────────────────────────────────────
+const PRODUCTS = [
+  { icon: Zap, name: "Pills", tagline: "Answer & win instantly", color: "var(--brand-indigo)",
+    description: "Answer a question, win instantly. Timer counts down in real time — beat the clock to cash out." },
+  { icon: Clock, name: "Time Machine", tagline: "Predict the future", color: "var(--brand-violet)",
+    description: "Predict the future. Enter before the deadline, collect if you're right. Bigger calls, bigger wins." },
+  { icon: GraduationCap, name: "Specials", tagline: "High-stakes challenges · up to ₦600,000", color: "var(--brand-amber)",
+    description: "Exam-format challenges. One attempt, no second chances. High stakes for the sharpest minds." },
+];
+
+function Products() {
+  return (
+    <section className="mx-auto w-full max-w-7xl px-5 py-20 lg:py-28">
+      <div className="max-w-2xl">
+        <h2 className="font-display text-4xl font-extrabold tracking-tight sm:text-5xl" style={{ color: "var(--foreground)" }}>
+          Three ways to <span style={{ color: "var(--brand-indigo)" }}>win</span>
+        </h2>
+        <p className="mt-4 text-lg leading-relaxed" style={{ color: "var(--muted-foreground)" }}>
+          Pick your game. Every format is fast, fair, and pays out the moment you win.
+        </p>
+      </div>
+      <div className="mt-12 flex snap-x snap-mandatory gap-5 overflow-x-auto pb-4 md:grid md:grid-cols-3 md:overflow-visible">
+        {PRODUCTS.map((p, i) => (
+          <motion.article key={p.name}
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-60px" }}
+            transition={{ duration: 0.55, delay: i * 0.12, ease: [0.22, 1, 0.36, 1] }}
+            className="group relative min-w-[80%] shrink-0 snap-center rounded-3xl border p-7 sm:min-w-[60%] md:min-w-0"
+            style={{ borderColor: "var(--border)", backgroundColor: "rgba(18,22,31,0.5)" }}>
+            {/* animated border glow on hover */}
+            <div aria-hidden="true"
+              className="pointer-events-none absolute -inset-px -z-10 rounded-3xl opacity-0 blur-md transition-opacity duration-500 group-hover:opacity-60"
+              style={{ background: p.color }} />
+            <motion.div
+              animate={{ y: [0, -8, 0] }}
+              transition={{ duration: 4 + i, repeat: Infinity, ease: "easeInOut" }}
+              className="grid h-14 w-14 place-items-center rounded-2xl"
+              style={{ backgroundColor: `color-mix(in srgb, ${p.color} 18%, transparent)` }}>
+              <p.icon className="h-7 w-7" style={{ color: p.color }} strokeWidth={2.2} />
+            </motion.div>
+            <h3 className="mt-6 font-display text-2xl font-bold" style={{ color: "var(--foreground)" }}>{p.name}</h3>
+            <p className="mt-1 text-sm font-semibold" style={{ color: p.color }}>{p.tagline}</p>
+            <p className="mt-4 leading-relaxed" style={{ color: "var(--muted-foreground)" }}>{p.description}</p>
+          </motion.article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+// ── How it works ──────────────────────────────────────────────────────────
+const STEPS = [
+  { n: "01", icon: Wallet, title: "Pay entry", copy: "Fund your wallet and join a game from as little as ₦200." },
+  { n: "02", icon: MousePointerClick, title: "Answer", copy: "Beat the countdown with the right answer or prediction." },
+  { n: "03", icon: PartyPopper, title: "Win instantly", copy: "Winnings hit your wallet the moment the round closes." },
+];
+
+function HowItWorks() {
+  return (
+    <section className="relative border-y py-20 lg:py-28"
+      style={{ borderColor: "var(--border)", backgroundColor: "rgba(255,255,255,0.02)" }}>
+      <div className="mx-auto w-full max-w-7xl px-5">
+        <div className="max-w-2xl">
+          <h2 className="font-display text-4xl font-extrabold tracking-tight sm:text-5xl" style={{ color: "var(--foreground)" }}>
+            How it works
+          </h2>
+          <p className="mt-4 text-lg leading-relaxed" style={{ color: "var(--muted-foreground)" }}>
+            Three steps between you and a payout. No middlemen, no waiting.
+          </p>
+        </div>
+        <div className="mt-14 grid gap-10 md:grid-cols-3">
+          {STEPS.map((s, i) => (
+            <motion.div key={s.n}
+              initial={{ opacity: 0, y: 40 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-60px" }}
+              transition={{ duration: 0.55, delay: i * 0.15, ease: [0.22, 1, 0.36, 1] }}
+              className="relative">
+              <motion.span
+                initial={{ opacity: 0, scale: 0.6 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true, margin: "-60px" }}
+                transition={{ duration: 0.5, delay: i * 0.15 + 0.1, ease: [0.34, 1.56, 0.64, 1] }}
+                className="block font-display text-6xl font-extrabold"
+                style={{ color: "rgba(76,111,255,0.25)" }}>
+                {s.n}
+              </motion.span>
+              <div className="mt-4 grid h-12 w-12 place-items-center rounded-xl border"
+                style={{ borderColor: "var(--border)", backgroundColor: "var(--card)" }}>
+                <s.icon className="h-6 w-6" style={{ color: "var(--brand-amber)" }} strokeWidth={2.2} />
+              </div>
+              <h3 className="mt-5 font-display text-2xl font-bold" style={{ color: "var(--foreground)" }}>{s.title}</h3>
+              <p className="mt-2 leading-relaxed" style={{ color: "var(--muted-foreground)" }}>{s.copy}</p>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ── Payout CTA ────────────────────────────────────────────────────────────
+function Payout() {
+  const AVATAR_COLORS = ["var(--brand-indigo)", "var(--brand-violet)", "var(--brand-amber)", "var(--brand-green)", "var(--brand-indigo)"];
+  return (
+    <section id="play" className="mx-auto w-full max-w-7xl px-5 py-20 lg:py-28">
+      <motion.div
+        initial={{ opacity: 0, y: 40 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: "-80px" }}
+        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+        className="relative overflow-hidden rounded-[2.5rem] border px-6 py-14 text-center sm:px-12"
+        style={{ borderColor: "var(--border)", backgroundColor: "rgba(18,22,31,0.6)" }}>
+        <div aria-hidden="true"
+          className="pointer-events-none absolute left-1/2 top-0 h-72 w-72 -translate-x-1/2 rounded-full blur-[100px]"
+          style={{ backgroundColor: "rgba(76,111,255,0.25)" }} />
+        <div className="relative">
+          <span className="inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm font-semibold"
+            style={{ borderColor: "rgba(34,197,94,0.3)", backgroundColor: "rgba(34,197,94,0.1)", color: "var(--brand-green)" }}>
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-75"
+                style={{ backgroundColor: "var(--brand-green)" }} />
+              <span className="relative inline-flex h-2.5 w-2.5 rounded-full"
+                style={{ backgroundColor: "var(--brand-green)" }} />
+            </span>
+            Live payouts
+          </span>
+          <p className="mt-6 font-display text-6xl font-extrabold tracking-tight sm:text-7xl lg:text-8xl"
+            style={{ color: "var(--foreground)" }}>
+            <CountUp to={2400000} prefix="₦" duration={2.4} />
+          </p>
+          <p className="mt-3 text-lg" style={{ color: "var(--muted-foreground)" }}>paid out this week</p>
+          <div className="mt-10 flex items-center justify-center">
+            <div className="flex -space-x-3">
+              {AVATAR_COLORS.map((c, i) => (
+                <span key={i} className="h-11 w-11 rounded-full border-2 blur-[1.5px]"
+                  aria-hidden="true"
+                  style={{ background: `radial-gradient(circle at 30% 30%, ${c}, transparent 90%)`, backgroundColor: c, borderColor: "var(--brand-bg)" }} />
+              ))}
+              <span className="grid h-11 w-11 place-items-center rounded-full border-2 text-xs font-bold"
+                style={{ backgroundColor: "var(--secondary)", borderColor: "var(--brand-bg)", color: "var(--foreground)" }}>
+                +9k
+              </span>
+            </div>
+          </div>
+          <p className="mt-4 text-sm" style={{ color: "var(--muted-foreground)" }}>
+            Join 9,000+ winners cashing out this week.
+          </p>
+          <Link href="/auth"
+            className="group mt-9 inline-flex items-center justify-center gap-2 rounded-full px-8 py-4 text-base font-bold transition-transform hover:scale-[1.03] active:scale-100"
+            style={{ backgroundColor: "var(--brand-amber)", color: "#080B14", boxShadow: "0 8px 30px -6px var(--brand-amber)" }}>
+            Play Now — It&apos;s Free to Join
+            <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
+          </Link>
+        </div>
+      </motion.div>
+    </section>
+  );
+}
+
+// ── Footer ────────────────────────────────────────────────────────────────
+function Footer() {
+  return (
+    <footer className="border-t py-10" style={{ borderColor: "var(--border)", backgroundColor: "var(--brand-bg)" }}>
+      <div className="mx-auto flex w-full max-w-7xl flex-col items-center gap-6 px-5 sm:flex-row sm:justify-between">
+        <div className="flex items-center gap-2">
+          <span className="grid h-7 w-7 place-items-center rounded-lg"
+            style={{ backgroundColor: "var(--brand-indigo)" }}>
+            <Zap className="h-3.5 w-3.5 fill-white text-white" strokeWidth={2.5} />
+          </span>
+          <span className="font-display text-lg font-extrabold tracking-tight" style={{ color: "var(--foreground)" }}>
+            Bit<span style={{ color: "var(--brand-amber)" }}>lyfe</span>
+          </span>
+        </div>
+        <div className="flex items-center gap-6 text-sm" style={{ color: "var(--muted-foreground)" }}>
+          <Link href="/terms" className="transition-colors hover:text-white">Terms</Link>
+          <Link href="/privacy" className="transition-colors hover:text-white">Privacy</Link>
+          <Link href="/support" className="transition-colors hover:text-white">Support</Link>
+        </div>
+        <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>© 2026 Bitlyfe</p>
+      </div>
+    </footer>
+  );
+}
+
+// ── Main page ─────────────────────────────────────────────────────────────
+export default function LandingPage() {
+  const { state, hydrated } = useApp();
+  const router = useRouter();
+
+  // Redirect authenticated players straight to the app
+  useEffect(() => {
+    if (hydrated && state.isAuthenticated) router.replace("/pills");
+  }, [hydrated, state.isAuthenticated, router]);
+
+  if (hydrated && state.isAuthenticated) return null;
+
+  return (
+    <main style={{ backgroundColor: "var(--brand-bg)", color: "var(--foreground)", minHeight: "100vh" }}>
+      <Hero />
+      <Ticker />
+      <Products />
+      <HowItWorks />
+      <Payout />
+      <Footer />
+    </main>
   );
 }

@@ -16,7 +16,19 @@
   --accent-violet: #7C6FE8;
   --border-subtle: #2A3040;
   --border-hairline: #1C2130;
-  
+
+  /* v0 landing page tokens */
+  --brand-bg: #080B14;
+  --brand-indigo: #4C6FFF;
+  --brand-violet: #7C6FE8;
+  --brand-amber: #E8A33D;
+  --brand-green: #22c55e;
+  --foreground: #F2EFE9;
+  --muted-foreground: #8A93A6;
+  --border: #2A3040;
+  --card: #12161F;
+  --secondary: #1C2130;
+
   /* Legacy tokens for compatibility */
   --neon: #00FF66;
   --gold: #FFD700;
@@ -287,3 +299,52 @@ body {
   animation: live-pulse 1.8s ease-in-out infinite;
   flex-shrink: 0;
 }
+
+/* ── Landing page (v0) animations ─────────────────────────────────────── */
+@keyframes blob-1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33%       { transform: translate(4%, 6%) scale(1.06); }
+  66%       { transform: translate(-3%, 3%) scale(0.97); }
+}
+@keyframes blob-2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33%       { transform: translate(-5%, -4%) scale(1.04); }
+  66%       { transform: translate(3%, -6%) scale(0.98); }
+}
+@keyframes blob-3 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33%       { transform: translate(5%, -5%) scale(1.05); }
+  66%       { transform: translate(-4%, 4%) scale(0.96); }
+}
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+.animate-blob-1 { animation: blob-1 12s ease-in-out infinite; }
+.animate-blob-2 { animation: blob-2 15s ease-in-out infinite; }
+.animate-blob-3 { animation: blob-3 18s ease-in-out infinite; }
+.animate-marquee { animation: marquee 32s linear infinite; }
+
+/* Landing page Tailwind token bridge */
+.bg-brand-bg      { background-color: var(--brand-bg); }
+.bg-brand-indigo  { background-color: var(--brand-indigo); }
+.bg-brand-violet  { background-color: var(--brand-violet); }
+.bg-brand-amber   { background-color: var(--brand-amber); }
+.bg-brand-green   { background-color: var(--brand-green); }
+.bg-card          { background-color: var(--card); }
+.bg-secondary     { background-color: var(--secondary); }
+.text-foreground  { color: var(--foreground); }
+.text-muted-foreground { color: var(--muted-foreground); }
+.text-brand-indigo { color: var(--brand-indigo); }
+.text-brand-amber  { color: var(--brand-amber); }
+.text-brand-green  { color: var(--brand-green); }
+.text-brand-bg     { color: var(--brand-bg); }
+.border-border     { border-color: var(--border); }
+.border-brand-indigo { border-color: var(--brand-indigo); }
+.border-brand-amber  { border-color: var(--brand-amber); }
+.border-brand-green  { border-color: var(--brand-green); }
+.border-brand-bg     { border-color: var(--brand-bg); }
+.font-display { font-family: 'Space Grotesk', sans-serif; }
+.shadow-\[0_8px_30px_-6px_var\(--brand-amber\)\] { box-shadow: 0 8px 30px -6px var(--brand-amber); }
+.shadow-\[0_0_20px_-2px_var\(--brand-indigo\)\]   { box-shadow: 0 0 20px -2px var(--brand-indigo); }
