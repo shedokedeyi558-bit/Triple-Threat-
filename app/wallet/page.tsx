@@ -199,6 +199,21 @@ export default function WalletPage() {
       .finally(() => setTicketsLoading(false));
   }, [refreshBalance]);
 
+  // Refetch transactions when player navigates back to this tab
+  // (e.g. after winning a pill game) — prevents stale history
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === "visible") {
+        refreshBalance();
+        walletApi.getTransactions()
+          .then((data) => setTransactions(data.transactions))
+          .catch(() => {});
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [refreshBalance]);
+
   // Load bank list once when withdraw tab is first opened
   const banksLoadedRef = useRef(false);
   const handleTabChange = useCallback((t: "deposit" | "withdraw") => {
