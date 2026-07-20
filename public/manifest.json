@@ -4,8 +4,8 @@
   "description": "Real-money trivia and prediction platform. Pick a pill, predict the future, win real Naira.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0B0E14",
-  "theme_color": "#0B0E14",
+  "background_color": "#080B14",
+  "theme_color": "#E8A33D",
   "orientation": "portrait",
   "icons": [
     {
