@@ -158,7 +158,7 @@ function Hero() {
             <Link href="/auth"
               className="group inline-flex items-center justify-center gap-2 rounded-full px-7 py-4 text-base font-bold transition-transform hover:scale-[1.03] active:scale-100"
               style={{ backgroundColor: "var(--brand-amber)", color: "#080B14", boxShadow: "0 8px 30px -6px var(--brand-amber)" }}>
-              Play Now — It&apos;s Free to Join
+              Play Now
               <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
             </Link>
             <span className="text-sm" style={{ color: "var(--muted-foreground)" }}>
@@ -394,7 +394,7 @@ function Payout() {
           <Link href="/auth"
             className="group mt-9 inline-flex items-center justify-center gap-2 rounded-full px-8 py-4 text-base font-bold transition-transform hover:scale-[1.03] active:scale-100"
             style={{ backgroundColor: "var(--brand-amber)", color: "#080B14", boxShadow: "0 8px 30px -6px var(--brand-amber)" }}>
-            Play Now — It&apos;s Free to Join
+            Play Now
             <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
           </Link>
         </div>
