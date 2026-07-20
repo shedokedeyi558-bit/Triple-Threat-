@@ -271,9 +271,8 @@ export default function AdminPillsPage() {
                   onClick={() => setExpandedActions(isExpanded ? null : pack.id)}>
                   {/* Category + name + badges */}
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
+                    <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
                       <span className="text-[10px] font-bold uppercase tracking-widest text-gray-500 flex-shrink-0">{pack.category}</span>
-                      <span className="text-sm font-semibold text-white truncate">{pack.name}</span>
                       {isSpecial && (
                         <span className="text-[9px] font-black px-1.5 py-0.5 rounded flex items-center gap-0.5 flex-shrink-0"
                           style={{ backgroundColor: "rgba(232,163,61,0.15)", color: "var(--accent-amber)", border: "1px solid rgba(232,163,61,0.3)" }}>
@@ -286,7 +285,15 @@ export default function AdminPillsPage() {
                           <Star size={8} fill="currentColor" /> FEATURED
                         </span>
                       )}
+                      {available === 0 && !isSpecial && (
+                        <span className="text-[9px] font-black px-1.5 py-0.5 rounded flex-shrink-0"
+                          style={{ backgroundColor: "rgba(255,255,255,0.05)", color: "var(--text-muted)", border: "1px solid var(--border-hairline)" }}>
+                          SOLD OUT
+                        </span>
+                      )}
                     </div>
+                    {/* Name on its own line — wraps freely, no truncate */}
+                    <p className="text-sm font-semibold text-white leading-snug">{pack.name}</p>
                   </div>
 
                   {/* Inline stats — readable labels */}
