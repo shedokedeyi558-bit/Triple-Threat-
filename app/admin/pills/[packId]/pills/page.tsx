@@ -196,7 +196,7 @@ export default function AdminStandardPackPillsPage() {
                 <div className="flex items-center gap-1 pt-0.5">
                   <Clock size={10} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
                   <span className="text-xs font-mono" style={{ color: "var(--text-secondary)" }}>
-                    {pill.timer}s
+                    {pill.timer ? `${pill.timer}s` : "—"}
                   </span>
                 </div>
 
