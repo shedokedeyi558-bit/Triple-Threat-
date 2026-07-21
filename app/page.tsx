@@ -198,8 +198,8 @@ function Hero() {
           </motion.h1>
 
           <motion.p variants={item} className="mt-4 text-base leading-relaxed sm:text-lg" style={{ color: "var(--muted-foreground)", maxWidth: "42ch" }}>
-            Answer one question. ₦200 in. Up to ₦600,000 out — straight to your phone.
-            No luck. No algorithm. Just you and what you know.
+            The smarter you are, the more you walk away with.<br />
+            Most people won&apos;t even try — will you?
           </motion.p>
 
           <motion.div variants={item} className="mt-6 flex flex-wrap items-center gap-3">
