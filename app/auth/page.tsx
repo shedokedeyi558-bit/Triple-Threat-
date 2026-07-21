@@ -8,7 +8,7 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight, AlertCircle, Loader, Check, ArrowLeft } from "lucide-react";
 
-type AuthStep = "phone" | "password" | "otp" | "success";
+type AuthStep = "phone" | "password" | "success";
 
 function AuthForm() {
   const router = useRouter();
@@ -18,7 +18,6 @@ function AuthForm() {
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [formattedPhone, setFormattedPhone] = useState("");
@@ -44,21 +43,8 @@ function AuthForm() {
       setError("Please enter a valid 10-digit phone number");
       return;
     }
-
-    setLoading(true);
     setError(null);
-
-    try {
-      const fullPhone = `+234${phone}`;
-      await authApi.register(fullPhone);
-      setStep("password");
-    } catch (err) {
-      setError(
-        err instanceof ApiError ? err.message : "Failed to send OTP. Please try again."
-      );
-    } finally {
-      setLoading(false);
-    }
+    setStep("password");
   };
 
   const handleSetPassword = async (e: React.FormEvent) => {
@@ -67,34 +53,20 @@ function AuthForm() {
       setError("Password must be at least 6 characters");
       return;
     }
-
     if (password !== confirmPassword) {
       setError("Passwords do not match");
       return;
     }
-
     if (!checkbox) {
       setError("You must confirm you are 18 or older");
       return;
     }
 
     setError(null);
-    setStep("otp");
-  };
-
-  const handleVerifyOTP = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (otp.length !== 6) {
-      setError("Please enter a valid 6-digit OTP");
-      return;
-    }
-
     setLoading(true);
-    setError(null);
-
     try {
       const fullPhone = `+234${phone}`;
-      const response = await authApi.verifyOtp(fullPhone, otp, password, refCode || undefined);
+      const response = await authApi.register(fullPhone, password, refCode || undefined);
 
       setToken(response.token);
       dispatch({
@@ -110,14 +82,9 @@ function AuthForm() {
       });
 
       setStep("success");
-
-      setTimeout(() => {
-        router.push("/pills");
-      }, 1500);
+      setTimeout(() => router.push("/pills"), 1500);
     } catch (err) {
-      setError(
-        err instanceof ApiError ? err.message : "Invalid OTP. Please try again."
-      );
+      setError(err instanceof ApiError ? err.message : "Registration failed. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -190,13 +157,11 @@ function AuthForm() {
             <h1 className="font-headline text-2xl lg:text-3xl font-semibold" style={{ color: "var(--text-primary)" }}>
               {step === "phone" && "Join BitLyfe"}
               {step === "password" && "Create Password"}
-              {step === "otp" && "Verify Your Number"}
               {step === "success" && "Welcome!"}
             </h1>
             <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
               {step === "phone" && "Enter your phone number to get started"}
               {step === "password" && "You'll use this to sign in next time"}
-              {step === "otp" && `We sent a code to ${formattedPhone}`}
               {step === "success" && "You're all set. Let's go!"}
             </p>
           </div>
@@ -364,11 +329,11 @@ function AuthForm() {
                   {loading ? (
                     <>
                       <Loader size={18} className="animate-spin" />
-                      Setting up...
+                      Creating account...
                     </>
                   ) : (
                     <>
-                      Next <ArrowRight size={18} />
+                      Create Account <ArrowRight size={18} />
                     </>
                   )}
                 </button>
@@ -386,72 +351,6 @@ function AuthForm() {
                   style={{ color: "var(--text-secondary)" }}
                 >
                   Back
-                </button>
-              </motion.form>
-            )}
-          </AnimatePresence>
-
-          {/* OTP Step */}
-          <AnimatePresence mode="wait">
-            {step === "otp" && (
-              <motion.form
-                key="otp-form"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                onSubmit={handleVerifyOTP}
-                className="space-y-4"
-              >
-                <div>
-                  <label className="block text-xs font-semibold mb-2 uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>
-                    Verification Code
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="000000"
-                    value={otp}
-                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                    maxLength={6}
-                    className="w-full border rounded-lg px-4 py-3 outline-none transition-colors text-2xl tracking-widest font-bold text-center"
-                    style={{ borderColor: "var(--border-subtle)", backgroundColor: "var(--bg-card)", color: "var(--text-primary)" }}
-                  />
-                  <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>6-digit code sent to your phone</p>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={loading || otp.length !== 6}
-                  className="w-full py-3 font-semibold rounded-lg transition-all flex items-center justify-center gap-2 mt-6"
-                  style={{
-                    backgroundColor: "var(--accent-amber)",
-                    color: "#412403",
-                    cursor: loading || otp.length !== 6 ? "not-allowed" : "pointer",
-                    opacity: otp.length !== 6 ? 0.45 : 1,
-                  }}
-                >
-                  {loading ? (
-                    <>
-                      <Loader size={18} className="animate-spin" />
-                      Verifying...
-                    </>
-                  ) : (
-                    <>
-                      Verify <ArrowRight size={18} />
-                    </>
-                  )}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setStep("phone");
-                    setOtp("");
-                    setError(null);
-                  }}
-                  className="w-full py-2 text-sm hover:underline transition-colors"
-                  style={{ color: "var(--text-secondary)" }}
-                >
-                  Change phone number
                 </button>
               </motion.form>
             )}

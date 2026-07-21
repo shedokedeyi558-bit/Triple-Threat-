@@ -131,9 +131,10 @@ export interface SignInResponse {
   player: { id: string; email: string; phone: string; name: string | null; balance: number; bonus_balance?: number; is_admin: boolean };
 }
 
-export interface VerifyOtpResponse {
+export interface RegisterResponse {
   token: string;
   player: { id: string; phone: string; name: string | null; balance: number; bonus_balance?: number };
+  isExisting: boolean;
 }
 
 export interface AdminLoginResponse {
@@ -150,8 +151,11 @@ export const authApi = {
     request<SignInResponse>("/api/auth/signin", { method: "POST", body: { email, password } }),
 
   // Legacy endpoints (kept for backward compatibility)
-  register: (phone: string, name?: string) =>
-    request<VerifyOtpResponse>("/api/auth/register", { method: "POST", body: { phone, name } }),
+  register: (phone: string, password: string, referral_code?: string) =>
+    request<RegisterResponse>("/api/auth/register", {
+      method: "POST",
+      body: { phone, password, ...(referral_code ? { referral_code } : {}) },
+    }),
 
   verifyOtp: (phone: string, otp: string, password?: string, referral_code?: string) =>
     request<VerifyOtpResponse>("/api/auth/verify-otp", { method: "POST", body: { phone, otp, password, ...(referral_code ? { referral_code } : {}) } }),
