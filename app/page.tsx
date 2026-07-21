@@ -184,15 +184,15 @@ function Hero() {
         {/* Text block */}
         <motion.div variants={container} initial="hidden" animate="show">
           <motion.span variants={item}
-            className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium"
-            style={{ borderColor: "rgba(232,163,61,0.3)", backgroundColor: "rgba(232,163,61,0.1)", color: "var(--brand-amber)" }}>
+            className="inline-flex items-center gap-2 rounded-md border px-3 py-1 text-xs font-semibold tracking-wider"
+            style={{ borderColor: "rgba(232,163,61,0.35)", backgroundColor: "rgba(232,163,61,0.08)", color: "var(--brand-amber)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
             <Sparkles className="h-3 w-3" />
             Nigerians are cashing out daily. Are you next?
           </motion.span>
 
           <motion.h1 variants={item}
-            className="mt-4 font-display font-extrabold leading-[0.9] tracking-tight"
-            style={{ color: "var(--foreground)", fontSize: "clamp(2.6rem, 10vw, 5.5rem)" }}>
+            className="mt-4 font-display font-extrabold leading-[0.88] tracking-wide"
+            style={{ color: "var(--foreground)", fontSize: "clamp(3rem, 12vw, 6.5rem)", textTransform: "uppercase" }}>
             Your Knowledge<br />
             <span style={{ color: "var(--brand-amber)" }}>Is Worth Money.</span>
           </motion.h1>
