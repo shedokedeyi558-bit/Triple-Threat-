@@ -408,6 +408,7 @@ function Footer() {
           <Link href="/terms" className="transition-colors hover:text-white">Terms</Link>
           <Link href="/privacy" className="transition-colors hover:text-white">Privacy</Link>
           <Link href="/support" className="transition-colors hover:text-white">Support</Link>
+          <Link href="/admin/login" className="transition-colors hover:text-white opacity-40 hover:opacity-100">Admin</Link>
         </div>
         <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>© 2026 Bitlyfe</p>
       </div>
