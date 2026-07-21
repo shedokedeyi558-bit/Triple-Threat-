@@ -5,7 +5,7 @@ import { useApp } from "@/context/AppContext";
 import { removeToken, playerApi, referralApi, authApi, ApiError, type ReferralStats } from "@/lib/api";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { LogOut, Wallet, Shield, FileText, ChevronRight, Phone, AlertCircle, Loader2, Users, Copy, Check, Wand2, Lock, MonitorX } from "lucide-react";
+import { LogOut, Wallet, Shield, FileText, ChevronRight, Phone, AlertCircle, Loader2, Users, Copy, Check, Wand2, MonitorX } from "lucide-react";
 import { useState, useEffect } from "react";
 
 export default function ProfilePage() {
@@ -18,14 +18,6 @@ export default function ProfilePage() {
   const [saveError, setSaveError] = useState("");
   const [referralStats, setReferralStats] = useState<ReferralStats | null>(null);
   const [copied, setCopied] = useState(false);
-
-  // Change-password state
-  const [cpCurrent, setCpCurrent] = useState("");
-  const [cpNew, setCpNew] = useState("");
-  const [cpConfirm, setCpConfirm] = useState("");
-  const [cpLoading, setCpLoading] = useState(false);
-  const [cpMsg, setCpMsg] = useState("");
-  const [cpError, setCpError] = useState("");
 
   // Logout-all-devices state
   const [showLogoutAllConfirm, setShowLogoutAllConfirm] = useState(false);
@@ -72,22 +64,6 @@ export default function ProfilePage() {
     } catch (err) {
       setSaveError(err instanceof ApiError ? err.message : "Failed to save limits");
     } finally { setSaving(false); }
-  };
-
-  const handleChangePassword = async () => {
-    setCpError(""); setCpMsg("");
-    if (cpNew.length < 6) { setCpError("New password must be at least 6 characters"); return; }
-    if (cpNew !== cpConfirm) { setCpError("Passwords don't match"); return; }
-    if (!cpCurrent) { setCpError("Enter your current password"); return; }
-    setCpLoading(true);
-    try {
-      await authApi.changePassword(cpCurrent, cpNew);
-      setCpMsg("Password updated");
-      setCpCurrent(""); setCpNew(""); setCpConfirm("");
-      setTimeout(() => setCpMsg(""), 3000);
-    } catch (err) {
-      setCpError(err instanceof ApiError ? err.message : "Failed to update password");
-    } finally { setCpLoading(false); }
   };
 
   const handleLogoutAll = async () => {
@@ -245,36 +221,6 @@ export default function ProfilePage() {
           >
             {saving ? <Loader2 size={14} className="animate-spin" /> : null}
             {saving ? "Saving..." : "Save Limits"}
-          </button>
-        </motion.div>
-
-        {/* Change Password */}
-        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.11 }}
-          className="lg:col-span-2 bg-[#111] border border-[#1E1E1E] rounded-2xl p-5 space-y-4">
-          <div className="flex items-center gap-2">
-            <Lock size={14} style={{ color: "var(--accent-indigo)" }} />
-            <p className="text-[11px] text-gray-600 uppercase tracking-widest font-bold">Change Password</p>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            {[
-              { label: "Current Password", val: cpCurrent, set: setCpCurrent },
-              { label: "New Password",     val: cpNew,     set: setCpNew },
-              { label: "Confirm New",      val: cpConfirm, set: setCpConfirm },
-            ].map(({ label, val, set }) => (
-              <div key={label}>
-                <label className="text-gray-500 text-xs mb-1.5 block uppercase tracking-widest font-bold">{label}</label>
-                <input type="password" placeholder="••••••" value={val} onChange={(e) => set(e.target.value)}
-                  className="w-full bg-[#0A0A0A] border border-[#1E1E1E] rounded-xl px-4 py-2.5 text-white text-sm outline-none focus:border-[#4C6FFF]/40 placeholder:text-gray-700" />
-              </div>
-            ))}
-          </div>
-          {cpError && <div className="flex items-center gap-2 text-red-400 text-xs bg-red-900/10 border border-red-900/30 rounded-lg p-2.5"><AlertCircle size={14} className="flex-shrink-0" />{cpError}</div>}
-          {cpMsg  && <div className="flex items-center gap-2 text-xs bg-[#4C6FFF]/10 border border-[#4C6FFF]/30 rounded-lg p-2.5" style={{ color: "var(--accent-indigo)" }}>✓ {cpMsg}</div>}
-          <button onClick={handleChangePassword} disabled={cpLoading || !cpCurrent || cpNew.length < 6 || cpNew !== cpConfirm}
-            className="w-full py-2.5 rounded-lg font-bold text-sm disabled:opacity-40 flex items-center justify-center gap-2"
-            style={{ backgroundColor: "var(--accent-indigo)", color: "#fff" }}>
-            {cpLoading ? <Loader2 size={14} className="animate-spin" /> : null}
-            {cpLoading ? "Updating..." : "Update Password"}
           </button>
         </motion.div>
 
