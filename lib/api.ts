@@ -158,10 +158,10 @@ export const authApi = {
     }),
 
   verifyOtp: (phone: string, otp: string, password?: string, referral_code?: string) =>
-    request<VerifyOtpResponse>("/api/auth/verify-otp", { method: "POST", body: { phone, otp, password, ...(referral_code ? { referral_code } : {}) } }),
+    request<RegisterResponse>("/api/auth/verify-otp", { method: "POST", body: { phone, otp, password, ...(referral_code ? { referral_code } : {}) } }),
 
   phoneSignIn: (phone: string, password: string) =>
-    request<VerifyOtpResponse>("/api/auth/phone-signin", { method: "POST", body: { phone, password } }),
+    request<RegisterResponse>("/api/auth/phone-signin", { method: "POST", body: { phone, password } }),
 
   adminLogin: (email: string, password: string) =>
     request<AdminLoginResponse>("/api/auth/admin-login", { method: "POST", body: { email, password } }),
