@@ -524,7 +524,8 @@ function AuthForm() {
             )}
           </AnimatePresence>
 
-          {/* Footer Links */}
+          {/* Footer Links — hidden on success step */}
+          {step !== "success" && (
           <div className="border-t pt-6" style={{ borderColor: "var(--border-hairline)" }}>
             <p className="text-center text-xs" style={{ color: "var(--text-secondary)" }}>
               By signing up, you agree to our{" "}
@@ -540,6 +541,7 @@ function AuthForm() {
               </Link>
             </div>
           </div>
+          )}
         </motion.div>
       </div>
     </div>
