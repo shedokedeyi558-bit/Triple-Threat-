@@ -272,7 +272,7 @@ function Products() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-40px" }}
             transition={{ duration: 0.5, delay: i * 0.1, ease: [0.22, 1, 0.36, 1] }}
-            className="group relative min-w-[72vw] shrink-0 snap-center rounded-2xl border p-5 sm:min-w-[55vw] md:min-w-0"
+            className="group relative min-w-[78vw] max-w-[78vw] shrink-0 snap-center overflow-hidden rounded-2xl border p-5 sm:min-w-[55vw] sm:max-w-[55vw] md:min-w-0 md:max-w-none"
             style={{ borderColor: "var(--border)", backgroundColor: "rgba(18,22,31,0.5)" }}>
             <div aria-hidden="true"
               className="pointer-events-none absolute -inset-px -z-10 rounded-2xl opacity-0 blur-md transition-opacity duration-500 group-hover:opacity-50"
@@ -286,7 +286,7 @@ function Products() {
             </motion.div>
             <h3 className="mt-4 font-display text-xl font-bold" style={{ color: "var(--foreground)" }}>{p.name}</h3>
             <p className="mt-0.5 text-xs font-semibold" style={{ color: p.color }}>{p.tagline}</p>
-            <p className="mt-3 text-sm leading-relaxed" style={{ color: "var(--muted-foreground)" }}>{p.description}</p>
+            <p className="mt-3 text-sm leading-relaxed" style={{ color: "var(--muted-foreground)", wordBreak: "break-word" }}>{p.description}</p>
           </motion.article>
         ))}
       </div>
