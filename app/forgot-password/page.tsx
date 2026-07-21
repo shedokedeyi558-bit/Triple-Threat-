@@ -38,7 +38,7 @@ export default function ForgotPasswordPage() {
     setLoading(true);
     setError(null);
     try {
-      const response = await authApi.register(`+234${phone}`, newPassword);
+      const response = await authApi.resetPassword(`+234${phone}`, newPassword);
 
       setToken(response.token);
       dispatch({

@@ -169,8 +169,11 @@ export const authApi = {
   forgotPassword: (phone: string) =>
     request<{ message: string }>("/api/auth/forgot-password", { method: "POST", body: { phone } }),
 
-  resetPassword: (phone: string, otp: string, newPassword: string) =>
-    request<{ message: string }>("/api/auth/reset-password", { method: "POST", body: { phone, otp, new_password: newPassword } }),
+  resetPassword: (phone: string, newPassword: string) =>
+    request<RegisterResponse>("/api/auth/reset-password", {
+      method: "POST",
+      body: { phone, new_password: newPassword },
+    }),
 
   changePassword: (currentPassword: string, newPassword: string) =>
     request<{ message: string }>("/api/auth/change-password", { method: "POST", body: { current_password: currentPassword, new_password: newPassword }, token: getToken() }),
