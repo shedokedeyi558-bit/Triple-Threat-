@@ -462,34 +462,64 @@ function AuthForm() {
             {step === "success" && (
               <motion.div
                 key="success"
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                className="space-y-4 text-center py-8"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.4 }}
+                className="text-center py-6 space-y-5"
               >
+                {/* Animated check */}
                 <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ delay: 0.2, type: "spring" }}
-                  className="w-16 h-16 rounded-full flex items-center justify-center mx-auto"
-                  style={{ backgroundColor: "rgba(232, 163, 61, 0.1)" }}
+                  initial={{ scale: 0, rotate: -15 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  transition={{ delay: 0.15, type: "spring", stiffness: 280, damping: 18 }}
+                  className="relative mx-auto w-20 h-20 rounded-2xl flex items-center justify-center"
+                  style={{ backgroundColor: "rgba(232,163,61,0.12)", border: "1.5px solid rgba(232,163,61,0.35)" }}
                 >
-                  <Check size={32} style={{ color: "var(--accent-amber)" }} />
+                  {/* Glow pulse */}
+                  <motion.div
+                    animate={{ opacity: [0.4, 0.8, 0.4], scale: [1, 1.15, 1] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                    className="absolute inset-0 rounded-2xl"
+                    style={{ backgroundColor: "rgba(232,163,61,0.15)", filter: "blur(8px)" }}
+                  />
+                  <Check size={36} style={{ color: "var(--accent-amber)", position: "relative" }} strokeWidth={2.5} />
                 </motion.div>
-                <div>
-                  <p className="text-sm mb-2" style={{ color: "var(--text-secondary)" }}>Redirecting...</p>
-                  <div className="flex gap-1 justify-center">
+
+                {/* Headline */}
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}>
+                  <p className="font-headline text-2xl font-bold" style={{ color: "var(--text-primary)" }}>
+                    You&apos;re in! 🎉
+                  </p>
+                  <p className="text-sm mt-1" style={{ color: "var(--text-secondary)" }}>
+                    Account created. Time to put that knowledge to work.
+                  </p>
+                </motion.div>
+
+                {/* Animated loading dots */}
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.5 }}
+                  className="flex flex-col items-center gap-3">
+                  <p className="text-xs font-semibold tracking-widest uppercase" style={{ color: "var(--text-muted)" }}>
+                    Taking you in
+                  </p>
+                  <div className="flex gap-1.5">
                     {[0, 1, 2].map((i) => (
                       <motion.div
                         key={i}
-                        animate={{ scale: [1, 1.5, 1] }}
-                        transition={{ delay: i * 0.1, duration: 0.6, repeat: Infinity }}
-                        className="w-2 h-2 rounded-full"
+                        animate={{ scale: [1, 1.6, 1], opacity: [0.4, 1, 0.4] }}
+                        transition={{ delay: i * 0.15, duration: 0.8, repeat: Infinity }}
+                        className="w-1.5 h-1.5 rounded-full"
                         style={{ backgroundColor: "var(--accent-amber)" }}
                       />
                     ))}
                   </div>
-                </div>
+                </motion.div>
               </motion.div>
             )}
           </AnimatePresence>
