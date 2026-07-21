@@ -140,8 +140,8 @@ function Hero() {
           </motion.span>
 
           <motion.h1 variants={item}
-            className="mt-6 font-display text-5xl font-extrabold leading-[0.92] tracking-tight sm:text-6xl lg:text-7xl xl:text-8xl"
-            style={{ color: "var(--foreground)" }}>
+            className="mt-6 font-display font-extrabold leading-[0.92] tracking-tight"
+            style={{ color: "var(--foreground)", fontSize: "clamp(2.4rem, 8vw, 5.5rem)" }}>
             Your Knowledge<br />
             <span style={{ color: "var(--brand-amber)" }}>Is Worth Money.</span>
           </motion.h1>
@@ -345,13 +345,13 @@ function HowItWorks() {
 function Payout() {
   const AVATAR_COLORS = ["var(--brand-indigo)", "var(--brand-violet)", "var(--brand-amber)", "var(--brand-green)", "var(--brand-indigo)"];
   return (
-    <section id="play" className="mx-auto w-full max-w-7xl px-5 py-20 lg:py-28">
+    <section id="play" className="mx-auto w-full max-w-7xl px-5 py-10 lg:py-16">
       <motion.div
         initial={{ opacity: 0, y: 40 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: "-80px" }}
         transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-        className="relative overflow-hidden rounded-[2.5rem] border px-6 py-14 text-center sm:px-12"
+        className="relative overflow-hidden rounded-[2rem] border px-6 py-10 text-center sm:px-10"
         style={{ borderColor: "var(--border)", backgroundColor: "rgba(18,22,31,0.6)" }}>
         <div aria-hidden="true"
           className="pointer-events-none absolute left-1/2 top-0 h-72 w-72 -translate-x-1/2 rounded-full blur-[100px]"
@@ -367,12 +367,12 @@ function Payout() {
             </span>
             Live payouts
           </span>
-          <p className="mt-6 font-display text-6xl font-extrabold tracking-tight sm:text-7xl lg:text-8xl"
-            style={{ color: "var(--foreground)" }}>
+          <p className="mt-4 font-display font-extrabold tracking-tight"
+            style={{ color: "var(--foreground)", fontSize: "clamp(2.6rem, 9vw, 5rem)" }}>
             <CountUp to={2400000} prefix="₦" duration={2.4} />
           </p>
-          <p className="mt-3 text-lg" style={{ color: "var(--muted-foreground)" }}>paid out this week</p>
-          <div className="mt-10 flex items-center justify-center">
+          <p className="mt-2 text-base" style={{ color: "var(--muted-foreground)" }}>paid out this week</p>
+          <div className="mt-6 flex items-center justify-center">
             <div className="flex -space-x-3">
               {AVATAR_COLORS.map((c, i) => (
                 <span key={i} className="h-11 w-11 rounded-full border-2 blur-[1.5px]"
