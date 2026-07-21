@@ -17,6 +17,7 @@ function AuthForm() {
   const [step, setStep] = useState<AuthStep>("phone");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -64,6 +65,11 @@ function AuthForm() {
     e.preventDefault();
     if (password.length < 6) {
       setError("Password must be at least 6 characters");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError("Passwords do not match");
       return;
     }
 
@@ -300,6 +306,32 @@ function AuthForm() {
                   <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>Minimum 6 characters</p>
                 </div>
 
+                <div>
+                  <label className="block text-xs font-semibold mb-2 uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>
+                    Confirm Password
+                  </label>
+                  <input
+                    type="password"
+                    placeholder="Re-enter your password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="w-full border rounded-lg px-4 py-3 outline-none transition-colors text-base"
+                    style={{
+                      borderColor: confirmPassword && confirmPassword !== password
+                        ? "rgba(239,68,68,0.6)"
+                        : "var(--border-subtle)",
+                      backgroundColor: "var(--bg-card)",
+                      color: "var(--text-primary)",
+                    }}
+                  />
+                  {confirmPassword && confirmPassword !== password && (
+                    <p className="text-xs mt-1 text-red-400">Passwords do not match</p>
+                  )}
+                  {confirmPassword && confirmPassword === password && password.length >= 6 && (
+                    <p className="text-xs mt-1" style={{ color: "var(--accent-amber)" }}>Passwords match</p>
+                  )}
+                </div>
+
                 <div className="border rounded-lg p-4" style={{ borderColor: "var(--border-subtle)", backgroundColor: "var(--bg-card)" }}>
                   <label className="flex items-start gap-3 cursor-pointer">
                     <input
@@ -320,13 +352,13 @@ function AuthForm() {
 
                 <button
                   type="submit"
-                  disabled={loading || password.length < 6 || !checkbox}
+                  disabled={loading || password.length < 6 || confirmPassword !== password || !checkbox}
                   className="w-full py-3 font-semibold rounded-lg transition-all flex items-center justify-center gap-2 mt-6"
                   style={{
                     backgroundColor: "var(--accent-amber)",
                     color: "#412403",
-                    cursor: loading || password.length < 6 || !checkbox ? "not-allowed" : "pointer",
-                    opacity: password.length < 6 || !checkbox ? 0.45 : 1,
+                    cursor: loading || password.length < 6 || confirmPassword !== password || !checkbox ? "not-allowed" : "pointer",
+                    opacity: password.length < 6 || confirmPassword !== password || !checkbox ? 0.45 : 1,
                   }}
                 >
                   {loading ? (
@@ -346,6 +378,7 @@ function AuthForm() {
                   onClick={() => {
                     setStep("phone");
                     setPassword("");
+                    setConfirmPassword("");
                     setCheckbox(false);
                     setError(null);
                   }}
