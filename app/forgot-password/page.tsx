@@ -1,4 +1,5 @@
 "use client";
+// Single-screen password reset — no OTP step
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
