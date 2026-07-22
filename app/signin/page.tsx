@@ -9,7 +9,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { AlertCircle, Loader, Check, ArrowLeft, ArrowRight, Eye, EyeOff } from "lucide-react";
 
 type SignInStep = "credentials" | "success";
-type ForgotStep = "phone" | "otp" | "newpass" | "done";
 
 export default function SignInPage() {
   const router = useRouter();
@@ -23,13 +22,12 @@ export default function SignInPage() {
   const [error, setError] = useState<string | null>(null);
 
   const [showForgot, setShowForgot] = useState(false);
-  const [forgotStep, setForgotStep] = useState<ForgotStep>("phone");
   const [fpPhone, setFpPhone] = useState("");
-  const [fpOtp, setFpOtp] = useState("");
   const [fpNewPass, setFpNewPass] = useState("");
   const [fpConfirm, setFpConfirm] = useState("");
   const [fpLoading, setFpLoading] = useState(false);
   const [fpError, setFpError] = useState<string | null>(null);
+  const [fpDone, setFpDone] = useState(false);
 
   const handlePhoneChange = (value: string) => {
     setPhone(value.replace(/\D/g, "").slice(-10));
@@ -51,34 +49,26 @@ export default function SignInPage() {
     } finally { setLoading(false); }
   };
 
-  const handleFpSendOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (fpPhone.length !== 10) { setFpError("Enter a valid 10-digit phone number"); return; }
-    setFpLoading(true); setFpError(null);
-    try { await authApi.forgotPassword(`+234${fpPhone}`); setForgotStep("otp"); }
-    catch (err) { setFpError(err instanceof ApiError ? err.message : "Failed to send code."); }
-    finally { setFpLoading(false); }
-  };
-
-  const handleFpVerifyOtp = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (fpOtp.length !== 6) { setFpError("Enter the 6-digit code"); return; }
-    setFpError(null); setForgotStep("newpass");
-  };
-
   const handleFpReset = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (fpPhone.length !== 10) { setFpError("Enter a valid 10-digit phone number"); return; }
     if (fpNewPass.length < 6) { setFpError("Password must be at least 6 characters"); return; }
     if (fpNewPass !== fpConfirm) { setFpError("Passwords don't match"); return; }
     setFpLoading(true); setFpError(null);
-    try { await authApi.resetPassword(`+234${fpPhone}`, fpOtp, fpNewPass); setForgotStep("done"); }
-    catch (err) { setFpError(err instanceof ApiError ? err.message : "Reset failed."); }
-    finally { setFpLoading(false); }
+    try {
+      const res = await authApi.resetPassword(`+234${fpPhone}`, fpNewPass);
+      setToken(res.token);
+      dispatch({ type: "LOGIN", player: { id: res.player.id, phone: res.player.phone, name: res.player.name, email: "", balance: res.player.balance }, token: res.token });
+      setFpDone(true);
+      setTimeout(() => router.push("/pills"), 1500);
+    } catch (err) {
+      setFpError(err instanceof ApiError ? err.message : "Reset failed.");
+    } finally { setFpLoading(false); }
   };
 
   const resetForgotFlow = () => {
-    setShowForgot(false); setForgotStep("phone");
-    setFpPhone(""); setFpOtp(""); setFpNewPass(""); setFpConfirm(""); setFpError(null);
+    setShowForgot(false);
+    setFpPhone(""); setFpNewPass(""); setFpConfirm(""); setFpError(null); setFpDone(false);
   };
 
   const inputStyle = { borderColor: "var(--border-subtle)", backgroundColor: "var(--bg-card)", color: "var(--text-primary)" };
@@ -138,16 +128,10 @@ export default function SignInPage() {
                     <ArrowLeft size={15} /> Back to sign in
                   </button>
                   <h1 className="font-headline text-2xl font-semibold" style={{ color: "var(--text-primary)" }}>
-                    {forgotStep === "phone" && "Reset password"}
-                    {forgotStep === "otp" && "Verify your number"}
-                    {forgotStep === "newpass" && "New password"}
-                    {forgotStep === "done" && "Password updated"}
+                    {fpDone ? "Password updated!" : "Reset password"}
                   </h1>
                   <p className="text-sm mt-1" style={{ color: "var(--text-secondary)" }}>
-                    {forgotStep === "phone" && "Enter your phone to receive a reset code"}
-                    {forgotStep === "otp" && `Code sent to +234${fpPhone}`}
-                    {forgotStep === "newpass" && "Choose a strong password"}
-                    {forgotStep === "done" && "You can now sign in with your new password"}
+                    {fpDone ? "Taking you in..." : "Enter your phone number and choose a new password."}
                   </p>
                 </div>
 
@@ -161,8 +145,8 @@ export default function SignInPage() {
                   )}
                 </AnimatePresence>
 
-                {forgotStep === "phone" && (
-                  <form onSubmit={handleFpSendOtp} className="space-y-4">
+                {!fpDone && (
+                  <form onSubmit={handleFpReset} className="space-y-4">
                     <div>
                       <label className="block text-xs font-semibold mb-2 uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>Phone Number</label>
                       <div className="flex items-center gap-2 border rounded-lg px-4 py-3" style={inputStyle}>
@@ -172,36 +156,6 @@ export default function SignInPage() {
                           maxLength={10} className="flex-1 bg-transparent outline-none text-base" style={{ color: "var(--text-primary)" }} />
                       </div>
                     </div>
-                    <button type="submit" disabled={fpLoading || fpPhone.length !== 10}
-                      className="w-full py-3 font-semibold rounded-lg flex items-center justify-center gap-2 mt-6"
-                      style={{ backgroundColor: "var(--accent-amber)", color: "#412403", opacity: fpPhone.length !== 10 ? 0.45 : 1, cursor: fpPhone.length !== 10 ? "not-allowed" : "pointer" }}>
-                      {fpLoading ? <Loader size={18} className="animate-spin" /> : null}
-                      {fpLoading ? "Sending..." : <>Send Code <ArrowRight size={18} /></>}
-                    </button>
-                  </form>
-                )}
-
-                {forgotStep === "otp" && (
-                  <form onSubmit={handleFpVerifyOtp} className="space-y-4">
-                    <div>
-                      <label className="block text-xs font-semibold mb-2 uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>Verification Code</label>
-                      <input type="text" placeholder="000000" value={fpOtp}
-                        onChange={(e) => setFpOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                        maxLength={6} className="w-full border rounded-lg px-4 py-3 outline-none text-2xl tracking-widest font-bold text-center" style={inputStyle} />
-                    </div>
-                    <button type="submit" disabled={fpOtp.length !== 6}
-                      className="w-full py-3 font-semibold rounded-lg flex items-center justify-center gap-2 mt-6"
-                      style={{ backgroundColor: "var(--accent-amber)", color: "#412403", opacity: fpOtp.length !== 6 ? 0.45 : 1, cursor: fpOtp.length !== 6 ? "not-allowed" : "pointer" }}>
-                      Verify <ArrowRight size={18} />
-                    </button>
-                    <button type="button" onClick={() => setForgotStep("phone")} className="w-full py-2 text-sm hover:underline" style={{ color: "var(--text-secondary)" }}>
-                      Change number
-                    </button>
-                  </form>
-                )}
-
-                {forgotStep === "newpass" && (
-                  <form onSubmit={handleFpReset} className="space-y-4">
                     <div>
                       <label className="block text-xs font-semibold mb-2 uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>New Password</label>
                       <input type="password" placeholder="Min 6 characters" value={fpNewPass} onChange={(e) => setFpNewPass(e.target.value)}
@@ -210,27 +164,29 @@ export default function SignInPage() {
                     <div>
                       <label className="block text-xs font-semibold mb-2 uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>Confirm Password</label>
                       <input type="password" placeholder="Repeat password" value={fpConfirm} onChange={(e) => setFpConfirm(e.target.value)}
-                        className="w-full border rounded-lg px-4 py-3 outline-none text-base" style={inputStyle} />
+                        className="w-full border rounded-lg px-4 py-3 outline-none text-base"
+                        style={{ ...inputStyle, borderColor: fpConfirm && fpConfirm !== fpNewPass ? "rgba(239,68,68,0.6)" : "var(--border-subtle)" }} />
+                      {fpConfirm && fpConfirm !== fpNewPass && <p className="text-xs mt-1 text-red-400">Passwords don&apos;t match</p>}
                     </div>
-                    <button type="submit" disabled={fpLoading || fpNewPass.length < 6 || fpNewPass !== fpConfirm}
+                    <button type="submit"
+                      disabled={fpLoading || fpPhone.length !== 10 || fpNewPass.length < 6 || fpNewPass !== fpConfirm}
                       className="w-full py-3 font-semibold rounded-lg flex items-center justify-center gap-2 mt-6"
-                      style={{ backgroundColor: "var(--accent-amber)", color: "#412403", opacity: (fpNewPass.length < 6 || fpNewPass !== fpConfirm) ? 0.45 : 1, cursor: (fpNewPass.length < 6 || fpNewPass !== fpConfirm) ? "not-allowed" : "pointer" }}>
+                      style={{ backgroundColor: "var(--accent-amber)", color: "#412403",
+                        opacity: (fpPhone.length !== 10 || fpNewPass.length < 6 || fpNewPass !== fpConfirm) ? 0.45 : 1,
+                        cursor: (fpPhone.length !== 10 || fpNewPass.length < 6 || fpNewPass !== fpConfirm) ? "not-allowed" : "pointer" }}>
                       {fpLoading ? <Loader size={18} className="animate-spin" /> : null}
-                      {fpLoading ? "Updating..." : <>Update Password <ArrowRight size={18} /></>}
+                      {fpLoading ? "Updating..." : <>Reset Password <ArrowRight size={18} /></>}
                     </button>
                   </form>
                 )}
 
-                {forgotStep === "done" && (
-                  <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center space-y-6 py-4">
-                    <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto" style={{ backgroundColor: "rgba(232,163,61,0.1)" }}>
-                      <Check size={28} style={{ color: "var(--accent-amber)" }} />
-                    </div>
-                    <button onClick={resetForgotFlow}
-                      className="w-full py-3 font-semibold rounded-lg flex items-center justify-center gap-2"
-                      style={{ backgroundColor: "var(--accent-amber)", color: "#412403" }}>
-                      Sign In Now <ArrowRight size={18} />
-                    </button>
+                {fpDone && (
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-center gap-1.5">
+                    {[0, 1, 2].map((i) => (
+                      <motion.div key={i} animate={{ scale: [1, 1.5, 1], opacity: [0.5, 1, 0.5] }}
+                        transition={{ delay: i * 0.15, duration: 0.8, repeat: Infinity }}
+                        className="w-2 h-2 rounded-full" style={{ backgroundColor: "var(--accent-amber)" }} />
+                    ))}
                   </motion.div>
                 )}
               </motion.div>
