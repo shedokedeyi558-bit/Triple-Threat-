@@ -153,11 +153,29 @@ function downloadReceipt(prize: number, category: string, question: string, play
   ctx.textAlign = "center";
   ctx.fillText("bitlyfe.app  ·  Verified win receipt", W / 2, H - 30);
 
-  // Download
-  const a = document.createElement("a");
-  a.download = `bitlyfe-win-₦${prize.toLocaleString()}.png`;
-  a.href = canvas.toDataURL("image/png");
-  a.click();
+  // Mobile-safe save: use Web Share API (native save-to-photos) on mobile, link download on desktop
+  const filename = `bitlyfe-win-₦${prize.toLocaleString()}.png`;
+  canvas.toBlob((blob) => {
+    if (!blob) return;
+
+    // Web Share API — works on Android Chrome/Safari iOS (saves to gallery)
+    if (navigator.canShare && navigator.canShare({ files: [new File([blob], filename, { type: "image/png" })] })) {
+      navigator.share({
+        title: "Bitlyfe Win Receipt",
+        text: `I just won ₦${prize.toLocaleString()} on Bitlyfe!`,
+        files: [new File([blob], filename, { type: "image/png" })],
+      }).catch(() => {/* user cancelled or error — silent */});
+      return;
+    }
+
+    // Desktop fallback: object URL download
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.download = filename;
+    a.href = url;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 3000);
+  }, "image/png");
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
