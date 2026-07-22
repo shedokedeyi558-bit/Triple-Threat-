@@ -165,9 +165,9 @@ function Hero() {
 
       {/* Nav */}
       <div className="relative z-10 mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-5 sm:px-6">
-        <div className="flex items-center gap-2">
-          <img src="/bitlyfe-mark.svg" alt="BitLyfe" width={30} height={30} />
-          <span className="font-display text-lg font-extrabold tracking-tight" style={{ color: "var(--foreground)" }}>
+        <div className="flex items-center gap-2.5">
+          <img src="/bitlyfe-mark.svg" alt="BitLyfe" width={40} height={40} />
+          <span className="font-display text-xl font-extrabold tracking-tight" style={{ color: "var(--foreground)" }}>
             Bit<span style={{ color: "var(--brand-amber)" }}>lyfe</span>
           </span>
         </div>
@@ -184,8 +184,8 @@ function Hero() {
         {/* Text block */}
         <motion.div variants={container} initial="hidden" animate="show">
           <motion.h1 variants={item}
-            className="mt-4 font-display font-extrabold leading-[0.88] tracking-wide"
-            style={{ color: "var(--foreground)", fontSize: "clamp(3rem, 12vw, 6.5rem)", textTransform: "uppercase" }}>
+            className="mt-4 font-display font-extrabold leading-[0.95] tracking-tight"
+            style={{ color: "var(--foreground)", fontSize: "clamp(2rem, 7vw, 4.2rem)" }}>
             Your Knowledge<br />
             <span style={{ color: "var(--brand-amber)" }}>Is Worth Money.</span>
           </motion.h1>
