@@ -321,7 +321,7 @@ export default function SpecialsPage() {
       ) : packs.length === 0 ? (
         <div style={{ borderRadius: 12, padding: "48px 24px", textAlign: "center", border: "1px solid rgba(232,163,61,0.2)", backgroundColor: "rgba(232,163,61,0.04)" }}>
           <Clock size={28} style={{ color: "rgba(232,163,61,0.4)", margin: "0 auto 12px", display: "block" }} />
-          <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)", margin: "0 0 4px" }}>No Specials live right now</p>
+          <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)", margin: "0 0 4px" }}>No special challenge is live right now</p>
           <p style={{ fontSize: 12, color: "var(--text-muted)", margin: 0 }}>Check back soon</p>
         </div>
       ) : (
