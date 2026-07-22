@@ -160,9 +160,6 @@ export const authApi = {
     }),
 
   // verifyOtp kept for backward compat — backend endpoint still exists but frontend no longer calls it
-  verifyOtp: (phone: string, otp: string, password?: string, referral_code?: string) =>
-    request<RegisterResponse>("/api/auth/verify-otp", { method: "POST", body: { phone, otp, password, ...(referral_code ? { referral_code } : {}) } }),
-
   phoneSignIn: (phone: string, password: string) =>
     request<RegisterResponse>("/api/auth/phone-signin", { method: "POST", body: { phone, password } }),
 
