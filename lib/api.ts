@@ -136,6 +136,8 @@ export interface RegisterResponse {
   player: { id: string; phone: string; name: string | null; balance: number; bonus_balance?: number };
   isExisting: boolean;
 }
+// Alias kept for any remaining references
+export type VerifyOtpResponse = RegisterResponse;
 
 export interface AdminLoginResponse {
   token: string;
