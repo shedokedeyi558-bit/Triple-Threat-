@@ -257,7 +257,7 @@ function Products() {
         </p>
       </div>
       {/* Horizontal scroll on mobile, 3-col grid on md+ */}
-      <div className="mt-8 flex snap-x snap-mandatory gap-4 overflow-x-auto pb-3 md:grid md:grid-cols-3 md:overflow-visible"
+      <div className="mt-8 flex snap-x snap-mandatory gap-4 overflow-x-auto overflow-y-hidden pb-3 md:grid md:grid-cols-3 md:overflow-visible"
         style={{ scrollbarWidth: "none" }}>
         {PRODUCTS.map((p, i) => (
           <motion.article key={p.name}
