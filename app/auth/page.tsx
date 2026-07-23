@@ -6,7 +6,7 @@ import { useApp } from "@/context/AppContext";
 import { authApi, setToken, ApiError } from "@/lib/api";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, AlertCircle, Loader, Check, ArrowLeft } from "lucide-react";
+import { ArrowRight, AlertCircle, Loader, Check, ArrowLeft, Eye, EyeOff } from "lucide-react";
 
 type AuthStep = "phone" | "password" | "success";
 
@@ -21,6 +21,8 @@ function AuthForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [formattedPhone, setFormattedPhone] = useState("");
+  const [showPass, setShowPass] = useState(false);
+  const [showConfirmPass, setShowConfirmPass] = useState(false);
   const [checkbox, setCheckbox] = useState(false);
   // Silently capture referral code from URL — no UI needed
   const [refCode] = useState(() => searchParams.get("ref") || "");
@@ -260,14 +262,18 @@ function AuthForm() {
                   <label className="block text-xs font-semibold mb-2 uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>
                     Password
                   </label>
-                  <input
-                    type="password"
-                    placeholder="Enter a strong password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full border rounded-lg px-4 py-3 outline-none transition-colors text-base"
-                    style={{ borderColor: "var(--border-subtle)", backgroundColor: "var(--bg-card)", color: "var(--text-primary)" }}
-                  />
+                  <div className="flex items-center gap-2 border rounded-lg px-4 py-3 transition-colors" style={{ borderColor: "var(--border-subtle)", backgroundColor: "var(--bg-card)", color: "var(--text-primary)" }}>
+                    <input
+                      type={showPass ? "text" : "password"}
+                      placeholder="Enter a strong password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="flex-1 bg-transparent outline-none text-base"
+                    />
+                    <button type="button" onClick={() => setShowPass(v => !v)} className="flex-shrink-0" style={{ color: "var(--text-secondary)" }} tabIndex={-1}>
+                      {showPass ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
                   <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>Minimum 6 characters</p>
                 </div>
 
@@ -275,20 +281,18 @@ function AuthForm() {
                   <label className="block text-xs font-semibold mb-2 uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>
                     Confirm Password
                   </label>
-                  <input
-                    type="password"
-                    placeholder="Re-enter your password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="w-full border rounded-lg px-4 py-3 outline-none transition-colors text-base"
-                    style={{
-                      borderColor: confirmPassword && confirmPassword !== password
-                        ? "rgba(239,68,68,0.6)"
-                        : "var(--border-subtle)",
-                      backgroundColor: "var(--bg-card)",
-                      color: "var(--text-primary)",
-                    }}
-                  />
+                  <div className="flex items-center gap-2 border rounded-lg px-4 py-3 transition-colors" style={{ borderColor: confirmPassword && confirmPassword !== password ? "rgba(239,68,68,0.6)" : "var(--border-subtle)", backgroundColor: "var(--bg-card)", color: "var(--text-primary)" }}>
+                    <input
+                      type={showConfirmPass ? "text" : "password"}
+                      placeholder="Re-enter your password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      className="flex-1 bg-transparent outline-none text-base"
+                    />
+                    <button type="button" onClick={() => setShowConfirmPass(v => !v)} className="flex-shrink-0" style={{ color: "var(--text-secondary)" }} tabIndex={-1}>
+                      {showConfirmPass ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
                   {confirmPassword && confirmPassword !== password && (
                     <p className="text-xs mt-1 text-red-400">Passwords do not match</p>
                   )}

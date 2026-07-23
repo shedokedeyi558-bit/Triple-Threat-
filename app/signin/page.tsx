@@ -25,6 +25,8 @@ export default function SignInPage() {
   const [fpPhone, setFpPhone] = useState("");
   const [fpNewPass, setFpNewPass] = useState("");
   const [fpConfirm, setFpConfirm] = useState("");
+  const [showFpNew, setShowFpNew] = useState(false);
+  const [showFpConfirm, setShowFpConfirm] = useState(false);
   const [fpLoading, setFpLoading] = useState(false);
   const [fpError, setFpError] = useState<string | null>(null);
   const [fpDone, setFpDone] = useState(false);
@@ -158,14 +160,23 @@ export default function SignInPage() {
                     </div>
                     <div>
                       <label className="block text-xs font-semibold mb-2 uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>New Password</label>
-                      <input type="password" placeholder="Min 6 characters" value={fpNewPass} onChange={(e) => setFpNewPass(e.target.value)}
-                        className="w-full border rounded-lg px-4 py-3 outline-none text-base" style={inputStyle} />
+                      <div className="flex items-center gap-2 border rounded-lg px-4 py-3 transition-colors" style={inputStyle}>
+                        <input type={showFpNew ? "text" : "password"} placeholder="Min 6 characters" value={fpNewPass} onChange={(e) => setFpNewPass(e.target.value)}
+                          className="flex-1 bg-transparent outline-none text-base" style={{ color: "var(--text-primary)" }} />
+                        <button type="button" onClick={() => setShowFpNew(v => !v)} className="flex-shrink-0" style={{ color: "var(--text-secondary)" }} tabIndex={-1}>
+                          {showFpNew ? <EyeOff size={18} /> : <Eye size={18} />}
+                        </button>
+                      </div>
                     </div>
                     <div>
                       <label className="block text-xs font-semibold mb-2 uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>Confirm Password</label>
-                      <input type="password" placeholder="Repeat password" value={fpConfirm} onChange={(e) => setFpConfirm(e.target.value)}
-                        className="w-full border rounded-lg px-4 py-3 outline-none text-base"
-                        style={{ ...inputStyle, borderColor: fpConfirm && fpConfirm !== fpNewPass ? "rgba(239,68,68,0.6)" : "var(--border-subtle)" }} />
+                      <div className="flex items-center gap-2 border rounded-lg px-4 py-3 transition-colors" style={{ ...inputStyle, borderColor: fpConfirm && fpConfirm !== fpNewPass ? "rgba(239,68,68,0.6)" : "var(--border-subtle)" }}>
+                        <input type={showFpConfirm ? "text" : "password"} placeholder="Repeat password" value={fpConfirm} onChange={(e) => setFpConfirm(e.target.value)}
+                          className="flex-1 bg-transparent outline-none text-base" style={{ color: "var(--text-primary)" }} />
+                        <button type="button" onClick={() => setShowFpConfirm(v => !v)} className="flex-shrink-0" style={{ color: "var(--text-secondary)" }} tabIndex={-1}>
+                          {showFpConfirm ? <EyeOff size={18} /> : <Eye size={18} />}
+                        </button>
+                      </div>
                       {fpConfirm && fpConfirm !== fpNewPass && <p className="text-xs mt-1 text-red-400">Passwords don&apos;t match</p>}
                     </div>
                     <button type="submit"

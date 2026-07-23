@@ -7,7 +7,7 @@ import { authApi, setToken, ApiError } from "@/lib/api";
 import { useApp } from "@/context/AppContext";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, AlertCircle, Loader, Check, ArrowLeft } from "lucide-react";
+import { ArrowRight, AlertCircle, Loader, Check, ArrowLeft, Eye, EyeOff } from "lucide-react";
 
 const inputStyle = {
   borderColor: "var(--border-subtle)",
@@ -22,6 +22,8 @@ export default function ForgotPasswordPage() {
   const [phone, setPhone] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showNewPass, setShowNewPass] = useState(false);
+  const [showConfirmPass, setShowConfirmPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -169,14 +171,18 @@ export default function ForgotPasswordPage() {
                       style={{ color: "var(--text-secondary)" }}>
                       New Password
                     </label>
-                    <input
-                      type="password"
-                      placeholder="Min 6 characters"
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      className="w-full border rounded-lg px-4 py-3 outline-none text-base"
-                      style={inputStyle}
-                    />
+                    <div className="flex items-center gap-2 border rounded-lg px-4 py-3 transition-colors" style={{ borderColor: "var(--border-subtle)", backgroundColor: "var(--bg-card)", color: "var(--text-primary)" }}>
+                      <input
+                        type={showNewPass ? "text" : "password"}
+                        placeholder="Min 6 characters"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        className="flex-1 bg-transparent outline-none text-base"
+                      />
+                      <button type="button" onClick={() => setShowNewPass(v => !v)} className="flex-shrink-0" style={{ color: "var(--text-secondary)" }} tabIndex={-1}>
+                        {showNewPass ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    </div>
                   </div>
 
                   {/* Confirm */}
@@ -185,19 +191,18 @@ export default function ForgotPasswordPage() {
                       style={{ color: "var(--text-secondary)" }}>
                       Confirm New Password
                     </label>
-                    <input
-                      type="password"
-                      placeholder="Repeat password"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="w-full border rounded-lg px-4 py-3 outline-none text-base"
-                      style={{
-                        ...inputStyle,
-                        borderColor: confirmPassword && confirmPassword !== newPassword
-                          ? "rgba(239,68,68,0.6)"
-                          : "var(--border-subtle)",
-                      }}
-                    />
+                    <div className="flex items-center gap-2 border rounded-lg px-4 py-3 transition-colors" style={{ borderColor: confirmPassword && confirmPassword !== newPassword ? "rgba(239,68,68,0.6)" : "var(--border-subtle)", backgroundColor: "var(--bg-card)", color: "var(--text-primary)" }}>
+                      <input
+                        type={showConfirmPass ? "text" : "password"}
+                        placeholder="Repeat password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        className="flex-1 bg-transparent outline-none text-base"
+                      />
+                      <button type="button" onClick={() => setShowConfirmPass(v => !v)} className="flex-shrink-0" style={{ color: "var(--text-secondary)" }} tabIndex={-1}>
+                        {showConfirmPass ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    </div>
                     {confirmPassword && confirmPassword !== newPassword && (
                       <p className="text-xs mt-1 text-red-400">Passwords don&apos;t match</p>
                     )}
