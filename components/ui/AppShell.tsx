@@ -194,8 +194,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {/* Top bar — mobile only */}
         <header className="lg:hidden sticky top-0 z-30 flex items-center justify-between px-4 py-3 border-b"
           style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-base)" }}>
-          <Link href="/pills" className="flex items-center justify-center w-7 h-7">
-            <Image src="/bitlyfe-mark.svg" alt="BitLyfe" width={24} height={24} priority />
+          <Link href="/pills" className="flex items-center gap-2">
+            <Image src="/bitlyfe-mark.svg" alt="BitLyfe" width={36} height={36} priority />
           </Link>
           <div className="flex items-center gap-3">
             <Link href="/wallet" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border"
