@@ -452,10 +452,12 @@ function PackRow({ pack, onClick }: { pack: PillPack; onClick: () => void }) {
 // Standard Pills: two-step — Pay first, then Ready screen before question reveals
 type SheetStep = "confirm" | "paying" | "ready";
 
-function PillSheet({ pack, pill, onConfirm, onClose, balance, bonusBalance }: {
+function PillSheet({ pack, pill, onConfirm, onClose, onStale, balance, bonusBalance }: {
   pack: PillPack; pill: PillPackPill;
   onConfirm: (prefetched: import("@/lib/api").PillOpenResponse | null) => void;
-  onClose: () => void; balance: number; bonusBalance: number;
+  onClose: () => void;
+  onStale?: () => void;  // called when pill was already taken — triggers pack refresh
+  balance: number; bonusBalance: number;
 }) {
   const isSpecial = pack.question_count != null || pack.is_vip || (pack as any).pack_type === "special";
   const color = isSpecial ? "var(--accent-amber)" : catColor(pack.category);
@@ -498,7 +500,24 @@ function PillSheet({ pack, pill, onConfirm, onClose, balance, bonusBalance }: {
       setWasResumed(!!data.resumed);
       setStep("ready");
     } catch (err) {
-      setPayError(err instanceof ApiError ? err.message : "Payment failed — please try again");
+      const msg = err instanceof ApiError ? err.message : "";
+      // Detect "pill already played" race condition — no charge occurred
+      const isStale =
+        msg.toLowerCase().includes("already") ||
+        msg.toLowerCase().includes("played") ||
+        msg.toLowerCase().includes("not available") ||
+        (err instanceof ApiError && (err.code === "PILL_ALREADY_PLAYED" || err.code === "PILL_NOT_AVAILABLE"));
+
+      if (isStale) {
+        setPayError("This pill was just taken by another player. The list is refreshing...");
+        // Close sheet and refresh packs so the stale card disappears
+        setTimeout(() => {
+          onClose();
+          onStale?.();
+        }, 1800);
+      } else {
+        setPayError(msg || "Payment failed — please try again");
+      }
     } finally {
       setPaying(false);
     }
@@ -853,6 +872,16 @@ export default function PillsPage() {
             pack={sheet.pack} pill={sheet.pill}
             balance={state.player?.balance ?? 0}
             bonusBalance={state.player?.bonus_balance ?? 0}
+            onStale={() => {
+              // Refresh packs so stale played card is removed from the list
+              pillsApi.getPacks()
+                .then((d) => {
+                  const active = (d.packs ?? []).filter((p) => p.status === "active");
+                  const standards = active.filter((p) => !p.is_vip && (p as any).pack_type !== "special");
+                  setAllPacks(standards);
+                })
+                .catch(() => {});
+            }}
         onConfirm={(prefetched) => {
           const { pack, pill } = sheet;
           const isSpecial = pack.is_vip || (pack as any).pack_type === "special" || pack.question_count != null;
