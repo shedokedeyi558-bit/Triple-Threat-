@@ -122,102 +122,75 @@ export default function AdminStandardPackPillsPage() {
         </div>
       )}
 
-      {/* Pill list */}
+      {/* Pill list — card layout, one card per question */}
       {!loading && pills.length > 0 && (
-        <div className="rounded-xl border overflow-hidden"
-          style={{ borderColor: "var(--border-subtle)", backgroundColor: "var(--bg-card)" }}>
+        <div className="space-y-3">
+          {pills.map((pill, i) => (
+            <div key={pill.id}
+              className="rounded-xl border px-4 py-3 space-y-2"
+              style={{
+                borderColor: "var(--border-hairline)",
+                backgroundColor: "var(--bg-card)",
+                opacity: pill.status === "played" ? 0.55 : 1,
+              }}>
 
-          {/* Column header */}
-          <div className="grid gap-3 px-4 py-2 text-[10px] font-bold uppercase tracking-widest border-b"
-            style={{
-              gridTemplateColumns: "minmax(0,1fr) 80px 56px 56px",
-              color: "var(--text-muted)", borderColor: "var(--border-hairline)",
-            }}>
-            <span>Question</span>
-            <span>Answer</span>
-            <span>Timer</span>
-            <span className="text-right">Status</span>
-          </div>
+              {/* Question */}
+              <p className="text-sm font-semibold leading-snug" style={{ color: "var(--text-primary)" }}>
+                {i + 1}. {pill.question}
+              </p>
 
-          <div className="divide-y" style={{ borderColor: "var(--border-hairline)" }}>
-            {pills.map((pill, i) => (
-              <div key={pill.id}
-                className="grid gap-3 px-4 py-3 items-start"
-                style={{
-                  gridTemplateColumns: "minmax(0,1fr) 80px 56px 56px",
-                  opacity: pill.status === "played" ? 0.55 : 1,
-                }}>
-
-                {/* Question + options */}
-                <div className="min-w-0 space-y-1.5">
-                  <p className="text-sm font-semibold leading-snug" style={{ color: "var(--text-primary)" }}>
-                    {i + 1}. {pill.question}
-                  </p>
-                  {pill.format === "multiple_choice" && pill.options && pill.options.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5">
-                      {pill.options.map((opt) => {
-                        const isCorrect = opt === pill.correct_answer;
-                        return (
-                          <span key={opt}
-                            className="text-[11px] px-2 py-0.5 rounded"
-                            style={{
-                              backgroundColor: isCorrect
-                                ? "rgba(232,163,61,0.15)"
-                                : "rgba(255,255,255,0.05)",
-                              color: isCorrect ? "var(--accent-amber)" : "var(--text-secondary)",
-                              border: isCorrect
-                                ? "1px solid rgba(232,163,61,0.3)"
-                                : "1px solid var(--border-hairline)",
-                              fontWeight: isCorrect ? 700 : 400,
-                            }}>
-                            {isCorrect && "✓ "}{opt}
-                          </span>
-                        );
-                      })}
-                    </div>
-                  )}
+              {/* MC options */}
+              {pill.format === "multiple_choice" && pill.options && pill.options.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {pill.options.map((opt) => {
+                    const isCorrect = opt === pill.correct_answer;
+                    return (
+                      <span key={opt} className="text-[11px] px-2 py-0.5 rounded"
+                        style={{
+                          backgroundColor: isCorrect ? "rgba(232,163,61,0.15)" : "rgba(255,255,255,0.05)",
+                          color: isCorrect ? "var(--accent-amber)" : "var(--text-secondary)",
+                          border: isCorrect ? "1px solid rgba(232,163,61,0.3)" : "1px solid var(--border-hairline)",
+                          fontWeight: isCorrect ? 700 : 400,
+                        }}>
+                        {isCorrect && "✓ "}{opt}
+                      </span>
+                    );
+                  })}
                 </div>
+              )}
 
-                {/* Correct answer (type_answer format, or fallback) */}
-                <div className="min-w-0 pt-0.5">
-                  {pill.format === "type_answer" ? (
-                    <span className="text-xs font-mono font-semibold"
-                      style={{ color: "var(--accent-amber)" }}>
-                      {pill.correct_answer}
-                    </span>
-                  ) : (
-                    <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>
-                      (highlighted)
-                    </span>
-                  )}
-                </div>
+              {/* Chips row: answer · timer · status */}
+              <div className="flex items-center gap-2 flex-wrap">
 
-                {/* Timer */}
-                <div className="flex items-center gap-1 pt-0.5">
-                  <Clock size={10} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
-                  <span className="text-xs font-mono" style={{ color: "var(--text-secondary)" }}>
-                    {pill.timer ? `${pill.timer}s` : "—"}
+                {/* Answer chip — type_answer only */}
+                {pill.format === "type_answer" && (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded"
+                    style={{ backgroundColor: "rgba(232,163,61,0.1)", color: "var(--accent-amber)", border: "1px solid rgba(232,163,61,0.25)" }}>
+                    Ans: {pill.correct_answer}
                   </span>
-                </div>
+                )}
 
-                {/* Status badge */}
-                <div className="flex justify-end pt-0.5">
-                  {pill.status === "available" ? (
-                    <span className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded"
-                      style={{ backgroundColor: "rgba(76,111,255,0.12)", color: "var(--accent-indigo)", border: "1px solid rgba(76,111,255,0.25)" }}>
-                      <CheckCircle2 size={8} /> Open
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded"
-                      style={{ backgroundColor: "rgba(255,255,255,0.05)", color: "var(--text-muted)", border: "1px solid var(--border-hairline)" }}>
-                      Played
-                    </span>
-                  )}
-                </div>
+                {/* Timer chip */}
+                <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded"
+                  style={{ backgroundColor: "rgba(255,255,255,0.04)", color: "var(--text-muted)", border: "1px solid var(--border-hairline)" }}>
+                  <Clock size={9} /> {pill.timer ? `${pill.timer}s` : "—"}
+                </span>
 
+                {/* Status chip */}
+                {pill.status === "available" ? (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded"
+                    style={{ backgroundColor: "rgba(76,111,255,0.12)", color: "var(--accent-indigo)", border: "1px solid rgba(76,111,255,0.25)" }}>
+                    <CheckCircle2 size={8} /> Open
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded"
+                    style={{ backgroundColor: "rgba(255,255,255,0.05)", color: "var(--text-muted)", border: "1px solid var(--border-hairline)" }}>
+                    Played
+                  </span>
+                )}
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
         </div>
       )}
     </div>
