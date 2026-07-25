@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { adminApi, type PackQuestion, ApiError } from "@/lib/api";
 import {
   Plus, Pencil, Trash2, AlertTriangle, ArrowUpDown, ArrowUp, ArrowDown,
-  Loader2, X, Save, Library, Upload,
+  Loader2, X, Save, Library,
 } from "lucide-react";
 
 // ── Difficulty flag ───────────────────────────────────────────────────────────
@@ -62,53 +62,7 @@ function QuestionForm({ initial, onSave, onCancel, saving }: {
   );
 }
 
-// ── Bulk upload ───────────────────────────────────────────────────────────────
-function BulkPanel({ onDone, onCancel }: { onDone: () => void; onCancel: () => void }) {
-  const [raw, setRaw] = useState("");
-  const [uploading, setUploading] = useState(false);
-  const [msg, setMsg] = useState("");
-  const handleUpload = async () => {
-    setMsg("");
-    let parsed: { question: string; format: "multiple_choice"|"type_answer"; options?: string[]; correct_answer: string; timer: number }[] = [];
-    try {
-      const t = raw.trim();
-      if (t.startsWith("[")) { parsed = JSON.parse(t); }
-      else {
-        const lines = t.split("\n").filter(l => l.trim());
-        for (let i = 1; i < lines.length; i++) {
-          const cols = lines[i].match(/(".*?"|[^,]+)(?=,|$)/g)?.map(c=>c.replace(/^"|"$/g,"").trim())??[];
-          if (cols[0] && cols[3]) parsed.push({ question: cols[0], format: (cols[1]??"multiple_choice") as "multiple_choice"|"type_answer", options: cols[2]?cols[2].split("|").map(o=>o.trim()).filter(Boolean):undefined, correct_answer: cols[3], timer: Number(cols[4]??30)||30 });
-        }
-      }
-    } catch { setMsg("Could not parse input."); return; }
-    if (!parsed.length) { setMsg("No questions found."); return; }
-    setUploading(true);
-    try {
-      let added = 0;
-      for (const q of parsed) { await adminApi.addLibraryQuestion(q); added++; }
-      setMsg(`✓ ${added} question${added!==1?"s":""} added to library`);
-      setTimeout(() => { onDone(); }, 1200);
-    } catch (err) { setMsg(err instanceof ApiError ? err.message : "Upload failed"); }
-    finally { setUploading(false); }
-  };
-  return (
-    <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
-      style={{ borderRadius: 12, padding: 18, border: "1px solid rgba(76,111,255,0.25)", backgroundColor: "var(--bg-card)", marginBottom: 16 }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-        <span style={{ fontSize: 12, fontWeight: 700, color: "var(--accent-indigo)" }}>Bulk Upload to Library</span>
-        <button onClick={onCancel} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)" }}><X size={14} /></button>
-      </div>
-      <textarea value={raw} onChange={e => setRaw(e.target.value)} rows={7} placeholder='JSON array or CSV (question, format, options|pipe, correct_answer, timer)'
-        style={{ width: "100%", boxSizing: "border-box", padding: "10px 12px", borderRadius: 8, border: "1px solid var(--border-subtle)", backgroundColor: "var(--bg-base)", color: "var(--text-primary)", fontSize: 12, resize: "vertical", outline: "none", fontFamily: "monospace", marginBottom: 8 }} />
-      {msg && <p style={{ fontSize: 11, color: msg.startsWith("✓") ? "#34d399" : "#f87171", marginBottom: 8 }}>{msg}</p>}
-      <button onClick={handleUpload} disabled={!raw.trim() || uploading}
-        style={{ padding: "9px 18px", borderRadius: 8, border: "none", backgroundColor: "var(--accent-indigo)", color: "#fff", fontSize: 12, fontWeight: 700, cursor: !raw.trim() || uploading ? "not-allowed" : "pointer", opacity: !raw.trim() || uploading ? 0.45 : 1, display: "flex", alignItems: "center", gap: 6 }}>
-        {uploading ? <Loader2 size={12} className="animate-spin" /> : <Upload size={12} />}
-        {uploading ? "Uploading..." : "Upload"}
-      </button>
-    </motion.div>
-  );
-}
+
 
 type SortDir = "asc"|"desc"|null;
 
@@ -118,7 +72,6 @@ export default function LibraryPage() {
   const [error, setError]           = useState("");
   const [sortDir, setSortDir]       = useState<SortDir>(null);
   const [showAdd, setShowAdd]       = useState(false);
-  const [showBulk, setShowBulk]     = useState(false);
   const [editTarget, setEditTarget] = useState<PackQuestion | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<PackQuestion | null>(null);
   const [saving, setSaving]         = useState(false);
@@ -167,11 +120,7 @@ export default function LibraryPage() {
           <p style={{ fontSize: 12, color: "var(--text-muted)", margin: 0 }}>{questions.length} question{questions.length!==1?"s":""} · Unattached question pool</p>
         </div>
         <div style={{ display: "flex", gap: 6 }}>
-          <button onClick={() => { setShowBulk(v => !v); setShowAdd(false); }}
-            style={{ display: "flex", alignItems: "center", gap: 5, padding: "8px 12px", borderRadius: 8, border: "1px solid rgba(76,111,255,0.3)", backgroundColor: showBulk ? "rgba(76,111,255,0.1)" : "transparent", color: "var(--accent-indigo)", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
-            <Upload size={12} /> Bulk
-          </button>
-          <button onClick={() => { setShowAdd(true); setShowBulk(false); setEditTarget(null); }}
+          <button onClick={() => { setShowAdd(true); setEditTarget(null); }}
             style={{ display: "flex", alignItems: "center", gap: 6, padding: "9px 14px", borderRadius: 9, border: "none", backgroundColor: "var(--accent-amber)", color: "#000", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
             <Plus size={13} /> Add Question
           </button>
@@ -185,7 +134,6 @@ export default function LibraryPage() {
       )}
 
       <AnimatePresence>
-        {showBulk && <BulkPanel onDone={() => { setShowBulk(false); load(); }} onCancel={() => setShowBulk(false)} />}
         {showAdd && (
           <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
             style={{ borderRadius: 12, padding: 18, border: "1px solid rgba(232,163,61,0.3)", backgroundColor: "var(--bg-card)", marginBottom: 16 }}>
