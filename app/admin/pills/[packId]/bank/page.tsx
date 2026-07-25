@@ -59,7 +59,7 @@ function BankHealth({ total, questionCount, targetBankSize }: { total: number; q
 // ── Question form (add / edit) ────────────────────────────────────────────────
 function QuestionForm({ initial, onSave, onCancel, saving }: {
   initial?: Partial<PackQuestion>;
-  onSave: (data: Omit<PackQuestion, "id"|"times_shown"|"times_correct"|"correct_rate"|"status"|"created_at">) => void;
+  onSave: (data: { question: string; format: "multiple_choice"|"type_answer"; options?: string[]; correct_answer: string; timer: number }) => void;
   onCancel: () => void;
   saving: boolean;
 }) {
