@@ -1310,8 +1310,8 @@ export const adminApi = {
 
   importFromLibrary: (packId: string, questionIds: string[]) =>
     request<{ inserted: number }>(
-      `/api/admin/specials-bank/packs/${packId}/import`,
-      { method: "POST", body: { question_ids: questionIds }, token: getAdminToken() }
+      `/api/admin/specials-bank/library/importFromLibrary`,
+      { method: "POST", body: { question_ids: questionIds, pack_id: packId }, token: getAdminToken() }
     ),
 
   // Withdrawals — PUT for approve/reject
