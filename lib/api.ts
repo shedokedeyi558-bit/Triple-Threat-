@@ -636,7 +636,7 @@ export interface PackQuestion {
   format: "multiple_choice" | "type_answer";
   options?: string[];
   correct_answer: string;
-  timer: number;
+  timer?: number;              // present for pack questions (pills table); absent for library questions
   times_shown: number;
   times_correct: number;
   correct_rate: number;          // 0–100 percentage, computed by backend
@@ -1288,7 +1288,7 @@ export const adminApi = {
 
   addLibraryQuestion: (data: {
     question: string; format: "multiple_choice" | "type_answer";
-    options?: string[]; correct_answer: string; timer?: number;
+    options?: string[]; correct_answer: string;
   }) =>
     request<{ question: PackQuestion }>("/api/admin/specials-bank/library", {
       method: "POST", body: data, token: getAdminToken()
