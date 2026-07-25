@@ -483,6 +483,15 @@ function ImportLibraryModal({ packId, onDone, onCancel }: { packId: string; onDo
     adminApi.getLibraryQuestions().then(r => setLibQ(r.questions ?? [])).catch(() => {});
   }, []);
   const toggle = (id: string) => setSelected(s => { const n = new Set(s); if (n.has(id)) { n.delete(id); } else { n.add(id); } return n; });
+  const toggleSelectAll = () => {
+    if (selected.size === libQ.length && libQ.length > 0) {
+      // All selected, deselect all
+      setSelected(new Set());
+    } else {
+      // Select all visible questions
+      setSelected(new Set(libQ.map(q => q.id)));
+    }
+  };
   const handleImport = async () => {
     if (selected.size === 0) return;
     setImporting(true); setError("");
@@ -490,6 +499,7 @@ function ImportLibraryModal({ packId, onDone, onCancel }: { packId: string; onDo
     catch (err) { setError(err instanceof ApiError ? err.message : "Import failed"); }
     finally { setImporting(false); }
   };
+  const allSelected = libQ.length > 0 && selected.size === libQ.length;
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       style={{ position: "fixed", inset: 0, zIndex: 60, display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "rgba(0,0,0,0.75)", backdropFilter: "blur(4px)", padding: 16 }}
@@ -504,10 +514,18 @@ function ImportLibraryModal({ packId, onDone, onCancel }: { packId: string; onDo
           </div>
           <button onClick={onCancel} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)" }}><X size={14} /></button>
         </div>
-        <p style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 12 }}>
-          {selected.size > 0 ? `${selected.size} selected` : "Select questions to import into this pack"} ·{" "}
-          <Link href="/admin/library" style={{ color: "var(--accent-amber)", textDecoration: "none" }} target="_blank">Open Library</Link>
-        </p>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+          <p style={{ fontSize: 11, color: "var(--text-muted)", margin: 0 }}>
+            {selected.size > 0 ? `${selected.size} selected` : "Select questions to import into this pack"} ·{" "}
+            <Link href="/admin/library" style={{ color: "var(--accent-amber)", textDecoration: "none" }} target="_blank">Open Library</Link>
+          </p>
+          {libQ.length > 0 && (
+            <button onClick={toggleSelectAll}
+              style={{ fontSize: 10, fontWeight: 700, color: "var(--accent-amber)", border: "none", background: "none", cursor: "pointer", padding: 0 }}>
+              {allSelected ? "Deselect All" : "Select All"}
+            </button>
+          )}
+        </div>
         <div style={{ flex: 1, overflowY: "auto", border: "1px solid var(--border-hairline)", borderRadius: 8, marginBottom: 14 }}>
           {libQ.length === 0 ? (
             <div style={{ padding: "32px 16px", textAlign: "center", color: "var(--text-muted)" }}>
