@@ -30,7 +30,7 @@ function DifficultyFlag({ rate, shown }: { rate: number; shown: number }) {
 }
 
 // ── Bank health bar ───────────────────────────────────────────────────────────
-function BankHealth({ total, questionCount }: { total: number; questionCount: number | null }) {
+function BankHealth({ total, questionCount, targetBankSize }: { total: number; questionCount: number | null; targetBankSize?: number | null }) {
   if (questionCount == null) return null;
   const ratio = questionCount > 0 ? total / questionCount : 0;
   const pct = Math.min(100, (ratio / 3) * 100);
@@ -46,7 +46,10 @@ function BankHealth({ total, questionCount }: { total: number; questionCount: nu
         <div style={{ height: "100%", borderRadius: 3, width: `${pct}%`, backgroundColor: color, transition: "width 0.5s ease" }} />
       </div>
       <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "var(--text-muted)" }}>
-        <span>{total} questions in bank</span>
+        {targetBankSize
+          ? <span>{total} of {targetBankSize} target questions</span>
+          : <span>{total} questions in bank</span>
+        }
         <span>{questionCount} drawn per exam · {ratio.toFixed(1)}× coverage</span>
       </div>
     </div>
@@ -558,8 +561,9 @@ export default function QuestionBankPage() {
   const isNew = searchParams.get("new") === "1";
   const packId = params.packId as string;
 
-  const [packName, setPackName]           = useState("");
-  const [questionCount, setQuestionCount] = useState<number | null>(null);
+  const [packName, setPackName]               = useState("");
+  const [questionCount, setQuestionCount]     = useState<number | null>(null);
+  const [targetBankSize, setTargetBankSize]   = useState<number | null>(null);
   const [questions, setQuestions]         = useState<PackQuestion[]>([]);
   const [loading, setLoading]             = useState(true);
   const [error, setError]                 = useState("");
@@ -578,6 +582,7 @@ export default function QuestionBankPage() {
       const res = await adminApi.getPackQuestions(packId);
       setPackName(res.pack.name);
       setQuestionCount(res.pack.question_count);
+      setTargetBankSize((res.pack as any).target_bank_size ?? null);
       setQuestions(res.questions);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to load question bank");
@@ -671,7 +676,7 @@ export default function QuestionBankPage() {
       )}
 
       {/* Bank health */}
-      {!loading && <div style={{ marginBottom: 16 }}><BankHealth total={questions.length} questionCount={questionCount} /></div>}
+      {!loading && <div style={{ marginBottom: 16 }}><BankHealth total={questions.length} questionCount={questionCount} targetBankSize={targetBankSize} /></div>}
 
       {/* Bulk upload */}
       <AnimatePresence>

@@ -1215,7 +1215,7 @@ export const adminApi = {
   // Question bank management (Prompts 9 & 10)
   getPackQuestions: (packId: string) =>
     request<{
-      pack: { id: string; name: string; category: string; question_count: number | null };
+      pack: { id: string; name: string; category: string; question_count: number | null; target_bank_size?: number | null };
       questions: PackQuestion[];
       stats: { total: number; bank_size: number; coverage_ratio: number };
     }>(`/api/admin/specials-bank/packs/${packId}/questions`, { token: getAdminToken() }),

@@ -92,6 +92,7 @@ export default function CreatePillPackPage() {
   const [specialQuestionCount, setSpecialQCount] = useState<number | "">(10);
   const [specialTotalTime, setSpecialTotalTime] = useState<number | "">(900); // 15 min default
   const [specialRequiredCorrect, setSpecialReqCorrect] = useState<number | "">(8);
+  const [specialTargetBankSize, setSpecialTargetBankSize] = useState<number | "">("");
   const [specialExpiryOption, setSpecialExpiryOption] = useState<"24h"|"48h"|"7d"|"custom">("24h");
   const [specialExpiryCustom, setSpecialExpiryCustom] = useState<string>("");
   const [formOpen, setFormOpen] = useState(true);
@@ -155,6 +156,7 @@ export default function CreatePillPackPage() {
           question_count: Number(specialQuestionCount) || 10,
           total_time_seconds: Number(specialTotalTime) || 900,
           required_correct: Number(specialRequiredCorrect) || 8,
+          ...(specialTargetBankSize ? { target_bank_size: Number(specialTargetBankSize) } : {}),
           idempotency_key: idempotencyKey,
         } as any);
         const packId = (packRes as any).pack?.id ?? (packRes as any).id;
@@ -204,6 +206,7 @@ export default function CreatePillPackPage() {
           question_count: Number(specialQuestionCount) || 10,
           total_time_seconds: Number(specialTotalTime) || 900,
           required_correct: Number(specialRequiredCorrect) || 8,
+          ...(specialTargetBankSize ? { target_bank_size: Number(specialTargetBankSize) } : {}),
           quiz_expires_at: (() => {
             if (specialExpiryOption === "custom") return specialExpiryCustom ? new Date(specialExpiryCustom).toISOString() : undefined;
             const ms: Record<string, number> = { "24h": 86400000, "48h": 172800000, "7d": 604800000 };
@@ -340,9 +343,9 @@ export default function CreatePillPackPage() {
             One attempt per player. Build a larger question bank than question count for real randomization.
           </p>
           {/* Specials config fields */}
-          <div className="grid grid-cols-3 gap-3 border rounded-xl p-4" style={{ borderColor: "rgba(232,163,61,0.3)", backgroundColor: "rgba(232,163,61,0.04)" }}>
+          <div className="grid grid-cols-2 gap-3 border rounded-xl p-4" style={{ borderColor: "rgba(232,163,61,0.3)", backgroundColor: "rgba(232,163,61,0.04)" }}>
             <div>
-              <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Questions (5–20)</label>
+              <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Questions per exam (5–20)</label>
               <input className={inputCls} type="number" min="5" max="20" placeholder="10"
                 value={specialQuestionCount}
                 onChange={(e) => setSpecialQCount(e.target.value === "" ? "" : Number(e.target.value))} />
@@ -360,6 +363,13 @@ export default function CreatePillPackPage() {
                 value={specialRequiredCorrect}
                 onChange={(e) => setSpecialReqCorrect(e.target.value === "" ? "" : Number(e.target.value))} />
               <p className="text-[9px] mt-1" style={{ color: "var(--text-muted)" }}>correct to win</p>
+            </div>
+            <div>
+              <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Target bank size <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>(optional)</span></label>
+              <input className={inputCls} type="number" min="1" placeholder="e.g. 300"
+                value={specialTargetBankSize}
+                onChange={(e) => setSpecialTargetBankSize(e.target.value === "" ? "" : Number(e.target.value))} />
+              <p className="text-[9px] mt-1" style={{ color: "var(--text-muted)" }}>visible goal, not enforced</p>
             </div>
           </div>
           {pills.length > 0 && pills.length < Number(specialQuestionCount || 5) && (
