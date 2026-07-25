@@ -24,6 +24,16 @@ function formatTimer(sec?: number) {
   return sec >= 60 ? `${Math.floor(sec / 60)}m` : `${sec}s`;
 }
 
+// Display entry cap status
+function formatEntryCap(max?: number | null, made?: number, capped?: boolean): { label: string | null; full: boolean; color: string } {
+  if (!max) return { label: null, full: false, color: "inherit" };
+  const entries = made ?? 0;
+  if (capped || entries >= max) {
+    return { label: "Entry Closed", full: true, color: "#f87171" };
+  }
+  return { label: `${entries}/${max} entries`, full: false, color: "var(--accent-amber)" };
+}
+
 // ── Live expiry countdown for quiz_expires_at ─────────────────────────────
 function usePackExpiry(expiresAt?: string | null) {
   const [secondsLeft, setSecondsLeft] = useState<number>(() =>
@@ -79,15 +89,16 @@ function HeroPack({ pack, onClick }: { pack: PillPack; onClick: () => void }) {
   const timerLabel = formatTimer(timer);
   const available = pack.pills.filter((p) => p.status === "available").length;
   const { label: expiryLabel, expired } = usePackExpiry(pack.quiz_expires_at);
+  const { label: entryCapLabel, full: entryCapped } = formatEntryCap(pack.max_entries, pack.entries_made, pack.entry_cap_reached);
 
   return (
-    <motion.button initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} whileTap={{ scale: expired ? 1 : 0.98 }}
-      onClick={expired ? undefined : onClick}
+    <motion.button initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} whileTap={{ scale: (expired || entryCapped) ? 1 : 0.98 }}
+      onClick={(expired || entryCapped) ? undefined : onClick}
       style={{
         width: "100%", boxSizing: "border-box", borderRadius: 16, padding: 0, textAlign: "left",
-        cursor: expired ? "default" : "pointer", overflow: "hidden", border: `1.5px solid ${color}50`,
+        cursor: (expired || entryCapped) ? "default" : "pointer", overflow: "hidden", border: `1.5px solid ${color}50`,
         backgroundColor: "var(--bg-card)", position: "relative",
-        boxShadow: `0 4px 32px ${color}20`, opacity: expired ? 0.6 : 1,
+        boxShadow: `0 4px 32px ${color}20`, opacity: (expired || entryCapped) ? 0.6 : 1,
       }}>
       <div style={{ position: "absolute", top: -40, right: -40, width: 180, height: 180, borderRadius: "50%", backgroundColor: color, opacity: 0.07, pointerEvents: "none" }} />
       <div style={{ height: 3, background: `linear-gradient(90deg, transparent, ${color}, transparent)` }} />
@@ -97,7 +108,12 @@ function HeroPack({ pack, onClick }: { pack: PillPack; onClick: () => void }) {
             {pack.category}
           </span>
           <span style={{ fontSize: 10, color: "var(--text-muted)" }}>{available}/{pack.pills.length} available</span>
-          {expiryLabel && (
+          {entryCapLabel && (
+            <span style={{ fontSize: 9, fontWeight: 600, color: entryCapped ? "#f87171" : "var(--accent-amber)", display: "flex", alignItems: "center", gap: 3 }}>
+              <Clock size={9} /> {entryCapLabel}
+            </span>
+          )}
+          {!entryCapLabel && expiryLabel && (
             <span style={{ fontSize: 9, fontWeight: 600, color: expired ? "#f87171" : "var(--accent-amber)", display: "flex", alignItems: "center", gap: 3 }}>
               <Clock size={9} /> {expiryLabel}
             </span>
@@ -105,26 +121,26 @@ function HeroPack({ pack, onClick }: { pack: PillPack; onClick: () => void }) {
         </div>
         <p style={{ fontSize: 19, fontWeight: 800, color: "var(--text-primary)", margin: "0 0 6px", lineHeight: 1.3 }}>{pack.name}</p>
         <p style={{ fontSize: 12, color: "var(--text-secondary)", margin: "0 0 16px" }}>
-          {expired ? "This pack has ended" : `Answer fast${timerLabel ? ` in ${timerLabel}` : ""}, win instantly`}
+          {expired || entryCapped ? (entryCapped ? "This pack's entry cap is full" : "This pack has ended") : `Answer fast${timerLabel ? ` in ${timerLabel}` : ""}, win instantly`}
         </p>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
           <div style={{ display: "flex", gap: 16 }}>
             <div>
               <p style={{ fontSize: 9, color: "var(--text-muted)", margin: "0 0 2px", textTransform: "uppercase", letterSpacing: "0.06em" }}>Entry</p>
-              {expired
-                ? <p style={{ fontSize: 16, fontWeight: 700, color: "#f87171", margin: 0 }}>Ended</p>
+              {expired || entryCapped
+                ? <p style={{ fontSize: 16, fontWeight: 700, color: "#f87171", margin: 0 }}>Closed</p>
                 : <p style={{ fontSize: 16, fontFamily: "monospace", fontWeight: 700, color: "var(--accent-amber)", margin: 0 }}>₦{price.toLocaleString()}</p>
               }
             </div>
-            {!expired && (
+            {!expired && !entryCapped && (
               <div>
                 <p style={{ fontSize: 9, color: "var(--text-muted)", margin: "0 0 2px", textTransform: "uppercase", letterSpacing: "0.06em" }}>Win up to</p>
                 <p style={{ fontSize: 16, fontFamily: "monospace", fontWeight: 700, color, margin: 0 }}>₦{prize.toLocaleString()}</p>
               </div>
             )}
           </div>
-          <div style={{ padding: "8px 16px", borderRadius: 10, backgroundColor: expired ? "rgba(239,68,68,0.15)" : color, color: expired ? "#f87171" : "#000", fontSize: 13, fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}>
-            {expired ? "Ended" : <>Play <ArrowRight size={13} /></>}
+          <div style={{ padding: "8px 16px", borderRadius: 10, backgroundColor: (expired || entryCapped) ? "rgba(239,68,68,0.15)" : color, color: (expired || entryCapped) ? "#f87171" : "#000", fontSize: 13, fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}>
+            {expired || entryCapped ? "Closed" : <>Play <ArrowRight size={13} /></>}
           </div>
         </div>
       </div>
@@ -141,7 +157,8 @@ function GridPackCard({ pack, onClick }: { pack: PillPack; onClick: () => void }
   const hasPending = pending > 0;
   const soldOut = available === 0 && !hasPending;
   const { label: expiryLabel, expired } = usePackExpiry(pack.quiz_expires_at);
-  const blocked = soldOut || expired;
+  const { label: entryCapLabel, full: entryCapped } = formatEntryCap(pack.max_entries, pack.entries_made, pack.entry_cap_reached);
+  const blocked = soldOut || expired || entryCapped;
 
   return (
     <motion.button initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} whileTap={{ scale: blocked ? 1 : 0.97 }}
@@ -175,13 +192,24 @@ function GridPackCard({ pack, onClick }: { pack: PillPack; onClick: () => void }
             Sold out
           </p>
         )}
+        {/* Entry capped badge */}
+        {entryCapped && (
+          <p style={{ fontSize: 9, fontWeight: 700, color: "#f87171", margin: 0, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+            Entry closed
+          </p>
+        )}
         {/* Resume badge — player has a paid-but-not-answered pill */}
-        {hasPending && (
+        {hasPending && !entryCapped && (
           <p style={{ fontSize: 9, fontWeight: 700, color: "var(--accent-amber)", margin: 0, display: "flex", alignItems: "center", gap: 3 }}>
             Resume available
           </p>
         )}
-        {expiryLabel && !soldOut && (
+        {entryCapLabel && !soldOut && !entryCapped && (
+          <p style={{ fontSize: 9, fontWeight: 600, color: "var(--accent-amber)", margin: 0, display: "flex", alignItems: "center", gap: 3 }}>
+            <Clock size={9} style={{ flexShrink: 0 }} /> {entryCapLabel}
+          </p>
+        )}
+        {expiryLabel && !soldOut && !entryCapped && (
           <p style={{ fontSize: 9, fontWeight: 600, color: expired ? "#f87171" : "var(--accent-amber)", margin: 0, display: "flex", alignItems: "center", gap: 3 }}>
             <Clock size={9} style={{ flexShrink: 0 }} /> {expiryLabel}
           </p>
@@ -191,6 +219,8 @@ function GridPackCard({ pack, onClick }: { pack: PillPack; onClick: () => void }
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           {soldOut && !hasPending ? (
             <p style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", margin: 0 }}>0 left</p>
+          ) : entryCapped ? (
+            <p style={{ fontSize: 12, fontWeight: 700, color: "#f87171", margin: 0 }}>Closed</p>
           ) : hasPending ? (
             <p style={{ fontSize: 11, fontWeight: 700, color: "var(--accent-amber)", margin: 0 }}>Resume</p>
           ) : expired ? (
@@ -376,13 +406,16 @@ function PackRow({ pack, onClick }: { pack: PillPack; onClick: () => void }) {
   const soldOut   = available === 0 && !hasPending;
   const price     = pack.pills[0]?.price ?? 0;
   const { label: expiryLabel, expired } = usePackExpiry(pack.quiz_expires_at);
-  const blocked   = (soldOut && !hasPending) || expired;
+  const { label: entryCapLabel, full: entryCapped } = formatEntryCap(pack.max_entries, pack.entries_made, pack.entry_cap_reached);
+  const blocked   = (soldOut && !hasPending) || expired || entryCapped;
 
   // Secondary line: "N left · M questions" (or state label)
   const qCount = pack.question_count ?? pack.pills.length;
   let subLabel: React.ReactNode;
   if (hasPending) {
     subLabel = <span style={{ color: "var(--accent-amber)", fontWeight: 700 }}>Resume available</span>;
+  } else if (entryCapped) {
+    subLabel = <span style={{ color: "#f87171" }}>Entry closed</span>;
   } else if (soldOut) {
     subLabel = <span style={{ color: "var(--text-muted)" }}>Sold out</span>;
   } else if (expired) {
@@ -390,8 +423,14 @@ function PackRow({ pack, onClick }: { pack: PillPack; onClick: () => void }) {
   } else {
     subLabel = (
       <span>
-        <span style={{ color: "var(--accent-indigo)", fontWeight: 600 }}>{available} left</span>
-        {qCount > 0 && <span style={{ color: "var(--text-muted)" }}> · {qCount} question{qCount !== 1 ? "s" : ""}</span>}
+        {entryCapLabel ? (
+          <span style={{ color: "var(--accent-indigo)", fontWeight: 600 }}>{entryCapLabel}</span>
+        ) : (
+          <>
+            <span style={{ color: "var(--accent-indigo)", fontWeight: 600 }}>{available} left</span>
+            {qCount > 0 && <span style={{ color: "var(--text-muted)" }}> · {qCount} question{qCount !== 1 ? "s" : ""}</span>}
+          </>
+        )}
       </span>
     );
   }
@@ -474,6 +513,7 @@ function PillSheet({ pack, pill, onConfirm, onClose, onStale, balance, bonusBala
   const passReq   = pack.required_correct ?? pack.pass_threshold ?? null;
 
   const { label: expiryLabel, expired } = usePackExpiry(pack.quiz_expires_at);
+  const { label: entryCapLabel, full: entryCapped } = formatEntryCap(pack.max_entries, pack.entries_made, pack.entry_cap_reached);
 
   const challengePhrase = isSpecial && qCount != null
     ? `Answer ${qCount} questions${timeMins != null ? ` in ${timeMins} minute${timeMins !== 1 ? "s" : ""}` : ""}${passReq != null ? ` — get ${passReq} or more right to win` : " — pass to win"}.`
@@ -481,7 +521,7 @@ function PillSheet({ pack, pill, onConfirm, onClose, onStale, balance, bonusBala
 
   const timerSec   = (pill as any).timer as number | undefined;
   const timerLabel = !isSpecial ? formatTimer(timerSec) : null;
-  const canStart   = canAfford && !expired;
+  const canStart   = canAfford && !expired && !entryCapped;
 
   // Two-step state — only used for Standard Pills
   const [step, setStep] = useState<SheetStep>("confirm");
@@ -616,6 +656,11 @@ function PillSheet({ pack, pill, onConfirm, onClose, onStale, balance, bonusBala
             Insufficient balance. <Link href="/wallet" style={{ textDecoration: "underline", fontWeight: 600 }}>Add funds</Link>
           </p>
         )}
+        {entryCapped && (
+          <p style={{ textAlign: "center", color: "#f87171", fontSize: 13, fontWeight: 600, marginBottom: 10 }}>
+            Entry cap reached — this pack is no longer accepting new entries
+          </p>
+        )}
         {expired && (
           <p style={{ textAlign: "center", color: "#f87171", fontSize: 13, fontWeight: 600, marginBottom: 10 }}>
             This special has ended
@@ -629,21 +674,22 @@ function PillSheet({ pack, pill, onConfirm, onClose, onStale, balance, bonusBala
             {isSpecial ? (
               <button onClick={canStart ? () => onConfirm(null) : undefined} disabled={!canStart}
                 style={{ width: "100%", padding: "14px 0", borderRadius: 11, border: "none",
-                  backgroundColor: expired ? "rgba(239,68,68,0.12)" : "var(--accent-amber)",
-                  color: expired ? "#f87171" : "#000", fontSize: 14, fontWeight: 800,
+                  backgroundColor: (expired || entryCapped) ? "rgba(239,68,68,0.12)" : "var(--accent-amber)",
+                  color: (expired || entryCapped) ? "#f87171" : "#000", fontSize: 14, fontWeight: 800,
                   cursor: canStart ? "pointer" : "not-allowed", opacity: canStart ? 1 : 0.45, marginBottom: 10 }}>
-                {expired ? "Entry Closed" : `Start & Pay ₦${entryFee.toLocaleString()}`}
+                {entryCapped ? "Entry Closed" : expired ? "Entry Closed" : `Start & Pay ₦${entryFee.toLocaleString()}`}
               </button>
             ) : (
               <button onClick={canStart && !paying ? handlePay : undefined} disabled={!canStart || paying}
                 style={{ width: "100%", padding: "14px 0", borderRadius: 11, border: "none",
-                  backgroundColor: expired ? "rgba(239,68,68,0.12)" : cardColor,
-                  color: expired ? "#f87171" : "#000", fontSize: 14, fontWeight: 800,
+                  backgroundColor: (expired || entryCapped) ? "rgba(239,68,68,0.12)" : cardColor,
+                  color: (expired || entryCapped) ? "#f87171" : "#000", fontSize: 14, fontWeight: 800,
                   cursor: canStart && !paying ? "pointer" : "not-allowed",
                   opacity: canStart && !paying ? 1 : 0.45, marginBottom: 10,
                   display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
                 {paying
                   ? <><Loader2 size={15} className="animate-spin" />Loading...</>
+                  : entryCapped ? "Entry Closed"
                   : expired ? "Entry Closed"
                   : pill.status === "pending" ? "Resume"
                   : `Pay ₦${entryFee.toLocaleString()}`

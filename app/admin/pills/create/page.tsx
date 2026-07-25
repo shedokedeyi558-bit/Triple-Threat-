@@ -93,6 +93,7 @@ export default function CreatePillPackPage() {
   const [specialTotalTime, setSpecialTotalTime] = useState<number | "">(900); // 15 min default
   const [specialRequiredCorrect, setSpecialReqCorrect] = useState<number | "">(8);
   const [specialTargetBankSize, setSpecialTargetBankSize] = useState<number | "">("");
+  const [specialMaxEntries, setSpecialMaxEntries] = useState<number | "">("");
   const [specialExpiryOption, setSpecialExpiryOption] = useState<"24h"|"48h"|"7d"|"custom">("24h");
   const [specialExpiryCustom, setSpecialExpiryCustom] = useState<string>("");
   const [formOpen, setFormOpen] = useState(true);
@@ -157,6 +158,12 @@ export default function CreatePillPackPage() {
           total_time_seconds: Number(specialTotalTime) || 900,
           required_correct: Number(specialRequiredCorrect) || 8,
           ...(specialTargetBankSize ? { target_bank_size: Number(specialTargetBankSize) } : {}),
+          ...(specialMaxEntries ? { max_entries: Number(specialMaxEntries) } : {}),
+          quiz_expires_at: (() => {
+            if (specialExpiryOption === "custom") return specialExpiryCustom ? new Date(specialExpiryCustom).toISOString() : undefined;
+            const ms: Record<string, number> = { "24h": 86400000, "48h": 172800000, "7d": 604800000 };
+            return new Date(Date.now() + ms[specialExpiryOption]).toISOString();
+          })(),
           idempotency_key: idempotencyKey,
         } as any);
         const packId = (packRes as any).pack?.id ?? (packRes as any).id;
@@ -207,6 +214,7 @@ export default function CreatePillPackPage() {
           total_time_seconds: Number(specialTotalTime) || 900,
           required_correct: Number(specialRequiredCorrect) || 8,
           ...(specialTargetBankSize ? { target_bank_size: Number(specialTargetBankSize) } : {}),
+          ...(specialMaxEntries ? { max_entries: Number(specialMaxEntries) } : {}),
           quiz_expires_at: (() => {
             if (specialExpiryOption === "custom") return specialExpiryCustom ? new Date(specialExpiryCustom).toISOString() : undefined;
             const ms: Record<string, number> = { "24h": 86400000, "48h": 172800000, "7d": 604800000 };
@@ -370,6 +378,13 @@ export default function CreatePillPackPage() {
                 value={specialTargetBankSize}
                 onChange={(e) => setSpecialTargetBankSize(e.target.value === "" ? "" : Number(e.target.value))} />
               <p className="text-[9px] mt-1" style={{ color: "var(--text-muted)" }}>visible goal, not enforced</p>
+            </div>
+            <div>
+              <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Max Entries (player cap) <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>(optional)</span></label>
+              <input className={inputCls} type="number" min="1" placeholder="e.g. 100"
+                value={specialMaxEntries}
+                onChange={(e) => setSpecialMaxEntries(e.target.value === "" ? "" : Number(e.target.value))} />
+              <p className="text-[9px] mt-1" style={{ color: "var(--text-muted)" }}>entry limit before cap closes</p>
             </div>
           </div>
           {pills.length > 0 && pills.length < Number(specialQuestionCount || 5) && (

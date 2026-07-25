@@ -623,6 +623,10 @@ export interface PillPack {
   entry_window_end?: string | null;
   available_question_count?: number | null;
   quiz_expires_at?: string | null;          // ISO timestamp — pack entry closes at this time
+  // Entry cap fields (Specials only)
+  max_entries?: number | null;       // max number of players allowed to enter
+  entries_made?: number;             // current number of entries
+  entry_cap_reached?: boolean;       // true when max_entries is hit
   pills: PillPackPill[];
 }
 
@@ -1151,7 +1155,7 @@ export const adminApi = {
   getPillPacks: () =>
     request<{ packs: PillPack[] }>("/api/admin/pills/packs", { token: getAdminToken() }),
 
-  createPillPack: (data: { name: string; category: string; entry_fee: number; prize: number; is_vip?: boolean }) =>
+  createPillPack: (data: { name: string; category: string; entry_fee: number; prize: number; is_vip?: boolean; question_count?: number; total_time_seconds?: number; required_correct?: number; target_bank_size?: number; quiz_expires_at?: string; max_entries?: number; idempotency_key?: string }) =>
     request<{ pack: { id: string; name: string; category: string; status: string } }>(
       "/api/admin/pills/packs",
       { method: "POST", body: data, token: getAdminToken() }
