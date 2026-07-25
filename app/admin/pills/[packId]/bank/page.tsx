@@ -67,8 +67,7 @@ function QuestionForm({ initial, onSave, onCancel, saving }: {
   const [format, setFormat] = useState<"multiple_choice"|"type_answer">(initial?.format ?? "multiple_choice");
   const [options, setOptions] = useState<string[]>(initial?.options?.length ? initial.options : ["","","",""]);
   const [correct, setCorrect] = useState(initial?.correct_answer ?? "");
-  const [timer, setTimer] = useState<number|"">(initial?.timer ?? 30);
-  const canSave = question.trim() && correct.trim() && Number(timer) > 0 &&
+  const canSave = question.trim() && correct.trim() &&
     (format === "type_answer" || options.filter(o => o.trim()).length >= 2);
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -99,21 +98,14 @@ function QuestionForm({ initial, onSave, onCancel, saving }: {
           ))}
         </div>
       )}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 100px", gap: 10 }}>
-        <div>
-          <label style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", color: "var(--text-muted)", display: "block", marginBottom: 5 }}>Correct answer *</label>
-          <input value={correct} onChange={e => setCorrect(e.target.value)} placeholder="Exact correct answer"
-            style={{ width: "100%", boxSizing: "border-box", padding: "9px 12px", borderRadius: 8, border: "1px solid var(--border-subtle)", backgroundColor: "var(--bg-base)", color: "var(--text-primary)", fontSize: 13, outline: "none" }} />
-        </div>
-        <div>
-          <label style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", color: "var(--text-muted)", display: "block", marginBottom: 5 }}>Timer (s) *</label>
-          <input type="number" min={5} value={timer} onChange={e => setTimer(e.target.value===""?"":Number(e.target.value))}
-            style={{ width: "100%", boxSizing: "border-box", padding: "9px 12px", borderRadius: 8, border: "1px solid var(--border-subtle)", backgroundColor: "var(--bg-base)", color: "var(--text-primary)", fontSize: 13, outline: "none" }} />
-        </div>
+      <div>
+        <label style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", color: "var(--text-muted)", display: "block", marginBottom: 5 }}>Correct answer *</label>
+        <input value={correct} onChange={e => setCorrect(e.target.value)} placeholder="Exact correct answer"
+          style={{ width: "100%", boxSizing: "border-box", padding: "9px 12px", borderRadius: 8, border: "1px solid var(--border-subtle)", backgroundColor: "var(--bg-base)", color: "var(--text-primary)", fontSize: 13, outline: "none" }} />
       </div>
       <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
         <button onClick={onCancel} style={{ padding: "8px 18px", borderRadius: 8, border: "1px solid var(--border-subtle)", backgroundColor: "transparent", color: "var(--text-secondary)", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>Cancel</button>
-        <button onClick={() => canSave && onSave({ question: question.trim(), format, options: format==="multiple_choice" ? options.filter(o=>o.trim()) : undefined, correct_answer: correct.trim(), timer: Number(timer) })}
+        <button onClick={() => canSave && onSave({ question: question.trim(), format, options: format==="multiple_choice" ? options.filter(o=>o.trim()) : undefined, correct_answer: correct.trim(), timer: 30 })}
           disabled={!canSave || saving}
           style={{ padding: "8px 18px", borderRadius: 8, border: "none", backgroundColor: "var(--accent-indigo)", color: "#fff", fontSize: 12, fontWeight: 700, cursor: canSave && !saving ? "pointer" : "not-allowed", opacity: canSave && !saving ? 1 : 0.45, display: "flex", alignItems: "center", gap: 6 }}>
           {saving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
@@ -242,7 +234,7 @@ function SpreadsheetTable({ rows, onChange, onDelete, onPaste }: {
       <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 720, fontSize: 11 }}>
         <thead>
           <tr style={{ backgroundColor: "var(--bg-base)" }}>
-            {["Question *", "Option 1", "Option 2", "Option 3", "Option 4", "Correct Answer *", "Time (s)", ""].map((h, i) => (
+            {["Question *", "Option 1", "Option 2", "Option 3", "Option 4", "Correct Answer *", ""].map((h, i) => (
               <th key={i} style={{ padding: "6px 8px", textAlign: "left", fontWeight: 700, color: "var(--text-muted)", fontSize: 9, textTransform: "uppercase", letterSpacing: "0.06em", borderBottom: "1px solid var(--border-hairline)", whiteSpace: "nowrap" }}>{h}</th>
             ))}
           </tr>
@@ -270,9 +262,6 @@ function SpreadsheetTable({ rows, onChange, onDelete, onPaste }: {
                     <option value="">— select —</option>
                     {opts.map(o => <option key={o} value={o}>{o.length > 30 ? o.slice(0,30)+"…" : o}</option>)}
                   </select>
-                </td>
-                <td style={{ padding: "4px", minWidth: 60 }}>
-                  <input type="number" value={row.timer} onChange={e => onChange(row.id, "timer", Number(e.target.value)||30)} min={5} max={3600} style={{ ...cellSt, width: 56 }} />
                 </td>
                 <td style={{ padding: "4px 8px" }}>
                   <button onClick={() => onDelete(row.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", padding: 2 }} title="Remove"><X size={13} /></button>

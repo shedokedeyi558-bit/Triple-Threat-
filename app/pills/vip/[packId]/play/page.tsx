@@ -84,15 +84,16 @@ function ExamTimerBar({ secondsLeft, totalSeconds }: { secondsLeft: number; tota
 }
 
 // ── Exam question ─────────────────────────────────────────────────────────────
-function ExamQuestion({ question, format, options, onSubmit, isLoading, questionNum, totalQuestions }: {
+function ExamQuestion({ question, format, options, onSubmit, isLoading, questionNum, totalQuestions, secondsLeft }: {
   question: string; format: "multiple_choice" | "type_answer"; options?: string[];
   onSubmit: (a: string) => void; isLoading: boolean;
-  questionNum: number; totalQuestions: number;
+  questionNum: number; totalQuestions: number; secondsLeft: number;
 }) {
   const [selected, setSelected] = useState<string | null>(null);
   const [typed, setTyped] = useState("");
   useEffect(() => { setSelected(null); setTyped(""); }, [question]);
-  const submit = (ans: string) => { if (!ans.trim() || isLoading) return; onSubmit(ans.trim()); };
+  const isTimeUp = secondsLeft <= 0;
+  const submit = (ans: string) => { if (!ans.trim() || isLoading || isTimeUp) return; onSubmit(ans.trim()); };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24, userSelect: "none" }} onContextMenu={(e) => e.preventDefault()}>
@@ -106,47 +107,48 @@ function ExamQuestion({ question, format, options, onSubmit, isLoading, question
       {format === "multiple_choice" && options && options.length > 0 ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {options.map((opt, i) => (
-            <button key={i} onClick={() => setSelected(opt)} disabled={isLoading}
+            <button key={i} onClick={() => !isTimeUp && setSelected(opt)} disabled={isLoading || isTimeUp}
               style={{
                 width: "100%", textAlign: "left", padding: "16px 20px", borderRadius: 12,
                 border: selected === opt ? "1.5px solid var(--accent-amber)" : "1.5px solid var(--border-subtle)",
                 backgroundColor: selected === opt ? "rgba(232,163,61,0.08)" : "var(--bg-card)",
                 color: selected === opt ? "var(--accent-amber)" : "var(--text-primary)",
                 fontSize: 15, fontWeight: selected === opt ? 600 : 400,
-                cursor: isLoading ? "not-allowed" : "pointer", transition: "all 0.12s",
+                cursor: (isLoading || isTimeUp) ? "not-allowed" : "pointer", transition: "all 0.12s",
+                opacity: isTimeUp ? 0.5 : 1,
               }}>
               {opt}
             </button>
           ))}
-          <button onClick={() => selected && submit(selected)} disabled={!selected || isLoading}
+          <button onClick={() => selected && submit(selected)} disabled={!selected || isLoading || isTimeUp}
             style={{
               marginTop: 4, width: "100%", padding: "15px 0", borderRadius: 12, border: "none",
               backgroundColor: selected ? "var(--accent-amber)" : "var(--border-subtle)",
               color: selected ? "#000" : "var(--text-muted)", fontSize: 15, fontWeight: 700,
-              cursor: !selected || isLoading ? "not-allowed" : "pointer",
-              display: "flex", alignItems: "center", justifyContent: "center", gap: 8, opacity: isLoading ? 0.6 : 1,
+              cursor: !selected || isLoading || isTimeUp ? "not-allowed" : "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 8, opacity: isLoading || isTimeUp ? 0.6 : 1,
             }}>
             {isLoading ? <Loader2 size={16} className="animate-spin" /> : null}
-            {isLoading ? "Saving..." : "Next →"}
+            {isTimeUp ? "Time's up" : isLoading ? "Saving..." : "Next →"}
           </button>
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <input type="text" placeholder="Type your answer..."
-            value={typed} onChange={(e) => setTyped(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && submit(typed)} disabled={isLoading}
-            style={{ width: "100%", padding: "16px 20px", borderRadius: 12, boxSizing: "border-box", border: "1.5px solid var(--border-subtle)", backgroundColor: "var(--bg-card)", color: "var(--text-primary)", fontSize: 15, outline: "none" }}
+            value={typed} onChange={(e) => !isTimeUp && setTyped(e.target.value)}
+            onKeyDown={(e) => !isTimeUp && e.key === "Enter" && submit(typed)} disabled={isLoading || isTimeUp}
+            style={{ width: "100%", padding: "16px 20px", borderRadius: 12, boxSizing: "border-box", border: "1.5px solid var(--border-subtle)", backgroundColor: "var(--bg-card)", color: "var(--text-primary)", fontSize: 15, outline: "none", opacity: isTimeUp ? 0.5 : 1 }}
           />
-          <button onClick={() => submit(typed)} disabled={!typed.trim() || isLoading}
+          <button onClick={() => submit(typed)} disabled={!typed.trim() || isLoading || isTimeUp}
             style={{
               width: "100%", padding: "15px 0", borderRadius: 12, border: "none",
               backgroundColor: typed.trim() ? "var(--accent-amber)" : "var(--border-subtle)",
               color: typed.trim() ? "#000" : "var(--text-muted)", fontSize: 15, fontWeight: 700,
-              cursor: !typed.trim() || isLoading ? "not-allowed" : "pointer",
-              display: "flex", alignItems: "center", justifyContent: "center", gap: 8, opacity: isLoading ? 0.6 : 1,
+              cursor: !typed.trim() || isLoading || isTimeUp ? "not-allowed" : "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 8, opacity: isLoading || isTimeUp ? 0.6 : 1,
             }}>
             {isLoading ? <Loader2 size={16} className="animate-spin" /> : null}
-            {isLoading ? "Saving..." : "Next →"}
+            {isTimeUp ? "Time's up" : isLoading ? "Saving..." : "Next →"}
           </button>
         </div>
       )}
@@ -380,6 +382,7 @@ export default function SpecialsPlayPage() {
                 question={currentQ.question} format={currentQ.format} options={currentQ.options}
                 onSubmit={handleAnswer} isLoading={submitting}
                 questionNum={displayQ} totalQuestions={totalQuestions}
+                secondsLeft={examSeconds}
               />
             </motion.div>
           )}

@@ -67,12 +67,12 @@ export default function PackStatsPage() {
   const packId = params.packId as string;
 
   const [packName, setPackName]         = useState("");
-  const [isSpecial, setIsSpecial]       = useState(false);
+  const [packType, setPackType]         = useState<"standard" | "special" | null>(null);
   const [questionCount, setQuestionCount] = useState<number | null>(null);
   const [bankSize, setBankSize]         = useState<number | null>(null);
   const [stats, setStats]               = useState<{
-    in_progress: number; won: number; lost: number;
-    total_attempts: number; win_rate: number;
+    live: number; won: number; lost: number;
+    total: number; win_rate: number;
   } | null>(null);
   const [loading, setLoading]           = useState(true);
   const [lastUpdated, setLastUpdated]   = useState<Date | null>(null);
@@ -82,12 +82,13 @@ export default function PackStatsPage() {
     try {
       const res = await adminApi.getPackLiveStats(packId);
       setStats({
-        in_progress:    res.in_progress,
-        won:            res.won,
-        lost:           res.lost,
-        total_attempts: res.total_attempts,
-        win_rate:       res.win_rate,
+        live:     res.live,
+        won:      res.won,
+        lost:     res.lost,
+        total:    res.total,
+        win_rate: res.win_rate,
       });
+      setPackType(res.pack_type ?? null);
       setLastUpdated(new Date());
     } catch { /* silent on poll — only show error on first load */ }
   }, [packId]);
@@ -99,7 +100,7 @@ export default function PackStatsPage() {
         const res = await adminApi.getPackQuestions(packId);
         setPackName(res.pack.name);
         setQuestionCount(res.pack.question_count);
-        setIsSpecial(res.pack.question_count != null);
+        // isSpecial will be set from pack_type in fetchStats, but also check question_count as fallback
         setBankSize(res.questions.length);
       } catch {
         // Fallback — stats page still useful without bank meta
@@ -116,7 +117,7 @@ export default function PackStatsPage() {
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [packId, fetchStats]);
 
-  const hasData = (stats?.total_attempts ?? 0) >= 5;
+  const hasData = (stats?.total ?? 0) >= 5;
   const coverageRatio = questionCount && bankSize != null && questionCount > 0
     ? bankSize / questionCount : null;
   const coverageColor = coverageRatio == null ? "var(--text-muted)"
@@ -160,13 +161,13 @@ export default function PackStatsPage() {
           {/* Live counters */}
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 10 }}>
-              <StatTile label="Live"     value={stats?.in_progress ?? 0}  color="#60a5fa"
+              <StatTile label="Live"     value={stats?.live ?? 0}      color="#60a5fa"
                 icon={<span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" style={{ display: "inline-block" }} />} />
-              <StatTile label="Won"      value={stats?.won ?? 0}           color="var(--accent-amber)"
+              <StatTile label="Won"      value={stats?.won ?? 0}       color="var(--accent-amber)"
                 icon={<Trophy size={14} style={{ color: "var(--accent-amber)" }} />} />
-              <StatTile label="Lost"     value={stats?.lost ?? 0}          color="#6b7280"
+              <StatTile label="Lost"     value={stats?.lost ?? 0}      color="#6b7280"
                 icon={<XCircle size={14} style={{ color: "#6b7280" }} />} />
-              <StatTile label="Total"    value={stats?.total_attempts ?? 0} color="var(--text-secondary)"
+              <StatTile label="Total"    value={stats?.total ?? 0}     color="var(--text-secondary)"
                 icon={<Users size={14} style={{ color: "var(--text-muted)" }} />} />
             </div>
           </motion.div>
@@ -179,9 +180,9 @@ export default function PackStatsPage() {
                 <TrendingUp size={13} style={{ color: "var(--accent-indigo)" }} />
                 <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", color: "var(--text-muted)" }}>Win Rate</span>
               </div>
-              {stats && <WinRateFlag rate={stats.win_rate} attempts={stats.total_attempts} />}
+              {stats && <WinRateFlag rate={stats.win_rate} attempts={stats.total} />}
             </div>
-            {stats && <WinRateBar rate={stats.win_rate} attempts={stats.total_attempts} />}
+            {stats && <WinRateBar rate={stats.win_rate} attempts={stats.total} />}
             {!hasData && (
               <p style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 8 }}>
                 Rate shown after 5 or more completed attempts.
@@ -190,7 +191,7 @@ export default function PackStatsPage() {
           </motion.div>
 
           {/* Bank health — only for Specials with question_count */}
-          {isSpecial && questionCount != null && bankSize != null && (
+          {(packType === "special" || questionCount != null) && questionCount != null && bankSize != null && (
             <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
               style={{ borderRadius: 12, padding: "16px", border: "1px solid var(--border-hairline)", backgroundColor: "var(--bg-card)" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>

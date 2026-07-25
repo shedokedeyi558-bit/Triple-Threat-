@@ -54,8 +54,9 @@ export default function AdminDashboard() {
   // Live pack stats — polled every 12s independently of the main load
   interface PackLiveStat {
     pack_id: string; pack_name: string;
-    in_progress: number; won: number; lost: number;
-    total_attempts: number; win_rate: number;
+    pack_type?: "standard" | "special";
+    live: number; won: number; lost: number;
+    total: number; win_rate: number;
   }
   const [liveStats, setLiveStats] = useState<PackLiveStat[]>([]);
   const liveTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -261,11 +262,11 @@ export default function AdminDashboard() {
           ) : (
             <div className="space-y-2 mb-4">
               {(liveStats.length > 0 ? liveStats.slice(0, 4) : packs.map(p => ({
-                pack_id: p.id, pack_name: p.name,
-                in_progress: 0, won: 0, lost: 0, total_attempts: 0, win_rate: 0,
+                pack_id: p.id, pack_name: p.name, pack_type: undefined,
+                live: 0, won: 0, lost: 0, total: 0, win_rate: 0,
               }))).map((s) => {
-                const winRateHigh = s.total_attempts >= 5 && s.win_rate > 70;
-                const winRateLow  = s.total_attempts >= 5 && s.win_rate < 15;
+                const winRateHigh = s.total >= 5 && s.win_rate > 70;
+                const winRateLow  = s.total >= 5 && s.win_rate < 15;
                 return (
                   <div key={s.pack_id} className="rounded-lg p-2.5" style={{ backgroundColor: "var(--bg-base)" }}>
                     {/* Pack name + win rate flag */}
@@ -282,7 +283,7 @@ export default function AdminDashboard() {
                             Low wins
                           </span>
                         )}
-                        {s.total_attempts >= 5 && (
+                        {s.total >= 5 && (
                           <span className="text-[10px] font-mono font-bold" style={{ color: winRateHigh ? "#fbbf24" : winRateLow ? "#f87171" : "var(--text-secondary)" }}>
                             {s.win_rate.toFixed(0)}% win
                           </span>
@@ -293,7 +294,7 @@ export default function AdminDashboard() {
                     <div className="flex items-center gap-3">
                       <div className="flex items-center gap-1">
                         <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
-                        <span className="text-[10px] font-semibold text-blue-400">{s.in_progress}</span>
+                        <span className="text-[10px] font-semibold text-blue-400">{s.live}</span>
                         <span className="text-[9px]" style={{ color: "var(--text-muted)" }}>live</span>
                       </div>
                       <div className="flex items-center gap-1">
@@ -307,7 +308,7 @@ export default function AdminDashboard() {
                         <span className="text-[9px]" style={{ color: "var(--text-muted)" }}>lost</span>
                       </div>
                       {/* Win rate mini bar */}
-                      {s.total_attempts >= 5 && (
+                      {s.total >= 5 && (
                         <div className="flex-1 h-1 rounded-full overflow-hidden ml-1" style={{ backgroundColor: "#1E1E1E" }}>
                           <div className="h-full rounded-full transition-all duration-500"
                             style={{ width: `${s.win_rate}%`, backgroundColor: winRateHigh ? "#fbbf24" : winRateLow ? "#ef4444" : "#34d399" }} />
@@ -515,10 +516,10 @@ export default function AdminDashboard() {
                   )}
                 </div>
                 {liveStats.length > 0 ? (() => {
-                  const totalLive = liveStats.reduce((s, p) => s + p.in_progress, 0);
+                  const totalLive = liveStats.reduce((s, p) => s + p.live, 0);
                   const totalWon  = liveStats.reduce((s, p) => s + p.won, 0);
                   const totalLost = liveStats.reduce((s, p) => s + p.lost, 0);
-                  const totalAttempts = liveStats.reduce((s, p) => s + p.total_attempts, 0);
+                  const totalAttempts = liveStats.reduce((s, p) => s + p.total, 0);
                   const aggWinRate = totalAttempts > 0 ? Math.round((totalWon / totalAttempts) * 100) : null;
                   const winRateHigh = aggWinRate != null && totalAttempts >= 10 && aggWinRate > 70;
                   return (

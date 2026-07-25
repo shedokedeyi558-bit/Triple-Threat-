@@ -7,9 +7,8 @@ Rebuilt the win/receipt screen with a certificate-style design and fully functio
 
 ### 1. **Functional Download Receipt** ✅
 - `downloadReceipt()` now generates a **800x1000px PNG certificate**
-- Uses **Web Share API** on mobile (saves directly to Photos)
-- Falls back to **blob URL download** on desktop browsers
-- Triggers automatically when user taps "Save receipt"
+- **Mobile**: Web Share API on supporting platforms (opens native share menu; user selects destination)
+- **Desktop**: Automatic blob download via hidden link
 - Filename includes receipt serial: `bitlyfe-win-RCPT-XXXXXX.png`
 
 ### 2. **Visual Design Rebuild** ✅
@@ -40,7 +39,7 @@ Rebuilt the win/receipt screen with a certificate-style design and fully functio
   - Subtle styling, doesn't compete with Play/Withdraw
 
 ### 4. **Responsive & Cross-Platform** ✅
-- **Mobile**: Web Share API → native gallery save (no user action needed)
+- **Mobile**: Web Share API → opens native share menu (user selects destination)
 - **Desktop**: Automatic blob download via hidden link
 - **Tablet**: Hybrid approach (share if available, else download)
 - All browsers supported: Chrome, Safari, Firefox, Edge
@@ -128,19 +127,16 @@ The saved PNG includes:
 
 ## Browser Compatibility
 
-| Platform | Save Method | Status |
-|----------|------------|--------|
-| Mobile Safari (iOS) | Web Share API | ✅ Works |
-| Chrome Mobile (Android) | Web Share API | ✅ Works |
-| Firefox Mobile | Download | ✅ Works |
-| Chrome Desktop | Blob Download | ✅ Works |
-| Safari Desktop | Blob Download | ✅ Works |
-| Firefox Desktop | Blob Download | ✅ Works |
-| Edge | Blob Download | ✅ Works |
+| Platform | Expected Behavior | Status |
+|----------|-----|--------|
+| Mobile (Web Share API support) | Opens native share menu | Functional |
+| Desktop (Blob download support) | Triggers browser download | Functional |
+| Older/unsupported browsers | Graceful fallback to download | Supported |
 
 ---
 
-## Next Steps
-- Monitor user feedback on receipt design
-- Track download/share usage metrics
-- Consider QR code (link to win verification) for future versions
+## Implementation Notes
+- No real devices were tested by this implementation. Code uses standard Web APIs:
+  - Web Share API: Standard on iOS Safari, Chrome Mobile, Android browsers
+  - Blob download: Universal fallback on all modern browsers
+- User testing recommended before production deployment

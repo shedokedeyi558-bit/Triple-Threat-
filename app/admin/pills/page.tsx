@@ -9,8 +9,8 @@ import { motion, AnimatePresence } from "framer-motion";
 // ── Inline live stats strip — mounts when a pack row is expanded ─────────────
 function PackStatsMini({ packId }: { packId: string }) {
   const [stats, setStats] = useState<{
-    in_progress: number; won: number; lost: number;
-    total_attempts: number; win_rate: number;
+    live: number; won: number; lost: number;
+    total: number; win_rate: number;
   } | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -30,7 +30,7 @@ function PackStatsMini({ packId }: { packId: string }) {
 
   if (!stats) return null;
 
-  const hasData = stats.total_attempts >= 5;
+  const hasData = stats.total >= 5;
   const winRateHigh = hasData && stats.win_rate > 70;
   const winRateLow  = hasData && stats.win_rate < 15;
   const barColor = !hasData ? "#333" : winRateHigh ? "#fbbf24" : winRateLow ? "#ef4444" : "#34d399";
@@ -53,7 +53,7 @@ function PackStatsMini({ packId }: { packId: string }) {
       <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
           <span style={{ width: 6, height: 6, borderRadius: "50%", backgroundColor: "#60a5fa", display: "inline-block" }} className="animate-pulse" />
-          <span style={{ fontSize: 11, fontWeight: 700, color: "#60a5fa" }}>{stats.in_progress}</span>
+          <span style={{ fontSize: 11, fontWeight: 700, color: "#60a5fa" }}>{stats.live}</span>
           <span style={{ fontSize: 10, color: "var(--text-muted)" }}>live</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 4 }}>

@@ -90,7 +90,7 @@ export default function CreatePillPackPage() {
   const [isVip, setIsVip] = useState(false);
   // Specials-only fields
   const [specialQuestionCount, setSpecialQCount] = useState<number | "">(10);
-  const [specialTotalTime, setSpecialTotalTime] = useState<number | "">(900); // 15 min default
+  const [specialTotalTime, setSpecialTotalTime] = useState<number | "">(15); // 15 min default
   const [specialRequiredCorrect, setSpecialReqCorrect] = useState<number | "">(8);
   const [specialTargetBankSize, setSpecialTargetBankSize] = useState<number | "">("");
   const [specialMaxEntries, setSpecialMaxEntries] = useState<number | "">("");
@@ -155,7 +155,7 @@ export default function CreatePillPackPage() {
           prize: Number(packPrize),
           is_vip: true,
           question_count: Number(specialQuestionCount) || 10,
-          total_time_seconds: Number(specialTotalTime) || 900,
+          total_time_minutes: Number(specialTotalTime) || 15,
           required_correct: Number(specialRequiredCorrect) || 8,
           ...(specialTargetBankSize ? { target_bank_size: Number(specialTargetBankSize) } : {}),
           ...(specialMaxEntries ? { max_entries: Number(specialMaxEntries) } : {}),
@@ -211,7 +211,7 @@ export default function CreatePillPackPage() {
         is_vip: isVip,
         ...(isVip ? {
           question_count: Number(specialQuestionCount) || 10,
-          total_time_seconds: Number(specialTotalTime) || 900,
+          total_time_minutes: Number(specialTotalTime) || 15,
           required_correct: Number(specialRequiredCorrect) || 8,
           ...(specialTargetBankSize ? { target_bank_size: Number(specialTargetBankSize) } : {}),
           ...(specialMaxEntries ? { max_entries: Number(specialMaxEntries) } : {}),
@@ -359,11 +359,16 @@ export default function CreatePillPackPage() {
                 onChange={(e) => setSpecialQCount(e.target.value === "" ? "" : Number(e.target.value))} />
             </div>
             <div>
-              <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Total Time (sec)</label>
-              <input className={inputCls} type="number" min="60" placeholder="900"
+              <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Time Limit (min)</label>
+              <input className={inputCls} type="number" min="1" placeholder="15"
                 value={specialTotalTime}
                 onChange={(e) => setSpecialTotalTime(e.target.value === "" ? "" : Number(e.target.value))} />
-              <p className="text-[9px] mt-1" style={{ color: "var(--text-muted)" }}>900 = 15 min</p>
+              <p className="text-[9px] mt-1" style={{ color: "var(--text-muted)" }}>
+                {specialTotalTime === "" || specialTotalTime === 0
+                  ? "e.g. 15 = 15 minutes, minimum 1"
+                  : `${specialTotalTime} minute${Number(specialTotalTime) === 1 ? "" : "s"}`
+                }
+              </p>
             </div>
             <div>
               <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Pass Threshold</label>

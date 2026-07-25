@@ -1155,7 +1155,7 @@ export const adminApi = {
   getPillPacks: () =>
     request<{ packs: PillPack[] }>("/api/admin/pills/packs", { token: getAdminToken() }),
 
-  createPillPack: (data: { name: string; category: string; entry_fee: number; prize: number; is_vip?: boolean; question_count?: number; total_time_seconds?: number; required_correct?: number; target_bank_size?: number; quiz_expires_at?: string; max_entries?: number; idempotency_key?: string }) =>
+  createPillPack: (data: { name: string; category: string; entry_fee: number; prize: number; is_vip?: boolean; question_count?: number; total_time_minutes?: number; required_correct?: number; target_bank_size?: number; quiz_expires_at?: string; max_entries?: number; idempotency_key?: string }) =>
     request<{ pack: { id: string; name: string; category: string; status: string } }>(
       "/api/admin/pills/packs",
       { method: "POST", body: data, token: getAdminToken() }
@@ -1227,11 +1227,12 @@ export const adminApi = {
   getPackLiveStats: (packId: string) =>
     request<{
       pack_id: string;
-      in_progress: number;
-      won: number;
-      lost: number;
-      total_attempts: number;
-      win_rate: number;    // 0–100 percentage
+      pack_type?: "standard" | "special";  // new: indicates pack type
+      live: number;                         // renamed: in_progress → live
+      won: number;                          // correct answer count
+      lost: number;                         // incorrect answer count
+      total: number;                        // renamed: total_attempts/total_completed → total
+      win_rate: number;                     // 0–100 percentage
     }>(`/api/admin/pills/packs/${packId}/stats`, { token: getAdminToken() }),
 
   getAllPacksLiveStats: () =>
@@ -1239,10 +1240,11 @@ export const adminApi = {
       packs: {
         pack_id: string;
         pack_name: string;
-        in_progress: number;
+        pack_type?: "standard" | "special";  // new: indicates pack type
+        live: number;                         // renamed: in_progress → live
         won: number;
         lost: number;
-        total_attempts: number;
+        total: number;                        // renamed: total_attempts/total_completed → total
         win_rate: number;
       }[];
     }>(`/api/admin/pills/packs/stats`, { token: getAdminToken() }),

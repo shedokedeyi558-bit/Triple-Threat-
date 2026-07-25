@@ -38,11 +38,15 @@ export default function PillPlay({
   const isTimeRunningOut = timeLeft <= 5;
 
   const handleSubmit = () => {
+    // Don't allow manual submit if time has expired
+    if (timedOut) return;
     const answer = format === "multiple_choice" ? selectedOption : textAnswer;
     if (answer) onSubmit(answer);
   };
 
   const isValid = format === "multiple_choice" ? selectedOption !== null : textAnswer.trim() !== "";
+  // Disable all interaction once time expires
+  const isInteractionDisabled = timedOut;
 
   return (
     <div className="space-y-6" style={{ userSelect: "none" }} onContextMenu={(e) => e.preventDefault()}>
@@ -63,9 +67,11 @@ export default function PillPlay({
           />
         </div>
         <div className="flex justify-between items-center px-1">
-          <p className="text-xs text-[#888]">Time remaining</p>
-          <p className="font-bold" style={{ color: isTimeRunningOut ? "#ef4444" : "var(--accent-amber)" }}>
-            {timeLeft}s
+          <p className="text-xs text-[#888]">
+            {timedOut ? "Time's up" : "Time remaining"}
+          </p>
+          <p className="font-bold" style={{ color: timedOut ? "#ef4444" : isTimeRunningOut ? "#ef4444" : "var(--accent-amber)" }}>
+            {timedOut ? "0s" : `${timeLeft}s`}
           </p>
         </div>
       </div>
@@ -76,10 +82,11 @@ export default function PillPlay({
           {options?.map((option, idx) => (
             <motion.button
               key={idx}
-              onClick={() => setSelectedOption(option)}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className="w-full p-4 rounded-xl font-bold uppercase tracking-tight transition-all min-h-12"
+              onClick={() => !isInteractionDisabled && setSelectedOption(option)}
+              disabled={isInteractionDisabled}
+              whileHover={{ scale: !isInteractionDisabled ? 1.02 : 1 }}
+              whileTap={{ scale: !isInteractionDisabled ? 0.98 : 1 }}
+              className="w-full p-4 rounded-xl font-bold uppercase tracking-tight transition-all min-h-12 disabled:opacity-50 disabled:cursor-not-allowed"
               style={selectedOption === option
                 ? { backgroundColor: "var(--accent-indigo)", color: "#fff", border: "1px solid var(--accent-indigo)" }
                 : { backgroundColor: "#1A1A1A", color: "var(--text-primary)", border: "1px solid #2A2A2A" }
@@ -95,12 +102,12 @@ export default function PillPlay({
             type="text"
             placeholder="Type your answer..."
             value={textAnswer}
-            onChange={(e) => setTextAnswer(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter" && isValid && !isLoading) handleSubmit(); }}
-            disabled={isLoading}
+            onChange={(e) => !isInteractionDisabled && setTextAnswer(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter" && isValid && !isLoading && !isInteractionDisabled) handleSubmit(); }}
+            disabled={isInteractionDisabled || isLoading}
             className="w-full bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl p-4 text-white placeholder-[#666] outline-none transition-colors disabled:opacity-50"
             style={{ outline: "none" }}
-            onFocus={(e) => e.target.style.borderColor = "var(--accent-indigo)"}
+            onFocus={(e) => !isInteractionDisabled && (e.target.style.borderColor = "var(--accent-indigo)")}
             onBlur={(e) => e.target.style.borderColor = "#2A2A2A"}
           />
         </div>
@@ -108,13 +115,13 @@ export default function PillPlay({
 
       <motion.button
         onClick={handleSubmit}
-        disabled={!isValid || isLoading}
-        whileHover={{ scale: isValid && !isLoading ? 1.02 : 1 }}
-        whileTap={{ scale: isValid && !isLoading ? 0.98 : 1 }}
+        disabled={!isValid || isLoading || isInteractionDisabled}
+        whileHover={{ scale: (isValid && !isLoading && !isInteractionDisabled) ? 1.02 : 1 }}
+        whileTap={{ scale: (isValid && !isLoading && !isInteractionDisabled) ? 0.98 : 1 }}
         className="w-full font-bold uppercase tracking-tight rounded-xl py-3 min-h-12 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
         style={{ backgroundColor: "var(--accent-indigo)", color: "#fff" }}
       >
-        {isLoading ? "Submitting..." : "Submit"}
+        {timedOut ? "Time's up" : isLoading ? "Submitting..." : "Submit"}
       </motion.button>
     </div>
   );

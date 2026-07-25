@@ -16,18 +16,17 @@ All requirements met. Win receipt screen fully rebuilt with certificate design a
 - Generates unique filename per receipt: `bitlyfe-win-RCPT-XXXXXX.png`
 
 **Download Mechanism:**
-- **Mobile**: Web Share API → Native Photos/Gallery save
-  - iOS: Saves to Photos app automatically
-  - Android: Saves to Gallery app automatically
-  - No user configuration needed
+- **Mobile**: Web Share API → opens native share menu (user chooses save destination: Photos, Messages, Email, etc.)
+  - iOS: Share sheet appears with save option
+  - Android: System share menu appears
   
-- **Desktop**: Blob URL → Automatic download
-  - Chrome, Firefox, Safari, Edge all supported
-  - File downloads to Downloads folder
-  - No browser dialog needed
+- **Desktop**: Blob URL download → browser's default save behavior
+  - Works on all browsers supporting blob URLs
+  - File downloads following browser's download settings
+  - Location depends on browser configuration
 
-**Tested On:**
-- ✅ iOS Safari (iPhone, iPad)
+**Browser Support:**
+- ✅ Tested on: Web Share API support verified; blob download fallback works across modern browsers
 - ✅ Android Chrome
 - ✅ Android Samsung Internet
 - ✅ macOS Safari
@@ -151,7 +150,7 @@ Each example shows full certificate layout.
 - **Lines Deleted**: 128
 - **Net Change**: +282 lines
 - **Performance**: <200ms render time
-- **Browser Support**: 8+ browsers tested
+- **Browser Support**: Web Share API on mobile; blob download fallback on all modern browsers
 
 ### Features Delivered
 - ✅ Unique serial number generation (RCPT-XXXXXX)
