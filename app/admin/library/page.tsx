@@ -33,7 +33,7 @@ function parseQuestions(raw: string): PastedQuestion[] {
   for (const block of blocks) {
     const lines = block.split("\n").map(l => l.trim()).filter(Boolean);
     const q: Partial<PastedQuestion> = { id: String(id++), options: ["","","",""] as [string, string, string, string] };
-    let errors: string[] = [];
+    const errors: string[] = [];
 
     for (const line of lines) {
       if (line.startsWith("Q:")) q.question = line.slice(2).trim();
@@ -76,7 +76,7 @@ function PastePanel({ onDone, onCancel }: { onDone: () => void; onCancel: () => 
     setShowPreview(true);
   };
 
-  const handleEditParsed = (id: string, field: "question" | "options" | "correct_answer", value: any) => {
+  const handleEditParsed = (id: string, field: "question" | "options" | "correct_answer", value: string | [string, string, string, string]) => {
     setParsed(prev => prev.map(q => q.id === id ? { ...q, [field]: value, error: undefined } : q));
   };
 
