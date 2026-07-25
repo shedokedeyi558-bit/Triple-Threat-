@@ -92,7 +92,6 @@ function PastePanel({ onDone, onCancel }: { onDone: () => void; onCancel: () => 
           format: "multiple_choice",
           options: q.options,
           correct_answer: q.correct_answer,
-          timer: 30,
         });
       }
       onDone();
@@ -213,15 +212,14 @@ Correct: C"
 // ── Question form ─────────────────────────────────────────────────────────────
 function QuestionForm({ initial, onSave, onCancel, saving }: {
   initial?: Partial<PackQuestion>;
-  onSave: (data: { question: string; format: "multiple_choice"|"type_answer"; options?: string[]; correct_answer: string; timer: number }) => void;
+  onSave: (data: { question: string; format: "multiple_choice"|"type_answer"; options?: string[]; correct_answer: string }) => void;
   onCancel: () => void; saving: boolean;
 }) {
   const [question, setQuestion] = useState(initial?.question ?? "");
   const [format, setFormat] = useState<"multiple_choice"|"type_answer">(initial?.format ?? "multiple_choice");
   const [options, setOptions] = useState<string[]>(initial?.options?.length ? initial.options : ["","","",""]);
   const [correct, setCorrect] = useState(initial?.correct_answer ?? "");
-  const [timer, setTimer] = useState<number|"">(initial?.timer ?? 30);
-  const canSave = question.trim() && correct.trim() && Number(timer) > 0 && (format === "type_answer" || options.filter(o=>o.trim()).length >= 2);
+  const canSave = question.trim() && correct.trim() && (format === "type_answer" || options.filter(o=>o.trim()).length >= 2);
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
       <textarea value={question} onChange={e => setQuestion(e.target.value)} rows={2} placeholder="Question text..."
@@ -237,15 +235,13 @@ function QuestionForm({ initial, onSave, onCancel, saving }: {
         <input key={i} value={o} onChange={e => { const n=[...options]; n[i]=e.target.value; setOptions(n); }} placeholder={`Option ${i+1}`}
           style={{ padding: "9px 12px", borderRadius: 8, border: "1px solid var(--border-subtle)", backgroundColor: "var(--bg-base)", color: "var(--text-primary)", fontSize: 13, outline: "none" }} />
       ))}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 100px", gap: 10 }}>
+      <div style={{ display: "flex", gap: 10 }}>
         <input value={correct} onChange={e => setCorrect(e.target.value)} placeholder="Correct answer *"
-          style={{ padding: "9px 12px", borderRadius: 8, border: "1px solid var(--border-subtle)", backgroundColor: "var(--bg-base)", color: "var(--text-primary)", fontSize: 13, outline: "none" }} />
-        <input type="number" min={5} value={timer} onChange={e => setTimer(e.target.value===""?"":Number(e.target.value))} placeholder="Timer (s)"
-          style={{ padding: "9px 12px", borderRadius: 8, border: "1px solid var(--border-subtle)", backgroundColor: "var(--bg-base)", color: "var(--text-primary)", fontSize: 13, outline: "none" }} />
+          style={{ padding: "9px 12px", borderRadius: 8, border: "1px solid var(--border-subtle)", backgroundColor: "var(--bg-base)", color: "var(--text-primary)", fontSize: 13, outline: "none", flex: 1 }} />
       </div>
       <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
         <button onClick={onCancel} style={{ padding: "8px 18px", borderRadius: 8, border: "1px solid var(--border-subtle)", backgroundColor: "transparent", color: "var(--text-secondary)", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>Cancel</button>
-        <button onClick={() => canSave && onSave({ question: question.trim(), format, options: format==="multiple_choice"?options.filter(o=>o.trim()):undefined, correct_answer: correct.trim(), timer: Number(timer) })}
+        <button onClick={() => canSave && onSave({ question: question.trim(), format, options: format==="multiple_choice"?options.filter(o=>o.trim()):undefined, correct_answer: correct.trim() })}
           disabled={!canSave || saving}
           style={{ padding: "8px 18px", borderRadius: 8, border: "none", backgroundColor: "var(--accent-indigo)", color: "#fff", fontSize: 12, fontWeight: 700, cursor: canSave && !saving ? "pointer" : "not-allowed", opacity: canSave && !saving ? 1 : 0.45, display: "flex", alignItems: "center", gap: 6 }}>
           {saving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
@@ -283,13 +279,13 @@ export default function LibraryPage() {
   const cycleSortDir = () => setSortDir(d => d===null?"desc":d==="desc"?"asc":null);
   const SortIcon = sortDir==="desc" ? ArrowDown : sortDir==="asc" ? ArrowUp : ArrowUpDown;
 
-  const handleAdd = async (data: { question: string; format: "multiple_choice"|"type_answer"; options?: string[]; correct_answer: string; timer: number }) => {
+  const handleAdd = async (data: { question: string; format: "multiple_choice"|"type_answer"; options?: string[]; correct_answer: string }) => {
     setSaving(true);
     try { await adminApi.addLibraryQuestion(data); await load(); setShowAdd(false); }
     catch (err) { setError(err instanceof ApiError ? err.message : "Failed to add"); }
     finally { setSaving(false); }
   };
-  const handleEdit = async (data: { question: string; format: "multiple_choice"|"type_answer"; options?: string[]; correct_answer: string; timer: number }) => {
+  const handleEdit = async (data: { question: string; format: "multiple_choice"|"type_answer"; options?: string[]; correct_answer: string }) => {
     if (!editTarget) return;
     setSaving(true);
     try { await adminApi.updateLibraryQuestion(editTarget.id, data); await load(); setEditTarget(null); }

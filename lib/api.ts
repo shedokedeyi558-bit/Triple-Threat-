@@ -1288,7 +1288,7 @@ export const adminApi = {
 
   addLibraryQuestion: (data: {
     question: string; format: "multiple_choice" | "type_answer";
-    options?: string[]; correct_answer: string; timer: number;
+    options?: string[]; correct_answer: string; timer?: number;
   }) =>
     request<{ question: PackQuestion }>("/api/admin/specials-bank/library", {
       method: "POST", body: data, token: getAdminToken()
