@@ -4,17 +4,9 @@ import { useEffect, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { adminApi, type PackQuestion, ApiError } from "@/lib/api";
 import {
-  Plus, Pencil, Trash2, AlertTriangle, ArrowUpDown, ArrowUp, ArrowDown,
+  Plus, Pencil, Trash2, AlertTriangle,
   Loader2, X, Save, Library, AlertCircle,
 } from "lucide-react";
-
-// ── Difficulty flag ───────────────────────────────────────────────────────────
-function DifficultyFlag({ rate, shown }: { rate: number; shown: number }) {
-  if (shown < 5) return null;
-  if (rate > 85) return <span style={{ fontSize: 9, fontWeight: 700, padding: "2px 6px", borderRadius: 4, backgroundColor: "rgba(251,191,36,0.12)", color: "#fbbf24", border: "1px solid rgba(251,191,36,0.25)" }}>Too easy</span>;
-  if (rate < 20) return <span style={{ fontSize: 9, fontWeight: 700, padding: "2px 6px", borderRadius: 4, backgroundColor: "rgba(239,68,68,0.1)", color: "#f87171", border: "1px solid rgba(239,68,68,0.25)" }}>Check this</span>;
-  return null;
-}
 
 // ── Paste panel with preview ──────────────────────────────────────────────────
 interface PastedQuestion {
@@ -254,13 +246,10 @@ function QuestionForm({ initial, onSave, onCancel, saving }: {
 
 
 
-type SortDir = "asc"|"desc"|null;
-
 export default function LibraryPage() {
   const [questions, setQuestions]   = useState<PackQuestion[]>([]);
   const [loading, setLoading]       = useState(true);
   const [error, setError]           = useState("");
-  const [sortDir, setSortDir]       = useState<SortDir>(null);
   const [showAdd, setShowAdd]       = useState(false);
   const [showPaste, setShowPaste]   = useState(false);
   const [editTarget, setEditTarget] = useState<PackQuestion | null>(null);
@@ -275,9 +264,7 @@ export default function LibraryPage() {
   }, []);
   useEffect(() => { load(); }, [load]);
 
-  const sorted = [...questions].sort((a,b) => sortDir==="asc" ? (a.correct_rate??0)-(b.correct_rate??0) : sortDir==="desc" ? (b.correct_rate??0)-(a.correct_rate??0) : 0);
-  const cycleSortDir = () => setSortDir(d => d===null?"desc":d==="desc"?"asc":null);
-  const SortIcon = sortDir==="desc" ? ArrowDown : sortDir==="asc" ? ArrowUp : ArrowUpDown;
+  const sorted = [...questions];
 
   const handleAdd = async (data: { question: string; format: "multiple_choice"|"type_answer"; options?: string[]; correct_answer: string }) => {
     setSaving(true);
@@ -349,8 +336,8 @@ export default function LibraryPage() {
         </div>
       ) : (
         <div style={{ borderRadius: 12, border: "1px solid var(--border-hairline)", overflow: "hidden", backgroundColor: "var(--bg-card)" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 140px 90px 90px 110px 80px", padding: "9px 16px", borderBottom: "1px solid var(--border-hairline)", backgroundColor: "var(--bg-base)" }}>
-            {(["Question","Correct answer","Shown","Correct",<button key="rate" onClick={cycleSortDir} style={{ display: "flex", alignItems: "center", gap: 4, background: "none", border: "none", cursor: "pointer", color: sortDir ? "var(--accent-amber)" : "var(--text-muted)", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", padding: 0 }}>Rate <SortIcon size={11} /></button>,"Actions"] as (string|React.ReactNode)[]).map((h, i) => (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 140px 80px", padding: "9px 16px", borderBottom: "1px solid var(--border-hairline)", backgroundColor: "var(--bg-base)" }}>
+            {(["Question","Correct answer","Actions"] as string[]).map((h, i) => (
               <div key={i} style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", color: "var(--text-muted)" }}>{h}</div>
             ))}
           </div>
@@ -359,23 +346,12 @@ export default function LibraryPage() {
             return (
               <div key={q.id} style={{ borderBottom: i < sorted.length-1 ? "1px solid var(--border-hairline)" : "none" }}>
                 {!isEditing && (
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 140px 90px 90px 110px 80px", padding: "11px 16px", alignItems: "center" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 140px 80px", padding: "11px 16px", alignItems: "center" }}>
                     <div style={{ minWidth: 0 }}>
                       <p style={{ fontSize: 12, fontWeight: 500, color: "var(--text-primary)", margin: "0 0 3px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{q.question}</p>
-                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                        <span style={{ fontSize: 9, color: "var(--text-muted)", textTransform: "uppercase" }}>{q.format === "multiple_choice" ? "MCQ" : "Type"}</span>
-                        <DifficultyFlag rate={q.correct_rate ?? 0} shown={q.times_shown ?? 0} />
-                      </div>
+                      <span style={{ fontSize: 9, color: "var(--text-muted)", textTransform: "uppercase" }}>{q.format === "multiple_choice" ? "MCQ" : "Type"}</span>
                     </div>
                     <p style={{ fontSize: 11, color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{q.correct_answer}</p>
-                    <p style={{ fontSize: 12, fontFamily: "monospace", color: "var(--text-secondary)" }}>{q.times_shown ?? "—"}</p>
-                    <p style={{ fontSize: 12, fontFamily: "monospace", color: "var(--text-secondary)" }}>{q.times_correct ?? "—"}</p>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      <div style={{ flex: 1, height: 4, borderRadius: 2, backgroundColor: "#1E1E1E", overflow: "hidden" }}>
-                        <div style={{ height: "100%", borderRadius: 2, width: `${q.correct_rate ?? 0}%`, backgroundColor: (q.times_shown ?? 0) < 5 ? "#333" : (q.correct_rate ?? 0) > 85 ? "#fbbf24" : (q.correct_rate ?? 0) < 20 ? "#ef4444" : "#34d399" }} />
-                      </div>
-                      <span style={{ fontSize: 11, fontFamily: "monospace", color: "var(--text-secondary)", minWidth: 34, textAlign: "right" }}>{(q.times_shown ?? 0) < 5 ? "—" : `${(q.correct_rate ?? 0).toFixed(0)}%`}</span>
-                    </div>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                       <button onClick={() => { setEditTarget(q); setShowAdd(false); }} style={{ background: "none", border: "none", cursor: "pointer", padding: 4, borderRadius: 6, color: "var(--text-muted)" }}><Pencil size={13} /></button>
                       <button onClick={() => setDeleteTarget(q)} style={{ background: "none", border: "none", cursor: "pointer", padding: 4, borderRadius: 6, color: "var(--text-muted)" }}><Trash2 size={13} /></button>
