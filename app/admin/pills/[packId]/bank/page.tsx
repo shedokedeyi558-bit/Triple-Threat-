@@ -581,8 +581,8 @@ export default function QuestionBankPage() {
   useEffect(() => { load(); }, [load]);
 
   const sorted = [...questions].sort((a, b) =>
-    sortDir === "asc" ? a.correct_rate - b.correct_rate :
-    sortDir === "desc" ? b.correct_rate - a.correct_rate : 0
+    sortDir === "asc" ? (a.correct_rate ?? 0) - (b.correct_rate ?? 0) :
+    sortDir === "desc" ? (b.correct_rate ?? 0) - (a.correct_rate ?? 0) : 0
   );
   const cycleSortDir = () => setSortDir(d => d === null ? "desc" : d === "desc" ? "asc" : null);
   const SortIcon = sortDir === "desc" ? ArrowDown : sortDir === "asc" ? ArrowUp : ArrowUpDown;
@@ -608,8 +608,8 @@ export default function QuestionBankPage() {
     finally { setDeleting(false); }
   };
 
-  const tooEasy   = questions.filter(q => q.times_shown >= 5 && q.correct_rate > 85).length;
-  const checkThis = questions.filter(q => q.times_shown >= 5 && q.correct_rate < 20).length;
+  const tooEasy   = questions.filter(q => (q.times_shown ?? 0) >= 5 && (q.correct_rate ?? 0) > 85).length;
+  const checkThis = questions.filter(q => (q.times_shown ?? 0) >= 5 && (q.correct_rate ?? 0) < 20).length;
 
   return (
     <div style={{ maxWidth: 860, margin: "0 auto", paddingBottom: 60 }}>
@@ -734,7 +734,9 @@ export default function QuestionBankPage() {
           </div>
           {sorted.map((q, i) => {
             const isEditing = editTarget?.id === q.id;
-            const flag = q.times_shown >= 5 ? (q.correct_rate > 85 ? "easy" : q.correct_rate < 20 ? "check" : null) : null;
+            const shown = q.times_shown ?? 0;
+            const rate  = q.correct_rate ?? 0;
+            const flag = shown >= 5 ? (rate > 85 ? "easy" : rate < 20 ? "check" : null) : null;
             return (
               <div key={q.id} style={{ borderBottom: i < sorted.length-1 ? "1px solid var(--border-hairline)" : "none",
                 backgroundColor: flag === "easy" ? "rgba(251,191,36,0.03)" : flag === "check" ? "rgba(239,68,68,0.03)" : "transparent" }}>
@@ -744,17 +746,17 @@ export default function QuestionBankPage() {
                       <p style={{ fontSize: 12, fontWeight: 500, color: "var(--text-primary)", margin: "0 0 3px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{q.question}</p>
                       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                         <span style={{ fontSize: 9, color: "var(--text-muted)", textTransform: "uppercase" }}>{q.format === "multiple_choice" ? "MCQ" : "Type"}</span>
-                        <DifficultyFlag rate={q.correct_rate} shown={q.times_shown} />
+                        <DifficultyFlag rate={rate} shown={shown} />
                       </div>
                     </div>
                     <p style={{ fontSize: 11, color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{q.correct_answer}</p>
-                    <p style={{ fontSize: 12, fontFamily: "monospace", color: "var(--text-secondary)" }}>{q.times_shown}</p>
-                    <p style={{ fontSize: 12, fontFamily: "monospace", color: "var(--text-secondary)" }}>{q.times_correct}</p>
+                    <p style={{ fontSize: 12, fontFamily: "monospace", color: "var(--text-secondary)" }}>{shown}</p>
+                    <p style={{ fontSize: 12, fontFamily: "monospace", color: "var(--text-secondary)" }}>{q.times_correct ?? "—"}</p>
                     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                       <div style={{ flex: 1, height: 4, borderRadius: 2, backgroundColor: "#1E1E1E", overflow: "hidden" }}>
-                        <div style={{ height: "100%", borderRadius: 2, width: `${q.correct_rate}%`, backgroundColor: q.times_shown < 5 ? "#333" : q.correct_rate > 85 ? "#fbbf24" : q.correct_rate < 20 ? "#ef4444" : "#34d399" }} />
+                        <div style={{ height: "100%", borderRadius: 2, width: `${rate}%`, backgroundColor: shown < 5 ? "#333" : rate > 85 ? "#fbbf24" : rate < 20 ? "#ef4444" : "#34d399" }} />
                       </div>
-                      <span style={{ fontSize: 11, fontFamily: "monospace", color: "var(--text-secondary)", minWidth: 34, textAlign: "right" }}>{q.times_shown < 5 ? "—" : `${q.correct_rate.toFixed(0)}%`}</span>
+                      <span style={{ fontSize: 11, fontFamily: "monospace", color: "var(--text-secondary)", minWidth: 34, textAlign: "right" }}>{shown < 5 ? "—" : `${rate.toFixed(0)}%`}</span>
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                       <button onClick={() => { setEditTarget(q); setShowAdd(false); setShowBulk(false); }} style={{ background: "none", border: "none", cursor: "pointer", padding: 4, borderRadius: 6, color: "var(--text-muted)" }} title="Edit"><Pencil size={13} /></button>
