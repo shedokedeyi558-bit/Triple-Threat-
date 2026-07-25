@@ -637,6 +637,7 @@ export interface PackQuestion {
   options?: string[];
   correct_answer: string;
   timer?: number;              // present for pack questions (pills table); absent for library questions
+  answer_input_mode?: "text" | "numeric";  // for type_answer questions; defaults to "text"
   times_shown: number;
   times_correct: number;
   correct_rate: number;          // 0–100 percentage, computed by backend
@@ -667,6 +668,7 @@ export interface VipStartResponse {
     question: string;
     format: "multiple_choice" | "type_answer";
     options?: string[];
+    answer_input_mode?: "text" | "numeric";  // for type_answer questions; defaults to "text"
     timer: number;               // fallback if exam_duration absent
   };
 }
@@ -678,6 +680,7 @@ export interface VipAnswerResponse {
     question: string;
     format: "multiple_choice" | "type_answer";
     options?: string[];
+    answer_input_mode?: "text" | "numeric";  // for type_answer questions; defaults to "text"
     timer: number;
   };
   next_question_index?: number;
@@ -864,6 +867,7 @@ export interface BlitzQuestion {
   question: string;
   format: "multiple_choice" | "type_answer";
   options?: string[];
+  answer_input_mode?: "text" | "numeric";  // for type_answer questions; defaults to "text"
   order_index: number;
 }
 

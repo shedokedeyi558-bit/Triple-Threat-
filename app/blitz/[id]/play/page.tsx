@@ -5,6 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useApp } from "@/context/AppContext";
 import { blitzApi, type BlitzQuestion, type BlitzAttemptStart, ApiError } from "@/lib/api";
+import { handleNumericInputChange } from "@/lib/inputUtils";
 import { CheckCircle, Zap } from "lucide-react";
 
 type Phase = "loading" | "countdown" | "quiz" | "submitting" | "done";
@@ -268,13 +269,14 @@ export default function BlitzPlayPage() {
                             <input
                               type="text"
                               value={typeInput}
-                              onChange={(e) => setTypeInput(e.target.value)}
+                              onChange={(e) => handleNumericInputChange(e, setTypeInput, q.answer_input_mode === "numeric")}
                               onKeyDown={(e) => e.key === "Enter" && handleTypeSubmit()}
+                              inputMode={q.answer_input_mode === "numeric" ? "decimal" : "text"}
                               placeholder="Type your answer..."
                               className="w-full bg-[#141414] border border-[#1E1E1E] rounded-xl px-4 py-3 text-white placeholder-gray-600 text-base font-semibold focus:outline-none"
                               style={{ borderColor: "#1E1E1E" }}
-                              onFocus={(e) => (e.target.style.borderColor = "var(--accent-indigo)")}
-                              onBlur={(e) => (e.target.style.borderColor = "#1E1E1E")}
+                              onFocus={(e) => (e.currentTarget.style.borderColor = "var(--accent-indigo)")}
+                              onBlur={(e) => (e.currentTarget.style.borderColor = "#1E1E1E")}
                               autoFocus
                             />
                             <motion.button

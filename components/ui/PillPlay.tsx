@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import { handleNumericInputChange } from "@/lib/inputUtils";
 
 interface PillPlayProps {
   question: string;
@@ -9,12 +10,13 @@ interface PillPlayProps {
   format: "multiple_choice" | "type_answer";
   options?: string[];
   timer: number;
+  answer_input_mode?: "text" | "numeric";
   onSubmit: (answer: string) => void;
   isLoading?: boolean;
 }
 
 export default function PillPlay({
-  question, category, format, options, timer, onSubmit, isLoading = false,
+  question, category, format, options, timer, answer_input_mode, onSubmit, isLoading = false,
 }: PillPlayProps) {
   const [timeLeft, setTimeLeft] = useState(timer);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
@@ -102,13 +104,14 @@ export default function PillPlay({
             type="text"
             placeholder="Type your answer..."
             value={textAnswer}
-            onChange={(e) => !isInteractionDisabled && setTextAnswer(e.target.value)}
+            onChange={(e) => !isInteractionDisabled && handleNumericInputChange(e, setTextAnswer, answer_input_mode === "numeric")}
             onKeyDown={(e) => { if (e.key === "Enter" && isValid && !isLoading && !isInteractionDisabled) handleSubmit(); }}
             disabled={isInteractionDisabled || isLoading}
+            inputMode={answer_input_mode === "numeric" ? "decimal" : "text"}
             className="w-full bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl p-4 text-white placeholder-[#666] outline-none transition-colors disabled:opacity-50"
             style={{ outline: "none" }}
-            onFocus={(e) => !isInteractionDisabled && (e.target.style.borderColor = "var(--accent-indigo)")}
-            onBlur={(e) => e.target.style.borderColor = "#2A2A2A"}
+            onFocus={(e) => !isInteractionDisabled && (e.currentTarget.style.borderColor = "var(--accent-indigo)")}
+            onBlur={(e) => e.currentTarget.style.borderColor = "#2A2A2A"}
           />
         </div>
       )}

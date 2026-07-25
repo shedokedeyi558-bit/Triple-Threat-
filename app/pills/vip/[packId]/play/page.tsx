@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useApp } from "@/context/AppContext";
 import { specialsApi, type VipStartResponse, type VipAnswerResponse, ApiError } from "@/lib/api";
+import { handleNumericInputChange } from "@/lib/inputUtils";
 import { Confetti } from "@/components/ui/Confetti";
 import { X, XCircle, Trophy, Loader2, Clock, ClipboardCheck, BanIcon, AlertTriangle } from "lucide-react";
 
@@ -84,8 +85,9 @@ function ExamTimerBar({ secondsLeft, totalSeconds }: { secondsLeft: number; tota
 }
 
 // ── Exam question ─────────────────────────────────────────────────────────────
-function ExamQuestion({ question, format, options, onSubmit, isLoading, questionNum, totalQuestions, secondsLeft }: {
+function ExamQuestion({ question, format, options, answer_input_mode, onSubmit, isLoading, questionNum, totalQuestions, secondsLeft }: {
   question: string; format: "multiple_choice" | "type_answer"; options?: string[];
+  answer_input_mode?: "text" | "numeric";
   onSubmit: (a: string) => void; isLoading: boolean;
   questionNum: number; totalQuestions: number; secondsLeft: number;
 }) {
@@ -135,8 +137,9 @@ function ExamQuestion({ question, format, options, onSubmit, isLoading, question
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <input type="text" placeholder="Type your answer..."
-            value={typed} onChange={(e) => !isTimeUp && setTyped(e.target.value)}
+            value={typed} onChange={(e) => !isTimeUp && handleNumericInputChange(e, setTyped, answer_input_mode === "numeric")}
             onKeyDown={(e) => !isTimeUp && e.key === "Enter" && submit(typed)} disabled={isLoading || isTimeUp}
+            inputMode={answer_input_mode === "numeric" ? "decimal" : "text"}
             style={{ width: "100%", padding: "16px 20px", borderRadius: 12, boxSizing: "border-box", border: "1.5px solid var(--border-subtle)", backgroundColor: "var(--bg-card)", color: "var(--text-primary)", fontSize: 15, outline: "none", opacity: isTimeUp ? 0.5 : 1 }}
           />
           <button onClick={() => submit(typed)} disabled={!typed.trim() || isLoading || isTimeUp}
@@ -380,6 +383,7 @@ export default function SpecialsPlayPage() {
               transition={{ duration: 0.18 }}>
               <ExamQuestion
                 question={currentQ.question} format={currentQ.format} options={currentQ.options}
+                answer_input_mode={currentQ.answer_input_mode}
                 onSubmit={handleAnswer} isLoading={submitting}
                 questionNum={displayQ} totalQuestions={totalQuestions}
                 secondsLeft={examSeconds}
