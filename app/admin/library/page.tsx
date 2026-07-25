@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { adminApi, type PackQuestion, ApiError } from "@/lib/api";
 import {
   Plus, Pencil, Trash2, AlertTriangle, ArrowUpDown, ArrowUp, ArrowDown,
-  Loader2, X, Save, Library,
+  Loader2, X, Save, Library, AlertCircle,
 } from "lucide-react";
 
 // ── Difficulty flag ───────────────────────────────────────────────────────────
@@ -14,6 +14,200 @@ function DifficultyFlag({ rate, shown }: { rate: number; shown: number }) {
   if (rate > 85) return <span style={{ fontSize: 9, fontWeight: 700, padding: "2px 6px", borderRadius: 4, backgroundColor: "rgba(251,191,36,0.12)", color: "#fbbf24", border: "1px solid rgba(251,191,36,0.25)" }}>Too easy</span>;
   if (rate < 20) return <span style={{ fontSize: 9, fontWeight: 700, padding: "2px 6px", borderRadius: 4, backgroundColor: "rgba(239,68,68,0.1)", color: "#f87171", border: "1px solid rgba(239,68,68,0.25)" }}>Check this</span>;
   return null;
+}
+
+// ── Paste panel with preview ──────────────────────────────────────────────────
+interface PastedQuestion {
+  id: string;
+  question: string;
+  options: [string, string, string, string];
+  correct_answer: "A"|"B"|"C"|"D";
+  error?: string;
+}
+
+function parseQuestions(raw: string): PastedQuestion[] {
+  const blocks = raw.split(/\n\s*\n/).filter(b => b.trim());
+  const results: PastedQuestion[] = [];
+  let id = 0;
+
+  for (const block of blocks) {
+    const lines = block.split("\n").map(l => l.trim()).filter(Boolean);
+    const q: Partial<PastedQuestion> = { id: String(id++), options: ["","","",""] as [string, string, string, string] };
+    let errors: string[] = [];
+
+    for (const line of lines) {
+      if (line.startsWith("Q:")) q.question = line.slice(2).trim();
+      else if (line.startsWith("A)")) q.options![0] = line.slice(2).trim();
+      else if (line.startsWith("B)")) q.options![1] = line.slice(2).trim();
+      else if (line.startsWith("C)")) q.options![2] = line.slice(2).trim();
+      else if (line.startsWith("D)")) q.options![3] = line.slice(2).trim();
+      else if (line.startsWith("Correct:")) {
+        const ans = line.slice(8).trim().toUpperCase();
+        if (["A","B","C","D"].includes(ans)) q.correct_answer = ans as "A"|"B"|"C"|"D";
+        else errors.push("Correct answer must be A, B, C, or D");
+      }
+    }
+
+    if (!q.question) errors.push("Missing question text (Q:)");
+    if (!q.options!.every(o => o.trim())) errors.push("Missing one or more options");
+    if (!q.correct_answer) errors.push("Missing correct answer (Correct:)");
+
+    results.push({
+      id: q.id!,
+      question: q.question || "",
+      options: q.options!,
+      correct_answer: q.correct_answer || "A",
+      error: errors.length ? errors.join("; ") : undefined,
+    });
+  }
+
+  return results;
+}
+
+function PastePanel({ onDone, onCancel }: { onDone: () => void; onCancel: () => void }) {
+  const [raw, setRaw] = useState("");
+  const [parsed, setParsed] = useState<PastedQuestion[]>([]);
+  const [showPreview, setShowPreview] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const handleParse = () => {
+    const p = parseQuestions(raw);
+    setParsed(p);
+    setShowPreview(true);
+  };
+
+  const handleEditParsed = (id: string, field: "question" | "options" | "correct_answer", value: any) => {
+    setParsed(prev => prev.map(q => q.id === id ? { ...q, [field]: value, error: undefined } : q));
+  };
+
+  const handleSave = async () => {
+    const toSave = parsed.filter(q => !q.error && q.question.trim() && q.options.every(o => o.trim()));
+    if (!toSave.length) return;
+
+    setSaving(true);
+    try {
+      for (const q of toSave) {
+        await adminApi.addLibraryQuestion({
+          question: q.question,
+          format: "multiple_choice",
+          options: q.options,
+          correct_answer: q.correct_answer,
+          timer: 30,
+        });
+      }
+      onDone();
+    } catch (err) {
+      // Error handling could show a toast or similar
+      console.error(err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (!showPreview) {
+    return (
+      <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
+        style={{ borderRadius: 12, padding: 18, border: "1px solid rgba(76,111,255,0.25)", backgroundColor: "var(--bg-card)", marginBottom: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: "var(--accent-indigo)" }}>Paste Questions</span>
+          <button onClick={onCancel} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)" }}><X size={14} /></button>
+        </div>
+        <p style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 10 }}>Paste AI-generated questions, one per block (separated by blank lines). Format: Q: [text], A) [opt], B) [opt], C) [opt], D) [opt], Correct: [A/B/C/D]</p>
+        <textarea value={raw} onChange={e => setRaw(e.target.value)} rows={10} placeholder="Q: What is 2+2?
+A) 3
+B) 4
+C) 5
+D) 6
+Correct: B
+
+Q: What is the capital of France?
+A) London
+B) Berlin
+C) Paris
+D) Madrid
+Correct: C"
+          style={{ width: "100%", boxSizing: "border-box", padding: "10px 12px", borderRadius: 8, border: "1px solid var(--border-subtle)", backgroundColor: "var(--bg-base)", color: "var(--text-primary)", fontSize: 12, resize: "vertical", outline: "none", fontFamily: "monospace", marginBottom: 12 }} />
+        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+          <button onClick={onCancel} style={{ padding: "8px 18px", borderRadius: 8, border: "1px solid var(--border-subtle)", backgroundColor: "transparent", color: "var(--text-secondary)", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>Cancel</button>
+          <button onClick={handleParse} disabled={!raw.trim()}
+            style={{ padding: "8px 18px", borderRadius: 8, border: "none", backgroundColor: "var(--accent-indigo)", color: "#fff", fontSize: 12, fontWeight: 700, cursor: !raw.trim() ? "not-allowed" : "pointer", opacity: !raw.trim() ? 0.45 : 1 }}>
+            Preview
+          </button>
+        </div>
+      </motion.div>
+    );
+  }
+
+  const validCount = parsed.filter(q => !q.error && q.question.trim() && q.options.every(o => o.trim())).length;
+  const errorCount = parsed.filter(q => q.error || !q.question.trim() || !q.options.every(o => o.trim())).length;
+
+  return (
+    <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
+      style={{ borderRadius: 12, padding: 18, border: "1px solid rgba(76,111,255,0.25)", backgroundColor: "var(--bg-card)", marginBottom: 16 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+        <div>
+          <span style={{ fontSize: 12, fontWeight: 700, color: "var(--accent-indigo)" }}>Preview ({validCount} valid{errorCount > 0 ? `, ${errorCount} needs fix` : ""})</span>
+        </div>
+        <button onClick={() => { setShowPreview(false); setParsed([]); }} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)" }}><X size={14} /></button>
+      </div>
+
+      <div style={{ borderRadius: 12, border: "1px solid var(--border-hairline)", overflow: "hidden", backgroundColor: "transparent", maxHeight: 500, overflowY: "auto", marginBottom: 12 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 150px 80px", padding: "9px 16px", borderBottom: "1px solid var(--border-hairline)", backgroundColor: "var(--bg-base)", position: "sticky", top: 0 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", color: "var(--text-muted)" }}>Question & Options</div>
+          <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", color: "var(--text-muted)" }}>Correct</div>
+          <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", color: "var(--text-muted)" }}>Status</div>
+        </div>
+
+        {parsed.map((q, i) => {
+          const hasError = q.error || !q.question.trim() || !q.options.every(o => o.trim());
+          return (
+            <div key={q.id} style={{ borderBottom: i < parsed.length - 1 ? "1px solid var(--border-hairline)" : "none", backgroundColor: hasError ? "rgba(239,68,68,0.03)" : "var(--bg-card)" }}>
+              <div style={{ padding: "12px 16px", display: "grid", gridTemplateColumns: "1fr 150px 80px", gap: 12, alignItems: "flex-start" }}>
+                <div>
+                  <input value={q.question} onChange={e => handleEditParsed(q.id, "question", e.target.value)} 
+                    style={{ width: "100%", padding: "6px 8px", borderRadius: 6, border: "1px solid var(--border-subtle)", backgroundColor: "var(--bg-base)", color: "var(--text-primary)", fontSize: 12, marginBottom: 8, boxSizing: "border-box", outline: "none" }} />
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 6 }}>
+                    {(["A","B","C","D"] as const).map((letter, idx) => (
+                      <input key={letter} value={q.options[idx]} onChange={e => { const opts = [...q.options]; opts[idx] = e.target.value; handleEditParsed(q.id, "options", opts as [string, string, string, string]); }}
+                        placeholder={`${letter})`}
+                        style={{ padding: "4px 6px", borderRadius: 4, border: "1px solid var(--border-subtle)", backgroundColor: "var(--bg-base)", color: "var(--text-primary)", fontSize: 11, boxSizing: "border-box", outline: "none" }} />
+                    ))}
+                  </div>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  {(["A","B","C","D"] as const).map((letter) => (
+                    <label key={letter} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, cursor: "pointer", color: q.correct_answer === letter ? "var(--accent-indigo)" : "var(--text-muted)" }}>
+                      <input type="radio" name={`correct-${q.id}`} checked={q.correct_answer === letter} onChange={() => handleEditParsed(q.id, "correct_answer", letter)} style={{ cursor: "pointer" }} />
+                      {letter}
+                    </label>
+                  ))}
+                </div>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end" }}>
+                  {hasError ? (
+                    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                      <AlertCircle size={14} style={{ color: "#f87171" }} />
+                      <span style={{ fontSize: 10, color: "#f87171" }}>{q.error || "Incomplete"}</span>
+                    </div>
+                  ) : (
+                    <span style={{ fontSize: 10, color: "#34d399", fontWeight: 600 }}>✓ Ready</span>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+        <button onClick={() => { setShowPreview(false); setParsed([]); }} style={{ padding: "8px 18px", borderRadius: 8, border: "1px solid var(--border-subtle)", backgroundColor: "transparent", color: "var(--text-secondary)", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>Back to Paste</button>
+        <button onClick={handleSave} disabled={validCount === 0 || saving}
+          style={{ padding: "8px 18px", borderRadius: 8, border: "none", backgroundColor: "var(--accent-indigo)", color: "#fff", fontSize: 12, fontWeight: 700, cursor: validCount === 0 || saving ? "not-allowed" : "pointer", opacity: validCount === 0 || saving ? 0.45 : 1, display: "flex", alignItems: "center", gap: 6 }}>
+          {saving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
+          {saving ? "Saving..." : `Save ${validCount} Question${validCount !== 1 ? "s" : ""}`}
+        </button>
+      </div>
+    </motion.div>
+  );
 }
 
 // ── Question form ─────────────────────────────────────────────────────────────
@@ -72,6 +266,7 @@ export default function LibraryPage() {
   const [error, setError]           = useState("");
   const [sortDir, setSortDir]       = useState<SortDir>(null);
   const [showAdd, setShowAdd]       = useState(false);
+  const [showPaste, setShowPaste]   = useState(false);
   const [editTarget, setEditTarget] = useState<PackQuestion | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<PackQuestion | null>(null);
   const [saving, setSaving]         = useState(false);
@@ -120,7 +315,11 @@ export default function LibraryPage() {
           <p style={{ fontSize: 12, color: "var(--text-muted)", margin: 0 }}>{questions.length} question{questions.length!==1?"s":""} · Unattached question pool</p>
         </div>
         <div style={{ display: "flex", gap: 6 }}>
-          <button onClick={() => { setShowAdd(true); setEditTarget(null); }}
+          <button onClick={() => { setShowPaste(true); setShowAdd(false); setEditTarget(null); }}
+            style={{ display: "flex", alignItems: "center", gap: 5, padding: "8px 12px", borderRadius: 8, border: "1px solid rgba(76,111,255,0.3)", backgroundColor: showPaste ? "rgba(76,111,255,0.1)" : "transparent", color: "var(--accent-indigo)", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
+            <Plus size={12} /> Paste
+          </button>
+          <button onClick={() => { setShowAdd(true); setShowPaste(false); setEditTarget(null); }}
             style={{ display: "flex", alignItems: "center", gap: 6, padding: "9px 14px", borderRadius: 9, border: "none", backgroundColor: "var(--accent-amber)", color: "#000", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
             <Plus size={13} /> Add Question
           </button>
@@ -134,6 +333,7 @@ export default function LibraryPage() {
       )}
 
       <AnimatePresence>
+        {showPaste && <PastePanel onDone={() => { setShowPaste(false); load(); }} onCancel={() => setShowPaste(false)} />}
         {showAdd && (
           <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
             style={{ borderRadius: 12, padding: 18, border: "1px solid rgba(232,163,61,0.3)", backgroundColor: "var(--bg-card)", marginBottom: 16 }}>
