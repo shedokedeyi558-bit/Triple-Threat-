@@ -18,31 +18,50 @@ interface PastedQuestion {
 }
 
 function parseQuestions(raw: string): PastedQuestion[] {
+  // Normalize: split on blank lines, but also handle single-line formats
+  // e.g. "Q: text A) opt B) opt C) opt D) opt Correct: X"
   const blocks = raw.split(/\n\s*\n/).filter(b => b.trim());
   const results: PastedQuestion[] = [];
   let id = 0;
 
   for (const block of blocks) {
-    const lines = block.split("\n").map(l => l.trim()).filter(Boolean);
+    // First try to split into lines; if all on one line, split on known prefixes
+    let lines = block.split("\n").map(l => l.trim()).filter(Boolean);
+
+    // If we got just one line, try splitting on the known label prefixes inline
+    // e.g. "Q: ... A) ... B) ... C) ... D) ... Correct: ..."
+    if (lines.length === 1) {
+      const expanded = lines[0]
+        .replace(/\bA\)/g, "\nA)")
+        .replace(/\bB\)/g, "\nB)")
+        .replace(/\bC\)/g, "\nC)")
+        .replace(/\bD\)/g, "\nD)")
+        .replace(/\bCorrect:/gi, "\nCorrect:");
+      lines = expanded.split("\n").map(l => l.trim()).filter(Boolean);
+    }
+
     const q: Partial<PastedQuestion> = { id: String(id++), options: ["","","",""] as [string, string, string, string] };
     const errors: string[] = [];
 
     for (const line of lines) {
-      if (line.startsWith("Q:")) q.question = line.slice(2).trim();
-      else if (line.startsWith("A)")) q.options![0] = line.slice(2).trim();
-      else if (line.startsWith("B)")) q.options![1] = line.slice(2).trim();
-      else if (line.startsWith("C)")) q.options![2] = line.slice(2).trim();
-      else if (line.startsWith("D)")) q.options![3] = line.slice(2).trim();
-      else if (line.startsWith("Correct:")) {
-        const ans = line.slice(8).trim().toUpperCase();
+      if (/^Q:/i.test(line)) q.question = line.replace(/^Q:/i, "").trim();
+      else if (/^A\)/i.test(line)) q.options![0] = line.replace(/^A\)/i, "").trim();
+      else if (/^B\)/i.test(line)) q.options![1] = line.replace(/^B\)/i, "").trim();
+      else if (/^C\)/i.test(line)) q.options![2] = line.replace(/^C\)/i, "").trim();
+      else if (/^D\)/i.test(line)) q.options![3] = line.replace(/^D\)/i, "").trim();
+      else if (/^Correct:/i.test(line)) {
+        const ans = line.replace(/^Correct:/i, "").trim().toUpperCase();
         if (["A","B","C","D"].includes(ans)) q.correct_answer = ans as "A"|"B"|"C"|"D";
-        else errors.push("Correct answer must be A, B, C, or D");
+        else errors.push(`Invalid correct answer "${ans}" — must be A, B, C, or D`);
       }
     }
 
     if (!q.question) errors.push("Missing question text (Q:)");
-    if (!q.options!.every(o => o.trim())) errors.push("Missing one or more options");
-    if (!q.correct_answer) errors.push("Missing correct answer (Correct:)");
+    if (!q.options!.every(o => o.trim())) {
+      const missing = ["A","B","C","D"].filter((_,i) => !q.options![i].trim());
+      errors.push(`Missing option${missing.length > 1 ? "s" : ""}: ${missing.join(", ")}`);
+    }
+    if (!q.correct_answer && !errors.some(e => e.startsWith("Invalid"))) errors.push("Missing correct answer (Correct:)");
 
     results.push({
       id: q.id!,
@@ -142,47 +161,51 @@ Correct: C"
         <button onClick={() => { setShowPreview(false); setParsed([]); }} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)" }}><X size={14} /></button>
       </div>
 
-      <div style={{ borderRadius: 12, border: "1px solid var(--border-hairline)", overflow: "hidden", backgroundColor: "transparent", maxHeight: 500, overflowY: "auto", marginBottom: 12 }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 150px 80px", padding: "9px 16px", borderBottom: "1px solid var(--border-hairline)", backgroundColor: "var(--bg-base)", position: "sticky", top: 0 }}>
-          <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", color: "var(--text-muted)" }}>Question & Options</div>
-          <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", color: "var(--text-muted)" }}>Correct</div>
-          <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", color: "var(--text-muted)" }}>Status</div>
-        </div>
-
+      <div style={{ display: "flex", flexDirection: "column", gap: 10, maxHeight: 500, overflowY: "auto", marginBottom: 12 }}>
         {parsed.map((q, i) => {
           const hasError = q.error || !q.question.trim() || !q.options.every(o => o.trim());
           return (
-            <div key={q.id} style={{ borderBottom: i < parsed.length - 1 ? "1px solid var(--border-hairline)" : "none", backgroundColor: hasError ? "rgba(239,68,68,0.03)" : "var(--bg-card)" }}>
-              <div style={{ padding: "12px 16px", display: "grid", gridTemplateColumns: "1fr 150px 80px", gap: 12, alignItems: "flex-start" }}>
-                <div>
-                  <input value={q.question} onChange={e => handleEditParsed(q.id, "question", e.target.value)} 
-                    style={{ width: "100%", padding: "6px 8px", borderRadius: 6, border: "1px solid var(--border-subtle)", backgroundColor: "var(--bg-base)", color: "var(--text-primary)", fontSize: 12, marginBottom: 8, boxSizing: "border-box", outline: "none" }} />
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 6 }}>
-                    {(["A","B","C","D"] as const).map((letter, idx) => (
-                      <input key={letter} value={q.options[idx]} onChange={e => { const opts = [...q.options]; opts[idx] = e.target.value; handleEditParsed(q.id, "options", opts as [string, string, string, string]); }}
-                        placeholder={`${letter})`}
-                        style={{ padding: "4px 6px", borderRadius: 4, border: "1px solid var(--border-subtle)", backgroundColor: "var(--bg-base)", color: "var(--text-primary)", fontSize: 11, boxSizing: "border-box", outline: "none" }} />
-                    ))}
+            <div key={q.id} style={{ borderRadius: 10, border: `1px solid ${hasError ? "rgba(239,68,68,0.3)" : "var(--border-hairline)"}`, backgroundColor: hasError ? "rgba(239,68,68,0.03)" : "var(--bg-base)", padding: "12px 14px" }}>
+              {/* Status badge */}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                <span style={{ fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em" }}>Q{i + 1}</span>
+                {hasError ? (
+                  <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                    <AlertCircle size={13} style={{ color: "#f87171", flexShrink: 0 }} />
+                    <span style={{ fontSize: 10, color: "#f87171" }}>{q.error || "Incomplete"}</span>
                   </div>
-                </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                  {(["A","B","C","D"] as const).map((letter) => (
-                    <label key={letter} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, cursor: "pointer", color: q.correct_answer === letter ? "var(--accent-indigo)" : "var(--text-muted)" }}>
-                      <input type="radio" name={`correct-${q.id}`} checked={q.correct_answer === letter} onChange={() => handleEditParsed(q.id, "correct_answer", letter)} style={{ cursor: "pointer" }} />
-                      {letter}
-                    </label>
-                  ))}
-                </div>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end" }}>
-                  {hasError ? (
-                    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                      <AlertCircle size={14} style={{ color: "#f87171" }} />
-                      <span style={{ fontSize: 10, color: "#f87171" }}>{q.error || "Incomplete"}</span>
-                    </div>
-                  ) : (
-                    <span style={{ fontSize: 10, color: "#34d399", fontWeight: 600 }}>✓ Ready</span>
-                  )}
-                </div>
+                ) : (
+                  <span style={{ fontSize: 10, color: "#34d399", fontWeight: 700 }}>✓ Ready</span>
+                )}
+              </div>
+
+              {/* Question text */}
+              <input value={q.question} onChange={e => handleEditParsed(q.id, "question", e.target.value)}
+                placeholder="Question text..."
+                style={{ width: "100%", padding: "7px 9px", borderRadius: 6, border: "1px solid var(--border-subtle)", backgroundColor: "var(--bg-card)", color: "var(--text-primary)", fontSize: 12, marginBottom: 8, boxSizing: "border-box", outline: "none" }} />
+
+              {/* Options A–D */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 10 }}>
+                {(["A","B","C","D"] as const).map((letter, idx) => (
+                  <input key={letter} value={q.options[idx]}
+                    onChange={e => { const opts = [...q.options] as [string,string,string,string]; opts[idx] = e.target.value; handleEditParsed(q.id, "options", opts); }}
+                    placeholder={`${letter}) option`}
+                    style={{ padding: "5px 8px", borderRadius: 5, border: "1px solid var(--border-subtle)", backgroundColor: "var(--bg-card)", color: "var(--text-primary)", fontSize: 11, boxSizing: "border-box", outline: "none" }} />
+                ))}
+              </div>
+
+              {/* Correct answer selector */}
+              <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                <span style={{ fontSize: 10, color: "var(--text-muted)", fontWeight: 600, marginRight: 2 }}>Correct:</span>
+                {(["A","B","C","D"] as const).map(letter => (
+                  <label key={letter} style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, cursor: "pointer",
+                    color: q.correct_answer === letter ? "var(--accent-indigo)" : "var(--text-muted)",
+                    fontWeight: q.correct_answer === letter ? 700 : 400 }}>
+                    <input type="radio" name={`correct-${q.id}`} checked={q.correct_answer === letter}
+                      onChange={() => handleEditParsed(q.id, "correct_answer", letter)} style={{ cursor: "pointer" }} />
+                    {letter}
+                  </label>
+                ))}
               </div>
             </div>
           );
