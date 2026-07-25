@@ -638,9 +638,9 @@ export interface PackQuestion {
   correct_answer: string;
   timer?: number;              // present for pack questions (pills table); absent for library questions
   answer_input_mode?: "text" | "numeric";  // for type_answer questions; defaults to "text"
-  times_shown: number;
-  times_correct: number;
-  correct_rate: number;          // 0–100 percentage, computed by backend
+  times_shown?: number;        // absent for library questions (stats not tracked on templates)
+  times_correct?: number;      // absent for library questions
+  correct_rate?: number;       // absent for library questions (0–100 percentage)
   status: "active" | "inactive" | "deleted";
   created_at: string;
 }
