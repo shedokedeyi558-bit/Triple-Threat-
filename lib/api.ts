@@ -627,6 +627,8 @@ export interface PillPack {
   max_entries?: number | null;       // max number of players allowed to enter
   entries_made?: number;             // current number of entries
   entry_cap_reached?: boolean;       // true when max_entries is hit
+  // Specials attempt tracking
+  user_attempted?: boolean;          // true if current player already sat this exam
   pills: PillPackPill[];
 }
 

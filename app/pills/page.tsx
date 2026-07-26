@@ -90,15 +90,16 @@ function HeroPack({ pack, onClick }: { pack: PillPack; onClick: () => void }) {
   const available = pack.pills.filter((p) => p.status === "available").length;
   const { label: expiryLabel, expired } = usePackExpiry(pack.quiz_expires_at);
   const { label: entryCapLabel, full: entryCapped } = formatEntryCap(pack.max_entries, pack.entries_made, pack.entry_cap_reached);
+  const isAttempted = pack.user_attempted === true;
 
   return (
-    <motion.button initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} whileTap={{ scale: (expired || entryCapped) ? 1 : 0.98 }}
-      onClick={(expired || entryCapped) ? undefined : onClick}
+    <motion.button initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} whileTap={{ scale: (expired || entryCapped || isAttempted) ? 1 : 0.98 }}
+      onClick={(expired || entryCapped || isAttempted) ? undefined : onClick}
       style={{
         width: "100%", boxSizing: "border-box", borderRadius: 16, padding: 0, textAlign: "left",
-        cursor: (expired || entryCapped) ? "default" : "pointer", overflow: "hidden", border: `1.5px solid ${color}50`,
+        cursor: (expired || entryCapped || isAttempted) ? "default" : "pointer", overflow: "hidden", border: `1.5px solid ${color}50`,
         backgroundColor: "var(--bg-card)", position: "relative",
-        boxShadow: `0 4px 32px ${color}20`, opacity: (expired || entryCapped) ? 0.6 : 1,
+        boxShadow: `0 4px 32px ${color}20`, opacity: (expired || entryCapped || isAttempted) ? 0.6 : 1,
       }}>
       <div style={{ position: "absolute", top: -40, right: -40, width: 180, height: 180, borderRadius: "50%", backgroundColor: color, opacity: 0.07, pointerEvents: "none" }} />
       <div style={{ height: 3, background: `linear-gradient(90deg, transparent, ${color}, transparent)` }} />
@@ -107,6 +108,11 @@ function HeroPack({ pack, onClick }: { pack: PillPack; onClick: () => void }) {
           <span style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", padding: "2px 8px", borderRadius: 20, backgroundColor: `${color}20`, color }}>
             {pack.category}
           </span>
+          {isAttempted && (
+            <span style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", padding: "2px 8px", borderRadius: 20, backgroundColor: "rgba(139,92,246,0.15)", color: "#c084fc" }}>
+              Attempted
+            </span>
+          )}
           <span style={{ fontSize: 10, color: "var(--text-muted)" }}>{available}/{pack.pills.length} available</span>
           {entryCapLabel && (
             <span style={{ fontSize: 9, fontWeight: 600, color: entryCapped ? "#f87171" : "var(--accent-amber)", display: "flex", alignItems: "center", gap: 3 }}>
@@ -121,26 +127,26 @@ function HeroPack({ pack, onClick }: { pack: PillPack; onClick: () => void }) {
         </div>
         <p style={{ fontSize: 19, fontWeight: 800, color: "var(--text-primary)", margin: "0 0 6px", lineHeight: 1.3 }}>{pack.name}</p>
         <p style={{ fontSize: 12, color: "var(--text-secondary)", margin: "0 0 16px" }}>
-          {expired || entryCapped ? (entryCapped ? "This pack's entry cap is full" : "This pack has ended") : `Answer fast${timerLabel ? ` in ${timerLabel}` : ""}, win instantly`}
+          {isAttempted ? "You've already completed this exam" : expired || entryCapped ? (entryCapped ? "This pack's entry cap is full" : "This pack has ended") : `Answer fast${timerLabel ? ` in ${timerLabel}` : ""}, win instantly`}
         </p>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
           <div style={{ display: "flex", gap: 16 }}>
             <div>
               <p style={{ fontSize: 9, color: "var(--text-muted)", margin: "0 0 2px", textTransform: "uppercase", letterSpacing: "0.06em" }}>Entry</p>
-              {expired || entryCapped
+              {isAttempted || expired || entryCapped
                 ? <p style={{ fontSize: 16, fontWeight: 700, color: "#f87171", margin: 0 }}>Closed</p>
                 : <p style={{ fontSize: 16, fontFamily: "monospace", fontWeight: 700, color: "var(--accent-amber)", margin: 0 }}>₦{price.toLocaleString()}</p>
               }
             </div>
-            {!expired && !entryCapped && (
+            {!isAttempted && !expired && !entryCapped && (
               <div>
                 <p style={{ fontSize: 9, color: "var(--text-muted)", margin: "0 0 2px", textTransform: "uppercase", letterSpacing: "0.06em" }}>Win up to</p>
                 <p style={{ fontSize: 16, fontFamily: "monospace", fontWeight: 700, color, margin: 0 }}>₦{prize.toLocaleString()}</p>
               </div>
             )}
           </div>
-          <div style={{ padding: "8px 16px", borderRadius: 10, backgroundColor: (expired || entryCapped) ? "rgba(239,68,68,0.15)" : color, color: (expired || entryCapped) ? "#f87171" : "#000", fontSize: 13, fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}>
-            {expired || entryCapped ? "Closed" : <>Play <ArrowRight size={13} /></>}
+          <div style={{ padding: "8px 16px", borderRadius: 10, backgroundColor: (isAttempted || expired || entryCapped) ? "rgba(239,68,68,0.15)" : color, color: (isAttempted || expired || entryCapped) ? "#f87171" : "#000", fontSize: 13, fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}>
+            {isAttempted ? "Done" : expired || entryCapped ? "Closed" : <>Play <ArrowRight size={13} /></>}
           </div>
         </div>
       </div>
