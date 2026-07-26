@@ -319,7 +319,7 @@ function SpecialsTeaserBanner({ packs, onClick }: { packs: PillPack[]; onClick: 
 
       {/* Row 3: description */}
       <p style={{ fontSize: 12, color: "rgba(232,163,61,0.6)", margin: "0 0 14px", lineHeight: 1.55, position: "relative" }}>
-        Exam-format challenges. One shared timer, one attempt each — top scorers split the pool.
+        Exam-format challenges. One shared timer, one attempt each — get enough right to pass and win instantly.
       </p>
 
       {/* CTA */}
