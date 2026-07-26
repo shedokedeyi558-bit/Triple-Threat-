@@ -206,6 +206,7 @@ export default function SpecialsPlayPage() {
   const [finalScore, setFinalScore]     = useState(0);
   const [finalPrize, setFinalPrize]     = useState(0);
   const [passed, setPassed]             = useState(false);
+  const [prizeCreditFailed, setPrizeCreditFailed] = useState(false);
   // Exam timer
   const [examSeconds, setExamSeconds]   = useState(0);
   const [totalExamSeconds, setTotalExamS] = useState(0);
@@ -282,8 +283,18 @@ export default function SpecialsPlayPage() {
         setQuestionIndex(res.next_question_index);
       }
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Failed to submit answer");
-      setPhase("error");
+      // Backend saved the attempt as passed but balance credit failed — show result screen with warning
+      if (err instanceof ApiError && err.code === "PRIZE_CREDIT_FAILED") {
+        stopTimer();
+        setPassed(true);
+        setPrizeCreditFailed(true);
+        const playerId = state.player?.id;
+        if (playerId) markSpecialAttempted(playerId, packId);
+        setPhase("exam_complete");
+      } else {
+        setError(err instanceof ApiError ? err.message : "Failed to submit answer");
+        setPhase("error");
+      }
     } finally { setSubmitting(false); }
   };
 
@@ -436,13 +447,21 @@ export default function SpecialsPlayPage() {
                   </div>
                 ))}
               </div>
-              {passed && finalPrize > 0 && (
+              {passed && finalPrize > 0 && !prizeCreditFailed && (
                 <div style={{ borderRadius: 14, padding: "18px 32px", textAlign: "center", backgroundColor: "rgba(232,163,61,0.08)", border: "1px solid rgba(232,163,61,0.25)" }}>
                   <p style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-muted)", marginBottom: 6 }}>Prize Credited</p>
                   <p style={{ fontSize: 34, fontFamily: "monospace", fontWeight: 900, color: "var(--accent-amber)", margin: 0 }}>+₦{finalPrize.toLocaleString()}</p>
                 </div>
               )}
-
+              {prizeCreditFailed && (
+                <div style={{ borderRadius: 14, padding: "16px 20px", textAlign: "center", backgroundColor: "rgba(239,68,68,0.07)", border: "1px solid rgba(239,68,68,0.3)", maxWidth: 360 }}>
+                  <AlertTriangle size={18} style={{ color: "#f87171", margin: "0 auto 8px", display: "block" }} />
+                  <p style={{ fontSize: 13, fontWeight: 700, color: "#f87171", margin: "0 0 6px" }}>Prize credit issue</p>
+                  <p style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.55, margin: 0 }}>
+                    You passed — your result is saved. There was a problem crediting the prize to your wallet. Please contact support and we will resolve it manually.
+                  </p>
+                </div>
+              )}
               <div style={{ display: "flex", gap: 12, width: "100%", maxWidth: 360 }}>
                 {passed && (
                   <button onClick={() => router.push("/wallet")}
