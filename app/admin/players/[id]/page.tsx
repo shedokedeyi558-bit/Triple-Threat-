@@ -129,6 +129,7 @@ export default function AdminPlayerDetailPage() {
   const [addingNote, setAddingNote] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [balanceRefreshing, setBalanceRefreshing] = useState(false);
   const [banModal, setBanModal] = useState(false);
   const [banning, setBanning] = useState(false);
 
@@ -138,16 +139,8 @@ export default function AdminPlayerDetailPage() {
     // Core player detail — if the dedicated endpoint doesn't exist yet,
     // fall back to finding this player in the list
     const fetchPlayer = async (): Promise<AdminPlayerDetail> => {
-      try {
-        const res = await adminApi.getPlayerDetail(id);
-        return res.player;
-      } catch {
-        // Endpoint not yet deployed — find in players list as fallback
-        const list = await adminApi.getPlayers({ limit: 1000 });
-        const found = list.players.find((p) => p.id === id);
-        if (!found) throw new Error("Player not found");
-        return found as AdminPlayerDetail;
-      }
+      const res = await adminApi.getPlayerDetail(id);
+      return res.player;
     };
 
     // Optional endpoints — fail silently if not yet deployed
@@ -275,15 +268,25 @@ export default function AdminPlayerDetailPage() {
             Total spendable: ₦{((player.balance ?? 0) + (player.bonus_balance ?? 0)).toLocaleString()} · Bonus credit is non-withdrawable
           </p>
           <button
+            disabled={balanceRefreshing}
             onClick={async () => {
+              setBalanceRefreshing(true);
               try {
                 const res = await adminApi.getPlayerDetail(id);
-                setPlayer((p) => p ? { ...p, balance: res.player.balance, bonus_balance: res.player.bonus_balance } : p);
-              } catch { /* silent */ }
+                setPlayer((p) => p ? {
+                  ...p,
+                  balance: res.player.balance,
+                  bonus_balance: res.player.bonus_balance,
+                } : p);
+              } catch (err) {
+                alert(`Balance refresh failed: ${err instanceof ApiError ? err.message : "Unknown error"}`);
+              } finally {
+                setBalanceRefreshing(false);
+              }
             }}
-            className="text-[10px] font-bold px-2 py-1 rounded-lg border flex-shrink-0"
+            className="text-[10px] font-bold px-2 py-1 rounded-lg border flex-shrink-0 disabled:opacity-40"
             style={{ color: "var(--accent-indigo)", borderColor: "rgba(76,111,255,0.3)", background: "rgba(76,111,255,0.06)" }}>
-            Refresh
+            {balanceRefreshing ? <Loader2 size={11} className="animate-spin inline" /> : "Refresh"}
           </button>
         </div>
       </Section>
