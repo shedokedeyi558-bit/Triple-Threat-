@@ -309,8 +309,8 @@ export default function SpecialsPage() {
           <ChevronLeft size={20} style={{ color: "var(--text-secondary)" }} />
         </button>
         <div>
-          <h1 style={{ fontSize: 20, fontWeight: 800, color: "var(--text-primary)", margin: 0 }}>Specials</h1>
-          <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "2px 0 0" }}>One shot, real stakes</p>
+          <h1 style={{ fontSize: 20, fontWeight: 800, color: "var(--text-primary)", margin: 0 }}>Special Challenge</h1>
+          <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "2px 0 0" }}>One shot. Sharp minds only.</p>
         </div>
       </div>
 
