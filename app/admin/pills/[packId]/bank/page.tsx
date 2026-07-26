@@ -11,24 +11,6 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
-// ── Difficulty flag ───────────────────────────────────────────────────────────
-function DifficultyFlag({ rate, shown }: { rate: number; shown: number }) {
-  if (shown < 5) return <span style={{ fontSize: 9, color: "var(--text-muted)" }}>No data</span>;
-  if (rate > 85) return (
-    <span style={{ fontSize: 9, fontWeight: 700, padding: "2px 6px", borderRadius: 4,
-      backgroundColor: "rgba(251,191,36,0.12)", color: "#fbbf24", border: "1px solid rgba(251,191,36,0.25)" }}>
-      Too easy
-    </span>
-  );
-  if (rate < 20) return (
-    <span style={{ fontSize: 9, fontWeight: 700, padding: "2px 6px", borderRadius: 4,
-      backgroundColor: "rgba(239,68,68,0.1)", color: "#f87171", border: "1px solid rgba(239,68,68,0.25)" }}>
-      Check this
-    </span>
-  );
-  return null;
-}
-
 // ── Bank health bar ───────────────────────────────────────────────────────────
 function BankHealth({ total, questionCount, targetBankSize }: { total: number; questionCount: number | null; targetBankSize?: number | null }) {
   if (questionCount == null) return null;
@@ -736,54 +718,110 @@ export default function QuestionBankPage() {
           )}
         </div>
       ) : (
-        <div style={{ borderRadius: 12, border: "1px solid var(--border-hairline)", overflow: "hidden", backgroundColor: "var(--bg-card)" }}>
-          {/* Table header */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 140px 90px 90px 110px 80px", gap: 0, padding: "9px 16px", borderBottom: "1px solid var(--border-hairline)", backgroundColor: "var(--bg-base)" }}>
-            {([
-              { label: "Question" },
-              { label: "Correct answer" },
-              { label: "Shown" },
-              { label: "Correct" },
-              { label: <button onClick={cycleSortDir} style={{ display: "flex", alignItems: "center", gap: 4, background: "none", border: "none", cursor: "pointer", color: sortDir ? "var(--accent-indigo)" : "var(--text-muted)", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", padding: 0 }}>Rate <SortIcon size={11} /></button> },
-              { label: "Actions" },
-            ] as { label: string | React.ReactNode }[]).map((col, i) => (
-              <div key={i} style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", color: "var(--text-muted)" }}>{col.label}</div>
-            ))}
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {/* Sort button at top */}
+          <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 4 }}>
+            <button onClick={cycleSortDir}
+              style={{ display: "flex", alignItems: "center", gap: 4, background: "none", border: "none", cursor: "pointer", color: sortDir ? "var(--accent-indigo)" : "var(--text-muted)", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", padding: "6px 10px", borderRadius: 6, transition: "all 0.2s" }}>
+              Sort by Rate <SortIcon size={11} />
+            </button>
           </div>
-          {sorted.map((q, i) => {
+          {sorted.map((q) => {
             const isEditing = editTarget?.id === q.id;
             const shown = q.times_shown ?? 0;
+            const correct = q.times_correct ?? 0;
             const rate  = q.correct_rate ?? 0;
-            const flag = shown >= 5 ? (rate > 85 ? "easy" : rate < 20 ? "check" : null) : null;
+            const isTooEasy = shown >= 5 && rate > 85;
+            const isCheckThis = shown >= 5 && rate < 20;
             return (
-              <div key={q.id} style={{ borderBottom: i < sorted.length-1 ? "1px solid var(--border-hairline)" : "none",
-                backgroundColor: flag === "easy" ? "rgba(251,191,36,0.03)" : flag === "check" ? "rgba(239,68,68,0.03)" : "transparent" }}>
+              <motion.div
+                key={q.id}
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -4 }}
+                style={{ borderRadius: 10, border: "1px solid var(--border-hairline)", padding: 14, backgroundColor: "var(--bg-card)", transition: "all 0.2s" }}
+              >
                 {!isEditing && (
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 140px 90px 90px 110px 80px", gap: 0, padding: "11px 16px", alignItems: "center" }}>
-                    <div style={{ minWidth: 0 }}>
-                      <p style={{ fontSize: 12, fontWeight: 500, color: "var(--text-primary)", margin: "0 0 3px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{q.question}</p>
-                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                        <span style={{ fontSize: 9, color: "var(--text-muted)", textTransform: "uppercase" }}>{q.format === "multiple_choice" ? "MCQ" : "Type"}</span>
-                        <DifficultyFlag rate={rate} shown={shown} />
+                  <div>
+                    {/* Card header — question text wraps naturally */}
+                    <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", margin: "0 0 10px", lineHeight: 1.5 }}>{q.question}</p>
+                    
+                    {/* Stats & flags row — compact horizontal layout */}
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                      {/* Correct answer chip */}
+                      <div style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: 6, backgroundColor: "var(--bg-base)", border: "1px solid var(--border-subtle)" }}>
+                        <span style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--text-muted)" }}>✓</span>
+                        <span style={{ fontSize: 11, color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 200 }}>{q.correct_answer}</span>
                       </div>
-                    </div>
-                    <p style={{ fontSize: 11, color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{q.correct_answer}</p>
-                    <p style={{ fontSize: 12, fontFamily: "monospace", color: "var(--text-secondary)" }}>{shown}</p>
-                    <p style={{ fontSize: 12, fontFamily: "monospace", color: "var(--text-secondary)" }}>{q.times_correct ?? "—"}</p>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      <div style={{ flex: 1, height: 4, borderRadius: 2, backgroundColor: "#1E1E1E", overflow: "hidden" }}>
-                        <div style={{ height: "100%", borderRadius: 2, width: `${rate}%`, backgroundColor: shown < 5 ? "#333" : rate > 85 ? "#fbbf24" : rate < 20 ? "#ef4444" : "#34d399" }} />
+
+                      {/* Shown chip */}
+                      <div style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: 6, backgroundColor: "var(--bg-base)", border: "1px solid var(--border-subtle)" }}>
+                        <span style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--text-muted)" }}>Shown</span>
+                        <span style={{ fontSize: 11, fontFamily: "monospace", fontWeight: 600, color: "var(--text-primary)" }}>{shown}</span>
                       </div>
-                      <span style={{ fontSize: 11, fontFamily: "monospace", color: "var(--text-secondary)", minWidth: 34, textAlign: "right" }}>{shown < 5 ? "—" : `${rate.toFixed(0)}%`}</span>
+
+                      {/* Correct chip */}
+                      <div style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: 6, backgroundColor: "var(--bg-base)", border: "1px solid var(--border-subtle)" }}>
+                        <span style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--text-muted)" }}>Correct</span>
+                        <span style={{ fontSize: 11, fontFamily: "monospace", fontWeight: 600, color: "var(--text-primary)" }}>{correct}</span>
+                      </div>
+
+                      {/* Rate chip with mini bar */}
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 10px", borderRadius: 6, backgroundColor: "var(--bg-base)", border: "1px solid var(--border-subtle)" }}>
+                        <span style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--text-muted)" }}>Rate</span>
+                        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                          <div style={{ width: 30, height: 3, borderRadius: 1.5, backgroundColor: "#1E1E1E", overflow: "hidden" }}>
+                            <div style={{ height: "100%", borderRadius: 1.5, width: `${rate}%`, backgroundColor: shown < 5 ? "#666" : rate > 85 ? "#fbbf24" : rate < 20 ? "#ef4444" : "#34d399" }} />
+                          </div>
+                          <span style={{ fontSize: 11, fontFamily: "monospace", fontWeight: 600, color: "var(--text-primary)", minWidth: 30 }}>{shown < 5 ? "—" : `${rate.toFixed(0)}%`}</span>
+                        </div>
+                      </div>
+
+                      {/* Flags */}
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginLeft: "auto" }}>
+                        {isTooEasy && (
+                          <span style={{ fontSize: 9, fontWeight: 700, padding: "4px 8px", borderRadius: 5, backgroundColor: "rgba(251,191,36,0.12)", color: "#fbbf24", border: "1px solid rgba(251,191,36,0.25)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                            Too easy
+                          </span>
+                        )}
+                        {isCheckThis && (
+                          <span style={{ fontSize: 9, fontWeight: 700, padding: "4px 8px", borderRadius: 5, backgroundColor: "rgba(239,68,68,0.1)", color: "#f87171", border: "1px solid rgba(239,68,68,0.25)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                            Check this
+                          </span>
+                        )}
+                        {!isTooEasy && !isCheckThis && shown >= 5 && (
+                          <span style={{ fontSize: 9, fontWeight: 600, padding: "4px 8px", borderRadius: 5, backgroundColor: "rgba(52,211,153,0.1)", color: "#34d399", border: "1px solid rgba(52,211,153,0.25)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                            Good
+                          </span>
+                        )}
+                        {shown < 5 && (
+                          <span style={{ fontSize: 9, fontWeight: 600, padding: "4px 8px", borderRadius: 5, backgroundColor: "rgba(107,114,128,0.1)", color: "var(--text-muted)", border: "1px solid var(--border-subtle)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                            New
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Format badge */}
+                      <span style={{ fontSize: 9, fontWeight: 700, padding: "4px 8px", borderRadius: 5, backgroundColor: "rgba(76,111,255,0.1)", color: "var(--accent-indigo)", border: "1px solid rgba(76,111,255,0.25)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                        {q.format === "multiple_choice" ? "MCQ" : "Type"}
+                      </span>
                     </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <button onClick={() => { setEditTarget(q); setShowAdd(false); setShowBulk(false); }} style={{ background: "none", border: "none", cursor: "pointer", padding: 4, borderRadius: 6, color: "var(--text-muted)" }} title="Edit"><Pencil size={13} /></button>
-                      <button onClick={() => setDeleteTarget(q)} style={{ background: "none", border: "none", cursor: "pointer", padding: 4, borderRadius: 6, color: "var(--text-muted)" }} title="Delete"><Trash2 size={13} /></button>
+
+                    {/* Actions row */}
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10, paddingTop: 10, borderTop: "1px solid var(--border-hairline)" }}>
+                      <button onClick={() => { setEditTarget(q); setShowAdd(false); setShowBulk(false); }}
+                        style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 12px", borderRadius: 6, border: "1px solid var(--border-subtle)", backgroundColor: "transparent", color: "var(--text-secondary)", fontSize: 11, fontWeight: 600, cursor: "pointer", transition: "all 0.2s" }}>
+                        <Pencil size={12} /> Edit
+                      </button>
+                      <button onClick={() => setDeleteTarget(q)}
+                        style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 12px", borderRadius: 6, border: "1px solid rgba(239,68,68,0.3)", backgroundColor: "transparent", color: "#f87171", fontSize: 11, fontWeight: 600, cursor: "pointer", transition: "all 0.2s" }}>
+                        <Trash2 size={12} /> Delete
+                      </button>
                     </div>
                   </div>
                 )}
                 {isEditing && (
-                  <div style={{ padding: "14px 16px", borderTop: "1px solid rgba(76,111,255,0.2)", backgroundColor: "rgba(76,111,255,0.03)" }}>
+                  <div style={{ padding: "14px 16px", borderRadius: 8, backgroundColor: "rgba(76,111,255,0.03)", border: "1px solid rgba(76,111,255,0.2)" }}>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
                       <p style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", color: "var(--accent-indigo)", margin: 0 }}>Editing</p>
                       <button onClick={() => setEditTarget(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)" }}><X size={14} /></button>
@@ -791,7 +829,7 @@ export default function QuestionBankPage() {
                     <QuestionForm initial={q} onSave={handleEdit} onCancel={() => setEditTarget(null)} saving={saving} />
                   </div>
                 )}
-              </div>
+              </motion.div>
             );
           })}
         </div>
