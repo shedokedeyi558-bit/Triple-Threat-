@@ -270,9 +270,22 @@ export default function AdminPlayerDetailPage() {
           <StatCell label="Real balance" value={`₦${(player.balance ?? 0).toLocaleString()}`} color="var(--accent-amber)" />
           <StatCell label="Bonus balance" value={`₦${(player.bonus_balance ?? 0).toLocaleString()}`} color="var(--accent-violet)" />
         </div>
-        <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>
-          Total spendable: ₦{((player.balance ?? 0) + (player.bonus_balance ?? 0)).toLocaleString()} · Bonus credit is non-withdrawable
-        </p>
+        <div className="flex items-center justify-between">
+          <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>
+            Total spendable: ₦{((player.balance ?? 0) + (player.bonus_balance ?? 0)).toLocaleString()} · Bonus credit is non-withdrawable
+          </p>
+          <button
+            onClick={async () => {
+              try {
+                const res = await adminApi.getPlayerDetail(id);
+                setPlayer((p) => p ? { ...p, balance: res.player.balance, bonus_balance: res.player.bonus_balance } : p);
+              } catch { /* silent */ }
+            }}
+            className="text-[10px] font-bold px-2 py-1 rounded-lg border flex-shrink-0"
+            style={{ color: "var(--accent-indigo)", borderColor: "rgba(76,111,255,0.3)", background: "rgba(76,111,255,0.06)" }}>
+            Refresh
+          </button>
+        </div>
       </Section>
 
       {/* ── Stats ── */}
