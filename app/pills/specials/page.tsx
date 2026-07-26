@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useApp } from "@/context/AppContext";
 import { pillsApi, type PillPack, ApiError } from "@/lib/api";
+import { hasAttempted } from "@/lib/attemptedSpecials";
 import { ChevronLeft, ClipboardCheck, ArrowRight, Clock, AlertCircle, Package } from "lucide-react";
 import Link from "next/link";
 
@@ -149,12 +150,12 @@ const CAT_COLOR: Record<string, string> = {
 const catColor = (cat: string) => CAT_COLOR[cat] ?? "#4C6FFF";
 
 // ── Hero special card ─────────────────────────────────────────────────────
-function HeroSpecial({ pack, onClick }: { pack: PillPack; onClick: () => void }) {
+function HeroSpecial({ pack, onClick, playerId }: { pack: PillPack; onClick: () => void; playerId: string | null }) {
   const price = pack.entry_fee ?? pack.pills[0]?.price ?? 0;
   const prize = pack.prize_amount ?? pack.pills[0]?.prize ?? 0;
   const total = pack.pills.length;
   const { label: expiryLabel, expired } = usePackExpiry(pack.quiz_expires_at);
-  const isAttempted = pack.user_attempted === true;
+  const isAttempted = pack.user_attempted === true || hasAttempted(playerId, pack.id);
 
   return (
     <motion.button initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} whileTap={{ scale: (expired || isAttempted) ? 1 : 0.98 }}
@@ -217,12 +218,12 @@ function HeroSpecial({ pack, onClick }: { pack: PillPack; onClick: () => void })
 }
 
 // ── Compact special row ───────────────────────────────────────────────────
-function SpecialRow({ pack, onClick }: { pack: PillPack; onClick: () => void }) {
+function SpecialRow({ pack, onClick, playerId }: { pack: PillPack; onClick: () => void; playerId: string | null }) {
   const price = pack.entry_fee ?? pack.pills[0]?.price ?? 0;
   const prize = pack.prize_amount ?? pack.pills[0]?.prize ?? 0;
   const color = catColor(pack.category);
   const { label: expiryLabel, expired } = usePackExpiry(pack.quiz_expires_at);
-  const isAttempted = pack.user_attempted === true;
+  const isAttempted = pack.user_attempted === true || hasAttempted(playerId, pack.id);
 
   return (
     <motion.button initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} whileTap={{ scale: (expired || isAttempted) ? 1 : 0.98 }}
@@ -295,6 +296,7 @@ export default function SpecialsPage() {
 
   if (!state.isAuthenticated) return null;
 
+  const playerId = state.player?.id ?? null;
   const heroPack = packs[0] ?? null;
   const morePacks = packs.slice(1);
 
@@ -334,7 +336,7 @@ export default function SpecialsPage() {
 
           {/* Hero — biggest prize Special */}
           {heroPack && (
-            <HeroSpecial pack={heroPack} onClick={() => setConfirmPack(heroPack)} />
+            <HeroSpecial pack={heroPack} onClick={() => setConfirmPack(heroPack)} playerId={playerId} />
           )}
 
           {/* More specials */}
@@ -345,7 +347,7 @@ export default function SpecialsPage() {
               </p>
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {morePacks.map((pack) => (
-                  <SpecialRow key={pack.id} pack={pack} onClick={() => setConfirmPack(pack)} />
+                  <SpecialRow key={pack.id} pack={pack} onClick={() => setConfirmPack(pack)} playerId={playerId} />
                 ))}
               </div>
             </section>

@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useApp } from "@/context/AppContext";
 import { specialsApi, type VipStartResponse, type VipAnswerResponse, ApiError } from "@/lib/api";
 import { handleNumericInputChange } from "@/lib/inputUtils";
+import { markSpecialAttempted } from "@/lib/attemptedSpecials";
 import { Confetti } from "@/components/ui/Confetti";
 import { X, XCircle, Trophy, Loader2, Clock, ClipboardCheck, BanIcon, AlertTriangle } from "lucide-react";
 
@@ -247,6 +248,9 @@ export default function SpecialsPlayPage() {
       setPhase("playing");
     } catch (err) {
       if (err instanceof ApiError && (err.code === "ALREADY_ATTEMPTED" || err.status === 409)) {
+        // Cache locally so cards show "Attempted" badge immediately on all future visits
+        const playerId = state.player?.id;
+        if (playerId) markSpecialAttempted(playerId, packId);
         setPhase("already_attempted");
       } else {
         setError(err instanceof ApiError ? err.message : "Failed to start exam");
@@ -269,6 +273,9 @@ export default function SpecialsPlayPage() {
         setFinalPrize(res.prize ?? 0);
         setPassed(res.passed ?? score >= requiredCorrect);
         if (res.new_balance !== undefined) dispatch({ type: "UPDATE_BALANCE", balance: res.new_balance });
+        // Cache locally so cards immediately show "Attempted" badge on return
+        const playerId = state.player?.id;
+        if (playerId) markSpecialAttempted(playerId, packId);
         setPhase("exam_complete");
       } else if (res.next_question && res.next_question_index !== undefined) {
         setCurrentQ(res.next_question);

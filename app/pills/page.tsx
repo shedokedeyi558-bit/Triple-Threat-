@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useApp } from "@/context/AppContext";
 import { pillsApi, type PillPack, type PillPackPill, ApiError } from "@/lib/api";
+import { hasAttempted } from "@/lib/attemptedSpecials";
 import Link from "next/link";
 import { AlertCircle, Package, ArrowRight, Clock, ClipboardCheck, Loader2, ChevronRight } from "lucide-react";
 
@@ -81,7 +82,7 @@ function CategoryChips({ categories, active, onChange }: {
 }
 
 // ── Hero pack card (featured / most recent) ───────────────────────────────
-function HeroPack({ pack, onClick }: { pack: PillPack; onClick: () => void }) {
+function HeroPack({ pack, onClick, playerId }: { pack: PillPack; onClick: () => void; playerId?: string | null }) {
   const color = catColor(pack.category);
   const price = pack.pills[0]?.price ?? 0;
   const prize = pack.pills[0]?.prize ?? 0;
@@ -90,7 +91,8 @@ function HeroPack({ pack, onClick }: { pack: PillPack; onClick: () => void }) {
   const available = pack.pills.filter((p) => p.status === "available").length;
   const { label: expiryLabel, expired } = usePackExpiry(pack.quiz_expires_at);
   const { label: entryCapLabel, full: entryCapped } = formatEntryCap(pack.max_entries, pack.entries_made, pack.entry_cap_reached);
-  const isAttempted = pack.user_attempted === true;
+  const isSpecialPack = pack.is_vip === true || (pack as any).pack_type === "special";
+  const isAttempted = isSpecialPack && (pack.user_attempted === true || hasAttempted(playerId ?? null, pack.id));
 
   return (
     <motion.button initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} whileTap={{ scale: (expired || entryCapped || isAttempted) ? 1 : 0.98 }}
@@ -342,7 +344,7 @@ function SpecialsTeaserBanner({ packs, onClick }: { packs: PillPack[]; onClick: 
 }
 
 // ── Hero pack carousel — snap-scrollable, one card per view ─────────────
-function HeroCarousel({ packs, onPackClick }: { packs: PillPack[]; onPackClick: (p: PillPack) => void }) {
+function HeroCarousel({ packs, onPackClick, playerId }: { packs: PillPack[]; onPackClick: (p: PillPack) => void; playerId?: string | null }) {
   const [activeIdx, setActiveIdx] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -381,7 +383,7 @@ function HeroCarousel({ packs, onPackClick }: { packs: PillPack[]; onPackClick: 
       >
         {packs.map((pack) => (
           <div key={pack.id} style={{ flex: "0 0 100%", scrollSnapAlign: "start" }}>
-            <HeroPack pack={pack} onClick={() => onPackClick(pack)} />
+            <HeroPack pack={pack} onClick={() => onPackClick(pack)} playerId={playerId} />
           </div>
         ))}
       </div>
@@ -823,6 +825,8 @@ export default function PillsPage() {
 
   if (!state.isAuthenticated) return null;
 
+  const playerId = state.player?.id ?? null;
+
   const handlePackClick = (pack: PillPack) => {
     // All packs go through the confirm sheet — never charge on card tap
     const isSpecial = pack.is_vip || (pack as any).pack_type === "special" || pack.question_count != null;
@@ -877,7 +881,7 @@ export default function PillsPage() {
               <p style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", color: "var(--text-muted)", marginBottom: 10 }}>
                 Featured today
               </p>
-              <HeroCarousel packs={featuredPacks} onPackClick={handlePackClick} />
+              <HeroCarousel packs={featuredPacks} onPackClick={handlePackClick} playerId={playerId} />
             </section>
           )}
 
