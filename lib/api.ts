@@ -372,7 +372,8 @@ export interface AdminPlayer {
   id: string;
   phone: string;
   name: string | null;
-  balance: number;
+  balance: number;           // may be absent on detail endpoint — use real_balance
+  real_balance?: number;     // backend detail endpoint alias for balance
   bonus_balance: number;
   games_played: number;
   games_won: number;

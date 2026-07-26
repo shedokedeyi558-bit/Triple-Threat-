@@ -260,12 +260,12 @@ export default function AdminPlayerDetailPage() {
       {/* ── Balance ── */}
       <Section title="Balance" icon={<span style={{ fontSize: 14 }}>₦</span>}>
         <div className="grid grid-cols-2 gap-3">
-          <StatCell label="Real balance" value={`₦${(player.balance ?? 0).toLocaleString()}`} color="var(--accent-amber)" />
+          <StatCell label="Real balance" value={`₦${(player.real_balance ?? player.balance ?? 0).toLocaleString()}`} color="var(--accent-amber)" />
           <StatCell label="Bonus balance" value={`₦${(player.bonus_balance ?? 0).toLocaleString()}`} color="var(--accent-violet)" />
         </div>
         <div className="flex items-center justify-between">
           <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>
-            Total spendable: ₦{((player.balance ?? 0) + (player.bonus_balance ?? 0)).toLocaleString()} · Bonus credit is non-withdrawable
+            Total spendable: ₦{((player.real_balance ?? player.balance ?? 0) + (player.bonus_balance ?? 0)).toLocaleString()} · Bonus credit is non-withdrawable
           </p>
           <button
             disabled={balanceRefreshing}
@@ -275,7 +275,8 @@ export default function AdminPlayerDetailPage() {
                 const res = await adminApi.getPlayerDetail(id);
                 setPlayer((p) => p ? {
                   ...p,
-                  balance: res.player.balance,
+                  real_balance: res.player.real_balance ?? res.player.balance,
+                  balance: res.player.real_balance ?? res.player.balance ?? p.balance,
                   bonus_balance: res.player.bonus_balance,
                 } : p);
               } catch (err) {
