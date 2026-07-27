@@ -12,6 +12,13 @@ import { X, XCircle, Trophy, Loader2, Clock, ClipboardCheck, BanIcon, AlertTrian
 
 type Phase = "loading" | "playing" | "exam_complete" | "time_up" | "already_attempted" | "error";
 
+interface AnswerLogEntry {
+  question: string;
+  yourAnswer: string;
+  correctAnswer: string;
+  correct: boolean;
+}
+
 // ── Exit confirmation dialog ──────────────────────────────────────────────────
 function ExitDialog({ entryFee, onConfirm, onCancel }: {
   entryFee: number; onConfirm: () => void; onCancel: () => void;
@@ -207,6 +214,7 @@ export default function SpecialsPlayPage() {
   const [finalPrize, setFinalPrize]     = useState(0);
   const [passed, setPassed]             = useState(false);
   const [prizeCreditFailed, setPrizeCreditFailed] = useState(false);
+  const [answerLog, setAnswerLog]       = useState<AnswerLogEntry[]>([]);
   // Exam timer
   const [examSeconds, setExamSeconds]   = useState(0);
   const [totalExamSeconds, setTotalExamS] = useState(0);
@@ -267,6 +275,13 @@ export default function SpecialsPlayPage() {
     setSubmitting(true);
     try {
       const res: VipAnswerResponse = await specialsApi.answer(attemptId, answer);
+      // Log this answer for the post-exam review
+      const logEntry: AnswerLogEntry = {
+        question: currentQ?.question ?? "",
+        yourAnswer: answer,
+        correctAnswer: res.correct_answer,
+        correct: res.correct,
+      };
       if (res.streak_complete) {
         stopTimer();
         const score = res.score ?? (res.correct ? questionIndex + 1 : questionIndex);
@@ -277,8 +292,10 @@ export default function SpecialsPlayPage() {
         // Cache locally so cards immediately show "Attempted" badge on return
         const playerId = state.player?.id;
         if (playerId) markSpecialAttempted(playerId, packId);
+        setAnswerLog(prev => [...prev, logEntry]);
         setPhase("exam_complete");
       } else if (res.next_question && res.next_question_index !== undefined) {
+        setAnswerLog(prev => [...prev, logEntry]);
         setCurrentQ(res.next_question);
         setQuestionIndex(res.next_question_index);
       }
@@ -474,6 +491,68 @@ export default function SpecialsPlayPage() {
                   Back to Pills
                 </button>
               </div>
+
+              {/* Answer review */}
+              {answerLog.length > 0 && (
+                <div style={{ width: "100%", maxWidth: 480, marginTop: 8 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                    <ClipboardCheck size={15} style={{ color: "var(--text-muted)" }} />
+                    <p style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", color: "var(--text-muted)", margin: 0 }}>
+                      Answer Review
+                    </p>
+                    <span style={{ marginLeft: "auto", fontSize: 10, color: "var(--text-muted)" }}>
+                      {answerLog.filter(e => e.correct).length} correct · {answerLog.filter(e => !e.correct).length} wrong
+                    </span>
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    {answerLog.map((entry, i) => (
+                      <div key={i} style={{
+                        borderRadius: 10, padding: "12px 14px",
+                        backgroundColor: entry.correct ? "rgba(52,211,153,0.05)" : "rgba(239,68,68,0.05)",
+                        border: `1px solid ${entry.correct ? "rgba(52,211,153,0.2)" : "rgba(239,68,68,0.2)"}`,
+                      }}>
+                        {/* Q number + verdict */}
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+                          <span style={{ fontSize: 9, fontWeight: 700, color: "var(--text-muted)" }}>Q{i + 1}</span>
+                          <span style={{
+                            fontSize: 9, fontWeight: 700, padding: "2px 7px", borderRadius: 4,
+                            backgroundColor: entry.correct ? "rgba(52,211,153,0.15)" : "rgba(239,68,68,0.15)",
+                            color: entry.correct ? "#34d399" : "#f87171",
+                            textTransform: "uppercase", letterSpacing: "0.05em",
+                          }}>
+                            {entry.correct ? "Correct" : "Wrong"}
+                          </span>
+                        </div>
+                        {/* Question text */}
+                        <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-primary)", margin: "0 0 8px", lineHeight: 1.45 }}>
+                          {entry.question}
+                        </p>
+                        {/* Your answer vs correct answer */}
+                        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                          <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+                            <span style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: entry.correct ? "#34d399" : "#f87171", minWidth: 64, paddingTop: 1 }}>
+                              You
+                            </span>
+                            <span style={{ fontSize: 12, color: entry.correct ? "#34d399" : "#f87171", lineHeight: 1.4 }}>
+                              {entry.yourAnswer}
+                            </span>
+                          </div>
+                          {!entry.correct && (
+                            <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+                              <span style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "#34d399", minWidth: 64, paddingTop: 1 }}>
+                                Correct
+                              </span>
+                              <span style={{ fontSize: 12, color: "#34d399", lineHeight: 1.4 }}>
+                                {entry.correctAnswer}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </motion.div>
           )}
 
