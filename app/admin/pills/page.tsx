@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { adminApi, ApiError } from "@/lib/api";
-import { Loader2, Plus, Package, Eye, EyeOff, Trash2, ClipboardCheck, Star, BookOpen, BarChart2, TrendingUp, Activity } from "lucide-react";
+import { Loader2, Plus, Package, Eye, EyeOff, Trash2, ClipboardCheck, Star, BookOpen, BarChart2, TrendingUp, Activity, Clock } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 // ── Inline live stats strip — mounts when a pack row is expanded ─────────────
@@ -91,6 +91,8 @@ interface PillPack {
   pills: { id: string; color: string; status: string }[];
   available_count?: number;
   played_count?: number;
+  prize_amount?: number;
+  quiz_expires_at?: string | null;
 }
 
 // ── Force-delete confirmation dialog ────────────────────────────────────────
@@ -294,6 +296,33 @@ export default function AdminPillsPage() {
                     </div>
                     {/* Name on its own line — wraps freely, no truncate */}
                     <p className="text-sm font-semibold text-white leading-snug">{pack.name}</p>
+                    {/* Specials metadata: prize + expiry countdown */}
+                    {isSpecial && (pack.prize_amount || pack.quiz_expires_at) && (
+                      <div className="flex items-center gap-2 flex-wrap mt-1">
+                        {pack.prize_amount ? (
+                          <span className="text-[10px] font-bold"
+                            style={{ color: "var(--accent-amber)" }}>
+                            ₦{pack.prize_amount.toLocaleString()} prize
+                          </span>
+                        ) : null}
+                        {pack.quiz_expires_at && (() => {
+                          const ms = new Date(pack.quiz_expires_at).getTime() - Date.now();
+                          if (ms <= 0) return (
+                            <span className="text-[10px] font-bold flex items-center gap-1" style={{ color: "#f87171" }}>
+                              <Clock size={9} /> Expired
+                            </span>
+                          );
+                          const h = Math.floor(ms / 3600000);
+                          const m = Math.floor((ms % 3600000) / 60000);
+                          const label = h > 0 ? `${h}h ${m}m left` : `${m}m left`;
+                          return (
+                            <span className="text-[10px] font-bold flex items-center gap-1" style={{ color: h < 2 ? "#f87171" : "var(--accent-amber)" }}>
+                              <Clock size={9} /> {label}
+                            </span>
+                          );
+                        })()}
+                      </div>
+                    )}
                   </div>
 
                   {/* Inline stats — readable labels */}
