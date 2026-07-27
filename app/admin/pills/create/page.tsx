@@ -94,7 +94,7 @@ export default function CreatePillPackPage() {
   const [specialRequiredCorrect, setSpecialReqCorrect] = useState<number | "">(8);
   const [specialTargetBankSize, setSpecialTargetBankSize] = useState<number | "">("");
   const [specialMaxEntries, setSpecialMaxEntries] = useState<number | "">("");
-  const [specialExpiryOption, setSpecialExpiryOption] = useState<"24h"|"48h"|"7d"|"custom">("24h");
+  const [specialExpiryOption, setSpecialExpiryOption] = useState<"none"|"24h"|"48h"|"7d"|"custom">("none");
   const [specialExpiryCustom, setSpecialExpiryCustom] = useState<string>("");
   const [formOpen, setFormOpen] = useState(true);
   const [sampleCategory, setSampleCategory] = useState<SampleCategory>("Mixed");
@@ -139,7 +139,7 @@ export default function CreatePillPackPage() {
       if (Number(specialRequiredCorrect) > Number(specialQuestionCount)) {
         setError("Pass threshold cannot exceed question count"); return;
       }
-      // Enforce expiry — required for Specials
+      // Enforce expiry — required only for custom option
       if (specialExpiryOption === "custom" && !specialExpiryCustom) {
         setError("Please set a custom expiry date and time"); return;
       }
@@ -159,11 +159,11 @@ export default function CreatePillPackPage() {
           required_correct: Number(specialRequiredCorrect) || 8,
           ...(specialTargetBankSize ? { target_bank_size: Number(specialTargetBankSize) } : {}),
           ...(specialMaxEntries ? { max_entries: Number(specialMaxEntries) } : {}),
-          quiz_expires_at: (() => {
-            if (specialExpiryOption === "custom") return specialExpiryCustom ? new Date(specialExpiryCustom).toISOString() : undefined;
-            const ms: Record<string, number> = { "24h": 86400000, "48h": 172800000, "7d": 604800000 };
-            return new Date(Date.now() + ms[specialExpiryOption]).toISOString();
-          })(),
+          ...(specialExpiryOption !== "none" ? {
+            quiz_expires_at: specialExpiryOption === "custom"
+              ? new Date(specialExpiryCustom).toISOString()
+              : new Date(Date.now() + ({ "24h": 86400000, "48h": 172800000, "7d": 604800000 } as Record<string, number>)[specialExpiryOption]).toISOString(),
+          } : {}),
           idempotency_key: idempotencyKey,
         } as any);
         const packId = (packRes as any).pack?.id ?? (packRes as any).id;
@@ -215,11 +215,11 @@ export default function CreatePillPackPage() {
           required_correct: Number(specialRequiredCorrect) || 8,
           ...(specialTargetBankSize ? { target_bank_size: Number(specialTargetBankSize) } : {}),
           ...(specialMaxEntries ? { max_entries: Number(specialMaxEntries) } : {}),
-          quiz_expires_at: (() => {
-            if (specialExpiryOption === "custom") return specialExpiryCustom ? new Date(specialExpiryCustom).toISOString() : undefined;
-            const ms: Record<string, number> = { "24h": 86400000, "48h": 172800000, "7d": 604800000 };
-            return new Date(Date.now() + ms[specialExpiryOption]).toISOString();
-          })(),
+          ...(specialExpiryOption !== "none" ? {
+            quiz_expires_at: specialExpiryOption === "custom"
+              ? new Date(specialExpiryCustom).toISOString()
+              : new Date(Date.now() + ({ "24h": 86400000, "48h": 172800000, "7d": 604800000 } as Record<string, number>)[specialExpiryOption]).toISOString(),
+          } : {}),
         } : {}),
         idempotency_key: idempotencyKey,
       } as any);
@@ -400,12 +400,12 @@ export default function CreatePillPackPage() {
           {/* Entry window expiry */}
           <div className="border rounded-xl p-4 space-y-3" style={{ borderColor: "rgba(232,163,61,0.2)", backgroundColor: "rgba(232,163,61,0.03)" }}>
             <div>
-              <p className={labelCls} style={{ color: "var(--text-secondary)" }}>Entry window closes <span style={{ color: "#f87171" }}>*</span></p>
+              <p className={labelCls} style={{ color: "var(--text-secondary)" }}>Entry window</p>
               <p className="text-[10px] mb-2" style={{ color: "var(--text-muted)" }}>
-                Required — after this window closes, new entries are blocked automatically.
+                Optional — set a closing time to auto-block new entries after a deadline.
               </p>
               <div className="flex gap-2 flex-wrap mt-1.5">
-                {([["24h","24 hours"],["48h","48 hours"],["7d","7 days"],["custom","Custom"]] as const).map(([val, label]) => (
+                {([["none","No expiry"],["24h","24 hours"],["48h","48 hours"],["7d","7 days"],["custom","Custom"]] as const).map(([val, label]) => (
                   <button key={val} type="button" onClick={() => setSpecialExpiryOption(val)}
                     className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
                     style={{
