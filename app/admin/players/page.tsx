@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { adminApi, type AdminPlayer, ApiError } from "@/lib/api";
-import { Search, ChevronDown, ChevronUp, Loader2, ExternalLink, Shield, ShieldOff } from "lucide-react";
+import { Search, ChevronDown, ChevronUp, Loader2, ExternalLink } from "lucide-react";
 
 export default function PlayersPage() {
   const router = useRouter();
@@ -14,7 +14,6 @@ export default function PlayersPage() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"" | "active" | "banned">("");
   const [expanded, setExpanded] = useState<string | null>(null);
-  const [toggling, setToggling] = useState<string | null>(null);
 
   const fetchPlayers = useCallback(async (q?: string, status?: string) => {
     setLoading(true);
@@ -40,18 +39,6 @@ export default function PlayersPage() {
     const t = setTimeout(() => fetchPlayers(search, filter), 400);
     return () => clearTimeout(t);
   }, [search, filter, fetchPlayers]);
-
-  const handleToggleBan = async (player: AdminPlayer) => {
-    setToggling(player.id);
-    try {
-      const res = await adminApi.toggleBan(player.id);
-      setPlayers((prev) => prev.map((p) => p.id === player.id ? res.player : p));
-    } catch (err) {
-      alert(err instanceof ApiError ? err.message : "Failed to update player");
-    } finally {
-      setToggling(null);
-    }
-  };
 
   const maskPhone = (ph: string) => `${ph.slice(0, 4)}***${ph.slice(-4)}`;
 
@@ -160,29 +147,6 @@ export default function PlayersPage() {
                     style={{ backgroundColor: "rgba(76,111,255,0.06)", borderColor: "rgba(76,111,255,0.2)", color: "var(--accent-indigo)" }}
                   >
                     <ExternalLink size={14} /> View full profile
-                  </button>
-
-                  <button
-                    onClick={() => handleToggleBan(p)}
-                    disabled={toggling === p.id}
-                    className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-semibold text-sm transition-all active:scale-[0.98] disabled:opacity-50 ${
-                      p.status === "active"
-                        ? "bg-red-900/30 border border-red-800/40 text-red-400 hover:bg-red-900/50"
-                        : "border hover:opacity-80"
-                    }`}
-                    style={p.status !== "active" ? {
-                      backgroundColor: "rgba(76,111,255,0.1)",
-                      borderColor: "rgba(76,111,255,0.3)",
-                      color: "var(--accent-indigo)",
-                    } : undefined}
-                  >
-                    {toggling === p.id ? (
-                      <Loader2 size={15} className="animate-spin" />
-                    ) : p.status === "active" ? (
-                      <><ShieldOff size={15} /> Ban Player</>
-                    ) : (
-                      <><Shield size={15} /> Unban Player</>
-                    )}
                   </button>
                 </div>
               )}
