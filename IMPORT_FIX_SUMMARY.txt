@@ -1,0 +1,61 @@
+================================================================================
+SPECIALS BANK IMPORT FIX — SUMMARY
+================================================================================
+
+PROBLEM:
+  The "Import from Library" feature in the Specials Pack Question Bank was 
+  failing with 400 error: "No questions provided"
+  
+  Location: Admin > Specials Packs > Select Pack > Question Bank > Import
+
+ROOT CAUSE:
+  The frontend endpoint path was incorrect. It was using:
+    /api/admin/specials-bank/library/importFromLibrary (with pack_id in body)
+  
+  But the backend expects:
+    /api/admin/specials-bank/packs/{packId}/import-from-library
+  
+  This is consistent with other specials-bank endpoints that put IDs in the 
+  URL path, not request body.
+
+SOLUTION:
+  Updated lib/api.ts to use the correct endpoint path that matches the 
+  backend's URL pattern.
+
+WHAT WAS CHANGED:
+  File: lib/api.ts (line 1315-1318)
+  
+  ✓ Old endpoint: /api/admin/specials-bank/library/importFromLibrary
+  ✓ New endpoint: /api/admin/specials-bank/packs/{packId}/import-from-library
+  ✓ Removed pack_id from request body (it's now in the URL)
+  ✓ Request body now only contains: { question_ids: [...] }
+
+TESTING:
+  1. Go to Admin > Specials Packs
+  2. Select a pack (e.g., Roxy)
+  3. Click "Manage Question Bank"
+  4. Click "Import from Library"
+  5. Select questions to import
+  6. Click "Import N questions"
+  
+  Expected: Success message with count of inserted questions
+  Before fix: 400 "No questions provided" error
+
+BACKEND NEXT STEPS:
+  The backend needs to implement (or update) this endpoint:
+    POST /api/admin/specials-bank/packs/:pack_id/import-from-library
+    
+  See files for details:
+    - BACKEND_SPECIALS_IMPORT_IMPLEMENTATION.md (full spec)
+    - BACKEND_SPECIALS_IMPORT_DEBUG.md (debugging info)
+
+FILES CREATED:
+  1. BACKEND_SPECIALS_IMPORT_IMPLEMENTATION.md — Complete backend spec
+  2. BACKEND_SPECIALS_IMPORT_DEBUG.md — Debugging & troubleshooting guide
+  3. FRONTEND_SPECIALS_IMPORT_FIX.md — What changed on frontend
+
+STATUS:
+  ✅ Frontend: Fixed and ready
+  ⏳ Backend: Needs implementation
+
+================================================================================
