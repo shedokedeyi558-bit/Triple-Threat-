@@ -594,18 +594,48 @@ export default function QuestionBankPage() {
     finally { setSaving(false); }
   };
   const handleEdit = async (data: Parameters<typeof adminApi.addPillToPack>[1]) => {
-    if (!editTarget) return;
+    if (!editTarget) {
+      console.log("[handleEdit] Early return: no editTarget set");
+      return;
+    }
+    console.log("[handleEdit] Starting edit", { packId, questionId: editTarget.id, data });
     setSaving(true);
-    try { await adminApi.updatePackQuestion(packId, editTarget.id, data); await load(); setEditTarget(null); }
-    catch (err) { setError(err instanceof ApiError ? err.message : "Failed to save question"); }
-    finally { setSaving(false); }
+    try {
+      console.log("[handleEdit] Calling updatePackQuestion API...");
+      await adminApi.updatePackQuestion(packId, editTarget.id, data);
+      console.log("[handleEdit] API call succeeded, reloading questions...");
+      await load();
+      setEditTarget(null);
+    }
+    catch (err) {
+      console.error("[handleEdit] Error:", err);
+      setError(err instanceof ApiError ? err.message : "Failed to save question");
+    }
+    finally {
+      setSaving(false);
+    }
   };
   const handleDelete = async () => {
-    if (!deleteTarget) return;
+    if (!deleteTarget) {
+      console.log("[handleDelete] Early return: no deleteTarget set");
+      return;
+    }
+    console.log("[handleDelete] Starting delete", { packId, questionId: deleteTarget.id });
     setDeleting(true);
-    try { await adminApi.deletePackQuestion(packId, deleteTarget.id); setQuestions(prev => prev.filter(q => q.id !== deleteTarget.id)); setDeleteTarget(null); }
-    catch (err) { setError(err instanceof ApiError ? err.message : "Failed to delete question"); }
-    finally { setDeleting(false); }
+    try {
+      console.log("[handleDelete] Calling deletePackQuestion API...");
+      await adminApi.deletePackQuestion(packId, deleteTarget.id);
+      console.log("[handleDelete] API call succeeded, filtering question from list...");
+      setQuestions(prev => prev.filter(q => q.id !== deleteTarget.id));
+      setDeleteTarget(null);
+    }
+    catch (err) {
+      console.error("[handleDelete] Error:", err);
+      setError(err instanceof ApiError ? err.message : "Failed to delete question");
+    }
+    finally {
+      setDeleting(false);
+    }
   };
 
   const tooEasy   = questions.filter(q => (q.times_shown ?? 0) >= 5 && (q.correct_rate ?? 0) > 85).length;

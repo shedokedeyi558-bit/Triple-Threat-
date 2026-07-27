@@ -62,6 +62,8 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (token) headers["Authorization"] = `Bearer ${token}`;
 
+  console.log(`[API] ${method} ${url}`, body ? { body } : "");
+
   const res = await fetch(url, {
     method,
     headers,
@@ -72,6 +74,8 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
     success: false,
     error: "Invalid JSON response",
   }));
+
+  console.log(`[API] Response: ${res.status}`, json);
 
   // ── Global session-expiry handler ──────────────────────────────────────
   // Only fires when:
@@ -1264,13 +1268,13 @@ export const adminApi = {
     timer?: number;
   }) =>
     request<{ question: PackQuestion }>(
-      `/api/admin/pills/packs/${packId}/questions/${questionId}`,
+      `/api/admin/pills/${questionId}`,
       { method: "PATCH", body: data, token: getAdminToken() }
     ),
 
   deletePackQuestion: (packId: string, questionId: string) =>
     request<{ message: string }>(
-      `/api/admin/pills/packs/${packId}/questions/${questionId}`,
+      `/api/admin/pills/${questionId}`,
       { method: "DELETE", token: getAdminToken() }
     ),
 
@@ -1313,7 +1317,7 @@ export const adminApi = {
 
   importFromLibrary: (packId: string, questionIds: string[]) =>
     request<{ inserted: number }>(
-      `/api/admin/specials-bank/library/importFromLibrary`,
+      `/api/admin/specials-bank/library/copy-to-pack`,
       { method: "POST", body: { question_ids: questionIds, pack_id: packId }, token: getAdminToken() }
     ),
 
