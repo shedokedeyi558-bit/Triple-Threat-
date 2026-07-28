@@ -89,9 +89,10 @@ export default function CreatePillPackPage() {
   const [error, setError] = useState("");
   const [isVip, setIsVip] = useState(false);
   // Specials-only fields
-  const [specialQuestionCount, setSpecialQCount] = useState<number | "">(10);
-  const [specialTotalTime, setSpecialTotalTime] = useState<number | "">(15); // 15 min default
-  const [specialRequiredCorrect, setSpecialReqCorrect] = useState<number | "">(8);
+  const [specialQuestionCount, setSpecialQCount] = useState<number | "">("");
+  const [specialTimeMinutes, setSpecialTimeMinutes] = useState<number | "">("");
+  const [specialTimeSeconds, setSpecialTimeSeconds] = useState<number | "">("");
+  const [specialRequiredCorrect, setSpecialReqCorrect] = useState<number | "">("");
   const [specialTargetBankSize, setSpecialTargetBankSize] = useState<number | "">("");
   const [specialMaxEntries, setSpecialMaxEntries] = useState<number | "">("");
   const [specialExpiryOption, setSpecialExpiryOption] = useState<"none"|"24h"|"48h"|"7d"|"custom">("none");
@@ -155,7 +156,7 @@ export default function CreatePillPackPage() {
           prize: Number(packPrize),
           is_vip: true,
           question_count: Number(specialQuestionCount) || 10,
-          total_time_minutes: Number(specialTotalTime) || 15,
+          total_time_minutes: (Number(specialTimeMinutes) || 0) + (Number(specialTimeSeconds) || 0) / 60 || 15,
           required_correct: Number(specialRequiredCorrect) || 8,
           ...(specialTargetBankSize ? { target_bank_size: Number(specialTargetBankSize) } : {}),
           ...(specialMaxEntries ? { max_entries: Number(specialMaxEntries) } : {}),
@@ -211,7 +212,7 @@ export default function CreatePillPackPage() {
         is_vip: isVip,
         ...(isVip ? {
           question_count: Number(specialQuestionCount) || 10,
-          total_time_minutes: Number(specialTotalTime) || 15,
+          total_time_minutes: (Number(specialTimeMinutes) || 0) + (Number(specialTimeSeconds) || 0) / 60 || 15,
           required_correct: Number(specialRequiredCorrect) || 8,
           ...(specialTargetBankSize ? { target_bank_size: Number(specialTargetBankSize) } : {}),
           ...(specialMaxEntries ? { max_entries: Number(specialMaxEntries) } : {}),
@@ -354,25 +355,35 @@ export default function CreatePillPackPage() {
           <div className="grid grid-cols-2 gap-3 border rounded-xl p-4" style={{ borderColor: "rgba(232,163,61,0.3)", backgroundColor: "rgba(232,163,61,0.04)" }}>
             <div>
               <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Questions per exam (5–20)</label>
-              <input className={inputCls} type="number" min="5" max="20" placeholder="10"
+              <input className={inputCls} type="number" min="5" max="20" placeholder="e.g. 10"
                 value={specialQuestionCount}
                 onChange={(e) => setSpecialQCount(e.target.value === "" ? "" : Number(e.target.value))} />
             </div>
             <div>
-              <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Time Limit (min)</label>
-              <input className={inputCls} type="number" min="1" placeholder="15"
-                value={specialTotalTime}
-                onChange={(e) => setSpecialTotalTime(e.target.value === "" ? "" : Number(e.target.value))} />
-              <p className="text-[9px] mt-1" style={{ color: "var(--text-muted)" }}>
-                {specialTotalTime === "" || specialTotalTime === 0
-                  ? "e.g. 15 = 15 minutes, minimum 1"
-                  : `${specialTotalTime} minute${Number(specialTotalTime) === 1 ? "" : "s"}`
-                }
-              </p>
+              <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Time Limit</label>
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <input className={inputCls} type="number" min="0" placeholder="min"
+                    value={specialTimeMinutes}
+                    onChange={(e) => setSpecialTimeMinutes(e.target.value === "" ? "" : Math.max(0, Number(e.target.value)))} />
+                  <p className="text-[9px] mt-1" style={{ color: "var(--text-muted)" }}>minutes</p>
+                </div>
+                <div className="flex-1">
+                  <input className={inputCls} type="number" min="0" max="59" placeholder="sec"
+                    value={specialTimeSeconds}
+                    onChange={(e) => setSpecialTimeSeconds(e.target.value === "" ? "" : Math.min(59, Math.max(0, Number(e.target.value))))} />
+                  <p className="text-[9px] mt-1" style={{ color: "var(--text-muted)" }}>seconds</p>
+                </div>
+              </div>
+              {(specialTimeMinutes !== "" || specialTimeSeconds !== "") && (
+                <p className="text-[9px] mt-1" style={{ color: "var(--accent-amber)" }}>
+                  = {(Number(specialTimeMinutes) || 0) * 60 + (Number(specialTimeSeconds) || 0)}s total
+                </p>
+              )}
             </div>
             <div>
               <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Pass Threshold</label>
-              <input className={inputCls} type="number" min="1" placeholder="8"
+              <input className={inputCls} type="number" min="1" placeholder="e.g. 8"
                 value={specialRequiredCorrect}
                 onChange={(e) => setSpecialReqCorrect(e.target.value === "" ? "" : Number(e.target.value))} />
               <p className="text-[9px] mt-1" style={{ color: "var(--text-muted)" }}>correct to win</p>
