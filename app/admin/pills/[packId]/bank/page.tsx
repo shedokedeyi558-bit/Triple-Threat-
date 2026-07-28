@@ -580,7 +580,7 @@ function parseAIText(raw: string): { question: string; options: string[]; correc
     const remainder = block.slice(optionStart);
 
     // Extract options: split on A) B) C) D) boundaries (handles newline or space between them)
-    const optionRegex = /\b([A-D])[).]\s*(.*?)(?=\s*\b[A-D][).]\s|\s*(?:Correct|Answer|Ans)[:\s]|$)/gis;
+    const optionRegex = /\b([A-D])[).]\s*([\s\S]*?)(?=\s*\b[A-D][).]\s|\s*(?:Correct|Answer|Ans)[:\s]|$)/gi;
     const options: string[] = [];
     const optionMap: Record<string, string> = {};
     let om: RegExpExecArray | null;
