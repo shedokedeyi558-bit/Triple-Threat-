@@ -541,39 +541,52 @@ function ImportLibraryModal({ packId, onDone, onCancel }: { packId: string; onDo
 }
 
 // ── AI Paste Panel ────────────────────────────────────────────────────────────
-// Parses raw AI output (numbered Q&A blocks) into structured questions
+// Parses raw AI output — handles both single-line and multi-line formats
 function parseAIText(raw: string): { question: string; options: string[]; correct_answer: string }[] {
   const results: { question: string; options: string[]; correct_answer: string }[] = [];
-  // Split on numbered question boundaries: "1.", "1)", "Q1.", "Q1:"
-  const blocks = raw.split(/\n(?=(?:Q?\d+[\.\):]|\*\*\d+[\.\):]|\d+\s+[\.\)]))/i).filter(b => b.trim());
+
+  // ── Format 1: Single-line per question (ChatGPT inline format)
+  // "Q: Question text A) Opt1 B) Opt2 C) Opt3 D) Opt4 Correct: C"
+  // Also handles numbered: "1. Question A) ... Correct: B"
+  const singleLineRegex = /(?:Q:\s*|(?:\d+[\.\)]\s*))(.*?)\s+A\)\s*(.*?)\s+B\)\s*(.*?)\s+C\)\s*(.*?)(?:\s+D\)\s*(.*?))?\s+(?:Correct|Answer|Ans)[:\s]+([A-Da-d])/gi;
+  let match;
+  while ((match = singleLineRegex.exec(raw)) !== null) {
+    const question = match[1].trim();
+    const opts = [match[2], match[3], match[4], match[5]].filter(Boolean).map(o => o.trim());
+    const letter = match[6].toUpperCase();
+    const idx = letter.charCodeAt(0) - 65;
+    const correct_answer = opts[idx] ?? opts[0];
+    if (question && opts.length >= 2) results.push({ question, options: opts, correct_answer });
+  }
+
+  // If single-line parser found results, return them
+  if (results.length > 0) return results;
+
+  // ── Format 2: Multi-line numbered blocks
+  // Split on question boundaries: "1.", "1)", "Q1.", numbered lines
+  const blocks = raw.split(/(?=(?:\n|^)(?:Q?\d+[\.\):]|\*\*\d+[\.\):])\s)/i).filter(b => b.trim());
   for (const block of blocks) {
     const lines = block.split(/\n/).map(l => l.trim()).filter(Boolean);
     if (!lines.length) continue;
-    // First line is the question (strip leading number/Q prefix)
-    const qLine = lines[0].replace(/^(?:Q?\d+[\.\):]|\*\*\d+[\.\):]|\d+\s+[\.\)])\s*/i, "").replace(/\*\*/g, "").trim();
+    const qLine = lines[0].replace(/^(?:Q?\d+[\.\):]|\*\*Q?\d+[\.\):]\**)\s*/i, "").replace(/\*\*/g, "").trim();
     if (!qLine) continue;
-    // Collect option lines: A) B) C) D) or A. B. C. D. or - option text
-    const optRegex = /^(?:[A-Da-d][\.\)]\s*|[-•]\s*)/;
-    const optLines = lines.slice(1).filter(l => optRegex.test(l) || /^option\s*\d/i.test(l));
-    const options = optLines.map(l => l.replace(/^(?:[A-Da-d][\.\)]\s*|[-•]\s*|option\s*\d+\s*[:.]?\s*)/i, "").replace(/\*\*/g, "").trim()).filter(Boolean);
-    // Find answer line
-    const answerLine = lines.find(l => /^(?:answer|ans|correct|✓)[:\s]/i.test(l) || /^[A-D]\s*[-:]\s*.+/i.test(l));
+    // Options: lines starting with A) B) C) D) or A. B. C. D.
+    const optLines = lines.slice(1).filter(l => /^[A-Da-d][\.\)]\s/.test(l));
+    const options = optLines.map(l => l.replace(/^[A-Da-d][\.\)]\s*/i, "").replace(/\*\*/g, "").trim()).filter(Boolean);
+    // Answer line
+    const ansLine = lines.find(l => /^(?:answer|ans|correct|✓)[:\s]/i.test(l));
     let correct_answer = "";
-    if (answerLine) {
-      // "Answer: Paris" or "Answer: A) Paris" or "A - Paris"
-      const raw_ans = answerLine.replace(/^(?:answer|ans|correct|✓)[:\s]*/i, "").replace(/^[A-D][\.\)]\s*/i, "").replace(/\*\*/g, "").trim();
-      // If it matches a letter only (A/B/C/D), map to the option text
+    if (ansLine) {
+      const raw_ans = ansLine.replace(/^(?:answer|ans|correct|✓)[:\s]*/i, "").replace(/^[A-D][\.\)]\s*/i, "").replace(/\*\*/g, "").trim();
       if (/^[A-Da-d]$/.test(raw_ans) && options.length) {
-        const idx = raw_ans.toUpperCase().charCodeAt(0) - 65;
-        correct_answer = options[idx] ?? raw_ans;
+        correct_answer = options[raw_ans.toUpperCase().charCodeAt(0) - 65] ?? raw_ans;
       } else {
         correct_answer = raw_ans;
       }
     }
-    if (qLine && options.length >= 2) {
-      results.push({ question: qLine, options, correct_answer });
-    }
+    if (qLine && options.length >= 2) results.push({ question: qLine, options, correct_answer });
   }
+
   return results;
 }
 
@@ -626,7 +639,7 @@ function AIPastePanel({ packId, onDone, onCancel }: { packId: string; onDone: ()
       {/* Prompt hint */}
       {!parsed.length && (
         <p style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 10, lineHeight: 1.55 }}>
-          Copy questions from ChatGPT, Gemini, or any AI and paste below. Supports numbered lists with A) B) C) D) options and an <strong style={{ color: "var(--text-secondary)" }}>Answer:</strong> line.
+          Copy questions from ChatGPT, Gemini, or any AI and paste below. Works with ChatGPT&apos;s inline format: <strong style={{ color: "var(--text-secondary)" }}>Q: ... A) ... B) ... Correct: A</strong> and numbered multi-line formats.
         </p>
       )}
 
@@ -634,7 +647,7 @@ function AIPastePanel({ packId, onDone, onCancel }: { packId: string; onDone: ()
       {!parsed.length && (
         <>
           <textarea value={rawText} onChange={e => setRawText(e.target.value)} rows={10}
-            placeholder={`1. What is the capital of France?\nA) Paris\nB) London\nC) Berlin\nD) Madrid\nAnswer: Paris\n\n2. Who wrote Romeo and Juliet?\nA) Dickens\nB) Shakespeare\nC) Hemingway\nD) Orwell\nAnswer: Shakespeare`}
+            placeholder={`Q: What is the capital of France? A) Paris B) London C) Berlin D) Madrid Correct: A\nQ: Who wrote Romeo and Juliet? A) Dickens B) Shakespeare C) Hemingway D) Orwell Correct: B\n\n--- Also supports multi-line format:\n1. Question text\nA) Option 1\nB) Option 2\nAnswer: A`}
             style={{ width: "100%", boxSizing: "border-box", padding: "10px 12px", borderRadius: 8,
               border: "1px solid var(--border-subtle)", backgroundColor: "var(--bg-base)",
               color: "var(--text-primary)", fontSize: 12, resize: "vertical", outline: "none",
