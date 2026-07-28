@@ -541,68 +541,59 @@ function ImportLibraryModal({ packId, onDone, onCancel }: { packId: string; onDo
 }
 
 // ── AI Paste Panel ────────────────────────────────────────────────────────────
-// Parses raw AI output — handles inline, multi-line, and mixed formats
+// Parses raw AI output into structured questions
+// Handles ChatGPT format: numbered questions with A) B) C) D) options and Correct: X
 function parseAIText(raw: string): { question: string; options: string[]; correct_answer: string }[] {
   const results: { question: string; options: string[]; correct_answer: string }[] = [];
 
-  // ── Normalize: split into individual question blocks first ──
-  // Split on any line that looks like a question number: "1.", "1)", "Q1.", "Q1:", "**1.**" etc.
-  // This handles both newline-separated and inline-concatenated formats
-  const questionBoundary = /(?:^|\n)(?:\*{0,2}(?:Q\s*)?(\d+)\s*[.):]\*{0,2})\s*/gi;
+  // Normalize line endings and clean markdown
+  const cleaned = raw
+    .replace(/\r\n/g, "\n")
+    .replace(/\*\*/g, "")
+    .replace(/\r/g, "\n");
 
-  // Try to split into blocks by question number
-  const blocks: string[] = [];
-  let lastIndex = 0;
-  let bm: RegExpExecArray | null;
-  const boundaryRegex = new RegExp(questionBoundary.source, 'gi');
-  while ((bm = boundaryRegex.exec(raw)) !== null) {
-    if (lastIndex > 0) blocks.push(raw.slice(lastIndex, bm.index).trim());
-    lastIndex = bm.index + bm[0].length;
-  }
-  if (lastIndex > 0) blocks.push(raw.slice(lastIndex).trim());
+  // Split into lines and process
+  const lines = cleaned.split("\n").map(l => l.trim()).filter(l => l.length > 0);
 
-  // If we couldn't split by number (e.g. Q: prefix format), try Q: splits
-  const useBlocks = blocks.length > 1 ? blocks : raw.split(/(?=Q:\s)/gi).filter(b => b.trim());
+  let currentQ = "";
+  let currentOpts: string[] = [];
+  let currentOptMap: Record<string, string> = {};
+  let correctLetter = "";
 
-  for (const block of useBlocks) {
-    if (!block.trim()) continue;
+  const isQuestionLine = (l: string) => /^(?:Q\s*)?\d+\s*[.):]\s+\S/.test(l);
+  const isOptionLine = (l: string) => /^[A-Da-d]\s*[.)]\s+\S/.test(l);
+  const isAnswerLine = (l: string) => /^(?:correct|answer|ans)\s*[:\s]/i.test(l);
 
-    // Extract question text — everything before the first option marker A) or A.
-    const optionStart = block.search(/\bA[).]\s/i);
-    if (optionStart === -1) continue;
-
-    const questionText = block.slice(0, optionStart)
-      .replace(/^\*{0,2}Q:\s*/i, "")
-      .replace(/\*\*/g, "")
-      .trim();
-    if (!questionText) continue;
-
-    const remainder = block.slice(optionStart);
-
-    // Extract options: split on A) B) C) D) boundaries (handles newline or space between them)
-    const optionRegex = /\b([A-D])[).]\s*([\s\S]*?)(?=\s*\b[A-D][).]\s|\s*(?:Correct|Answer|Ans)[:\s]|$)/gi;
-    const options: string[] = [];
-    const optionMap: Record<string, string> = {};
-    let om: RegExpExecArray | null;
-    const freshOpt = new RegExp(optionRegex.source, optionRegex.flags);
-    while ((om = freshOpt.exec(remainder)) !== null) {
-      const letter = om[1].toUpperCase();
-      const text = om[2].replace(/\*\*/g, "").trim();
-      if (text) { options.push(text); optionMap[letter] = text; }
+  const flush = () => {
+    if (currentQ && currentOpts.length >= 2) {
+      let correct_answer = currentOpts[0];
+      if (correctLetter) {
+        const upper = correctLetter.toUpperCase();
+        correct_answer = currentOptMap[upper] ?? currentOpts[upper.charCodeAt(0) - 65] ?? currentOpts[0];
+      }
+      results.push({ question: currentQ, options: currentOpts, correct_answer });
     }
+    currentQ = ""; currentOpts = []; currentOptMap = {}; correctLetter = "";
+  };
 
-    if (options.length < 2) continue;
-
-    // Extract correct answer
-    const answerMatch = block.match(/(?:Correct|Answer|Ans)[:\s]+([A-Da-d])/i);
-    let correct_answer = options[0];
-    if (answerMatch) {
-      const letter = answerMatch[1].toUpperCase();
-      correct_answer = optionMap[letter] ?? options[letter.charCodeAt(0) - 65] ?? options[0];
+  for (const line of lines) {
+    if (isQuestionLine(line)) {
+      flush();
+      // Strip leading number + punctuation: "1. " or "Q1. " or "1) "
+      currentQ = line.replace(/^(?:Q\s*)?\d+\s*[.):]\s*/i, "").trim();
+    } else if (isOptionLine(line)) {
+      const letter = line[0].toUpperCase();
+      const text = line.replace(/^[A-Da-d]\s*[.)]\s*/, "").trim();
+      if (text) { currentOpts.push(text); currentOptMap[letter] = text; }
+    } else if (isAnswerLine(line)) {
+      const match = line.match(/(?:correct|answer|ans)\s*[:\s]+([A-Da-d])/i);
+      if (match) correctLetter = match[1];
+    } else if (currentQ && !isQuestionLine(line) && !isOptionLine(line) && !isAnswerLine(line)) {
+      // Continuation of question text (multi-line questions)
+      if (currentOpts.length === 0) currentQ += " " + line;
     }
-
-    results.push({ question: questionText, options, correct_answer });
   }
+  flush(); // Don't forget the last question
 
   return results;
 }
