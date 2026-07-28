@@ -296,33 +296,6 @@ export default function AdminPillsPage() {
                     </div>
                     {/* Name on its own line — wraps freely, no truncate */}
                     <p className="text-sm font-semibold text-white leading-snug">{pack.name}</p>
-                    {/* Specials metadata: prize + expiry countdown */}
-                    {isSpecial && (pack.prize_amount || pack.quiz_expires_at) && (
-                      <div className="flex items-center gap-2 flex-wrap mt-1">
-                        {pack.prize_amount ? (
-                          <span className="text-[10px] font-bold"
-                            style={{ color: "var(--accent-amber)" }}>
-                            ₦{pack.prize_amount.toLocaleString()} prize
-                          </span>
-                        ) : null}
-                        {pack.quiz_expires_at && (() => {
-                          const ms = new Date(pack.quiz_expires_at).getTime() - Date.now();
-                          if (ms <= 0) return (
-                            <span className="text-[10px] font-bold flex items-center gap-1" style={{ color: "#f87171" }}>
-                              <Clock size={9} /> Expired
-                            </span>
-                          );
-                          const h = Math.floor(ms / 3600000);
-                          const m = Math.floor((ms % 3600000) / 60000);
-                          const label = h > 0 ? `${h}h ${m}m left` : `${m}m left`;
-                          return (
-                            <span className="text-[10px] font-bold flex items-center gap-1" style={{ color: h < 2 ? "#f87171" : "var(--accent-amber)" }}>
-                              <Clock size={9} /> {label}
-                            </span>
-                          );
-                        })()}
-                      </div>
-                    )}
                   </div>
 
                   {/* Inline stats — readable labels */}
@@ -344,6 +317,44 @@ export default function AdminPillsPage() {
                   {/* Chevron indicator */}
                   <span className="text-gray-600 flex-shrink-0 text-xs">{isExpanded ? "▲" : "▼"}</span>
                 </div>
+
+                {/* Specials metadata strip — prize + expiry, full width, below the main row */}
+                {isSpecial && (() => {
+                  const prize = pack.prize_amount ?? (pack.pills[0] as any)?.prize ?? null;
+                  const expiry = pack.quiz_expires_at;
+                  if (!prize && !expiry) return null;
+                  const msLeft = expiry ? new Date(expiry).getTime() - Date.now() : null;
+                  const expired = msLeft !== null && msLeft <= 0;
+                  const expiryLabel = msLeft === null ? null
+                    : expired ? "Expired"
+                    : (() => {
+                        const h = Math.floor(msLeft / 3600000);
+                        const m = Math.floor((msLeft % 3600000) / 60000);
+                        return h > 0 ? `${h}h ${m}m left` : `${m}m left`;
+                      })();
+                  const expiryColor = expired ? "#f87171" : msLeft !== null && msLeft < 7200000 ? "#f87171" : "var(--accent-amber)";
+                  return (
+                    <div className="flex items-center gap-4 px-4 pb-3 flex-wrap"
+                      style={{ borderTop: "1px solid rgba(232,163,61,0.1)", paddingTop: 8, marginTop: -2 }}>
+                      {prize ? (
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[9px] font-bold uppercase tracking-widest text-gray-500">Prize</span>
+                          <span className="text-[13px] font-black font-mono" style={{ color: "var(--accent-amber)" }}>
+                            ₦{prize.toLocaleString()}
+                          </span>
+                        </div>
+                      ) : null}
+                      {expiryLabel ? (
+                        <div className="flex items-center gap-1.5">
+                          <Clock size={11} style={{ color: expiryColor, flexShrink: 0 }} />
+                          <span className="text-[12px] font-bold whitespace-nowrap" style={{ color: expiryColor }}>
+                            {expiryLabel}
+                          </span>
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                })()}
 
                 {/* Expanded actions */}
                 <AnimatePresence>
