@@ -62,8 +62,6 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (token) headers["Authorization"] = `Bearer ${token}`;
 
-  console.log(`[API] ${method} ${url}`, body ? { body } : "");
-
   const res = await fetch(url, {
     method,
     headers,
@@ -74,8 +72,6 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
     success: false,
     error: "Invalid JSON response",
   }));
-
-  console.log(`[API] Response: ${res.status}`, json);
 
   // ── Global session-expiry handler ──────────────────────────────────────
   // Only fires when:

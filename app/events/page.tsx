@@ -249,7 +249,6 @@ export default function EventsPage() {
       const res = await predictionsApi.getMine();
       setMyPreds(res.predictions ?? []);
     } catch (e) {
-      console.error("[Events] getMine error:", e);
       if (e instanceof ApiError && (e.status === 404 || e.status === 500)) {
         setMyPreds([]);
       } else {

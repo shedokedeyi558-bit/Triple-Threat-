@@ -103,7 +103,6 @@ function PastePanel({ onDone, onCancel }: { onDone: () => void; onCancel: () => 
       onDone();
     } catch (err) {
       // Error handling could show a toast or similar
-      console.error(err);
     } finally {
       setSaving(false);
     }

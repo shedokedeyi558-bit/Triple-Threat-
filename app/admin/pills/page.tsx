@@ -158,17 +158,6 @@ export default function AdminPillsPage() {
   const fetchPacks = async () => {
     try {
       const res = await adminApi.getPillPacks();
-      // Debug: log entries fields for Specials packs
-      const specials = (res.packs as PillPack[]).filter(p => p.is_vip);
-      if (specials.length) {
-        console.log("[AdminPills] Specials entries fields:", specials.map(p => ({
-          name: p.name,
-          max_entries: p.max_entries,
-          entries_made: p.entries_made,
-          current_entries: (p as any).current_entries,
-          entry_cap_reached: p.entry_cap_reached,
-        })));
-      }
       setPacks(res.packs as PillPack[]);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to load packs");

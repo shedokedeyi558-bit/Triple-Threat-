@@ -231,7 +231,6 @@ export default function CreatePillPackPage() {
         return;
       }
     } catch (err) {
-      console.error("Pack creation failed:", err);
       setError(`Pack creation failed: ${err instanceof ApiError ? err.message : err instanceof Error ? err.message : "Unknown error"}`);
       setLoading(false);
       return;
@@ -253,7 +252,6 @@ export default function CreatePillPackPage() {
         });
       } catch (err) {
         const msg = err instanceof ApiError ? err.message : err instanceof Error ? err.message : "Unknown error";
-        console.error(`Pill ${i + 1} failed:`, err);
         failed.push({ index: i + 1, question: pill.question.slice(0, 40), error: msg });
       }
     }
