@@ -560,7 +560,7 @@ function parseAIText(raw: string): { question: string; options: string[]; correc
   let currentOptMap: Record<string, string> = {};
   let correctLetter = "";
 
-  const isQuestionLine = (l: string) => /^(?:Q\s*)?\d+\s*[.):]\s+\S/.test(l);
+  const isQuestionLine = (l: string) => /^(?:Q\s*[).:]|\d+\s*[.):]\s+\S)/.test(l);
   const isOptionLine = (l: string) => /^[A-Da-d]\s*[.)]\s+\S/.test(l);
   const isAnswerLine = (l: string) => /^(?:correct|answer|ans)\s*[:\s]/i.test(l);
 
@@ -579,8 +579,8 @@ function parseAIText(raw: string): { question: string; options: string[]; correc
   for (const line of lines) {
     if (isQuestionLine(line)) {
       flush();
-      // Strip leading number + punctuation: "1. " or "Q1. " or "1) "
-      currentQ = line.replace(/^(?:Q\s*)?\d+\s*[.):]\s*/i, "").trim();
+      // Strip leading number + punctuation: "1. " or "Q1. " or "1) " or "Q) "
+      currentQ = line.replace(/^(?:Q\s*[).:]|\d+\s*[.):])\s*/i, "").trim();
     } else if (isOptionLine(line)) {
       const letter = line[0].toUpperCase();
       const text = line.replace(/^[A-Da-d]\s*[.)]\s*/, "").trim();
