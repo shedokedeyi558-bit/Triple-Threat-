@@ -438,16 +438,18 @@ export default function AdminPillsPage() {
                       </div>
                       <div className="px-4 py-3 flex items-center gap-2 flex-wrap">
 
-                        {/* Activate / Deactivate */}
-                        <button onClick={() => handleToggleStatus(pack)} disabled={toggling === pack.id}
-                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors disabled:opacity-50 ${
-                            pack.status === "active"
-                              ? "bg-red-900/20 border border-red-700/30 text-red-400"
-                              : "bg-[#4C6FFF]/10 border border-[#4C6FFF]/20 text-[#4C6FFF]"
-                          }`}>
-                          {toggling === pack.id ? <Loader2 size={11} className="animate-spin" /> : pack.status === "active" ? <EyeOff size={11} /> : <Eye size={11} />}
-                          {pack.status === "active" ? "Deactivate" : "Activate"}
-                        </button>
+                        {/* Activate / Deactivate — hide for sold-out standard packs (no point activating) */}
+                        {!(pack.status !== "active" && available === 0 && !isSpecial) && (
+                          <button onClick={() => handleToggleStatus(pack)} disabled={toggling === pack.id}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors disabled:opacity-50 ${
+                              pack.status === "active"
+                                ? "bg-red-900/20 border border-red-700/30 text-red-400"
+                                : "bg-[#4C6FFF]/10 border border-[#4C6FFF]/20 text-[#4C6FFF]"
+                            }`}>
+                            {toggling === pack.id ? <Loader2 size={11} className="animate-spin" /> : pack.status === "active" ? <EyeOff size={11} /> : <Eye size={11} />}
+                            {pack.status === "active" ? "Deactivate" : "Activate"}
+                          </button>
+                        )}
 
                         {/* Feature — standard only, active only */}
                         {!isSpecial && pack.status === "active" && (
@@ -461,12 +463,17 @@ export default function AdminPillsPage() {
                           </button>
                         )}
 
-                        {/* Safe delete */}
-                        {canSafeDelete && (
+                        {/* Delete — safe if no available pills, force otherwise (one button, not two) */}
+                        {canSafeDelete ? (
                           <button onClick={() => handleDelete(pack)} disabled={deleting === pack.id}
                             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border border-red-700/30 bg-red-900/20 text-red-400 transition-colors disabled:opacity-50">
                             {deleting === pack.id ? <Loader2 size={11} className="animate-spin" /> : <Trash2 size={11} />}
                             Delete
+                          </button>
+                        ) : (
+                          <button onClick={() => { setForceDeleteTarget(pack); setExpandedActions(null); }}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border border-red-700/20 bg-red-900/10 text-red-500/70 transition-colors hover:text-red-400 hover:border-red-700/40">
+                            <Trash2 size={11} /> Delete
                           </button>
                         )}
 
@@ -485,12 +492,6 @@ export default function AdminPillsPage() {
                             <Eye size={11} /> View Pills
                           </button>
                         )}
-
-                        {/* Force delete — always */}
-                        <button onClick={() => { setForceDeleteTarget(pack); setExpandedActions(null); }}
-                          className="ml-auto text-[11px] font-semibold text-gray-600 hover:text-red-400 transition-colors flex items-center gap-1">
-                          <Trash2 size={10} /> Force delete
-                        </button>
 
                         {/* Manage bank — Specials only (have a question bank) */}
                         {isSpecial && (
