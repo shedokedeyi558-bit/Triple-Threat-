@@ -547,33 +547,32 @@ function parseAIText(raw: string): { question: string; options: string[]; correc
 
   // ── Format 1: Single-line per question (ChatGPT inline format)
   // "Q: Question text A) Opt1 B) Opt2 C) Opt3 D) Opt4 Correct: C"
-  // Also handles numbered: "1. Question A) ... Correct: B"
-  const singleLineRegex = /(?:Q:\s*|(?:\d+[\.\)]\s*))(.*?)\s+A\)\s*(.*?)\s+B\)\s*(.*?)\s+C\)\s*(.*?)(?:\s+D\)\s*(.*?))?\s+(?:Correct|Answer|Ans)[:\s]+([A-Da-d])/gi;
-  let match;
-  while ((match = singleLineRegex.exec(raw)) !== null) {
-    const question = match[1].trim();
-    const opts = [match[2], match[3], match[4], match[5]].filter(Boolean).map(o => o.trim());
-    const letter = match[6].toUpperCase();
+  const singleLinePattern = /(?:Q:\s*|(?:\d+[\.\)]\s*))(.*?)\s+A\)\s*(.*?)\s+B\)\s*(.*?)\s+C\)\s*(.*?)(?:\s+D\)\s*(.*?))?\s+(?:Correct|Answer|Ans)[:\s]+([A-Da-d])/gi;
+  const singleMatches: { question: string; options: string[]; correct_answer: string }[] = [];
+  let m: RegExpExecArray | null;
+  // Create a fresh regex instance to avoid lastIndex issues with global flag
+  const freshPattern = new RegExp(singleLinePattern.source, singleLinePattern.flags);
+  while ((m = freshPattern.exec(raw)) !== null) {
+    const question = m[1].trim();
+    const opts = [m[2], m[3], m[4], m[5]].filter(Boolean).map(o => o.trim());
+    const letter = m[6].toUpperCase();
     const idx = letter.charCodeAt(0) - 65;
     const correct_answer = opts[idx] ?? opts[0];
-    if (question && opts.length >= 2) results.push({ question, options: opts, correct_answer });
+    if (question && opts.length >= 2) singleMatches.push({ question, options: opts, correct_answer });
   }
 
-  // If single-line parser found results, return them
-  if (results.length > 0) return results;
+  // If single-line matched, return ONLY those — do not also run multi-line
+  if (singleMatches.length > 0) return singleMatches;
 
-  // ── Format 2: Multi-line numbered blocks
-  // Split on question boundaries: "1.", "1)", "Q1.", numbered lines
+  // ── Format 2: Multi-line numbered blocks (fallback)
   const blocks = raw.split(/(?=(?:\n|^)(?:Q?\d+[\.\):]|\*\*\d+[\.\):])\s)/i).filter(b => b.trim());
   for (const block of blocks) {
     const lines = block.split(/\n/).map(l => l.trim()).filter(Boolean);
     if (!lines.length) continue;
     const qLine = lines[0].replace(/^(?:Q?\d+[\.\):]|\*\*Q?\d+[\.\):]\**)\s*/i, "").replace(/\*\*/g, "").trim();
     if (!qLine) continue;
-    // Options: lines starting with A) B) C) D) or A. B. C. D.
     const optLines = lines.slice(1).filter(l => /^[A-Da-d][\.\)]\s/.test(l));
     const options = optLines.map(l => l.replace(/^[A-Da-d][\.\)]\s*/i, "").replace(/\*\*/g, "").trim()).filter(Boolean);
-    // Answer line
     const ansLine = lines.find(l => /^(?:answer|ans|correct|✓)[:\s]/i.test(l));
     let correct_answer = "";
     if (ansLine) {
