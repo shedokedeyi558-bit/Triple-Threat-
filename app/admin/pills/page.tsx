@@ -98,6 +98,7 @@ interface PillPack {
   max_entries?: number | null;
   entries_made?: number;
   entry_cap_reached?: boolean;
+  current_entries?: number;  // backend alias for entries_made
 }
 
 // ── Force-delete confirmation dialog ────────────────────────────────────────
@@ -157,6 +158,17 @@ export default function AdminPillsPage() {
   const fetchPacks = async () => {
     try {
       const res = await adminApi.getPillPacks();
+      // Debug: log entries fields for Specials packs
+      const specials = (res.packs as PillPack[]).filter(p => p.is_vip);
+      if (specials.length) {
+        console.log("[AdminPills] Specials entries fields:", specials.map(p => ({
+          name: p.name,
+          max_entries: p.max_entries,
+          entries_made: p.entries_made,
+          current_entries: (p as any).current_entries,
+          entry_cap_reached: p.entry_cap_reached,
+        })));
+      }
       setPacks(res.packs as PillPack[]);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to load packs");
@@ -391,7 +403,7 @@ export default function AdminPillsPage() {
                       ) : null}
                       {/* Entries fill indicator — Specials with max_entries set */}
                       {isSpecial && pack.max_entries ? (() => {
-                        const made = pack.entries_made ?? 0;
+                        const made = pack.entries_made ?? (pack as any).current_entries ?? 0;
                         const max = pack.max_entries;
                         const full = pack.entry_cap_reached || made >= max;
                         const pct = Math.min(100, Math.round((made / max) * 100));
