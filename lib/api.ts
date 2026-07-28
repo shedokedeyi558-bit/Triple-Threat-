@@ -154,10 +154,10 @@ export const authApi = {
 
   // Legacy endpoints (kept for backward compatibility)
   register: (phone: string, password: string, referral_code?: string) =>
-    request<RegisterResponse>("/api/auth/register", {
-      method: "POST",
-      body: { phone, password, ...(referral_code ? { referral_code } : {}) },
-    }),
+    request<RegisterResponse>(
+      referral_code ? `/api/auth/register?ref=${encodeURIComponent(referral_code)}` : "/api/auth/register",
+      { method: "POST", body: { phone, password } }
+    ),
 
   // verifyOtp kept for backward compat — backend endpoint still exists but frontend no longer calls it
   phoneSignIn: (phone: string, password: string) =>

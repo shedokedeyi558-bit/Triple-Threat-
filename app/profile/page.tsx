@@ -247,7 +247,7 @@ export default function ProfilePage() {
                       {(process.env.NEXT_PUBLIC_APP_URL || "").replace(/^https?:\/\//, "")}/auth?ref={referralStats.referral_code}
                     </p>
                     <p className="text-[10px] mt-1" style={{ color: "var(--text-muted)" }}>
-                      Friends who join earn you ₦200 bonus credit, usable on any game
+                      Invite a friend. You earn ₦200 bonus when they make their first deposit and play their first game
                     </p>
                   </div>
                   <button
@@ -281,8 +281,8 @@ export default function ProfilePage() {
               )}
               <div className="grid grid-cols-3 gap-3">
                 {[
-                  { label: "Referred", value: referralStats.referred_count, color: "var(--text-primary)" },
                   { label: "Pending", value: referralStats.pending_count, color: "var(--accent-amber)" },
+                  { label: "Completed", value: referralStats.completed_count, color: "#34d399" },
                   { label: "Earned", value: `₦${referralStats.total_earned.toLocaleString()}`, color: "var(--accent-amber)" },
                 ].map((s) => (
                   <div key={s.label} className="rounded-xl p-3 text-center border" style={{ backgroundColor: "var(--bg-base)", borderColor: "var(--border-hairline)" }}>
