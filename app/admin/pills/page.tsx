@@ -88,11 +88,13 @@ interface PillPack {
   status: "active" | "inactive" | "draft";
   is_vip?: boolean;
   is_featured?: boolean;
-  pills: { id: string; color: string; status: string }[];
+  pills: { id: string; color: string; status: string; prize?: number }[];
   available_count?: number;
   played_count?: number;
   prize_amount?: number;
+  entry_fee?: number;
   quiz_expires_at?: string | null;
+  created_at?: string;
 }
 
 // ── Force-delete confirmation dialog ────────────────────────────────────────
@@ -318,11 +320,13 @@ export default function AdminPillsPage() {
                   <span className="text-gray-600 flex-shrink-0 text-xs">{isExpanded ? "▲" : "▼"}</span>
                 </div>
 
-                {/* Specials metadata strip — prize + expiry, full width, below the main row */}
-                {isSpecial && (() => {
+                {/* Pack metadata strip — creation date (all packs) + prize + expiry */}
+                {(() => {
                   const prize = pack.prize_amount ?? (pack.pills[0] as any)?.prize ?? null;
-                  const expiry = pack.quiz_expires_at;
-                  if (!prize && !expiry) return null;
+                  const expiry = isSpecial ? pack.quiz_expires_at : null;
+                  const createdAt = pack.created_at
+                    ? new Date(pack.created_at).toLocaleDateString("en-NG", { day: "numeric", month: "short", year: "numeric" })
+                    : null;
                   const msLeft = expiry ? new Date(expiry).getTime() - Date.now() : null;
                   const expired = msLeft !== null && msLeft <= 0;
                   const expiryLabel = msLeft === null ? null
@@ -333,9 +337,18 @@ export default function AdminPillsPage() {
                         return h > 0 ? `${h}h ${m}m left` : `${m}m left`;
                       })();
                   const expiryColor = expired ? "#f87171" : msLeft !== null && msLeft < 7200000 ? "#f87171" : "var(--accent-amber)";
+                  const borderColor = isSpecial ? "rgba(232,163,61,0.1)" : "var(--border-hairline)";
                   return (
                     <div className="flex items-center gap-4 px-4 pb-3 flex-wrap"
-                      style={{ borderTop: "1px solid rgba(232,163,61,0.1)", paddingTop: 8, marginTop: -2 }}>
+                      style={{ borderTop: `1px solid ${borderColor}`, paddingTop: 8, marginTop: -2 }}>
+                      {/* Creation date — always shown */}
+                      {createdAt && (
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[9px] font-bold uppercase tracking-widest text-gray-500">Created</span>
+                          <span className="text-[11px] text-gray-400">{createdAt}</span>
+                        </div>
+                      )}
+                      {/* Prize — Specials + Standard */}
                       {prize ? (
                         <div className="flex items-center gap-1.5">
                           <span className="text-[9px] font-bold uppercase tracking-widest text-gray-500">Prize</span>
@@ -344,6 +357,7 @@ export default function AdminPillsPage() {
                           </span>
                         </div>
                       ) : null}
+                      {/* Expiry countdown — Specials only */}
                       {expiryLabel ? (
                         <div className="flex items-center gap-1.5">
                           <Clock size={11} style={{ color: expiryColor, flexShrink: 0 }} />
