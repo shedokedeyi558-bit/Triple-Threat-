@@ -7,7 +7,7 @@ import { adminApi, type PackQuestion, type PillPack, ApiError } from "@/lib/api"
 import {
   ChevronLeft, Plus, Pencil, Trash2, AlertTriangle,
   ArrowUpDown, ArrowUp, ArrowDown, Loader2, X, Save, BookOpen,
-  Upload, Library, Copy, Check,
+  Upload, Library, Copy, Check, Sparkles,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -540,6 +540,180 @@ function ImportLibraryModal({ packId, onDone, onCancel }: { packId: string; onDo
   );
 }
 
+// ── AI Paste Panel ────────────────────────────────────────────────────────────
+// Parses raw AI output (numbered Q&A blocks) into structured questions
+function parseAIText(raw: string): { question: string; options: string[]; correct_answer: string }[] {
+  const results: { question: string; options: string[]; correct_answer: string }[] = [];
+  // Split on numbered question boundaries: "1.", "1)", "Q1.", "Q1:"
+  const blocks = raw.split(/\n(?=(?:Q?\d+[\.\):]|\*\*\d+[\.\):]|\d+\s+[\.\)]))/i).filter(b => b.trim());
+  for (const block of blocks) {
+    const lines = block.split(/\n/).map(l => l.trim()).filter(Boolean);
+    if (!lines.length) continue;
+    // First line is the question (strip leading number/Q prefix)
+    const qLine = lines[0].replace(/^(?:Q?\d+[\.\):]|\*\*\d+[\.\):]|\d+\s+[\.\)])\s*/i, "").replace(/\*\*/g, "").trim();
+    if (!qLine) continue;
+    // Collect option lines: A) B) C) D) or A. B. C. D. or - option text
+    const optRegex = /^(?:[A-Da-d][\.\)]\s*|[-•]\s*)/;
+    const optLines = lines.slice(1).filter(l => optRegex.test(l) || /^option\s*\d/i.test(l));
+    const options = optLines.map(l => l.replace(/^(?:[A-Da-d][\.\)]\s*|[-•]\s*|option\s*\d+\s*[:.]?\s*)/i, "").replace(/\*\*/g, "").trim()).filter(Boolean);
+    // Find answer line
+    const answerLine = lines.find(l => /^(?:answer|ans|correct|✓)[:\s]/i.test(l) || /^[A-D]\s*[-:]\s*.+/i.test(l));
+    let correct_answer = "";
+    if (answerLine) {
+      // "Answer: Paris" or "Answer: A) Paris" or "A - Paris"
+      const raw_ans = answerLine.replace(/^(?:answer|ans|correct|✓)[:\s]*/i, "").replace(/^[A-D][\.\)]\s*/i, "").replace(/\*\*/g, "").trim();
+      // If it matches a letter only (A/B/C/D), map to the option text
+      if (/^[A-Da-d]$/.test(raw_ans) && options.length) {
+        const idx = raw_ans.toUpperCase().charCodeAt(0) - 65;
+        correct_answer = options[idx] ?? raw_ans;
+      } else {
+        correct_answer = raw_ans;
+      }
+    }
+    if (qLine && options.length >= 2) {
+      results.push({ question: qLine, options, correct_answer });
+    }
+  }
+  return results;
+}
+
+function AIPastePanel({ packId, onDone, onCancel }: { packId: string; onDone: () => void; onCancel: () => void }) {
+  const [rawText, setRawText] = React.useState("");
+  const [parsed, setParsed] = React.useState<{ question: string; options: string[]; correct_answer: string }[]>([]);
+  const [saving, setSaving] = React.useState(false);
+  const [saveError, setSaveError] = React.useState("");
+  const [saved, setSaved] = React.useState(false);
+
+  const handleParse = () => {
+    const items = parseAIText(rawText);
+    setParsed(items);
+    setSaveError("");
+  };
+
+  const updateCorrect = (i: number, val: string) => {
+    setParsed(prev => prev.map((q, idx) => idx === i ? { ...q, correct_answer: val } : q));
+  };
+
+  const removeItem = (i: number) => setParsed(prev => prev.filter((_, idx) => idx !== i));
+
+  const handleSave = async () => {
+    if (!parsed.length) return;
+    const questions = parsed.map(q => ({
+      question: q.question, format: "multiple_choice" as const,
+      options: q.options, correct_answer: q.correct_answer, timer: 30,
+    }));
+    setSaving(true); setSaveError("");
+    try {
+      await adminApi.bulkUploadQuestions(packId, questions);
+      setSaved(true);
+      setTimeout(() => onDone(), 900);
+    } catch (err) {
+      setSaveError(err instanceof ApiError ? err.message : "Save failed");
+    } finally { setSaving(false); }
+  };
+
+  return (
+    <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
+      style={{ borderRadius: 12, padding: 18, border: "1px solid rgba(139,92,246,0.3)", backgroundColor: "var(--bg-card)", marginBottom: 16 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <Sparkles size={14} style={{ color: "#a78bfa" }} />
+          <p style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", color: "#a78bfa", margin: 0 }}>AI Paste</p>
+        </div>
+        <button onClick={onCancel} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)" }}><X size={14} /></button>
+      </div>
+
+      {/* Prompt hint */}
+      {!parsed.length && (
+        <p style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 10, lineHeight: 1.55 }}>
+          Copy questions from ChatGPT, Gemini, or any AI and paste below. Supports numbered lists with A) B) C) D) options and an <strong style={{ color: "var(--text-secondary)" }}>Answer:</strong> line.
+        </p>
+      )}
+
+      {/* Paste area — only show before parse */}
+      {!parsed.length && (
+        <>
+          <textarea value={rawText} onChange={e => setRawText(e.target.value)} rows={10}
+            placeholder={`1. What is the capital of France?\nA) Paris\nB) London\nC) Berlin\nD) Madrid\nAnswer: Paris\n\n2. Who wrote Romeo and Juliet?\nA) Dickens\nB) Shakespeare\nC) Hemingway\nD) Orwell\nAnswer: Shakespeare`}
+            style={{ width: "100%", boxSizing: "border-box", padding: "10px 12px", borderRadius: 8,
+              border: "1px solid var(--border-subtle)", backgroundColor: "var(--bg-base)",
+              color: "var(--text-primary)", fontSize: 12, resize: "vertical", outline: "none",
+              fontFamily: "monospace", lineHeight: 1.5, marginBottom: 10 }} />
+          <button onClick={handleParse} disabled={!rawText.trim()}
+            style={{ display: "flex", alignItems: "center", gap: 6, padding: "9px 18px", borderRadius: 8,
+              border: "none", backgroundColor: "#7c3aed", color: "#fff", fontSize: 12, fontWeight: 700,
+              cursor: rawText.trim() ? "pointer" : "not-allowed", opacity: rawText.trim() ? 1 : 0.45 }}>
+            <Sparkles size={12} /> Parse Questions
+          </button>
+        </>
+      )}
+
+      {/* Preview */}
+      {parsed.length > 0 && !saved && (
+        <>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+            <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-primary)", margin: 0 }}>
+              {parsed.length} question{parsed.length !== 1 ? "s" : ""} parsed — review before saving
+            </p>
+            <button onClick={() => { setParsed([]); setSaveError(""); }}
+              style={{ fontSize: 11, color: "var(--text-muted)", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>
+              Re-paste
+            </button>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 14, maxHeight: 400, overflowY: "auto" }}>
+            {parsed.map((q, i) => (
+              <div key={i} style={{ borderRadius: 8, padding: "12px 13px", backgroundColor: "var(--bg-base)", border: "1px solid var(--border-subtle)" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, marginBottom: 7 }}>
+                  <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-primary)", margin: 0, flex: 1, lineHeight: 1.45 }}>
+                    <span style={{ fontSize: 9, fontWeight: 700, color: "#a78bfa", marginRight: 6 }}>Q{i + 1}</span>
+                    {q.question}
+                  </p>
+                  <button onClick={() => removeItem(i)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", flexShrink: 0 }}>
+                    <X size={12} />
+                  </button>
+                </div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 8 }}>
+                  {q.options.map((opt, j) => (
+                    <span key={j} style={{ fontSize: 10, padding: "3px 8px", borderRadius: 5,
+                      backgroundColor: opt === q.correct_answer ? "rgba(52,211,153,0.15)" : "rgba(255,255,255,0.05)",
+                      border: `1px solid ${opt === q.correct_answer ? "rgba(52,211,153,0.4)" : "var(--border-hairline)"}`,
+                      color: opt === q.correct_answer ? "#34d399" : "var(--text-secondary)" }}>
+                      {opt}
+                    </span>
+                  ))}
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--text-muted)" }}>Correct:</span>
+                  <select value={q.correct_answer} onChange={e => updateCorrect(i, e.target.value)}
+                    style={{ flex: 1, padding: "4px 8px", borderRadius: 6, border: "1px solid var(--border-subtle)", backgroundColor: "var(--bg-base)", color: "#34d399", fontSize: 11, fontWeight: 600, outline: "none", cursor: "pointer" }}>
+                    {q.options.map((opt, j) => <option key={j} value={opt}>{opt}</option>)}
+                  </select>
+                </div>
+              </div>
+            ))}
+          </div>
+          {saveError && <p style={{ fontSize: 11, color: "#f87171", marginBottom: 8 }}>{saveError}</p>}
+          <button onClick={handleSave} disabled={saving || parsed.some(q => !q.correct_answer)}
+            style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+              width: "100%", padding: "11px 0", borderRadius: 9, border: "none",
+              backgroundColor: "#7c3aed", color: "#fff", fontSize: 13, fontWeight: 700,
+              cursor: saving ? "not-allowed" : "pointer", opacity: saving ? 0.6 : 1 }}>
+            {saving ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}
+            {saving ? "Saving..." : `Save ${parsed.length} question${parsed.length !== 1 ? "s" : ""}`}
+          </button>
+        </>
+      )}
+
+      {saved && (
+        <div style={{ textAlign: "center", padding: "16px 0" }}>
+          <Check size={28} style={{ color: "#34d399", margin: "0 auto 8px", display: "block" }} />
+          <p style={{ fontSize: 13, fontWeight: 700, color: "#34d399", margin: 0 }}>Saved successfully!</p>
+        </div>
+      )}
+    </motion.div>
+  );
+}
+
 // ── Main page ─────────────────────────────────────────────────────────────────
 type SortDir = "asc" | "desc" | null;
 
@@ -563,6 +737,7 @@ export default function QuestionBankPage() {
   const [showBulk, setShowBulk]           = useState(false);
   const [showClone, setShowClone]         = useState(false);
   const [showImport, setShowImport]       = useState(false);
+  const [showPaste, setShowPaste]         = useState(false);
   const [saving, setSaving]               = useState(false);
   const [deleting, setDeleting]           = useState(false);
 
@@ -667,9 +842,13 @@ export default function QuestionBankPage() {
           </p>
           {/* Action buttons — wrap naturally on narrow screens */}
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-            <button onClick={() => { setShowBulk(v => !v); setShowAdd(false); }}
+            <button onClick={() => { setShowBulk(v => !v); setShowAdd(false); setShowPaste(false); }}
               style={{ display: "flex", alignItems: "center", gap: 5, padding: "8px 12px", borderRadius: 8, border: "1px solid rgba(76,111,255,0.3)", backgroundColor: showBulk ? "rgba(76,111,255,0.1)" : "transparent", color: "var(--accent-indigo)", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
               <Upload size={12} /> Bulk
+            </button>
+            <button onClick={() => { setShowPaste(v => !v); setShowBulk(false); setShowAdd(false); }}
+              style={{ display: "flex", alignItems: "center", gap: 5, padding: "8px 12px", borderRadius: 8, border: "1px solid rgba(139,92,246,0.35)", backgroundColor: showPaste ? "rgba(139,92,246,0.1)" : "transparent", color: "#a78bfa", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
+              <Sparkles size={12} /> AI Paste
             </button>
             <button onClick={() => setShowImport(true)}
               style={{ display: "flex", alignItems: "center", gap: 5, padding: "8px 12px", borderRadius: 8, border: "1px solid rgba(232,163,61,0.3)", backgroundColor: "transparent", color: "var(--accent-amber)", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
@@ -679,7 +858,7 @@ export default function QuestionBankPage() {
               style={{ display: "flex", alignItems: "center", gap: 5, padding: "8px 12px", borderRadius: 8, border: "1px solid var(--border-subtle)", backgroundColor: "transparent", color: "var(--text-secondary)", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
               <Copy size={12} /> Clone
             </button>
-            <button onClick={() => { setShowAdd(true); setShowBulk(false); setEditTarget(null); }}
+            <button onClick={() => { setShowAdd(true); setShowBulk(false); setShowPaste(false); setEditTarget(null); }}
               style={{ display: "flex", alignItems: "center", gap: 6, padding: "9px 14px", borderRadius: 9, border: "none", backgroundColor: "var(--accent-indigo)", color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
               <Plus size={13} /> Add
             </button>
@@ -700,6 +879,11 @@ export default function QuestionBankPage() {
       {/* Bulk upload */}
       <AnimatePresence>
         {showBulk && <BulkUploadPanel packId={packId} onDone={() => { setShowBulk(false); load(); }} onCancel={() => setShowBulk(false)} />}
+      </AnimatePresence>
+
+      {/* AI Paste panel */}
+      <AnimatePresence>
+        {showPaste && <AIPastePanel packId={packId} onDone={() => { setShowPaste(false); load(); }} onCancel={() => setShowPaste(false)} />}
       </AnimatePresence>
 
       {/* Add form */}
