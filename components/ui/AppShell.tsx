@@ -5,20 +5,19 @@ import { useApp } from "@/context/AppContext";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { Pill, CalendarClock, Wallet, User, LogOut, Loader2 } from "lucide-react";
+import { Pill, Wallet, User, LogOut, Loader2 } from "lucide-react";
 import { removeToken } from "@/lib/api";
 import { useRouter } from "next/navigation";
 import { NotificationBell } from "@/components/ui/NotificationBell";
 
 const navItems = [
   { href: "/pills",   label: "Pills",   icon: Pill },
-  { href: "/events",  label: "Events",  icon: CalendarClock },
   { href: "/wallet",  label: "Wallet",  icon: Wallet },
   { href: "/profile", label: "Profile", icon: User },
 ];
 
 // Pages that render the app shell (player-facing)
-const SHELL_PATHS = ["/pills", "/events", "/blitz", "/wallet", "/profile", "/time-machine", "/predictions"];
+const SHELL_PATHS = ["/pills", "/wallet", "/profile", "/blitz", "/time-machine", "/predictions"];
 
 // Pages that deliberately suppress the shell (full-screen immersive flows)
 const SHELL_SUPPRESS_PATHS = ["/pills/vip/", "/pills/play/", "/blitz/"];
@@ -104,7 +103,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const isActive = (href: string) => {
     if (href === "/pills")  return pathname === "/pills" || pathname.startsWith("/pills/");
-    if (href === "/events") return pathname === "/events" || pathname.startsWith("/predictions") || pathname.startsWith("/time-machine");
     return pathname.startsWith(href);
   };
 
