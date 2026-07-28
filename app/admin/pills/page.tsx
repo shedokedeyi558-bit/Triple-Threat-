@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { adminApi, ApiError } from "@/lib/api";
-import { Loader2, Plus, Package, Eye, EyeOff, Trash2, ClipboardCheck, Star, BookOpen, BarChart2, TrendingUp, Activity, Clock } from "lucide-react";
+import { Loader2, Plus, Package, Eye, EyeOff, Trash2, ClipboardCheck, Star, BookOpen, BarChart2, TrendingUp, Activity, Clock, Search } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 // ── Inline live stats strip — mounts when a pack row is expanded ─────────────
@@ -150,6 +150,7 @@ export default function AdminPillsPage() {
   const [featuring, setFeaturing] = useState<string | null>(null);
   const [forceDeleteTarget, setForceDeleteTarget] = useState<PillPack | null>(null);
   const [expandedActions, setExpandedActions] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
 
   useEffect(() => { fetchPacks(); }, []);
 
@@ -240,11 +241,31 @@ export default function AdminPillsPage() {
           <Plus size={15} /> Create New Pack
         </button>
       </div>
-
       {error && (
         <div className="bg-red-900/20 border border-red-800/40 rounded-xl p-3 text-red-400 text-sm flex items-start justify-between gap-3">
           <span>{error}</span>
           <button onClick={() => setError("")} className="text-red-400 opacity-60 hover:opacity-100 flex-shrink-0 text-xs font-bold">✕</button>
+        </div>
+      )}
+
+      {/* Search */}
+      {!loading && packs.length > 0 && (
+        <div className="relative">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+          <input
+            type="text"
+            placeholder="Search packs by name or category..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-9 pr-4 py-2.5 text-sm rounded-xl outline-none"
+            style={{ backgroundColor: "var(--bg-card)", border: "1px solid var(--border-subtle)", color: "var(--text-primary)" }}
+          />
+          {search && (
+            <button onClick={() => setSearch("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white text-xs font-bold">
+              ✕
+            </button>
+          )}
         </div>
       )}
 
@@ -260,7 +281,15 @@ export default function AdminPillsPage() {
         </div>
       ) : (
         <div className="space-y-2">
-          {packs.map((pack, i) => {
+          {(() => {
+            const q = search.trim().toLowerCase();
+            const filtered = q
+              ? packs.filter((p) => p.name.toLowerCase().includes(q) || p.category.toLowerCase().includes(q))
+              : packs;
+            if (filtered.length === 0) return (
+              <p className="text-center py-12 text-sm text-gray-500">No packs match &ldquo;{search}&rdquo;</p>
+            );
+            return filtered.map((pack, i) => {
             const available = pack.available_count ?? pack.pills.filter((p) => p.status === "available").length;
             const played = pack.played_count ?? pack.pills.filter((p) => p.status === "played").length;
             const total = pack.pills.length;
@@ -477,7 +506,8 @@ export default function AdminPillsPage() {
                 </AnimatePresence>
               </motion.div>
             );
-          })}
+          });
+          })()}
         </div>
       )}
 
