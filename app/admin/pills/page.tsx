@@ -95,6 +95,9 @@ interface PillPack {
   entry_fee?: number;
   quiz_expires_at?: string | null;
   created_at?: string;
+  max_entries?: number | null;
+  entries_made?: number;
+  entry_cap_reached?: boolean;
 }
 
 // ── Force-delete confirmation dialog ────────────────────────────────────────
@@ -357,8 +360,31 @@ export default function AdminPillsPage() {
                           </span>
                         </div>
                       ) : null}
-                      {/* Expiry countdown — Specials only */}
-                      {expiryLabel ? (
+                      {/* Entries fill indicator — Specials with max_entries set */}
+                      {isSpecial && pack.max_entries ? (() => {
+                        const made = pack.entries_made ?? 0;
+                        const max = pack.max_entries;
+                        const full = pack.entry_cap_reached || made >= max;
+                        const pct = Math.min(100, Math.round((made / max) * 100));
+                        return (
+                          <div className="flex items-center gap-2">
+                            <span className="text-[9px] font-bold uppercase tracking-widest text-gray-500">Entries</span>
+                            <span className="text-[11px] font-bold font-mono" style={{ color: full ? "#f87171" : "var(--text-primary)" }}>
+                              {made}/{max}
+                            </span>
+                            {/* mini fill bar */}
+                            <div style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: "#1E1E1E", overflow: "hidden" }}>
+                              <div style={{ height: "100%", borderRadius: 2, width: `${pct}%`, backgroundColor: full ? "#f87171" : pct >= 80 ? "var(--accent-amber)" : "var(--accent-indigo)", transition: "width 0.3s" }} />
+                            </div>
+                            {full && (
+                              <span className="text-[9px] font-black px-1.5 py-0.5 rounded" style={{ backgroundColor: "rgba(239,68,68,0.15)", color: "#f87171", border: "1px solid rgba(239,68,68,0.3)" }}>
+                                FULL
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })() : null}
+                      {/* Expiry countdown — Specials only */}                      {expiryLabel ? (
                         <div className="flex items-center gap-1.5">
                           <Clock size={11} style={{ color: expiryColor, flexShrink: 0 }} />
                           <span className="text-[12px] font-bold whitespace-nowrap" style={{ color: expiryColor }}>
