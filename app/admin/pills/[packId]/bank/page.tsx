@@ -541,49 +541,67 @@ function ImportLibraryModal({ packId, onDone, onCancel }: { packId: string; onDo
 }
 
 // ── AI Paste Panel ────────────────────────────────────────────────────────────
-// Parses raw AI output — handles both single-line and multi-line formats
+// Parses raw AI output — handles inline, multi-line, and mixed formats
 function parseAIText(raw: string): { question: string; options: string[]; correct_answer: string }[] {
   const results: { question: string; options: string[]; correct_answer: string }[] = [];
 
-  // ── Format 1: Single-line per question (ChatGPT inline format)
-  // "Q: Question text A) Opt1 B) Opt2 C) Opt3 D) Opt4 Correct: C"
-  const singleLinePattern = /(?:Q:\s*|(?:\d+[\.\)]\s*))(.*?)\s+A\)\s*(.*?)\s+B\)\s*(.*?)\s+C\)\s*(.*?)(?:\s+D\)\s*(.*?))?\s+(?:Correct|Answer|Ans)[:\s]+([A-Da-d])/gi;
-  const singleMatches: { question: string; options: string[]; correct_answer: string }[] = [];
-  let m: RegExpExecArray | null;
-  // Create a fresh regex instance to avoid lastIndex issues with global flag
-  const freshPattern = new RegExp(singleLinePattern.source, singleLinePattern.flags);
-  while ((m = freshPattern.exec(raw)) !== null) {
-    const question = m[1].trim();
-    const opts = [m[2], m[3], m[4], m[5]].filter(Boolean).map(o => o.trim());
-    const letter = m[6].toUpperCase();
-    const idx = letter.charCodeAt(0) - 65;
-    const correct_answer = opts[idx] ?? opts[0];
-    if (question && opts.length >= 2) singleMatches.push({ question, options: opts, correct_answer });
+  // ── Normalize: split into individual question blocks first ──
+  // Split on any line that looks like a question number: "1.", "1)", "Q1.", "Q1:", "**1.**" etc.
+  // This handles both newline-separated and inline-concatenated formats
+  const questionBoundary = /(?:^|\n)(?:\*{0,2}(?:Q\s*)?(\d+)\s*[.):]\*{0,2})\s*/gi;
+
+  // Try to split into blocks by question number
+  const blocks: string[] = [];
+  let lastIndex = 0;
+  let bm: RegExpExecArray | null;
+  const boundaryRegex = new RegExp(questionBoundary.source, 'gi');
+  while ((bm = boundaryRegex.exec(raw)) !== null) {
+    if (lastIndex > 0) blocks.push(raw.slice(lastIndex, bm.index).trim());
+    lastIndex = bm.index + bm[0].length;
   }
+  if (lastIndex > 0) blocks.push(raw.slice(lastIndex).trim());
 
-  // If single-line matched, return ONLY those — do not also run multi-line
-  if (singleMatches.length > 0) return singleMatches;
+  // If we couldn't split by number (e.g. Q: prefix format), try Q: splits
+  const useBlocks = blocks.length > 1 ? blocks : raw.split(/(?=Q:\s)/gi).filter(b => b.trim());
 
-  // ── Format 2: Multi-line numbered blocks (fallback)
-  const blocks = raw.split(/(?=(?:\n|^)(?:Q?\d+[\.\):]|\*\*\d+[\.\):])\s)/i).filter(b => b.trim());
-  for (const block of blocks) {
-    const lines = block.split(/\n/).map(l => l.trim()).filter(Boolean);
-    if (!lines.length) continue;
-    const qLine = lines[0].replace(/^(?:Q?\d+[\.\):]|\*\*Q?\d+[\.\):]\**)\s*/i, "").replace(/\*\*/g, "").trim();
-    if (!qLine) continue;
-    const optLines = lines.slice(1).filter(l => /^[A-Da-d][\.\)]\s/.test(l));
-    const options = optLines.map(l => l.replace(/^[A-Da-d][\.\)]\s*/i, "").replace(/\*\*/g, "").trim()).filter(Boolean);
-    const ansLine = lines.find(l => /^(?:answer|ans|correct|✓)[:\s]/i.test(l));
-    let correct_answer = "";
-    if (ansLine) {
-      const raw_ans = ansLine.replace(/^(?:answer|ans|correct|✓)[:\s]*/i, "").replace(/^[A-D][\.\)]\s*/i, "").replace(/\*\*/g, "").trim();
-      if (/^[A-Da-d]$/.test(raw_ans) && options.length) {
-        correct_answer = options[raw_ans.toUpperCase().charCodeAt(0) - 65] ?? raw_ans;
-      } else {
-        correct_answer = raw_ans;
-      }
+  for (const block of useBlocks) {
+    if (!block.trim()) continue;
+
+    // Extract question text — everything before the first option marker A) or A.
+    const optionStart = block.search(/\bA[).]\s/i);
+    if (optionStart === -1) continue;
+
+    const questionText = block.slice(0, optionStart)
+      .replace(/^\*{0,2}Q:\s*/i, "")
+      .replace(/\*\*/g, "")
+      .trim();
+    if (!questionText) continue;
+
+    const remainder = block.slice(optionStart);
+
+    // Extract options: split on A) B) C) D) boundaries (handles newline or space between them)
+    const optionRegex = /\b([A-D])[).]\s*(.*?)(?=\s*\b[A-D][).]\s|\s*(?:Correct|Answer|Ans)[:\s]|$)/gis;
+    const options: string[] = [];
+    const optionMap: Record<string, string> = {};
+    let om: RegExpExecArray | null;
+    const freshOpt = new RegExp(optionRegex.source, optionRegex.flags);
+    while ((om = freshOpt.exec(remainder)) !== null) {
+      const letter = om[1].toUpperCase();
+      const text = om[2].replace(/\*\*/g, "").trim();
+      if (text) { options.push(text); optionMap[letter] = text; }
     }
-    if (qLine && options.length >= 2) results.push({ question: qLine, options, correct_answer });
+
+    if (options.length < 2) continue;
+
+    // Extract correct answer
+    const answerMatch = block.match(/(?:Correct|Answer|Ans)[:\s]+([A-Da-d])/i);
+    let correct_answer = options[0];
+    if (answerMatch) {
+      const letter = answerMatch[1].toUpperCase();
+      correct_answer = optionMap[letter] ?? options[letter.charCodeAt(0) - 65] ?? options[0];
+    }
+
+    results.push({ question: questionText, options, correct_answer });
   }
 
   return results;
