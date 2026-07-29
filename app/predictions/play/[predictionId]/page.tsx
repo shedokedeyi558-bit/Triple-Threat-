@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useApp } from "@/context/AppContext";
 import { predictionsApi, ApiError, type PredictionData } from "@/lib/api";
 import { withTimeout } from "@/lib/withTimeout";
+import Link from "next/link";
 import {
   ChevronLeft, Clock, Users, Lock, CheckCircle2,
   XCircle, Loader2, Timer, Trophy, AlertCircle
@@ -42,13 +43,16 @@ function PredictionDetail({
   entering,
   error,
   bonusBalance,
+  balance,
 }: {
   prediction: PredictionData;
   onEnter: () => void;
   entering: boolean;
   error: string | null;
   bonusBalance: number;
+  balance: number;
 }) {
+  const canAfford = balance + bonusBalance >= (prediction.fee ?? 0);
   const countdown = useCountdown(prediction.countdown_end);
   const fill = Math.round((prediction.slots_filled / prediction.max_slots) * 100);
   const lockDate = new Date(prediction.countdown_end).toLocaleDateString("en-NG", {
@@ -160,15 +164,20 @@ function PredictionDetail({
       {!countdown.expired && (
         <>
           {/* Bonus breakdown if applicable */}
-          {bonusBalance > 0 && (
+          {bonusBalance > 0 && canAfford && (
             <p className="text-xs text-center" style={{ color: "var(--accent-amber)", marginBottom: 4 }}>
               ₦{Math.min(bonusBalance, prediction.fee ?? 0).toLocaleString()} from bonus credit
+            </p>
+          )}
+          {!canAfford && (
+            <p className="text-sm text-center" style={{ color: "#f87171", marginBottom: 8 }}>
+              Insufficient balance. <Link href="/wallet" style={{ textDecoration: "underline", fontWeight: 600 }}>Add funds</Link>
             </p>
           )}
           <motion.button
             whileTap={{ scale: 0.97 }}
             onClick={onEnter}
-            disabled={entering}
+            disabled={entering || !canAfford}
             className="w-full py-4 font-black text-base rounded-xl disabled:opacity-50 flex items-center justify-center gap-2"
             style={{ backgroundColor: "var(--accent-indigo)", color: "#fff" }}
           >
@@ -720,7 +729,7 @@ export default function PredictionPlayPage() {
 
         {pageState === "detail" && prediction && (
           <motion.div key="detail" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
-            <PredictionDetail prediction={prediction} onEnter={handleEnter} entering={entering} error={error} bonusBalance={state.player?.bonus_balance ?? 0} />
+            <PredictionDetail prediction={prediction} onEnter={handleEnter} entering={entering} error={error} bonusBalance={state.player?.bonus_balance ?? 0} balance={state.player?.balance ?? 0} />
           </motion.div>
         )}
 
