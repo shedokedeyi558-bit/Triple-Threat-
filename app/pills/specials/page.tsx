@@ -297,13 +297,13 @@ export default function SpecialsPage() {
         // Merge, deduplicate by id
         const seen = new Set<string>();
         const all = [...fromPacks, ...fromSpecials].filter((p) => seen.has(p.id) ? false : (seen.add(p.id), true));
-        // Sort: featured first, then by prize descending
-        all.sort((a, b) => {
-          if (a.is_featured && !b.is_featured) return -1;
-          if (!a.is_featured && b.is_featured) return 1;
-          return (b.prize_amount ?? b.pills[0]?.prize ?? 0) - (a.prize_amount ?? a.pills[0]?.prize ?? 0);
-        });
-        setPacks(all);
+        // Filter out featured — they live on the main page now
+        const nonFeatured = all.filter((p) => !p.is_featured);
+        // Sort by prize descending
+        nonFeatured.sort((a, b) =>
+          (b.prize_amount ?? b.pills[0]?.prize ?? 0) - (a.prize_amount ?? a.pills[0]?.prize ?? 0)
+        );
+        setPacks(nonFeatured);
       })
       .catch((e) => setError(e instanceof ApiError ? e.message : "Failed to load specials"))
       .finally(() => setLoading(false));

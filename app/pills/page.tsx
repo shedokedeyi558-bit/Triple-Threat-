@@ -766,6 +766,168 @@ function PillSheet({ pack, pill, onConfirm, onClose, onStale, balance, bonusBala
 }
 
 // ── Main page ──────────────────────────────────────────────────────────────
+// ── Featured Special card — inline on the main page ──────────────────────
+function FeaturedSpecialCard({ pack, onClick, playerId }: { pack: PillPack; onClick: () => void; playerId: string | null }) {
+  const price = pack.entry_fee ?? pack.pills[0]?.price ?? 0;
+  const prize = pack.prize_amount ?? pack.pills[0]?.prize ?? 0;
+  const total = pack.pills.length;
+  const { label: expiryLabel, expired } = usePackExpiry(pack.quiz_expires_at);
+  const isAttempted = pack.user_attempted === true || hasAttempted(playerId, pack.id);
+
+  return (
+    <motion.button initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} whileTap={{ scale: (expired || isAttempted) ? 1 : 0.98 }}
+      onClick={(expired || isAttempted) ? undefined : onClick}
+      style={{
+        width: "100%", boxSizing: "border-box", borderRadius: 16, padding: 0,
+        textAlign: "left", cursor: (expired || isAttempted) ? "default" : "pointer",
+        overflow: "hidden", position: "relative",
+        background: "linear-gradient(135deg, #0a1a12 0%, #0d2a1a 45%, #0a1a12 100%)",
+        border: `1.5px solid ${isAttempted ? "rgba(139,92,246,0.4)" : expired ? "rgba(239,68,68,0.35)" : "#34d399"}`,
+        boxShadow: (expired || isAttempted) ? "none" : "0 0 0 1px rgba(52,211,153,0.12), 0 6px 32px rgba(52,211,153,0.22)",
+        opacity: (expired || isAttempted) ? 0.65 : 1,
+      }}>
+      {!expired && !isAttempted && (
+        <motion.div animate={{ x: ["-100%", "200%"] }} transition={{ duration: 3.5, repeat: Infinity, repeatDelay: 2.5 }}
+          style={{ position: "absolute", inset: 0, width: "40%", background: "linear-gradient(90deg,transparent,rgba(52,211,153,0.06),transparent)", pointerEvents: "none" }} />
+      )}
+      <div style={{ height: 2, background: isAttempted ? "rgba(139,92,246,0.5)" : expired ? "rgba(239,68,68,0.4)" : "linear-gradient(90deg,transparent,rgba(52,211,153,0.8),#86efac,rgba(52,211,153,0.8),transparent)" }} />
+      <div style={{ padding: "16px 16px 12px", position: "relative" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+          <span style={{ fontSize: 9, fontWeight: 900, padding: "2px 8px", borderRadius: 4,
+            background: isAttempted ? "rgba(139,92,246,0.25)" : expired ? "rgba(239,68,68,0.2)" : "linear-gradient(135deg,#34d399,#6ee7b7)",
+            color: isAttempted ? "#c084fc" : expired ? "#f87171" : "#000", letterSpacing: "0.06em" }}>
+            {isAttempted ? "ATTEMPTED" : expired ? "ENDED" : "FEATURED"}
+          </span>
+          <span style={{ fontSize: 10, color: "rgba(52,211,153,0.55)" }}>{pack.category}</span>
+          {expiryLabel && !expired && !isAttempted && (
+            <span style={{ fontSize: 9, fontWeight: 600, color: "#34d399", display: "flex", alignItems: "center", gap: 3 }}>
+              <Clock size={9} /> {expiryLabel}
+            </span>
+          )}
+        </div>
+        <p style={{ fontSize: 17, fontWeight: 800, color: isAttempted ? "#c084fc" : expired ? "rgba(255,255,255,0.45)" : "#86efac", margin: "0 0 4px", lineHeight: 1.25 }}>{pack.name}</p>
+        <p style={{ fontSize: 11, color: "rgba(52,211,153,0.6)", margin: "0 0 12px" }}>
+          {isAttempted ? "You've already completed this exam" : `${total}-question exam · one attempt`}
+        </p>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+          <div>
+            <p style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", margin: "0 0 2px", textTransform: "uppercase", letterSpacing: "0.06em" }}>Entry</p>
+            {isAttempted || expired
+              ? <p style={{ fontSize: 14, fontWeight: 700, color: "#f87171", margin: 0 }}>Closed</p>
+              : <p style={{ fontSize: 14, fontFamily: "monospace", fontWeight: 700, color: "rgba(52,211,153,0.85)", margin: 0 }}>₦{price.toLocaleString()}</p>
+            }
+          </div>
+          {!expired && !isAttempted && (
+            <div style={{ textAlign: "right" }}>
+              <p style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", margin: "0 0 2px", textTransform: "uppercase", letterSpacing: "0.06em" }}>Prize</p>
+              <p style={{ fontSize: 20, fontFamily: "monospace", fontWeight: 900, color: "#86efac", margin: 0 }}>₦{prize.toLocaleString()}</p>
+            </div>
+          )}
+        </div>
+      </div>
+      <div style={{ padding: "9px 16px", background: isAttempted ? "rgba(139,92,246,0.1)" : expired ? "rgba(239,68,68,0.08)" : "rgba(52,211,153,0.1)", borderTop: `1px solid ${isAttempted ? "rgba(139,92,246,0.2)" : expired ? "rgba(239,68,68,0.2)" : "rgba(52,211,153,0.2)"}`, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+        <ClipboardCheck size={13} style={{ color: isAttempted ? "#c084fc" : expired ? "#f87171" : "#34d399" }} />
+        <span style={{ fontSize: 12, fontWeight: 700, color: isAttempted ? "#c084fc" : expired ? "#f87171" : "#34d399" }}>
+          {isAttempted ? "Already Attempted" : expired ? "Entry Closed" : "Enter Challenge →"}
+        </span>
+      </div>
+    </motion.button>
+  );
+}
+
+// ── Special confirm sheet (for featured specials on main page) ────────────
+function SpecialConfirmSheet({ pack, balance, bonusBalance, onConfirm, onClose }: {
+  pack: PillPack; balance: number; bonusBalance: number;
+  onConfirm: () => void; onClose: () => void;
+}) {
+  const entryFee  = pack.entry_fee  ?? pack.pills[0]?.price ?? 0;
+  const prize     = pack.prize_amount ?? pack.pills[0]?.prize ?? 0;
+  const qCount    = pack.question_count ?? null;
+  const timeMins  = pack.time_limit_minutes ?? null;
+  const passReq   = pack.required_correct ?? (pack as any).pass_threshold ?? null;
+  const canAfford = balance + bonusBalance >= entryFee;
+  const bonusUsed = Math.min(bonusBalance, entryFee);
+  const realUsed  = entryFee - bonusUsed;
+  const { label: expiryLabel, expired } = usePackExpiry(pack.quiz_expires_at);
+  const canStart  = canAfford && !expired;
+
+  const challengePhrase = qCount != null
+    ? `Answer ${qCount} questions${timeMins != null ? ` in ${timeMins} minute${timeMins !== 1 ? "s" : ""}` : ""}${passReq != null ? ` — get ${passReq} or more right to win` : " — pass to win"}.`
+    : `Complete the exam — pass to win the prize.`;
+
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "flex-end", justifyContent: "center" }}
+      onClick={onClose}>
+      <div style={{ position: "absolute", inset: 0, backgroundColor: "rgba(0,0,0,0.85)", backdropFilter: "blur(5px)" }} />
+      <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
+        transition={{ type: "spring", stiffness: 340, damping: 32 }}
+        onClick={(e) => e.stopPropagation()}
+        style={{ position: "relative", width: "100%", maxWidth: 440, borderRadius: "24px 24px 0 0", padding: "28px 24px 36px", backgroundColor: "var(--bg-card)" }}>
+        <div style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: "#333", margin: "0 auto 20px" }} />
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
+          <div style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: "rgba(52,211,153,0.12)", border: "1px solid rgba(52,211,153,0.3)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <Package size={20} style={{ color: "#34d399" }} />
+          </div>
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{ fontSize: 8, fontWeight: 800, padding: "2px 6px", borderRadius: 3, textTransform: "uppercase", letterSpacing: "0.07em", backgroundColor: "rgba(52,211,153,0.15)", color: "#34d399" }}>FEATURED</span>
+              <p style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>{pack.name}</p>
+            </div>
+            <p style={{ fontSize: 12, color: "var(--text-secondary)", margin: "2px 0 0" }}>{pack.category}</p>
+          </div>
+        </div>
+        <div style={{ borderRadius: 12, padding: "14px 16px", backgroundColor: "rgba(52,211,153,0.06)", border: "1px solid rgba(52,211,153,0.2)", marginBottom: 16 }}>
+          <p style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.55, color: "var(--text-primary)", margin: 0 }}>{challengePhrase}</p>
+          <p style={{ fontSize: 12, color: "rgba(52,211,153,0.65)", margin: "4px 0 0" }}>One attempt only · prizes paid instantly on pass</p>
+        </div>
+        {expiryLabel && (
+          <div style={{ borderRadius: 8, padding: "8px 12px", marginBottom: 12, backgroundColor: expired ? "rgba(239,68,68,0.08)" : "rgba(52,211,153,0.06)", border: `1px solid ${expired ? "rgba(239,68,68,0.2)" : "rgba(52,211,153,0.15)"}`, display: "flex", alignItems: "center", gap: 6 }}>
+            <Clock size={12} style={{ color: expired ? "#f87171" : "#34d399", flexShrink: 0 }} />
+            <span style={{ fontSize: 12, fontWeight: 600, color: expired ? "#f87171" : "#34d399" }}>{expiryLabel}</span>
+          </div>
+        )}
+        <div style={{ display: "grid", gridTemplateColumns: qCount != null ? "1fr 1fr 1fr" : "1fr 1fr", gap: 8, marginBottom: 16 }}>
+          <div style={{ borderRadius: 10, padding: "10px 8px", textAlign: "center", border: "1px solid var(--border-subtle)", backgroundColor: "var(--bg-base)" }}>
+            <p style={{ fontSize: 9, color: "var(--text-muted)", margin: "0 0 3px", textTransform: "uppercase" }}>Entry</p>
+            <p style={{ fontSize: 14, fontFamily: "monospace", fontWeight: 700, color: "#34d399", margin: 0 }}>₦{entryFee.toLocaleString()}</p>
+          </div>
+          <div style={{ borderRadius: 10, padding: "10px 8px", textAlign: "center", border: "1px solid rgba(52,211,153,0.3)", backgroundColor: "rgba(52,211,153,0.06)" }}>
+            <p style={{ fontSize: 9, color: "var(--text-muted)", margin: "0 0 3px", textTransform: "uppercase" }}>Prize</p>
+            <p style={{ fontSize: 14, fontFamily: "monospace", fontWeight: 700, color: "#34d399", margin: 0 }}>₦{prize.toLocaleString()}</p>
+          </div>
+          {qCount != null && (
+            <div style={{ borderRadius: 10, padding: "10px 8px", textAlign: "center", border: "1px solid var(--border-subtle)", backgroundColor: "var(--bg-base)" }}>
+              <p style={{ fontSize: 9, color: "var(--text-muted)", margin: "0 0 3px", textTransform: "uppercase" }}>Questions</p>
+              <p style={{ fontSize: 14, fontFamily: "monospace", fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>{qCount}</p>
+            </div>
+          )}
+        </div>
+        {bonusUsed > 0 && canAfford && !expired && (
+          <p style={{ fontSize: 11, textAlign: "center", color: "#34d399", marginBottom: 10 }}>
+            ₦{bonusUsed.toLocaleString()} from bonus credit{realUsed > 0 ? ` + ₦${realUsed.toLocaleString()} from balance` : " (fully covered)"}
+          </p>
+        )}
+        {!canAfford && !expired && (
+          <p style={{ textAlign: "center", color: "#f87171", fontSize: 13, marginBottom: 10 }}>
+            Insufficient balance. <Link href="/wallet" style={{ textDecoration: "underline", fontWeight: 600 }}>Add funds</Link>
+          </p>
+        )}
+        {expired && (
+          <p style={{ textAlign: "center", color: "#f87171", fontSize: 13, fontWeight: 600, marginBottom: 10 }}>This special has ended</p>
+        )}
+        <button onClick={canStart ? onConfirm : undefined} disabled={!canStart}
+          style={{ width: "100%", padding: "14px 0", borderRadius: 11, border: "none", backgroundColor: expired ? "rgba(239,68,68,0.12)" : "#34d399", color: expired ? "#f87171" : "#000", fontSize: 14, fontWeight: 800, cursor: canStart ? "pointer" : "not-allowed", opacity: canStart ? 1 : 0.45, marginBottom: 10 }}>
+          {expired ? "Entry Closed" : `Start & Pay ₦${entryFee.toLocaleString()}`}
+        </button>
+        <button onClick={onClose} style={{ width: "100%", padding: "10px 0", border: "none", background: "none", fontSize: 13, fontWeight: 600, color: "var(--text-secondary)", cursor: "pointer" }}>
+          Not now
+        </button>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 export default function PillsPage() {
   const router = useRouter();
   const { state } = useApp();
@@ -776,6 +938,7 @@ export default function PillsPage() {
   const [specialsLoaded, setSpecialsLoaded] = useState(false);
   const [error, setError] = useState("");
   const [sheet, setSheet] = useState<{ pack: PillPack; pill: PillPackPill } | null>(null);
+  const [confirmSpecial, setConfirmSpecial] = useState<PillPack | null>(null);
   const [activeCategory, setActiveCategory] = useState("All");
 
   useEffect(() => {
@@ -818,10 +981,14 @@ export default function PillsPage() {
     ? standardPacks
     : standardPacks.filter((p) => p.category === activeCategory);
 
-  // Hero: all explicitly featured packs — no fallback to first pack
+  // Hero: all explicitly featured standard packs — no fallback to first pack
   const featuredPacks = filteredPacks.filter((p) => p.is_featured);
   // Standard Packs: everything that isn't featured
   const standardPacks2 = filteredPacks.filter((p) => !p.is_featured);
+
+  // Featured specials shown inline; non-featured ones go in teaser banner
+  const featuredSpecials = specialPacks.filter((p) => p.is_featured);
+  const nonFeaturedSpecials = specialPacks.filter((p) => !p.is_featured);
 
   if (!state.isAuthenticated) return null;
 
@@ -915,8 +1082,23 @@ export default function PillsPage() {
             </div>
           )}
 
-          {/* Specials teaser — taps through to /pills/specials */}
-          <SpecialsTeaserBanner packs={specialPacks} onClick={() => router.push("/pills/specials")} />
+          {/* Featured Specials — shown inline on main page */}
+          {featuredSpecials.length > 0 && (
+            <section>
+              <p style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", color: "var(--text-muted)", marginBottom: 10 }}>
+                Featured Special{featuredSpecials.length > 1 ? "s" : ""}
+              </p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {featuredSpecials.map((pack) => (
+                  <FeaturedSpecialCard key={pack.id} pack={pack} playerId={playerId}
+                    onClick={() => setConfirmSpecial(pack)} />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Specials teaser — only shown when there are non-featured specials */}
+          <SpecialsTeaserBanner packs={nonFeaturedSpecials} onClick={() => router.push("/pills/specials")} />
 
         </div>
       )}
@@ -955,6 +1137,19 @@ export default function PillsPage() {
           }
         }}
             onClose={() => setSheet(null)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Featured Special confirm sheet */}
+      <AnimatePresence>
+        {confirmSpecial && (
+          <SpecialConfirmSheet
+            pack={confirmSpecial}
+            balance={state.player?.balance ?? 0}
+            bonusBalance={state.player?.bonus_balance ?? 0}
+            onConfirm={() => { const p = confirmSpecial; setConfirmSpecial(null); router.push(`/pills/vip/${p.id}/play`); }}
+            onClose={() => setConfirmSpecial(null)}
           />
         )}
       </AnimatePresence>
