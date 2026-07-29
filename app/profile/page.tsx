@@ -291,6 +291,30 @@ export default function ProfilePage() {
                   </div>
                 ))}
               </div>
+
+              {/* Requirements card */}
+              <div className="rounded-xl p-4 border space-y-2"
+                style={{ backgroundColor: "rgba(76,111,255,0.04)", borderColor: "rgba(76,111,255,0.15)" }}>
+                <p className="text-[11px] font-bold uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>
+                  How to earn your ₦200
+                </p>
+                <p className="text-xs" style={{ color: "var(--text-secondary)", lineHeight: 1.55 }}>
+                  Your referred friend must complete <strong style={{ color: "var(--text-primary)" }}>both steps</strong> for you to earn ₦200:
+                </p>
+                <div className="space-y-1.5">
+                  <div className="flex items-start gap-2">
+                    <span className="text-[11px] mt-0.5" style={{ color: "#34d399" }}>✓</span>
+                    <p className="text-xs" style={{ color: "var(--text-secondary)" }}>Make their first deposit <span style={{ color: "var(--text-muted)" }}>(any amount)</span></p>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="text-[11px] mt-0.5" style={{ color: "#34d399" }}>✓</span>
+                    <p className="text-xs" style={{ color: "var(--text-secondary)" }}>Play their first game <span style={{ color: "var(--text-muted)" }}>(pill or special)</span></p>
+                  </div>
+                </div>
+                <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>
+                  Once both are done, your bonus is credited automatically.
+                </p>
+              </div>
             </>
           ) : (
             <div className="flex items-center gap-3">
