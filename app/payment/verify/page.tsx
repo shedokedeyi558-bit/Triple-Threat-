@@ -34,8 +34,8 @@ function VerifyContent() {
 
         // Refresh balance in app state
         try {
-          const { balance } = await walletApi.getBalance();
-          dispatch({ type: "UPDATE_BALANCE", balance });
+          const res = await walletApi.getBalance();
+          dispatch({ type: "UPDATE_BALANCE", balance: res.balance, bonus_balance: res.bonus_balance ?? 0 });
         } catch {
           // non-critical
         }

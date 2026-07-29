@@ -79,6 +79,7 @@ function AuthForm() {
           name: response.player.name,
           email: "",
           balance: response.player.balance,
+          bonus_balance: response.player.bonus_balance ?? 0,
         },
         token: response.token,
       });

@@ -43,7 +43,7 @@ export default function SignInPage() {
     try {
       const res = await authApi.phoneSignIn(`+234${phone}`, password);
       setToken(res.token);
-      dispatch({ type: "LOGIN", player: { id: res.player.id, phone: res.player.phone, name: res.player.name, email: "", balance: res.player.balance }, token: res.token });
+      dispatch({ type: "LOGIN", player: { id: res.player.id, phone: res.player.phone, name: res.player.name, email: "", balance: res.player.balance, bonus_balance: res.player.bonus_balance ?? 0 }, token: res.token });
       setStep("success");
       setTimeout(() => router.push("/pills"), 1200);
     } catch (err) {
@@ -60,7 +60,7 @@ export default function SignInPage() {
     try {
       const res = await authApi.resetPassword(`+234${fpPhone}`, fpNewPass);
       setToken(res.token);
-      dispatch({ type: "LOGIN", player: { id: res.player.id, phone: res.player.phone, name: res.player.name, email: "", balance: res.player.balance }, token: res.token });
+      dispatch({ type: "LOGIN", player: { id: res.player.id, phone: res.player.phone, name: res.player.name, email: "", balance: res.player.balance, bonus_balance: res.player.bonus_balance ?? 0 }, token: res.token });
       setFpDone(true);
       setTimeout(() => router.push("/pills"), 1500);
     } catch (err) {

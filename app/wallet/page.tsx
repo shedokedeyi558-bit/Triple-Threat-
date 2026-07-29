@@ -179,8 +179,8 @@ export default function WalletPage() {
 
   const refreshBalance = useCallback(async () => {
     try {
-      const { balance } = await walletApi.getBalance();
-      dispatch({ type: "UPDATE_BALANCE", balance });
+      const res = await walletApi.getBalance();
+      dispatch({ type: "UPDATE_BALANCE", balance: res.balance, bonus_balance: res.bonus_balance ?? 0 });
     } catch { /* silent */ }
   }, [dispatch]);
 
