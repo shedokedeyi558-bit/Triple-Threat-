@@ -64,7 +64,10 @@ export default function AdminDashboard() {
   const fetchLiveStats = async () => {
     try {
       const res = await adminApi.getAllPacksLiveStats();
-      setLiveStats(res.packs ?? []);
+      setLiveStats((res.packs ?? []).map(p => ({
+        ...p,
+        win_rate: p.win_rate <= 1 ? p.win_rate * 100 : p.win_rate,
+      })));
     } catch { /* silent — widget degrades gracefully */ }
   };
 

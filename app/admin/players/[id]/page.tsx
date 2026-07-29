@@ -220,7 +220,7 @@ export default function AdminPlayerDetailPage() {
 
   const stats = player.stats;
   const winRate = stats
-    ? stats.win_rate
+    ? (stats.win_rate <= 1 ? Math.round(stats.win_rate * 100) : Math.round(stats.win_rate))
     : player.games_played > 0 ? Math.round((player.games_won / player.games_played) * 100) : 0;
 
   return (

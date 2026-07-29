@@ -86,7 +86,7 @@ export default function PackStatsPage() {
         won:      res.won,
         lost:     res.lost,
         total:    res.total,
-        win_rate: res.win_rate,
+        win_rate: res.win_rate <= 1 ? res.win_rate * 100 : res.win_rate,
       });
       setPackType(res.pack_type ?? null);
       setLastUpdated(new Date());

@@ -17,7 +17,7 @@ function PackStatsMini({ packId }: { packId: string }) {
   const fetch = async () => {
     try {
       const res = await adminApi.getPackLiveStats(packId);
-      setStats(res);
+      setStats({ ...res, win_rate: res.win_rate <= 1 ? res.win_rate * 100 : res.win_rate });
     } catch { /* silent */ }
   };
 
