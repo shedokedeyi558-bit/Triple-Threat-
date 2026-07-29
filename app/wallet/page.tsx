@@ -435,9 +435,9 @@ export default function WalletPage() {
                     style={{ backgroundColor: "var(--accent-amber)", color: "#000" }}
                   >
                     {depositLoading ? <Loader2 size={16} className="animate-spin" /> : null}
-                    {depositLoading ? "Redirecting..." : "Deposit via Paystack →"}
+                    {depositLoading ? "Redirecting..." : "Deposit via Squad →"}
                   </button>
-                  <p className="text-[11px] text-center" style={{ color: "var(--text-muted)" }}>Secured by Paystack · Cards, USSD, Bank Transfer</p>
+                  <p className="text-[11px] text-center" style={{ color: "var(--text-muted)" }}>Secured by Squad · Cards, USSD, Bank Transfer</p>
                 </>
               ) : (
                 <>
