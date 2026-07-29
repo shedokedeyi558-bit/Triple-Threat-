@@ -45,7 +45,7 @@ export default function ProfilePage() {
   const handleWhatsAppShare = (code: string) => {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
     const text = encodeURIComponent(
-      `Win real Naira on BitLyfe! Play trivia pills, make predictions and compete in live tournaments. Join with my link and get ₦200 bonus credit on your first game:\n${appUrl}/auth?ref=${code}`
+      `Play trivia pills, make predictions, and compete in live tournaments on BitLyfe. Join with my link:\n${appUrl}/auth?ref=${code}`
     );
     window.open(`https://wa.me/?text=${text}`, "_blank");
   };
