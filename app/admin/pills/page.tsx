@@ -316,6 +316,12 @@ export default function AdminPillsPage() {
                           <ClipboardCheck size={8} /> SPECIAL
                         </span>
                       )}
+                      {pack.is_featured && isSpecial && (
+                        <span className="text-[9px] font-black px-1.5 py-0.5 rounded flex items-center gap-0.5 flex-shrink-0"
+                          style={{ backgroundColor: "rgba(52,211,153,0.15)", color: "#34d399", border: "1px solid rgba(52,211,153,0.3)" }}>
+                          <Star size={8} fill="currentColor" /> FEATURED
+                        </span>
+                      )}
                       {pack.is_featured && !isSpecial && (
                         <span className="text-[9px] font-black px-1.5 py-0.5 rounded flex items-center gap-0.5 flex-shrink-0"
                           style={{ backgroundColor: "rgba(76,111,255,0.12)", color: "var(--accent-indigo)", border: "1px solid rgba(76,111,255,0.25)" }}>
@@ -452,12 +458,14 @@ export default function AdminPillsPage() {
                           </button>
                         )}
 
-                        {/* Feature — standard only, active only */}
-                        {!isSpecial && pack.status === "active" && (
+                        {/* Feature — active packs only (both standard and specials) */}
+                        {pack.status === "active" && (
                           <button onClick={() => handleFeature(pack)} disabled={featuring === pack.id}
                             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors disabled:opacity-50"
                             style={pack.is_featured
-                              ? { backgroundColor: "rgba(76,111,255,0.2)", border: "1px solid rgba(76,111,255,0.4)", color: "var(--accent-indigo)" }
+                              ? isSpecial
+                                ? { backgroundColor: "rgba(52,211,153,0.2)", border: "1px solid rgba(52,211,153,0.5)", color: "#34d399" }
+                                : { backgroundColor: "rgba(76,111,255,0.2)", border: "1px solid rgba(76,111,255,0.4)", color: "var(--accent-indigo)" }
                               : { backgroundColor: "rgba(76,111,255,0.06)", border: "1px solid rgba(76,111,255,0.15)", color: "var(--text-muted)" }}>
                             {featuring === pack.id ? <Loader2 size={11} className="animate-spin" /> : <Star size={11} fill={pack.is_featured ? "currentColor" : "none"} />}
                             {pack.is_featured ? "Featured" : "Set Featured"}

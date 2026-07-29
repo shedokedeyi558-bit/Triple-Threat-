@@ -156,6 +156,77 @@ function HeroSpecial({ pack, onClick, playerId }: { pack: PillPack; onClick: () 
   const total = pack.pills.length;
   const { label: expiryLabel, expired } = usePackExpiry(pack.quiz_expires_at);
   const isAttempted = pack.user_attempted === true || hasAttempted(playerId, pack.id);
+  const isFeatured = !!pack.is_featured;
+
+  // Color scheme: green for featured, amber for default
+  const accent = isFeatured ? "#34d399" : "rgba(232,163,61,0.6)";
+  const accentBright = isFeatured ? "#86efac" : "#FFE082";
+  const accentGlow = isFeatured ? "rgba(52,211,153,0.28)" : "rgba(232,163,61,0.28)";
+  const accentBg = isFeatured
+    ? "linear-gradient(135deg, #0a1a12 0%, #0d2a1a 45%, #0a1a12 100%)"
+    : "linear-gradient(135deg, #1a1200 0%, #2c1e00 45%, #1a1200 100%)";
+  const tagBg = isFeatured ? "linear-gradient(135deg,#34d399,#6ee7b7)" : "linear-gradient(135deg,#E8A33D,#FFD060)";
+  const tagLabel = isAttempted ? "ATTEMPTED" : expired ? "ENDED" : isFeatured ? "FEATURED" : "BIGGEST PRIZE";
+
+  return (
+    <motion.button initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} whileTap={{ scale: (expired || isAttempted) ? 1 : 0.98 }}
+      onClick={(expired || isAttempted) ? undefined : onClick}
+      style={{
+        width: "100%", boxSizing: "border-box", borderRadius: 16, padding: 0,
+        textAlign: "left", cursor: (expired || isAttempted) ? "default" : "pointer", overflow: "hidden", position: "relative",
+        background: isAttempted ? "linear-gradient(135deg,#1a1200,#2c1e00,#1a1200)" : expired ? "linear-gradient(135deg,#1a1200,#2c1e00,#1a1200)" : accentBg,
+        border: `1.5px solid ${isAttempted ? "rgba(139,92,246,0.4)" : expired ? "rgba(239,68,68,0.35)" : accent}`,
+        boxShadow: (expired || isAttempted) ? "none" : `0 0 0 1px ${isFeatured ? "rgba(52,211,153,0.12)" : "rgba(232,163,61,0.12)"}, 0 6px 32px ${accentGlow}`,
+        opacity: (expired || isAttempted) ? 0.65 : 1,
+      }}>
+      {!expired && !isAttempted && (
+        <motion.div animate={{ x: ["-100%", "200%"] }} transition={{ duration: 3.5, repeat: Infinity, repeatDelay: 2.5 }}
+          style={{ position: "absolute", inset: 0, width: "40%", background: `linear-gradient(90deg,transparent,${isFeatured ? "rgba(52,211,153,0.06)" : "rgba(232,163,61,0.06)"},transparent)`, pointerEvents: "none" }} />
+      )}
+      <div style={{ height: 2, background: isAttempted ? "rgba(139,92,246,0.5)" : expired ? "rgba(239,68,68,0.4)" : `linear-gradient(90deg,transparent,${isFeatured ? "rgba(52,211,153,0.8)" : "rgba(232,163,61,0.8)"},${isFeatured ? "#86efac" : "#FFD060"},${isFeatured ? "rgba(52,211,153,0.8)" : "rgba(232,163,61,0.8)"},transparent)` }} />
+
+      <div style={{ padding: "18px 18px 14px", position: "relative" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+          <span style={{ fontSize: 9, fontWeight: 900, padding: "2px 8px", borderRadius: 4, background: isAttempted ? "rgba(139,92,246,0.25)" : expired ? "rgba(239,68,68,0.2)" : tagBg, color: isAttempted ? "#c084fc" : expired ? "#f87171" : "#000", letterSpacing: "0.06em" }}>
+            {tagLabel}
+          </span>
+          <span style={{ fontSize: 10, color: isFeatured ? "rgba(52,211,153,0.55)" : "rgba(232,163,61,0.55)" }}>{pack.category}</span>
+          {expiryLabel && !expired && !isAttempted && (
+            <span style={{ fontSize: 9, fontWeight: 600, color: isFeatured ? "#34d399" : "var(--accent-amber)", display: "flex", alignItems: "center", gap: 3 }}>
+              <Clock size={9} /> {expiryLabel}
+            </span>
+          )}
+        </div>
+        <p style={{ fontSize: 20, fontWeight: 800, color: isAttempted ? "#c084fc" : expired ? "rgba(255,255,255,0.5)" : accentBright, margin: "0 0 6px", lineHeight: 1.25 }}>{pack.name}</p>
+        <p style={{ fontSize: 11, color: isFeatured ? "rgba(52,211,153,0.6)" : "rgba(232,163,61,0.6)", margin: "0 0 16px" }}>
+          {isAttempted ? "You've already completed this exam" : `${total}-question exam · answer to pass · one attempt`}
+        </p>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 14 }}>
+          <div>
+            <p style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", margin: "0 0 3px", textTransform: "uppercase", letterSpacing: "0.06em" }}>Entry</p>
+            {isAttempted || expired
+              ? <p style={{ fontSize: 15, fontWeight: 700, color: "#f87171", margin: 0 }}>Closed</p>
+              : <p style={{ fontSize: 15, fontFamily: "monospace", fontWeight: 700, color: isFeatured ? "rgba(52,211,153,0.85)" : "rgba(232,163,61,0.85)", margin: 0 }}>₦{price.toLocaleString()}</p>
+            }
+          </div>
+          {!expired && !isAttempted && (
+            <div style={{ textAlign: "right" }}>
+              <p style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", margin: "0 0 3px", textTransform: "uppercase", letterSpacing: "0.06em" }}>Top prize</p>
+              <p style={{ fontSize: 22, fontFamily: "monospace", fontWeight: 900, color: isFeatured ? "#86efac" : "#FFD060", margin: 0 }}>₦{prize.toLocaleString()}</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div style={{ padding: "10px 18px", background: isAttempted ? "rgba(139,92,246,0.1)" : expired ? "rgba(239,68,68,0.08)" : isFeatured ? "rgba(52,211,153,0.12)" : "rgba(232,163,61,0.12)", borderTop: `1px solid ${isAttempted ? "rgba(139,92,246,0.2)" : expired ? "rgba(239,68,68,0.2)" : isFeatured ? "rgba(52,211,153,0.2)" : "rgba(232,163,61,0.2)"}`, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+        <ClipboardCheck size={14} style={{ color: isAttempted ? "#c084fc" : expired ? "#f87171" : isFeatured ? "#34d399" : "var(--accent-amber)" }} />
+        <span style={{ fontSize: 13, fontWeight: 700, color: isAttempted ? "#c084fc" : expired ? "#f87171" : isFeatured ? "#34d399" : "var(--accent-amber)" }}>
+          {isAttempted ? "Already Attempted" : expired ? "Entry Closed" : "Enter Special →"}
+        </span>
+      </div>
+    </motion.button>
+  );
+}
 
   return (
     <motion.button initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} whileTap={{ scale: (expired || isAttempted) ? 1 : 0.98 }}
@@ -286,8 +357,12 @@ export default function SpecialsPage() {
         // Merge, deduplicate by id
         const seen = new Set<string>();
         const all = [...fromPacks, ...fromSpecials].filter((p) => seen.has(p.id) ? false : (seen.add(p.id), true));
-        // Sort by prize descending so biggest is always hero
-        all.sort((a, b) => (b.pills[0]?.prize ?? 0) - (a.pills[0]?.prize ?? 0));
+        // Sort: featured first, then by prize descending
+        all.sort((a, b) => {
+          if (a.is_featured && !b.is_featured) return -1;
+          if (!a.is_featured && b.is_featured) return 1;
+          return (b.prize_amount ?? b.pills[0]?.prize ?? 0) - (a.prize_amount ?? a.pills[0]?.prize ?? 0);
+        });
         setPacks(all);
       })
       .catch((e) => setError(e instanceof ApiError ? e.message : "Failed to load specials"))
