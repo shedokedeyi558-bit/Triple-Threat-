@@ -7,7 +7,7 @@ import { useApp } from "@/context/AppContext";
 import { motion, useInView } from "framer-motion";
 import {
   ArrowRight, Timer, Zap, Clock, GraduationCap,
-  Wallet, MousePointerClick, PartyPopper, Trophy,
+  Wallet, MousePointerClick, PartyPopper, Trophy, Users, Gift,
 } from "lucide-react";
 
 // ── Gradient mesh ─────────────────────────────────────────────────────────
@@ -328,6 +328,103 @@ function HowItWorks() {
   );
 }
 
+// ── Invite & Earn ──────────────────────────────────────────────────────────
+function InviteEarn() {
+  return (
+    <section className="mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 lg:py-20">
+      <div className="mb-10">
+        <h2 className="font-display font-extrabold tracking-tight" style={{ color: "var(--foreground)", fontSize: "clamp(1.8rem, 6vw, 3rem)" }}>
+          Invite &amp; <span style={{ color: "var(--brand-indigo)" }}>Earn</span>
+        </h2>
+        <p className="mt-2 text-sm leading-relaxed sm:text-base" style={{ color: "var(--muted-foreground)", maxWidth: "50ch" }}>
+          Share BitLyfe. Everyone wins.
+        </p>
+      </div>
+
+      {/* How it works — 3 steps */}
+      <div className="mb-12 grid gap-6 sm:grid-cols-3">
+        {[
+          { n: "01", title: "Share your referral link with a friend" },
+          { n: "02", title: "They sign up and make their first deposit" },
+          { n: "03", title: "They play their first game — that's when the rewards drop for both of you" },
+        ].map((step, i) => (
+          <motion.div key={step.n}
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-40px" }}
+            transition={{ duration: 0.5, delay: i * 0.1 }}>
+            <span className="block font-display text-4xl font-extrabold"
+              style={{ color: "rgba(76,111,255,0.15)" }}>{step.n}</span>
+            <p className="mt-3 text-sm leading-relaxed font-medium" style={{ color: "var(--foreground)" }}>{step.title}</p>
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Two-column layout: For you + For your friend */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* Column A — For you (the referrer) */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-40px" }}
+          transition={{ duration: 0.5 }}
+          className="relative overflow-hidden rounded-2xl border p-6 sm:p-8"
+          style={{ borderColor: "var(--border)", backgroundColor: "rgba(18,22,31,0.5)" }}>
+          <div aria-hidden="true"
+            className="pointer-events-none absolute -inset-px -z-10 rounded-2xl opacity-0 blur-md transition-opacity duration-500"
+            style={{ background: "linear-gradient(135deg, rgba(76,111,255,0.2), rgba(124,111,232,0.1))" }} />
+          <div className="mb-4 flex items-center gap-3">
+            <div className="grid h-10 w-10 place-items-center rounded-xl border"
+              style={{ borderColor: "rgba(76,111,255,0.3)", backgroundColor: "rgba(76,111,255,0.1)" }}>
+              <Gift className="h-5 w-5" style={{ color: "var(--brand-indigo)" }} />
+            </div>
+            <h3 className="font-display text-lg font-bold" style={{ color: "var(--foreground)" }}>For you (the referrer)</h3>
+          </div>
+          <p className="text-sm leading-relaxed mb-5" style={{ color: "var(--muted-foreground)" }}>
+            Get ₦200 bonus balance every time someone you invite completes their first deposit and plays their first game. Use it to enter any Pill or Special — no limit on how many friends you can refer.
+          </p>
+          {/* Callout box */}
+          <div className="rounded-xl border-l-2 px-4 py-3 text-sm"
+            style={{ borderLeftColor: "var(--brand-amber)", backgroundColor: "rgba(232,163,61,0.08)" }}>
+            <p style={{ color: "var(--foreground)", fontWeight: 500 }}>
+              Refer more, earn more: invite 5 friends and unlock a ₦1,000 bonus. Get to 15, and it&apos;s ₦3,000. Both paid straight to your real balance — fully withdrawable.
+            </p>
+          </div>
+        </motion.div>
+
+        {/* Column B — For your friend (the referee) */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-40px" }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+          className="relative overflow-hidden rounded-2xl border p-6 sm:p-8"
+          style={{ borderColor: "var(--border)", backgroundColor: "rgba(18,22,31,0.5)" }}>
+          <div aria-hidden="true"
+            className="pointer-events-none absolute -inset-px -z-10 rounded-2xl opacity-0 blur-md transition-opacity duration-500"
+            style={{ background: "linear-gradient(135deg, rgba(232,163,61,0.2), rgba(124,111,232,0.1))" }} />
+          <div className="mb-4 flex items-center gap-3">
+            <div className="grid h-10 w-10 place-items-center rounded-xl border"
+              style={{ borderColor: "rgba(232,163,61,0.3)", backgroundColor: "rgba(232,163,61,0.1)" }}>
+              <Users className="h-5 w-5" style={{ color: "var(--brand-amber)" }} />
+            </div>
+            <h3 className="font-display text-lg font-bold" style={{ color: "var(--foreground)" }}>For your friend (the referee)</h3>
+          </div>
+          <p className="text-sm leading-relaxed mb-5" style={{ color: "var(--muted-foreground)" }}>
+            New players who join via a referral link get 15% of their first deposit matched, up to ₦1,000 — credited to real balance, fully withdrawable. It lands once they&apos;ve made their first deposit and played their first game.
+          </p>
+          <div className="rounded-xl border-l-2 px-4 py-3 text-sm"
+            style={{ borderLeftColor: "var(--brand-green)", backgroundColor: "rgba(34,197,94,0.08)" }}>
+            <p style={{ color: "var(--foreground)", fontWeight: 500 }}>
+              Instant welcome bonus for new players — no code needed, just join via the link.
+            </p>
+          </div>
+        </motion.div>
+      </div>
+    </section>
+  );
+}
+
 // ── Payout CTA ─────────────────────────────────────────────────────────────
 function Payout() {
   const AVATAR_COLORS = ["var(--brand-indigo)", "var(--brand-violet)", "var(--brand-amber)", "var(--brand-green)", "var(--brand-indigo)"];
@@ -426,6 +523,7 @@ export default function LandingPage() {
       <Ticker />
       <Products />
       <HowItWorks />
+      <InviteEarn />
       <Payout />
       <Footer />
     </main>
