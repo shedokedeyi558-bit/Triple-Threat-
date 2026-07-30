@@ -7,9 +7,11 @@ import { AdminLogin } from "./AdminLogin";
 import { Menu, X, Settings, Home, Users, CreditCard, BarChart2, LogOut, Loader2, Megaphone, BookOpen } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { removeAdminToken } from "@/lib/api";
 import { showToast } from "@/components/ui/Toast";
+import { getHasUnsavedChanges } from "@/hooks/useUnsavedChanges";
+import { motion, AnimatePresence } from "framer-motion";
 
 // Admin sessions are 30 minutes — warn at 25-minute mark
 const SESSION_DURATION_MS = 30 * 60 * 1000;
@@ -20,7 +22,10 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
   const warnedRef = useRef(false);
+  const [pendingNavigation, setPendingNavigation] = useState<string | null>(null);
+  const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
 
   // Pre-expiry warning — fires once at the 25-min mark
   useEffect(() => {
@@ -40,6 +45,21 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     setLoggingOut(true);
     removeAdminToken();
     dispatch({ type: "ADMIN_LOGOUT" });
+  };
+
+  const handleTabClick = (e: React.MouseEvent, href: string) => {
+    if (getHasUnsavedChanges()) {
+      e.preventDefault();
+      setPendingNavigation(href);
+      setShowUnsavedDialog(true);
+    }
+  };
+
+  const confirmLeave = () => {
+    setShowUnsavedDialog(false);
+    if (pendingNavigation) {
+      router.push(pendingNavigation);
+    }
   };
 
   if (!state.isAuthenticated) {
@@ -139,6 +159,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               <Link
                 key={href}
                 href={href}
+                onClick={(e) => handleTabClick(e, href)}
                 className="flex flex-col items-center justify-center gap-1 py-2 px-3 rounded-lg flex-1 transition-all active:scale-90 active:opacity-60"
                 style={{ color: isActive ? "var(--accent-amber)" : "var(--text-muted)" }}
               >
@@ -149,6 +170,51 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           })}
         </div>
       </nav>
+
+      {/* ── UNSAVED CHANGES DIALOG ── */}
+      <AnimatePresence>
+        {showUnsavedDialog && (
+          <motion.div 
+            initial={{ opacity: 0 }} 
+            animate={{ opacity: 1 }} 
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+            onClick={() => setShowUnsavedDialog(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.92, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.92, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-sm rounded-2xl p-6 space-y-4 border"
+              style={{ backgroundColor: "var(--bg-card)", borderColor: "rgba(239,68,68,0.3)" }}
+            >
+              <div>
+                <p className="font-bold text-base text-white mb-1">Leave without saving?</p>
+                <p className="text-sm text-gray-400 leading-relaxed">
+                  Your changes will be lost. Are you sure you want to leave?
+                </p>
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={() => setShowUnsavedDialog(false)}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-bold text-gray-400 border transition-colors hover:border-gray-300 hover:text-gray-300"
+                  style={{ borderColor: "var(--border-subtle)" }}
+                >
+                  Stay
+                </button>
+                <button
+                  onClick={confirmLeave}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white transition-colors"
+                  style={{ backgroundColor: "#ef4444" }}
+                >
+                  Leave
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { adminApi, ApiError } from "@/lib/api";
 import { X, Plus, Loader2, Check, ArrowLeft } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
 
 const categories = ["Football", "Basketball", "Cricket", "Crypto", "Politics", "Entertainment", "Technology", "Science", "Food", "Lifestyle", "General Knowledge"];
 
@@ -53,6 +54,35 @@ export function CreatePillPackForm({ isOpen, onClose, onSuccess }: CreatePillPac
   const [activePillIdx, setActivePillIdx] = useState(0);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [originalState, setOriginalState] = useState<{
+    packName: string;
+    packCategory: string;
+    packEntryFee: number | "";
+    packPrize: number | "";
+    pills: PillEntry[];
+  } | null>(null);
+
+  // Track unsaved changes
+  const isDirty = isOpen && originalState !== null && (
+    packName !== originalState.packName ||
+    packCategory !== originalState.packCategory ||
+    packEntryFee !== originalState.packEntryFee ||
+    packPrize !== originalState.packPrize ||
+    JSON.stringify(pills) !== JSON.stringify(originalState.pills)
+  );
+  useUnsavedChanges(isDirty);
+
+  useEffect(() => {
+    if (isOpen && originalState === null) {
+      setOriginalState({
+        packName,
+        packCategory,
+        packEntryFee,
+        packPrize,
+        pills,
+      });
+    }
+  }, [isOpen, originalState, packName, packCategory, packEntryFee, packPrize, pills]);
 
   const activePill = pills[activePillIdx];
   const updatePill = (patch: Partial<PillEntry>) => {
