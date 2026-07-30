@@ -83,7 +83,10 @@ export default function BlitzResultsPage() {
     );
   }
 
-  const myPrize = results.my_prize;
+  const myPrize = results.my_prize ?? results.player?.prize ?? null;
+  // Use player.position (real final rank, even outside top 20) if available
+  const myPosition = results.player?.position ?? results.my_position;
+  const myScore = results.player?.score ?? results.my_score;
   const myPhone = state.player?.phone;
 
   return (
@@ -228,14 +231,14 @@ export default function BlitzResultsPage() {
               <p className="text-2xl mb-1">💪</p>
               <p className="font-bold text-lg" style={{ color: "var(--text-primary)" }}>Good effort!</p>
               <p className="text-sm mt-1" style={{ color: "var(--text-secondary)" }}>
-                You scored {results.my_score} • Rank #{results.my_position ?? "—"}. Watch for the next tournament.
+                You scored {myScore} • Rank #{myPosition ?? "—"}. Watch for the next tournament.
               </p>
             </motion.div>
           )}
         </AnimatePresence>
 
         {/* My score summary */}
-        {results.my_score != null && (
+        {myScore != null && (
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
@@ -248,12 +251,12 @@ export default function BlitzResultsPage() {
             <div className="grid grid-cols-2 gap-3">
               <div className="rounded-xl p-3" style={{ backgroundColor: "var(--bg-base)" }}>
                 <p className="text-[10px] uppercase tracking-wide mb-1 font-bold" style={{ color: "var(--text-muted)" }}>Score</p>
-                <p className="font-black text-2xl font-mono" style={{ color: "var(--accent-amber)" }}>{results.my_score}</p>
+                <p className="font-black text-2xl font-mono" style={{ color: "var(--accent-amber)" }}>{myScore}</p>
               </div>
               <div className="rounded-xl p-3" style={{ backgroundColor: "var(--bg-base)" }}>
-                <p className="text-[10px] uppercase tracking-wide mb-1 font-bold" style={{ color: "var(--text-muted)" }}>Rank</p>
+                <p className="text-[10px] uppercase tracking-wide mb-1 font-bold" style={{ color: "var(--text-muted)" }}>Final Rank</p>
                 <p className="font-black text-2xl font-mono" style={{ color: "var(--text-primary)" }}>
-                  #{results.my_position ?? "—"}
+                  #{myPosition ?? "—"}
                 </p>
               </div>
             </div>

@@ -156,9 +156,12 @@ export default function AdminPillsPage() {
 
   useEffect(() => { 
     (async () => {
+      console.log("[DEBUG] useEffect triggered - showInactive changed to:", showInactive);
       setLoading(true);
       try {
+        console.log("[DEBUG] About to call getPillPacks with showInactive =", showInactive);
         const res = await adminApi.getPillPacks(showInactive);
+        console.log("[DEBUG] Response received, packs count:", res.packs?.length);
         setPacks(res.packs as PillPack[]);
       } catch (err) {
         setError(err instanceof ApiError ? err.message : "Failed to load packs");
@@ -285,7 +288,10 @@ export default function AdminPillsPage() {
           </div>
           {/* Toggle chip for inactive packs */}
           <button
-            onClick={() => setShowInactive(!showInactive)}
+            onClick={() => {
+              console.log("[DEBUG] Toggle clicked - current showInactive:", showInactive, "-> will become:", !showInactive);
+              setShowInactive(!showInactive);
+            }}
             className="px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-2"
             style={showInactive
               ? { backgroundColor: "rgba(76,111,255,0.2)", border: "1px solid rgba(76,111,255,0.4)", color: "var(--accent-indigo)" }

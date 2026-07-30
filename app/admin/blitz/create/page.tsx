@@ -14,10 +14,12 @@ interface QuestionDraft {
   format: "multiple_choice" | "type_answer";
   options: string[];
   correct_answer: string;
+  image_url?: string;  // NEW — URL returned after upload
 }
 interface TournamentDetails {
   title: string; description: string; entry_fee: string;
   question_count: string; time_limit_seconds: string; max_participants: string;
+  per_question_time_seconds: string;  // NEW
   cash_winner_count: string; payout_distribution: string[];
   total_payout_percent: string; ticket_tier_percent: string; guaranteed_minimum: string;
 }
@@ -190,8 +192,9 @@ export default function AdminBlitzCreatePage() {
 
   const [details, setDetails] = useState<TournamentDetails>({
     title: "", description: "", entry_fee: "", question_count: "",
-    time_limit_seconds: "", max_participants: "", cash_winner_count: "",
-    payout_distribution: [], total_payout_percent: "", ticket_tier_percent: "", guaranteed_minimum: "",
+    time_limit_seconds: "", max_participants: "", per_question_time_seconds: "8",
+    cash_winner_count: "", payout_distribution: [],
+    total_payout_percent: "", ticket_tier_percent: "", guaranteed_minimum: "",
   });
   const [schedule, setSchedule] = useState<TournamentSchedule>({
     registration_start: "", tournament_start: "", tournament_end: "",
@@ -200,10 +203,59 @@ export default function AdminBlitzCreatePage() {
   const [qDraft, setQDraft] = useState<QuestionDraft>({
     question: "", format: "multiple_choice", options: ["", "", "", ""], correct_answer: "",
   });
+  const [imageUploading, setImageUploading] = useState(false);
+  const [imageUploadError, setImageUploadError] = useState("");
+  const [warnings, setWarnings] = useState<string[]>([]);
 
   if (!state.isAuthenticated) { router.push("/admin/login"); return null; }
 
   const requiredCount = parseInt(details.question_count) || 0;
+
+  // ── Handle image upload for questions ──────────────────────────────────
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.currentTarget.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      setImageUploadError("Image must be under 5MB");
+      return;
+    }
+    if (![
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+      "image/gif",
+    ].includes(file.type)) {
+      setImageUploadError("Only JPEG, PNG, WebP, GIF allowed");
+      return;
+    }
+    setImageUploading(true);
+    setImageUploadError("");
+    try {
+      // Create FormData for multipart upload
+      const formData = new FormData();
+      formData.append("file", file);
+      // For now, use a temporary tournament ID since we haven't created the tournament yet
+      // In production, this would be called after the tournament is created
+      const tempTournamentId = "temp-upload";
+      const response = await fetch(
+        `/api/admin/blitz/${tempTournamentId}/questions/upload-image`,
+        { method: "POST", body: formData }
+      );
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Upload failed");
+      }
+      const uploadRes = await response.json();
+      setQDraft({ ...qDraft, image_url: uploadRes.data.url });
+      setImageUploadError("");
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Upload failed";
+      setImageUploadError(message);
+    } finally {
+      setImageUploading(false);
+    }
+  };
 
   // ── Validation ──────────────────────────────────────────────────────────
   const validateStep1 = (): string | null => {
@@ -235,16 +287,26 @@ export default function AdminBlitzCreatePage() {
   // ── Submit ──────────────────────────────────────────────────────────────
   const handlePublish = async () => {
     if (questions.length < requiredCount) { setError(`Need ${requiredCount} questions, have ${questions.length}`); return; }
-    setLoading(true); setError("");
+    setLoading(true); setError(""); setWarnings([]);
     try {
+      const perQ = details.per_question_time_seconds.trim();
       const res = await adminApi.createBlitz({
         title: details.title, description: details.description || undefined,
         entry_fee: Number(details.entry_fee), question_count: Number(details.question_count),
         time_limit_seconds: Number(details.time_limit_seconds),
+        per_question_time_seconds: perQ ? Number(perQ) : null,
+        max_participants: details.max_participants ? Number(details.max_participants) : undefined,
+        cash_winner_count: details.cash_winner_count ? Number(details.cash_winner_count) : undefined,
+        payout_distribution: details.payout_distribution.length ? details.payout_distribution.map(Number) : undefined,
+        total_payout_percent: details.total_payout_percent ? Number(details.total_payout_percent) : undefined,
+        ticket_tier_percent: details.ticket_tier_percent ? Number(details.ticket_tier_percent) : undefined,
+        guaranteed_minimum: details.guaranteed_minimum ? Number(details.guaranteed_minimum) : undefined,
         registration_start: new Date(schedule.registration_start).toISOString(),
         tournament_start: new Date(schedule.tournament_start).toISOString(),
         tournament_end: new Date(schedule.tournament_end).toISOString(),
       });
+      // Surface any backend warnings (e.g. high payout %, large participant count)
+      if (res.warnings && res.warnings.length > 0) setWarnings(res.warnings);
       const id = res.tournament.id;
       for (let i = 0; i < questions.length; i++) {
         const q = questions[i];
@@ -252,6 +314,7 @@ export default function AdminBlitzCreatePage() {
           question: q.question, format: q.format,
           options: q.format === "multiple_choice" ? q.options.filter((o) => o.trim()) : undefined,
           correct_answer: q.correct_answer, order_index: i + 1,
+          ...(q.image_url ? { image_url: q.image_url } : {}),
         });
       }
       await adminApi.publishBlitz(id);
@@ -319,6 +382,18 @@ export default function AdminBlitzCreatePage() {
           >
             {notice.type === "success" ? "✓ " : "ℹ "}{notice.text}
           </motion.div>
+        )}
+
+        {/* ── Backend warnings (e.g. high payout %, large participant count) ── */}
+        {warnings.length > 0 && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 16 }}>
+            {warnings.map((w, i) => (
+              <div key={i} style={{ width: "100%", boxSizing: "border-box", padding: "10px 14px", borderRadius: 10, border: "1px solid rgba(249,193,7,0.35)", backgroundColor: "rgba(249,193,7,0.06)", color: "var(--accent-amber)", fontSize: 12, display: "flex", alignItems: "flex-start", gap: 8 }}>
+                <span style={{ flexShrink: 0 }}>⚠</span>
+                <span>{w}</span>
+              </div>
+            ))}
+          </div>
         )}
 
         {/* ── Dev tools — visible on all steps ── */}

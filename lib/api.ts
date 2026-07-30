@@ -848,6 +848,7 @@ export interface BlitzTournament {
   entry_fee: number;
   question_count: number;
   time_limit_seconds: number;
+  per_question_time_seconds?: number | null;  // NEW — per-question countdown; null = no per-question limit
   registration_start: string;
   tournament_start: string;
   tournament_end: string;
@@ -862,6 +863,11 @@ export interface BlitzTournament {
   ticket_tier_percent?: number;     // % of remaining going to free-ticket tier
   guaranteed_minimum?: number;
   max_participants?: number;
+  position_prizes?: {               // NEW — non-cash prizes for specific positions
+    position: number;
+    prize_type: "free_ticket" | "discount";
+    discount_percent?: number;
+  }[];
   created_at: string;
 }
 
@@ -872,12 +878,14 @@ export interface BlitzQuestion {
   options?: string[];
   answer_input_mode?: "text" | "numeric";  // for type_answer questions; defaults to "text"
   order_index: number;
+  image_url?: string | null;               // NEW — optional question image
 }
 
 export interface BlitzAttemptStart {
   attempt_id: string;
   questions: BlitzQuestion[];
   time_limit_seconds: number;
+  per_question_time_seconds?: number | null;  // NEW — per-question limit; null = disabled
   started_at: string;
 }
 
@@ -901,6 +909,17 @@ export interface BlitzResult {
   }[];
   my_position?: number;
   my_score?: number;
+  // player object with real final rank (always correct, even outside top 20)
+  player?: {
+    position: number;
+    score: number;
+    total_time_ms?: number;
+    prize?: {
+      prize_type: "cash" | "free_ticket" | "discount" | null;
+      amount: number;
+      ticket_code?: string;
+    } | null;
+  } | null;
   my_prize?: {
     position?: number;
     prize_type: "cash" | "free_ticket" | "discount" | null;
@@ -1366,12 +1385,19 @@ export const adminApi = {
     entry_fee: number;
     question_count: number;
     time_limit_seconds: number;
+    per_question_time_seconds?: number | null;  // NEW
     registration_start: string;
     tournament_start: string;
     tournament_end: string;
     platform_cut_percent?: number;
+    max_participants?: number;
+    cash_winner_count?: number;
+    payout_distribution?: number[];
+    total_payout_percent?: number;
+    ticket_tier_percent?: number;
+    guaranteed_minimum?: number;
   }) =>
-    request<{ tournament: BlitzTournament }>("/api/admin/blitz", {
+    request<{ tournament: BlitzTournament; warnings?: string[] }>("/api/admin/blitz", {
       method: "POST", body: data, token: getAdminToken()
     }),
 
@@ -1381,10 +1407,26 @@ export const adminApi = {
     options?: string[];
     correct_answer: string;
     order_index?: number;
+    image_url?: string;  // NEW
   }) =>
     request<{ question: BlitzQuestion }>(`/api/admin/blitz/${id}/questions`, {
       method: "POST", body: data, token: getAdminToken()
     }),
+
+  uploadBlitzQuestionImage: (tournamentId: string, file: File): Promise<{ url: string }> => {
+    const formData = new FormData();
+    formData.append("image", file);
+    const token = getAdminToken();
+    return fetch(`${BASE_URL}/api/admin/blitz/${tournamentId}/questions/upload-image`, {
+      method: "POST",
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: formData,
+    }).then(async (res) => {
+      const json = await res.json().catch(() => ({ success: false, error: "Invalid response" }));
+      if (!res.ok || !json.success) throw new ApiError(json.error || `Upload failed (${res.status})`, res.status);
+      return json.data as { url: string };
+    });
+  },
 
   publishBlitz: (id: string) =>
     request<{ message: string }>(`/api/admin/blitz/${id}/publish`, {

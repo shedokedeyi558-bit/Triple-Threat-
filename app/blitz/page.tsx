@@ -74,10 +74,25 @@ function TournamentCard({ t }: { t: BlitzTournament }) {
         </div>
         <div className="bg-[#0A0A0A] rounded-xl p-3 text-center">
           <p className="text-[10px] text-gray-600 mb-1 uppercase tracking-wide">Players</p>
-          <p className="text-white font-bold text-base flex items-center justify-center gap-1">
-            <Users size={12} />{t.total_registered}
+          <p className="text-white font-bold text-sm flex items-center justify-center gap-1">
+            <Users size={12} />
+            {t.total_registered}{t.max_participants ? `/${t.max_participants}` : ""}
           </p>
         </div>
+      </div>
+
+      {/* Speed badge + position prizes */}
+      <div className="flex flex-wrap items-center gap-2">
+        {t.per_question_time_seconds != null && (
+          <span className="text-[10px] font-bold px-2 py-1 rounded-md" style={{ backgroundColor: "rgba(232,163,61,0.12)", color: "var(--accent-amber)", border: "1px solid rgba(232,163,61,0.25)" }}>
+            ⚡ {t.per_question_time_seconds}s/question
+          </span>
+        )}
+        {(t.position_prizes ?? []).map((p) => (
+          <span key={p.position} className="text-[10px] font-bold px-2 py-1 rounded-md" style={{ backgroundColor: "rgba(124,111,232,0.1)", color: "var(--accent-violet)", border: "1px solid rgba(124,111,232,0.2)" }}>
+            #{p.position}: {p.prize_type === "free_ticket" ? "Free entry 🎫" : `${p.discount_percent ?? "?"}% off 🏷️`}
+          </span>
+        ))}
       </div>
 
       {/* Footer */}

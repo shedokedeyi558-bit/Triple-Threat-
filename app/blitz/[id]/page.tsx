@@ -224,9 +224,19 @@ export default function BlitzDetailPage() {
             </div>
           ))}
         </div>
-        <div className="flex items-center gap-2 text-sm" style={{ color: "var(--text-muted)" }}>
-          <Users size={14} />
-          <span>{tournament.total_registered} registered{tournament.max_participants ? ` / ${tournament.max_participants} max` : ""}</span>
+        <div className="flex items-center flex-wrap gap-3">
+          <div className="flex items-center gap-2 text-sm" style={{ color: "var(--text-muted)" }}>
+            <Users size={14} />
+            <span>
+              {tournament.total_registered}
+              {tournament.max_participants ? ` / ${tournament.max_participants}` : ""} players
+            </span>
+          </div>
+          {tournament.per_question_time_seconds != null && (
+            <span className="flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-lg" style={{ backgroundColor: "rgba(232,163,61,0.12)", color: "var(--accent-amber)", border: "1px solid rgba(232,163,61,0.3)" }}>
+              <Zap size={11} /> {tournament.per_question_time_seconds}s per question
+            </span>
+          )}
         </div>
       </motion.div>
 
@@ -393,8 +403,11 @@ export default function BlitzDetailPage() {
         )}
 
         {tournament.status === "scoring" && (
-          <div className="w-full py-4 rounded-xl text-center border" style={{ backgroundColor: "var(--bg-card)", borderColor: "rgba(234,179,8,0.25)" }}>
-            <p className="font-bold text-sm" style={{ color: "var(--accent-amber)" }}>Scoring in progress...</p>
+          <div className="space-y-3">
+            <div className="w-full py-4 rounded-xl text-center border" style={{ backgroundColor: "rgba(234,179,8,0.06)", borderColor: "rgba(234,179,8,0.25)" }}>
+              <p className="font-bold text-sm" style={{ color: "var(--accent-amber)" }}>⚡ Tournament ended — calculating results</p>
+              <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>Results will be posted automatically. Keep this page open.</p>
+            </div>
           </div>
         )}
       </motion.div>
