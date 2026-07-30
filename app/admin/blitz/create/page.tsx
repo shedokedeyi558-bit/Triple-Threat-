@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAdmin } from "@/context/AdminContext";
@@ -161,6 +161,8 @@ function DevTools({ sampleCategory, setSampleCategory, step, details, setDetails
 }
 
 // ─── Main page ──────────────────────────────────────────────────────────────
+const DRAFT_KEY = "blitz_draft_v1";
+
 export default function AdminBlitzCreatePage() {
   const { state } = useAdmin();
   const router = useRouter();
@@ -172,14 +174,13 @@ export default function AdminBlitzCreatePage() {
 
   const [details, setDetails] = useState<TournamentDetails>({
     title: "", description: "", entry_fee: "", question_count: "",
-    time_limit_seconds: "", max_participants: "", per_question_time_seconds: "8",
+    time_limit_seconds: "", max_participants: "", per_question_time_seconds: "",
     cash_winner_count: "", payout_distribution: [],
     total_payout_percent: "", guaranteed_minimum: "",
   });
   const [schedule, setSchedule] = useState<TournamentSchedule>({
     registration_start: "", tournament_start: "", tournament_end: "",
   });
-  // Position prizes: 2nd and 3rd place non-cash awards
   const [positionPrizes, setPositionPrizes] = useState<PositionPrizeDraft[]>([
     { position: 2, type: "none", discount_percent: "50" },
     { position: 3, type: "none", discount_percent: "50" },
@@ -191,6 +192,50 @@ export default function AdminBlitzCreatePage() {
   const [imageUploading, setImageUploading] = useState(false);
   const [imageUploadError, setImageUploadError] = useState("");
   const [warnings, setWarnings] = useState<string[]>([]);
+
+  // ── Fix 2: Restore draft from sessionStorage on mount ──────────────────
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem(DRAFT_KEY);
+      if (saved) {
+        const { step: s, details: d, schedule: sc, positionPrizes: pp, questions: qs } = JSON.parse(saved);
+        if (d) setDetails(d);
+        if (sc) setSchedule(sc);
+        if (pp) setPositionPrizes(pp);
+        if (qs) setQuestions(qs);
+        if (s) setStep(s);
+      }
+    } catch { /* corrupt storage — ignore */ }
+  }, []);
+
+  // ── Fix 2: Persist draft to sessionStorage on every change ─────────────
+  const persistDraft = useCallback((
+    s: number,
+    d: TournamentDetails,
+    sc: TournamentSchedule,
+    pp: PositionPrizeDraft[],
+    qs: QuestionDraft[],
+  ) => {
+    try {
+      sessionStorage.setItem(DRAFT_KEY, JSON.stringify({ step: s, details: d, schedule: sc, positionPrizes: pp, questions: qs }));
+    } catch { /* storage full or unavailable */ }
+  }, []);
+
+  const clearDraft = () => { try { sessionStorage.removeItem(DRAFT_KEY); } catch { /**/ } };
+
+  // Wrap setDetails / setSchedule / setPositionPrizes / setQuestions / setStep
+  // to always persist after any update
+  const updateDetails = (d: TournamentDetails) => { setDetails(d); persistDraft(step, d, schedule, positionPrizes, questions); };
+  const updateSchedule = (sc: TournamentSchedule) => { setSchedule(sc); persistDraft(step, details, sc, positionPrizes, questions); };
+  const updatePositionPrizes = (pp: PositionPrizeDraft[]) => { setPositionPrizes(pp); persistDraft(step, details, schedule, pp, questions); };
+  const updateQuestions: React.Dispatch<React.SetStateAction<QuestionDraft[]>> = (action) => {
+    setQuestions((prev) => {
+      const next = typeof action === "function" ? action(prev) : action;
+      persistDraft(step, details, schedule, positionPrizes, next);
+      return next;
+    });
+  };
+  const goToStep = (s: number) => { setStep(s); persistDraft(s, details, schedule, positionPrizes, questions); };
 
   if (!state.isAuthenticated) { router.push("/admin/login"); return null; }
 
@@ -220,12 +265,22 @@ export default function AdminBlitzCreatePage() {
     }
   };
 
+  // ── Fix 1: Auto-compute time_limit_seconds when per_question time is set ─
+  const perQNum = Number(details.per_question_time_seconds);
+  const qCountNum = Number(details.question_count);
+  const perQActive = perQNum >= 3;
+  const computedTimeLimit = perQActive && qCountNum > 0 ? perQNum * qCountNum : null;
+  // The value actually sent to the backend
+  const effectiveTimeLimit = computedTimeLimit ?? Number(details.time_limit_seconds);
+
   // ── Validation ──────────────────────────────────────────────────────────
   const validateStep1 = (): string | null => {
     if (!details.title.trim()) return "Title is required";
     if (!details.entry_fee || isNaN(Number(details.entry_fee)) || Number(details.entry_fee) <= 0) return "Valid entry fee required";
     if (!details.question_count || Number(details.question_count) < 1) return "Valid question count required";
-    if (!details.time_limit_seconds || Number(details.time_limit_seconds) < 10) return "Time limit must be at least 10 seconds";
+    // Time limit: accept computed or manual
+    if (!perQActive && (!details.time_limit_seconds || Number(details.time_limit_seconds) < 10))
+      return "Time limit must be at least 10 seconds (or set a per-question time)";
     if (!details.max_participants || Number(details.max_participants) < 1) return "Valid max participants required";
     if (!details.cash_winner_count || Number(details.cash_winner_count) < 1) return "Valid cash winner count required";
     const cashWinners = Number(details.cash_winner_count);
@@ -251,7 +306,6 @@ export default function AdminBlitzCreatePage() {
     setLoading(true); setError(""); setWarnings([]);
     try {
       const perQ = details.per_question_time_seconds.trim();
-      // Build position_prizes array from drafts — omit "none" entries
       const builtPositionPrizes = positionPrizes
         .filter((p) => p.type !== "none")
         .map((p) => ({
@@ -263,7 +317,7 @@ export default function AdminBlitzCreatePage() {
       const res = await adminApi.createBlitz({
         title: details.title, description: details.description || undefined,
         entry_fee: Number(details.entry_fee), question_count: Number(details.question_count),
-        time_limit_seconds: Number(details.time_limit_seconds),
+        time_limit_seconds: effectiveTimeLimit,   // uses computed value when perQ is active
         per_question_time_seconds: perQ ? Number(perQ) : null,
         max_participants: details.max_participants ? Number(details.max_participants) : undefined,
         cash_winner_count: details.cash_winner_count ? Number(details.cash_winner_count) : undefined,
@@ -289,6 +343,7 @@ export default function AdminBlitzCreatePage() {
         });
       }
       await adminApi.publishBlitz(id);
+      clearDraft();                // Fix 2: clear on successful publish
       router.push("/admin/blitz");
     } catch (e) {
       if (e instanceof ApiError) setError(e.message);
@@ -298,8 +353,9 @@ export default function AdminBlitzCreatePage() {
   };
 
   const devToolsProps = {
-    sampleCategory, setSampleCategory, step, details, setDetails,
-    setSchedule, setQuestions, setStep, requiredCount, questions, setNotice, setError,
+    sampleCategory, setSampleCategory, step: step, details, setDetails: updateDetails,
+    setSchedule: updateSchedule, setQuestions: updateQuestions, setStep: goToStep,
+    requiredCount, questions, setNotice, setError,
   };
 
   // ── Payout preview (live — computed from form values) ───────────────────
@@ -314,7 +370,7 @@ export default function AdminBlitzCreatePage() {
 
         {/* ── Page header ── */}
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24, minWidth: 0 }}>
-          <button onClick={() => step > 1 ? setStep(step - 1) : router.push("/admin/blitz")}
+          <button onClick={() => { if (step > 1) { goToStep(step - 1); } else { clearDraft(); router.push("/admin/blitz"); } }}
             style={{ padding: 8, borderRadius: 8, border: "1px solid #1E1E1E", backgroundColor: "#141414", cursor: "pointer", flexShrink: 0 }}>
             <ArrowLeft size={16} color="#9ca3af" />
           </button>
@@ -374,33 +430,43 @@ export default function AdminBlitzCreatePage() {
                 <p style={sectionHeadStyle}>Tournament Details</p>
                 <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                   <Field label="Title *">
-                    <input style={inputStyle} placeholder="e.g. Weekend Blitz #1" value={details.title} onChange={(e) => setDetails({ ...details, title: e.target.value })} />
+                    <input style={inputStyle} placeholder="e.g. Weekend Blitz #1" value={details.title} onChange={(e) => updateDetails({ ...details, title: e.target.value })} />
                   </Field>
                   <Field label="Description">
-                    <textarea style={{ ...inputStyle, resize: "none" }} rows={2} placeholder="Optional description..." value={details.description} onChange={(e) => setDetails({ ...details, description: e.target.value })} />
+                    <textarea style={{ ...inputStyle, resize: "none" }} rows={2} placeholder="Optional description..." value={details.description} onChange={(e) => updateDetails({ ...details, description: e.target.value })} />
                   </Field>
                   <FieldGrid>
                     <Field label="Entry Fee (₦) *">
-                      <input style={inputStyle} type="number" placeholder="500" value={details.entry_fee} onChange={(e) => setDetails({ ...details, entry_fee: e.target.value })} />
+                      <input style={inputStyle} type="number" placeholder="500" value={details.entry_fee} onChange={(e) => updateDetails({ ...details, entry_fee: e.target.value })} />
                     </Field>
                     <Field label="Question Count *">
-                      <input style={inputStyle} type="number" placeholder="10" value={details.question_count} onChange={(e) => setDetails({ ...details, question_count: e.target.value })} />
+                      <input style={inputStyle} type="number" placeholder="10" value={details.question_count} onChange={(e) => updateDetails({ ...details, question_count: e.target.value })} />
                     </Field>
-                    <Field label="Time Limit (sec) *">
-                      <input style={inputStyle} type="number" placeholder="300" value={details.time_limit_seconds} onChange={(e) => setDetails({ ...details, time_limit_seconds: e.target.value })} />
-                    </Field>
+                    {/* Fix 1: Show Max Participants always; Time Limit only when no per-question time */}
+                    {!perQActive && (
+                      <Field label="Time Limit (sec) *">
+                        <input style={inputStyle} type="number" placeholder="300" value={details.time_limit_seconds} onChange={(e) => updateDetails({ ...details, time_limit_seconds: e.target.value })} />
+                      </Field>
+                    )}
                     <Field label="Max Participants *">
-                      <input style={inputStyle} type="number" placeholder="1000" value={details.max_participants} onChange={(e) => setDetails({ ...details, max_participants: e.target.value })} />
+                      <input style={inputStyle} type="number" placeholder="1000" value={details.max_participants} onChange={(e) => updateDetails({ ...details, max_participants: e.target.value })} />
                     </Field>
                   </FieldGrid>
-                  {/* Bug 5: Per-question timer field */}
+                  {/* Per-question timer — when set, replaces the Time Limit field */}
                   <Field label="Per-Question Time (sec)">
-                    <input style={inputStyle} type="number" placeholder="8" min={3} max={120}
+                    <input style={inputStyle} type="number" placeholder="Leave blank for manual time limit" min={3} max={120}
                       value={details.per_question_time_seconds}
-                      onChange={(e) => setDetails({ ...details, per_question_time_seconds: e.target.value })} />
-                    <p style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 4 }}>
-                      Players get this many seconds per question. 8 seconds recommended. Leave blank to disable.
-                    </p>
+                      onChange={(e) => updateDetails({ ...details, per_question_time_seconds: e.target.value })} />
+                    {/* Fix 1: Show computed total when per-question is active */}
+                    {computedTimeLimit != null ? (
+                      <p style={{ fontSize: 11, color: "var(--accent-indigo)", marginTop: 5, fontWeight: 600 }}>
+                        ✓ Total quiz time: {computedTimeLimit}s ({qCountNum} question{qCountNum !== 1 ? "s" : ""} × {perQNum}s)
+                      </p>
+                    ) : (
+                      <p style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 4 }}>
+                        Set to auto-compute total time. Leave blank to use the Time Limit field above instead.
+                      </p>
+                    )}
                   </Field>
                 </div>
               </div>
@@ -414,12 +480,12 @@ export default function AdminBlitzCreatePage() {
                       <input style={inputStyle} type="number" placeholder="3" value={details.cash_winner_count}
                         onChange={(e) => {
                           const count = Number(e.target.value);
-                          setDetails({ ...details, cash_winner_count: e.target.value,
+                          updateDetails({ ...details, cash_winner_count: e.target.value,
                             payout_distribution: Array(count).fill("").map((_, i) => details.payout_distribution[i] ?? "") });
                         }} />
                     </Field>
                     <Field label="Guaranteed Min">
-                      <input style={inputStyle} type="number" placeholder="Optional" value={details.guaranteed_minimum} onChange={(e) => setDetails({ ...details, guaranteed_minimum: e.target.value })} />
+                      <input style={inputStyle} type="number" placeholder="Optional" value={details.guaranteed_minimum} onChange={(e) => updateDetails({ ...details, guaranteed_minimum: e.target.value })} />
                     </Field>
                   </FieldGrid>
 
@@ -431,7 +497,7 @@ export default function AdminBlitzCreatePage() {
                           <span style={{ fontSize: 11, fontFamily: "monospace", color: "var(--text-muted)", flexShrink: 0, width: 52 }}>Rank {i + 1}</span>
                           <input style={{ ...inputStyle, flex: 1, minWidth: 0 }} type="number" placeholder="0"
                             value={details.payout_distribution[i] ?? ""}
-                            onChange={(e) => { const d = [...details.payout_distribution]; d[i] = e.target.value; setDetails({ ...details, payout_distribution: d }); }} />
+                            onChange={(e) => { const d = [...details.payout_distribution]; d[i] = e.target.value; updateDetails({ ...details, payout_distribution: d }); }} />
                           <span style={{ fontSize: 12, color: "var(--text-muted)", flexShrink: 0 }}>%</span>
                         </div>
                       ))}
@@ -442,10 +508,10 @@ export default function AdminBlitzCreatePage() {
                   )}
 
                   <Field label="Total Payout % *">
-                    <input style={inputStyle} type="number" placeholder="70" value={details.total_payout_percent} onChange={(e) => setDetails({ ...details, total_payout_percent: e.target.value })} />
+                    <input style={inputStyle} type="number" placeholder="70" value={details.total_payout_percent} onChange={(e) => updateDetails({ ...details, total_payout_percent: e.target.value })} />
                   </Field>
 
-                  {/* Bug 4: Position prizes — replaces ticket_tier_percent */}
+                  {/* Position prizes */}
                   <div>
                     <label style={labelStyle}>Position Prizes (optional)</label>
                     <p style={{ fontSize: 10, color: "var(--text-muted)", marginBottom: 10 }}>
@@ -453,12 +519,12 @@ export default function AdminBlitzCreatePage() {
                     </p>
                     {positionPrizes.map((pp, i) => (
                       <div key={pp.position} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, minWidth: 0 }}>
-                        <span style={{ fontSize: 11, fontFamily: "monospace", color: "var(--text-muted)", flexShrink: 0, width: 52 }}>{pp.position === 2 ? "2nd" : pp.position === 3 ? "3rd" : `${pp.position}th"}`}</span>
+                        <span style={{ fontSize: 11, fontFamily: "monospace", color: "var(--text-muted)", flexShrink: 0, width: 52 }}>{pp.position === 2 ? "2nd" : pp.position === 3 ? "3rd" : `${pp.position}th`}</span>
                         <select value={pp.type}
                           onChange={(e) => {
                             const updated = [...positionPrizes];
                             updated[i] = { ...updated[i], type: e.target.value as PositionPrizeType };
-                            setPositionPrizes(updated);
+                            updatePositionPrizes(updated);
                           }}
                           style={{ ...inputStyle, flex: 1, minWidth: 0, cursor: "pointer" }}>
                           <option value="none">None</option>
@@ -471,7 +537,7 @@ export default function AdminBlitzCreatePage() {
                             onChange={(e) => {
                               const updated = [...positionPrizes];
                               updated[i] = { ...updated[i], discount_percent: e.target.value };
-                              setPositionPrizes(updated);
+                              updatePositionPrizes(updated);
                             }}
                             style={{ ...inputStyle, width: 70, flex: "none" }} />
                         )}
@@ -480,7 +546,7 @@ export default function AdminBlitzCreatePage() {
                     ))}
                   </div>
 
-                  {/* Bug 7: Payout summary — live computed values, no zeros */}
+                  {/* Payout summary — live computed values */}
                   <div style={{ borderRadius: 10, padding: "12px 14px", border: "1px solid var(--border-hairline)", backgroundColor: "rgba(76,111,255,0.06)" }}>
                     <p style={{ ...sectionHeadStyle, marginBottom: 10 }}>Payout Summary (at max capacity)</p>
                     {maxRevenue > 0 ? (
@@ -502,6 +568,15 @@ export default function AdminBlitzCreatePage() {
                             Position prizes: {positionPrizes.filter(p => p.type !== "none").map(p => `${p.position === 2 ? "2nd" : "3rd"} ${p.type === "free_ticket" ? "free ticket" : `${p.discount_percent}% off`}`).join(", ")}
                           </div>
                         )}
+                        {/* Fix 3: Quiz duration line when per-question time is set */}
+                        {computedTimeLimit != null && (
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 6, paddingTop: 6, borderTop: "1px solid var(--border-hairline)" }}>
+                            <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>Quiz duration:</span>
+                            <span style={{ fontSize: 12, fontFamily: "monospace", fontWeight: 600, color: "var(--accent-amber)" }}>
+                              {computedTimeLimit}s ({qCountNum}q × {perQNum}s)
+                            </span>
+                          </div>
+                        )}
                       </>
                     ) : (
                       <p style={{ fontSize: 11, color: "var(--text-muted)" }}>Fill in entry fee, max participants, and total payout % to see preview.</p>
@@ -511,7 +586,7 @@ export default function AdminBlitzCreatePage() {
                 </div>
               </div>
 
-              <button onClick={() => { const e = validateStep1(); if (e) { setError(e); return; } setError(""); setNotice(null); setStep(2); }}
+              <button onClick={() => { const e = validateStep1(); if (e) { setError(e); return; } setError(""); setNotice(null); goToStep(2); }}
                 style={{ width: "100%", boxSizing: "border-box", padding: "13px 0", borderRadius: 10, border: "none", backgroundColor: "var(--accent-indigo)", color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
                 Next: Schedule →
               </button>
@@ -524,15 +599,15 @@ export default function AdminBlitzCreatePage() {
               style={{ width: "100%", minWidth: 0, boxSizing: "border-box", borderRadius: 14, padding: "20px 16px", border: "1px solid var(--border-subtle)", backgroundColor: "var(--bg-card)", display: "flex", flexDirection: "column", gap: 16 }}>
               <p style={sectionHeadStyle}>Schedule</p>
               <Field label="Registration Opens *">
-                <input style={inputStyle} type="datetime-local" value={schedule.registration_start} onChange={(e) => setSchedule({ ...schedule, registration_start: e.target.value })} />
+                <input style={inputStyle} type="datetime-local" value={schedule.registration_start} onChange={(e) => updateSchedule({ ...schedule, registration_start: e.target.value })} />
               </Field>
               <Field label="Tournament Starts *">
-                <input style={inputStyle} type="datetime-local" value={schedule.tournament_start} onChange={(e) => setSchedule({ ...schedule, tournament_start: e.target.value })} />
+                <input style={inputStyle} type="datetime-local" value={schedule.tournament_start} onChange={(e) => updateSchedule({ ...schedule, tournament_start: e.target.value })} />
               </Field>
               <Field label="Tournament Ends *">
-                <input style={inputStyle} type="datetime-local" value={schedule.tournament_end} onChange={(e) => setSchedule({ ...schedule, tournament_end: e.target.value })} />
+                <input style={inputStyle} type="datetime-local" value={schedule.tournament_end} onChange={(e) => updateSchedule({ ...schedule, tournament_end: e.target.value })} />
               </Field>
-              <button onClick={() => { const e = validateStep2(); if (e) { setError(e); return; } setError(""); setNotice(null); setStep(3); }}
+              <button onClick={() => { const e = validateStep2(); if (e) { setError(e); return; } setError(""); setNotice(null); goToStep(3); }}
                 style={{ width: "100%", boxSizing: "border-box", padding: "13px 0", borderRadius: 10, border: "none", backgroundColor: "var(--accent-indigo)", color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
                 Next: Add Questions →
               </button>
@@ -614,7 +689,7 @@ export default function AdminBlitzCreatePage() {
                     if (!qDraft.question.trim()) { setError("Question text required"); return; }
                     if (!qDraft.correct_answer.trim()) { setError("Correct answer required"); return; }
                     if (qDraft.format === "multiple_choice" && qDraft.options.filter((o) => o.trim()).length < 2) { setError("At least 2 options required"); return; }
-                    setQuestions((prev) => [...prev, { ...qDraft }]);
+                    updateQuestions((prev) => [...prev, { ...qDraft }]);
                     setQDraft({ question: "", format: "multiple_choice", options: ["", "", "", ""], correct_answer: "" });
                     setError(""); setNotice(null);
                   }}
@@ -641,7 +716,7 @@ export default function AdminBlitzCreatePage() {
                           </p>
                         </div>
                       </div>
-                      <button onClick={() => setQuestions((prev) => prev.filter((_, idx) => idx !== i))}
+                      <button onClick={() => updateQuestions((prev) => prev.filter((_, idx) => idx !== i))}
                         style={{ padding: 6, borderRadius: 6, border: "none", background: "none", cursor: "pointer", color: "#6b7280", flexShrink: 0 }}>
                         <Trash2 size={13} />
                       </button>
