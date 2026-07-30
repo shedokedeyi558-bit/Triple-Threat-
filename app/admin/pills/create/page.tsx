@@ -282,7 +282,7 @@ export default function CreatePillPackPage() {
           <div>
             <p className={labelCls} style={{ color: "var(--text-secondary)" }}>Quiz Expires At <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>(optional)</span></p>
             <p className="text-[10px] mb-2" style={{ color: "var(--text-muted)" }}>
-              Auto-blocks new entries after this window. Leave as "No expiry" for indefinite.
+              Auto-blocks new entries after this window. Leave as &ldquo;No expiry&rdquo; for indefinite.
             </p>
             <div className="flex gap-2 flex-wrap">
               {([ ["none","No expiry"], ["24h","24h"], ["48h","48h"], ["7d","7 days"], ["custom","Custom"] ] as const).map(([val, label]) => (
@@ -331,7 +331,7 @@ export default function CreatePillPackPage() {
       </button>
 
       <p className="text-center text-xs" style={{ color: "var(--text-muted)" }}>
-        After creation you'll land in the Question Bank to start building questions.
+        After creation you&apos;ll land in the Question Bank to start building questions.
       </p>
     </div>
   );
