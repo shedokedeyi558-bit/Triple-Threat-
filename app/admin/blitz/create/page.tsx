@@ -131,6 +131,7 @@ function DevTools({
       title: "Test Blitz #1", description: "Dev test tournament",
       entry_fee: "500", question_count: String(count),
       time_limit_seconds: "300", max_participants: "100",
+      per_question_time_seconds: "8",
       cash_winner_count: "3", payout_distribution: ["50", "30", "20"],
       total_payout_percent: "70", ticket_tier_percent: "30", guaranteed_minimum: "",
     });

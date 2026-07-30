@@ -160,7 +160,7 @@ export default function BlitzResultsPage() {
                     You won ₦{myPrize.amount.toLocaleString()}!
                   </p>
                   <p className="text-sm mt-1" style={{ color: "var(--text-secondary)" }}>
-                    Credited to your wallet — {rankLabel(myPrize.position ?? 1)} place
+                    Credited to your wallet — {rankLabel(myPosition ?? 1)} place
                   </p>
                 </>
               )}
