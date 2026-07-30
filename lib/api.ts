@@ -1159,8 +1159,8 @@ export const adminApi = {
     }),
 
   // Pill Packs (admin)
-  getPillPacks: () =>
-    request<{ packs: PillPack[] }>("/api/admin/pills/packs", { token: getAdminToken() }),
+  getPillPacks: (includeInactive?: boolean) =>
+    request<{ packs: PillPack[] }>(`/api/admin/pills/packs${includeInactive ? "?includeInactive=true" : ""}`, { token: getAdminToken() }),
 
   createPillPack: (data: { name: string; category: string; entry_fee: number; prize: number; is_vip?: boolean; question_count?: number; total_time_minutes?: number; required_correct?: number; target_bank_size?: number; quiz_expires_at?: string; max_entries?: number; idempotency_key?: string }) =>
     request<{ pack: { id: string; name: string; category: string; status: string } }>(

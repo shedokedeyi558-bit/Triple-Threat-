@@ -152,12 +152,26 @@ export default function AdminPillsPage() {
   const [forceDeleteTarget, setForceDeleteTarget] = useState<PillPack | null>(null);
   const [expandedActions, setExpandedActions] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [showInactive, setShowInactive] = useState(false);
 
-  useEffect(() => { fetchPacks(); }, []);
+  useEffect(() => { 
+    (async () => {
+      setLoading(true);
+      try {
+        const res = await adminApi.getPillPacks(showInactive);
+        setPacks(res.packs as PillPack[]);
+      } catch (err) {
+        setError(err instanceof ApiError ? err.message : "Failed to load packs");
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [showInactive]);
 
   const fetchPacks = async () => {
+    setLoading(true);
     try {
-      const res = await adminApi.getPillPacks();
+      const res = await adminApi.getPillPacks(showInactive);
       setPacks(res.packs as PillPack[]);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to load packs");
@@ -249,24 +263,35 @@ export default function AdminPillsPage() {
         </div>
       )}
 
-      {/* Search */}
+      {/* Search and filters */}
       {!loading && packs.length > 0 && (
-        <div className="relative">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
-          <input
-            type="text"
-            placeholder="Search packs by name or category..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2.5 text-sm rounded-xl outline-none"
-            style={{ backgroundColor: "var(--bg-card)", border: "1px solid var(--border-subtle)", color: "var(--text-primary)" }}
-          />
-          {search && (
-            <button onClick={() => setSearch("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white text-xs font-bold">
-              ✕
-            </button>
-          )}
+        <div className="space-y-3">
+          <div className="relative">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Search packs by name or category..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-9 pr-4 py-2.5 text-sm rounded-xl outline-none"
+              style={{ backgroundColor: "var(--bg-card)", border: "1px solid var(--border-subtle)", color: "var(--text-primary)" }}
+            />
+            {search && (
+              <button onClick={() => setSearch("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white text-xs font-bold">
+                ✕
+              </button>
+            )}
+          </div>
+          {/* Toggle chip for inactive packs */}
+          <button
+            onClick={() => setShowInactive(!showInactive)}
+            className="px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-2"
+            style={showInactive
+              ? { backgroundColor: "rgba(76,111,255,0.2)", border: "1px solid rgba(76,111,255,0.4)", color: "var(--accent-indigo)" }
+              : { backgroundColor: "rgba(76,111,255,0.08)", border: "1px solid rgba(76,111,255,0.15)", color: "var(--text-muted)" }}>
+            {showInactive ? "✓" : "○"} Show inactive & sold-out packs
+          </button>
         </div>
       )}
 
