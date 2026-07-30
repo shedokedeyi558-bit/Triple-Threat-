@@ -309,8 +309,8 @@ export default function AdminBlitzCreatePage() {
   const maxCashPool = Math.floor(maxRevenue * tp / 100);
 
   return (
-    <div style={{ width: "100%", maxWidth: "100vw", overflowX: "hidden", boxSizing: "border-box", padding: "20px 16px 80px", minHeight: "100vh", backgroundColor: "var(--bg-base)" }}>
-      <div style={{ width: "100%", maxWidth: 640, margin: "0 auto", minWidth: 0 }}>
+    <div style={{ width: "100%", boxSizing: "border-box", paddingBottom: 60 }}>
+      <div style={{ width: "100%", maxWidth: 600, margin: "0 auto", minWidth: 0 }}>
 
         {/* ── Page header ── */}
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24, minWidth: 0 }}>
