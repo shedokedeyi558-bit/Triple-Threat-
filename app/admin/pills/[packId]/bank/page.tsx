@@ -542,14 +542,15 @@ function ImportLibraryModal({ packId, onDone, onCancel }: { packId: string; onDo
 
 // ── AI Paste Panel ────────────────────────────────────────────────────────────
 // Parses raw AI output into structured questions
-// Handles ChatGPT format: numbered questions with A) B) C) D) options and Correct: X
-function parseAIText(raw: string): { question: string; options: string[]; correct_answer: string }[] {
-  const results: { question: string; options: string[]; correct_answer: string }[] = [];
+// Handles multiple AI output formats with flexible regex patterns
+function parseAIText(raw: string): { question: string; options: string[]; correct_answer: string; error?: string }[] {
+  const results: { question: string; options: string[]; correct_answer: string; error?: string }[] = [];
 
   // Normalize line endings and clean markdown
   const cleaned = raw
     .replace(/\r\n/g, "\n")
     .replace(/\*\*/g, "")
+    .replace(/^#+\s+/gm, "") // Remove markdown headers
     .replace(/\r/g, "\n");
 
   // Split into lines and process
@@ -560,9 +561,18 @@ function parseAIText(raw: string): { question: string; options: string[]; correc
   let currentOptMap: Record<string, string> = {};
   let correctLetter = "";
 
-  const isQuestionLine = (l: string) => /^(?:Q\s*[).:]|\d+\s*[.):]\s+\S)/.test(l);
-  const isOptionLine = (l: string) => /^[A-Da-d]\s*[.)]\s+\S/.test(l);
-  const isAnswerLine = (l: string) => /^(?:correct|answer|ans)\s*[:\s]/i.test(l);
+  // FLEXIBLE REGEX PATTERNS for common AI output formats
+  // Question lines: "Q:", "Q1:", "Question 1:", "1)", "1.", etc.
+  const isQuestionLine = (l: string) => 
+    /^(?:q\s*[):.]|question\s+\d+[):.]|\d+\s*[.):]\s*\S)/i.test(l);
+  
+  // Option lines: "A)", "A.", "Option A:", "a)", "(a)", etc.
+  const isOptionLine = (l: string) => 
+    /^(?:[a-d]\s*[.)\-:]|option\s+[a-d]|[(]\s*[a-d]\s*[)])/i.test(l);
+  
+  // Answer lines: "Correct:", "Answer:", "Ans:", case-insensitive
+  const isAnswerLine = (l: string) => 
+    /^(?:correct|answer|ans)\s*[:\s]/i.test(l);
 
   const flush = () => {
     if (currentQ && currentOpts.length >= 2) {
@@ -579,14 +589,26 @@ function parseAIText(raw: string): { question: string; options: string[]; correc
   for (const line of lines) {
     if (isQuestionLine(line)) {
       flush();
-      // Strip leading number + punctuation: "1. " or "Q1. " or "1) " or "Q) "
-      currentQ = line.replace(/^(?:Q\s*[).:]|\d+\s*[.):])\s*/i, "").trim();
+      // Strip leading markers: "Q:", "Q1:", "Question 1:", "1)", "1.", etc.
+      currentQ = line
+        .replace(/^(?:q\s*[):.]|question\s+\d+[):.]|\d+\s*[.):]\s*)/i, "")
+        .trim();
     } else if (isOptionLine(line)) {
-      const letter = line[0].toUpperCase();
-      const text = line.replace(/^[A-Da-d]\s*[.)]\s*/, "").trim();
-      if (text) { currentOpts.push(text); currentOptMap[letter] = text; }
+      // Extract the letter: "A)", "Option A:", "(A)", etc.
+      const letterMatch = line.match(/[a-d]/i);
+      const letter = letterMatch ? letterMatch[0].toUpperCase() : "";
+      
+      // Remove prefix and extract text
+      const text = line
+        .replace(/^(?:[a-d]\s*[.)\-:]|option\s+[a-d]|[(]\s*[a-d]\s*[)])/i, "")
+        .trim();
+      
+      if (text && letter) {
+        currentOpts.push(text);
+        currentOptMap[letter] = text;
+      }
     } else if (isAnswerLine(line)) {
-      const match = line.match(/(?:correct|answer|ans)\s*[:\s]+([A-Da-d])/i);
+      const match = line.match(/(?:correct|answer|ans)\s*[:\s]+([a-d])/i);
       if (match) correctLetter = match[1];
     } else if (currentQ && !isQuestionLine(line) && !isOptionLine(line) && !isAnswerLine(line)) {
       // Continuation of question text (multi-line questions)
@@ -600,15 +622,31 @@ function parseAIText(raw: string): { question: string; options: string[]; correc
 
 function AIPastePanel({ packId, onDone, onCancel }: { packId: string; onDone: () => void; onCancel: () => void }) {
   const [rawText, setRawText] = React.useState("");
-  const [parsed, setParsed] = React.useState<{ question: string; options: string[]; correct_answer: string }[]>([]);
+  const [parsed, setParsed] = React.useState<{ question: string; options: string[]; correct_answer: string; error?: string }[]>([]);
   const [saving, setSaving] = React.useState(false);
   const [saveError, setSaveError] = React.useState("");
+  const [parseError, setParseError] = React.useState("");
   const [saved, setSaved] = React.useState(false);
 
   const handleParse = () => {
-    const items = parseAIText(rawText);
-    setParsed(items);
-    setSaveError("");
+    try {
+      const items = parseAIText(rawText);
+      
+      if (!items.length) {
+        // Parser returned empty array — show error feedback
+        setParseError("Couldn't parse any questions. Check your format matches the examples below. Common formats: Q: ... A) ... Correct: A  OR  1. Question\\nA) Option\\nCorrect: A");
+        setParsed([]);
+        return;
+      }
+      
+      // Successfully parsed some questions
+      setParsed(items);
+      setParseError("");
+    } catch (err) {
+      // Unexpected error during parsing
+      setParseError("Parse error: " + (err instanceof Error ? err.message : "Unknown error"));
+      setParsed([]);
+    }
   };
 
   const updateCorrect = (i: number, val: string) => {
@@ -647,7 +685,7 @@ function AIPastePanel({ packId, onDone, onCancel }: { packId: string; onDone: ()
       {/* Prompt hint */}
       {!parsed.length && (
         <p style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 10, lineHeight: 1.55 }}>
-          Copy questions from ChatGPT, Gemini, or any AI and paste below. Works with ChatGPT&apos;s inline format: <strong style={{ color: "var(--text-secondary)" }}>Q: ... A) ... B) ... Correct: A</strong> and numbered multi-line formats.
+          Copy questions from ChatGPT, Gemini, or any AI and paste below. Works with formats like: <strong style={{ color: "var(--text-secondary)" }}>Q: ... A) ... Correct: A</strong> or <strong style={{ color: "var(--text-secondary)" }}>1. Question, Option A:, Ans: A</strong>
         </p>
       )}
 
@@ -655,11 +693,16 @@ function AIPastePanel({ packId, onDone, onCancel }: { packId: string; onDone: ()
       {!parsed.length && (
         <>
           <textarea value={rawText} onChange={e => setRawText(e.target.value)} rows={10}
-            placeholder={`Q: What is the capital of France? A) Paris B) London C) Berlin D) Madrid Correct: A\nQ: Who wrote Romeo and Juliet? A) Dickens B) Shakespeare C) Hemingway D) Orwell Correct: B\n\n--- Also supports multi-line format:\n1. Question text\nA) Option 1\nB) Option 2\nAnswer: A`}
+            placeholder={`Q: What is the capital of France? A) Paris B) London C) Berlin D) Madrid Correct: A\nQ: Who wrote Romeo and Juliet? A) Dickens B) Shakespeare C) Hemingway D) Orwell Correct: B\n\n--- Also supports:\n1. Question text\nOption A: Answer 1\nOption B: Answer 2\nAnswer: A`}
             style={{ width: "100%", boxSizing: "border-box", padding: "10px 12px", borderRadius: 8,
               border: "1px solid var(--border-subtle)", backgroundColor: "var(--bg-base)",
               color: "var(--text-primary)", fontSize: 12, resize: "vertical", outline: "none",
               fontFamily: "monospace", lineHeight: 1.5, marginBottom: 10 }} />
+          {parseError && (
+            <div style={{ padding: "8px 12px", borderRadius: 6, backgroundColor: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.3)", marginBottom: 10 }}>
+              <p style={{ fontSize: 11, color: "#f87171", margin: 0 }}>{parseError}</p>
+            </div>
+          )}
           <button onClick={handleParse} disabled={!rawText.trim()}
             style={{ display: "flex", alignItems: "center", gap: 6, padding: "9px 18px", borderRadius: 8,
               border: "none", backgroundColor: "#7c3aed", color: "#fff", fontSize: 12, fontWeight: 700,
@@ -676,7 +719,7 @@ function AIPastePanel({ packId, onDone, onCancel }: { packId: string; onDone: ()
             <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-primary)", margin: 0 }}>
               {parsed.length} question{parsed.length !== 1 ? "s" : ""} parsed — review before saving
             </p>
-            <button onClick={() => { setParsed([]); setSaveError(""); }}
+            <button onClick={() => { setParsed([]); setSaveError(""); setParseError(""); }}
               style={{ fontSize: 11, color: "var(--text-muted)", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>
               Re-paste
             </button>
