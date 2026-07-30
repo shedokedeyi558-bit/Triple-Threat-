@@ -24,7 +24,18 @@ export default function ProfilePage() {
   const [logoutAllLoading, setLogoutAllLoading] = useState(false);
 
   useEffect(() => {
-    referralApi.getStats().then(setReferralStats).catch(() => {});
+    referralApi.getStats()
+      .then(setReferralStats)
+      .catch(() => {
+        // Backend error or endpoint not available — show error state
+        setReferralStats({
+          referral_code: "",
+          referred_count: 0,
+          pending_count: 0,
+          completed_count: 0,
+          total_earned: 0,
+        });
+      });
   }, []);
 
   const handleLogout = () => {
@@ -257,6 +268,11 @@ export default function ProfilePage() {
                   >
                     {copied ? <Check size={16} /> : <Copy size={16} />}
                   </button>
+                </div>
+              ) : referralStats ? (
+                <div className="rounded-xl p-4 border flex items-center gap-3"
+                  style={{ backgroundColor: "rgba(239,68,68,0.08)", borderColor: "rgba(239,68,68,0.25)" }}>
+                  <p className="text-sm" style={{ color: "#f87171" }}>Referral system coming soon — check back later</p>
                 </div>
               ) : (
                 <div className="rounded-xl p-4 border flex items-center gap-3"
