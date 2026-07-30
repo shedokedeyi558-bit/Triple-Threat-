@@ -276,7 +276,12 @@ export default function WalletPage() {
         18000
       );
       setWithdrawMsg(data.message);
-      dispatch({ type: "UPDATE_BALANCE", balance: data.newBalance });
+      dispatch({
+        type: "UPDATE_BALANCE",
+        balance: data.newBalance,
+        // Withdrawal only affects real balance; preserve bonus_balance as-is
+        bonus_balance: (data as any).newBonusBalance ?? state.player?.bonus_balance,
+      });
       setWithdrawAmt("");
       setSelectedBank(null);
       setAccNum("");

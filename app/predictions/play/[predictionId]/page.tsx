@@ -630,7 +630,8 @@ export default function PredictionPlayPage() {
     setError(null);
     try {
       await withTimeout(predictionsApi.enter(predictionId), 15000);
-      dispatch({ type: "UPDATE_BALANCE", balance: (state.player?.balance ?? 0) - (prediction.fee ?? 0) });
+      // Don't speculatively update balance here — the backend may have used bonus.
+      // Balance will refresh from server on next wallet load. Just move to submit step.
       setPageState("submit");
     } catch (err) {
       if (err instanceof ApiError) {

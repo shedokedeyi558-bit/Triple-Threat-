@@ -58,7 +58,12 @@ export default function PillPlayPage() {
     const wasTimedOut = answer === "";
     try {
       const res = await pillsApi.submit(pillId, answer);
-      dispatch({ type: "UPDATE_BALANCE", balance: res.newBalance });
+      dispatch({
+        type: "UPDATE_BALANCE",
+        balance: res.newBalance,
+        // Preserve bonus_balance — backend doesn't return it here, keep existing value
+        bonus_balance: (res as any).newBonusBalance ?? state.player?.bonus_balance,
+      });
       setResult(res);
       if (wasTimedOut) setTimedOut(true);
       setPhase("result");

@@ -250,7 +250,11 @@ export default function SpecialsPlayPage() {
       setQuestionIndex(res.current_question_index);
       setCurrentQ(res.question);
       if (res.is_new_attempt && res.new_balance !== undefined) {
-        dispatch({ type: "UPDATE_BALANCE", balance: res.new_balance });
+        dispatch({
+          type: "UPDATE_BALANCE",
+          balance: res.new_balance,
+          bonus_balance: (res as any).new_bonus_balance ?? state.player?.bonus_balance,
+        });
       }
       const dur = res.exam_duration ?? res.question.timer;
       startTimer(dur > 0 ? dur : 900);
@@ -288,7 +292,11 @@ export default function SpecialsPlayPage() {
         setFinalScore(score);
         setFinalPrize(res.prize ?? 0);
         setPassed(res.passed ?? score >= requiredCorrect);
-        if (res.new_balance !== undefined) dispatch({ type: "UPDATE_BALANCE", balance: res.new_balance });
+        if (res.new_balance !== undefined) dispatch({
+          type: "UPDATE_BALANCE",
+          balance: res.new_balance,
+          bonus_balance: (res as any).new_bonus_balance ?? state.player?.bonus_balance,
+        });
         // Cache locally so cards immediately show "Attempted" badge on return
         const playerId = state.player?.id;
         if (playerId) markSpecialAttempted(playerId, packId);
@@ -318,6 +326,8 @@ export default function SpecialsPlayPage() {
   const handleExitConfirm = () => { stopTimer(); router.push("/pills"); };
   const displayQ = questionIndex + 1;
   const balance  = state.player?.balance ?? 0;
+  const bonusBalance = state.player?.bonus_balance ?? 0;
+  const totalBalance = balance + bonusBalance;
 
   return (
     <div style={{ minHeight: "100vh", backgroundColor: "#0A0A0A", color: "var(--text-primary)", position: "relative", overflowX: "hidden" }}>
@@ -371,9 +381,9 @@ export default function SpecialsPlayPage() {
               </span>
             </div>
 
-            {/* Balance — right */}
+            {/* Balance — right, shows total spendable (real + bonus) */}
             <span style={{ fontSize: 12, fontFamily: "monospace", fontWeight: 700, color: "var(--accent-amber)", flexShrink: 0 }}>
-              ₦{balance.toLocaleString()}
+              ₦{totalBalance.toLocaleString()}
             </span>
           </div>
 
