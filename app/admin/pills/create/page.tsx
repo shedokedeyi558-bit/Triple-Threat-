@@ -4,52 +4,20 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { adminApi, ApiError } from "@/lib/api";
-import { ArrowLeft, Plus, Package, Trash2, CheckCircle } from "lucide-react";
-import {
-  generateSamplePills,
-  SAMPLE_CATEGORIES,
-  type SampleCategory,
-} from "@/lib/sampleQuestions";
-
-interface PillDraft {
-  question: string;
-  format: "multiple_choice" | "type_answer";
-  options: string[];
-  correct_answer: string;
-  timer: number;
-  color: string;
-}
-
-const PILL_COLORS = [
-  "#4C6FFF", // indigo
-  "#8B5CF6", // violet
-  "#F59E0B", // amber
-  "#10B981", // emerald
-  "#EF4444", // red
-  "#EC4899", // pink
-];
-
-const defaultPill = (): PillDraft => ({
-  question: "",
-  format: "multiple_choice",
-  options: ["", "", "", ""],
-  correct_answer: "",
-  timer: 0,
-  color: PILL_COLORS[0],
-});
+import { ArrowLeft, Package } from "lucide-react";
+import { SAMPLE_CATEGORIES, type SampleCategory } from "@/lib/sampleQuestions";
 
 const inputCls =
-  "w-full border rounded-xl px-4 py-3 text-sm focus:outline-none transition-colors placeholder-gray-600 focus:border-[#4C6FFF]/60"
-  + " [background-color:var(--bg-base)] [border-color:var(--border-subtle)] [color:var(--text-primary)]";
+  "w-full border rounded-xl px-4 py-3 text-sm focus:outline-none transition-colors placeholder-gray-600 focus:border-[#4C6FFF]/60" +
+  " [background-color:var(--bg-base)] [border-color:var(--border-subtle)] [color:var(--text-primary)]";
 
 const labelCls = "block text-[10px] font-bold uppercase tracking-widest mb-1.5";
 
-const DRAFT_KEY = "admin_pill_pack_draft";
+const DRAFT_KEY = "admin_pill_pack_draft_v2";
 
 export default function CreatePillPackPage() {
   const router = useRouter();
 
-  // Persist to localStorage — declared first so updateDraft can reference it
   const persist = (patch: object) => {
     try {
       const current = JSON.parse(localStorage.getItem(DRAFT_KEY) || "{}");
@@ -57,736 +25,314 @@ export default function CreatePillPackPage() {
     } catch { /* ignore */ }
   };
 
-  // Restore from localStorage once — use useState initializer so it only runs on mount
-  const [packName, setPackName] = useState<string>(() => {
-    try { return JSON.parse(localStorage.getItem(DRAFT_KEY) || "null")?.packName ?? ""; } catch { return ""; }
-  });
-  const [packCategory, setPackCategory] = useState<string>(() => {
-    try { return JSON.parse(localStorage.getItem(DRAFT_KEY) || "null")?.packCategory ?? ""; } catch { return ""; }
-  });
-  const [packEntryFee, setPackEntryFee] = useState<number | "">(() => {
-    try { return JSON.parse(localStorage.getItem(DRAFT_KEY) || "null")?.packEntryFee ?? ""; } catch { return ""; }
-  });
-  const [packPrize, setPackPrize] = useState<number | "">(() => {
-    try { return JSON.parse(localStorage.getItem(DRAFT_KEY) || "null")?.packPrize ?? ""; } catch { return ""; }
-  });
-  const [pills, setPills] = useState<PillDraft[]>(() => {
-    try { return JSON.parse(localStorage.getItem(DRAFT_KEY) || "null")?.pills ?? []; } catch { return []; }
-  });
-  const [draft, setDraft] = useState<PillDraft>(() => {
-    try { return JSON.parse(localStorage.getItem(DRAFT_KEY) || "null")?.draft ?? defaultPill(); } catch { return defaultPill(); }
-  });
-
-  // Auto-persist draft — persist is defined above, safe to reference
-  const updateDraft = (patch: Partial<PillDraft>) => {
-    const updated = { ...draft, ...patch };
-    setDraft(updated);
-    persist({ draft: updated });
+  const saved = () => {
+    try { return JSON.parse(localStorage.getItem(DRAFT_KEY) || "{}"); } catch { return {}; }
   };
-  const [loading, setLoading] = useState(false);
-  const [loadingStep, setLoadingStep] = useState<string>("");
-  const [createSuccess, setCreateSuccess] = useState(false);
-  const [error, setError] = useState("");
-  const [isVip, setIsVip] = useState(false);
-  // Specials-only fields
-  const [specialQuestionCount, setSpecialQCount] = useState<number | "">("");
-  const [specialTimeMinutes, setSpecialTimeMinutes] = useState<number | "">("");
-  const [specialTimeSeconds, setSpecialTimeSeconds] = useState<number | "">("");
-  const [specialRequiredCorrect, setSpecialReqCorrect] = useState<number | "">("");
-  const [specialTargetBankSize, setSpecialTargetBankSize] = useState<number | "">("");
-  const [specialMaxEntries, setSpecialMaxEntries] = useState<number | "">("");
-  const [specialExpiryOption, setSpecialExpiryOption] = useState<"none"|"24h"|"48h"|"7d"|"custom">("none");
-  const [specialExpiryCustom, setSpecialExpiryCustom] = useState<string>("");
-  const [formOpen, setFormOpen] = useState(true);
-  const [sampleCategory, setSampleCategory] = useState<SampleCategory>("Mixed");
-  const [sampleCount, setSampleCount] = useState("5");
 
-  // Scroll to top whenever error is set
+  const [packName,     setPackName]     = useState<string>(() => saved().packName     ?? "");
+  const [packCategory, setPackCategory] = useState<string>(() => saved().packCategory ?? "");
+  const [packEntryFee, setPackEntryFee] = useState<number | "">(() => saved().packEntryFee ?? "");
+  const [packPrize,    setPackPrize]    = useState<number | "">(() => saved().packPrize    ?? "");
+
+  // Specials fields
+  const [qCount,          setQCount]          = useState<number | "">(() => saved().qCount          ?? "");
+  const [timeMins,        setTimeMins]        = useState<number | "">(() => saved().timeMins        ?? "");
+  const [timeSecs,        setTimeSecs]        = useState<number | "">(() => saved().timeSecs        ?? "");
+  const [requiredCorrect, setRequiredCorrect] = useState<number | "">(() => saved().requiredCorrect ?? "");
+  const [targetBankSize,  setTargetBankSize]  = useState<number | "">(() => saved().targetBankSize  ?? "");
+  const [maxEntries,      setMaxEntries]      = useState<number | "">(() => saved().maxEntries      ?? "");
+  const [expiryOption,    setExpiryOption]    = useState<"none"|"24h"|"48h"|"7d"|"custom">(() => saved().expiryOption ?? "none");
+  const [expiryCustom,    setExpiryCustom]    = useState<string>(() => saved().expiryCustom ?? "");
+
+  const [loading,       setLoading]       = useState(false);
+  const [loadingStep,   setLoadingStep]   = useState("");
+  const [createSuccess, setCreateSuccess] = useState(false);
+  const [error,         setError]         = useState("");
+  const [sampleCategory, setSampleCategory] = useState<SampleCategory>("Mixed");
+
   useEffect(() => {
     if (error) window.scrollTo({ top: 0, behavior: "smooth" });
   }, [error]);
 
-  const addPill = () => {
-    if (!draft.question.trim()) { setError("Question text required"); return; }
-    if (!draft.correct_answer.trim()) { setError("Correct answer required"); return; }
-    if (!draft.timer || draft.timer <= 0) { setError("Timer must be greater than 0 (e.g. 10, 30)"); return; }
-    if (draft.format === "multiple_choice") {
-      const filled = draft.options.filter((o) => o.trim());
-      if (filled.length < 2) { setError("At least 2 options required"); return; }
-    }
-    const newPills = [...pills, { ...draft }];
-    setPills(newPills);
-    const newDraft = { ...defaultPill(), color: PILL_COLORS[newPills.length % PILL_COLORS.length] };
-    setDraft(newDraft);
-    persist({ pills: newPills, draft: newDraft });
-    setError("");
-    setFormOpen(false);
-  };
-
-  const removePill = (i: number) => {
-    const newPills = pills.filter((_, idx) => idx !== i);
-    setPills(newPills);
-    persist({ pills: newPills });
-  };
+  const totalTimeSecs = (Number(timeMins) || 0) * 60 + (Number(timeSecs) || 0);
 
   const handleCreate = async () => {
-    if (!packName.trim()) { setError("Pack name required"); return; }
-    if (!packCategory.trim()) { setError("Category required"); return; }
+    if (!packName.trim())     { setError("Pack name required");  return; }
+    if (!packCategory.trim()) { setError("Category required");   return; }
     if (!packEntryFee || Number(packEntryFee) <= 0) { setError("Entry fee required"); return; }
-    if (!packPrize || Number(packPrize) <= 0) { setError("Prize required"); return; }
-
-    // Specials: skip pill entry — create pack then land on bank management
-    if (isVip) {
-      if (Number(specialRequiredCorrect) > Number(specialQuestionCount)) {
-        setError("Pass threshold cannot exceed question count"); return;
-      }
-      // Enforce expiry — required only for custom option
-      if (specialExpiryOption === "custom" && !specialExpiryCustom) {
-        setError("Please set a custom expiry date and time"); return;
-      }
-      setLoading(true);
-      setError("");
-      const idempotencyKey = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-      try {
-        setLoadingStep("Creating pack...");
-        const packRes = await adminApi.createPillPack({
-          name: packName.trim(),
-          category: packCategory.trim(),
-          entry_fee: Number(packEntryFee),
-          prize: Number(packPrize),
-          is_vip: true,
-          question_count: Number(specialQuestionCount) || 10,
-          total_time_minutes: (Number(specialTimeMinutes) || 0) + (Number(specialTimeSeconds) || 0) / 60 || 15,
-          required_correct: Number(specialRequiredCorrect) || 8,
-          ...(specialTargetBankSize ? { target_bank_size: Number(specialTargetBankSize) } : {}),
-          ...(specialMaxEntries ? { max_entries: Number(specialMaxEntries) } : {}),
-          ...(specialExpiryOption !== "none" ? {
-            quiz_expires_at: specialExpiryOption === "custom"
-              ? new Date(specialExpiryCustom).toISOString()
-              : new Date(Date.now() + ({ "24h": 86400000, "48h": 172800000, "7d": 604800000 } as Record<string, number>)[specialExpiryOption]).toISOString(),
-          } : {}),
-          idempotency_key: idempotencyKey,
-        } as any);
-        const packId = (packRes as any).pack?.id ?? (packRes as any).id;
-        if (!packId) { setError("Pack created but no ID returned"); setLoading(false); return; }
-        localStorage.removeItem(DRAFT_KEY);
-        setCreateSuccess(true);
-        setLoadingStep("Pack created!");
-        setLoading(false);
-        setTimeout(() => router.push(`/admin/pills/${packId}/bank?new=1`), 800);
-      } catch (err) {
-        setError(`Pack creation failed: ${err instanceof ApiError ? err.message : err instanceof Error ? err.message : "Unknown error"}`);
-        setLoading(false);
-      }
-      return;
+    if (!packPrize    || Number(packPrize)    <= 0) { setError("Prize required");     return; }
+    if (Number(requiredCorrect) > Number(qCount)) {
+      setError("Pass threshold cannot exceed question count"); return;
+    }
+    if (expiryOption === "custom" && !expiryCustom) {
+      setError("Please set a custom expiry date and time"); return;
     }
 
-    // Standard pack flow (unchanged)
-    if (pills.length === 0) { setError("Add at least one pill"); return; }
-
-    // Validate all pills before hitting the backend
-    for (let i = 0; i < pills.length; i++) {
-      const p = pills[i];
-      if (!p.question.trim()) { setError(`Pill ${i + 1}: question is empty`); return; }
-      if (!p.correct_answer.trim()) { setError(`Pill ${i + 1}: correct answer is empty`); return; }
-      if (!p.timer || p.timer <= 0) { setError(`Pill ${i + 1}: timer must be greater than 0`); return; }
-      if (p.format === "multiple_choice" && p.options.filter((o) => o.trim()).length < 2) {
-        setError(`Pill ${i + 1}: multiple choice needs at least 2 options`); return;
-      }
-    }
-
-    setLoading(true);
-    setError("");
-    // Idempotency key — prevents duplicate pack creation on double-tap/retry
+    setLoading(true); setError("");
     const idempotencyKey = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
-    // Step 1: Create pack
-    let packId: string;
     try {
       setLoadingStep("Creating pack...");
       const packRes = await adminApi.createPillPack({
-        name: packName.trim(),
-        category: packCategory.trim(),
-        entry_fee: Number(packEntryFee),
-        prize: Number(packPrize),
-        is_vip: isVip,
-        ...(isVip ? {
-          question_count: Number(specialQuestionCount) || 10,
-          total_time_minutes: (Number(specialTimeMinutes) || 0) + (Number(specialTimeSeconds) || 0) / 60 || 15,
-          required_correct: Number(specialRequiredCorrect) || 8,
-          ...(specialTargetBankSize ? { target_bank_size: Number(specialTargetBankSize) } : {}),
-          ...(specialMaxEntries ? { max_entries: Number(specialMaxEntries) } : {}),
-          ...(specialExpiryOption !== "none" ? {
-            quiz_expires_at: specialExpiryOption === "custom"
-              ? new Date(specialExpiryCustom).toISOString()
-              : new Date(Date.now() + ({ "24h": 86400000, "48h": 172800000, "7d": 604800000 } as Record<string, number>)[specialExpiryOption]).toISOString(),
-          } : {}),
+        name:          packName.trim(),
+        category:      packCategory.trim(),
+        entry_fee:     Number(packEntryFee),
+        prize:         Number(packPrize),
+        is_vip:        true,                          // always Specials
+        question_count:     Number(qCount)          || 10,
+        total_time_minutes: totalTimeSecs > 0 ? totalTimeSecs / 60 : 15,
+        required_correct:   Number(requiredCorrect) || 8,
+        ...(targetBankSize ? { target_bank_size: Number(targetBankSize) } : {}),
+        ...(maxEntries     ? { max_entries:      Number(maxEntries)     } : {}),
+        ...(expiryOption !== "none" ? {
+          quiz_expires_at: expiryOption === "custom"
+            ? new Date(expiryCustom).toISOString()
+            : new Date(Date.now() + ({ "24h": 86400000, "48h": 172800000, "7d": 604800000 } as Record<string, number>)[expiryOption]).toISOString(),
         } : {}),
         idempotency_key: idempotencyKey,
       } as any);
-      packId = (packRes as any).pack?.id ?? (packRes as any).id;
-      if (!packId) {
-        setError("Pack created but no ID returned from backend");
-        setLoading(false);
-        return;
-      }
+
+      const packId = (packRes as any).pack?.id ?? (packRes as any).id;
+      if (!packId) { setError("Pack created but no ID returned"); setLoading(false); return; }
+
+      localStorage.removeItem(DRAFT_KEY);
+      setCreateSuccess(true);
+      setLoadingStep("Pack created!");
+      setLoading(false);
+      setTimeout(() => router.push(`/admin/pills/${packId}/bank?new=1`), 800);
     } catch (err) {
-      setError(`Pack creation failed: ${err instanceof ApiError ? err.message : err instanceof Error ? err.message : "Unknown error"}`);
+      setError(`Creation failed: ${err instanceof ApiError ? err.message : err instanceof Error ? err.message : "Unknown error"}`);
       setLoading(false);
-      return;
     }
-
-    // Step 2: Add pills sequentially — await each fully, surface individual failures
-    const failed: { index: number; question: string; error: string }[] = [];
-    for (let i = 0; i < pills.length; i++) {
-      setLoadingStep(`Saving pill ${i + 1} of ${pills.length}...`);
-      const pill = pills[i];
-      try {
-        await adminApi.addPillToPack(packId, {
-          question: pill.question.trim(),
-          format: pill.format,
-          options: pill.format === "multiple_choice" ? pill.options.filter((o) => o.trim()) : undefined,
-          correct_answer: pill.correct_answer.trim(),
-          timer: pill.timer,
-          color: pill.color,
-        });
-      } catch (err) {
-        const msg = err instanceof ApiError ? err.message : err instanceof Error ? err.message : "Unknown error";
-        failed.push({ index: i + 1, question: pill.question.slice(0, 40), error: msg });
-      }
-    }
-
-    // If any pills failed, report them and stop — don't activate a partial pack
-    if (failed.length > 0) {
-      const details = failed.map((f) => `Pill ${f.index} ("${f.question}…"): ${f.error}`).join("\n");
-      setError(`${failed.length} of ${pills.length} pills failed to save:\n${details}\n\nThe pack was created but not activated. Fix the issues and try again.`);
-      setLoading(false);
-      return;
-    }
-
-    // Step 3: All pills saved — activate the pack
-    try {
-      setLoadingStep("Activating pack...");
-      await adminApi.updatePillPack(packId, { status: "active" });
-    } catch (err) {
-      setError(`All ${pills.length} pills saved but pack activation failed: ${err instanceof ApiError ? err.message : "Unknown error"}`);
-      setLoading(false);
-      return;
-    }
-
-    // Full success — show confirmation before navigating
-    localStorage.removeItem(DRAFT_KEY);
-    setCreateSuccess(true);
-    setLoadingStep("Pack created!");
-    setLoading(false);
-    setTimeout(() => router.push("/admin/pills"), 1200);
   };
 
   return (
     <div className="max-w-2xl space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <button
-          onClick={() => router.push("/admin/pills")}
+        <button onClick={() => router.push("/admin/pills")}
           className="p-2 rounded-lg border transition-colors"
-          style={{ borderColor: "var(--border-subtle)", color: "var(--text-secondary)" }}
-        >
+          style={{ borderColor: "var(--border-subtle)", color: "var(--text-secondary)" }}>
           <ArrowLeft size={16} />
         </button>
         <div>
           <div className="flex items-center gap-2">
-            <Package size={18} style={{ color: "var(--accent-indigo)" }} />
+            <Package size={18} style={{ color: "var(--accent-amber)" }} />
             <h1 className="font-headline text-xl font-semibold" style={{ color: "var(--text-primary)" }}>
-              Create Pill Pack
+              Create Special Pack
             </h1>
           </div>
           <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
-            {isVip ? "Specials pack — questions managed after creation" : `${pills.length} pill${pills.length !== 1 ? "s" : ""} added`}
+            Exam-style pack — questions managed via Question Bank after creation
           </p>
         </div>
       </div>
 
       {error && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="border rounded-xl p-3 text-sm"
-          style={{ borderColor: "rgba(239,68,68,0.3)", backgroundColor: "rgba(239,68,68,0.05)", color: "#ef4444" }}
-        >
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+          className="border rounded-xl p-3 text-sm whitespace-pre-line"
+          style={{ borderColor: "rgba(239,68,68,0.3)", backgroundColor: "rgba(239,68,68,0.05)", color: "#ef4444" }}>
           {error}
         </motion.div>
       )}
 
-      {/* ── Specials / Standard toggle ── */}
-      <div className="flex gap-2 p-1 rounded-xl border" style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-card)" }}>
-        <button
-          type="button"
-          onClick={() => setIsVip(false)}
-          className="flex-1 py-2.5 rounded-lg text-sm font-bold transition-all"
-          style={{
-            backgroundColor: !isVip ? "var(--accent-indigo)" : "transparent",
-            color: !isVip ? "#fff" : "var(--text-secondary)",
-          }}
-        >
-          Standard Pack
-        </button>
-        <button
-          type="button"
-          onClick={() => setIsVip(true)}
-          className="flex-1 py-2.5 rounded-lg text-sm font-bold transition-all"
-          style={{
-            backgroundColor: isVip ? "var(--accent-amber)" : "transparent",
-            color: isVip ? "#000" : "var(--text-secondary)",
-            boxShadow: isVip ? "0 0 12px rgba(232,163,61,0.35)" : "none",
-          }}
-        >
-          Specials Pack
-        </button>
-      </div>
-      {isVip && (
-        <div className="space-y-3">
-          <p className="text-[11px] px-1" style={{ color: "var(--accent-amber)" }}>
-            Specials are exam-style packs — one overall countdown, no per-question feedback, results shown at the end.
-            One attempt per player. Build a larger question bank than question count for real randomization.
-          </p>
-          {/* Specials config fields */}
-          <div className="grid grid-cols-2 gap-3 border rounded-xl p-4" style={{ borderColor: "rgba(232,163,61,0.3)", backgroundColor: "rgba(232,163,61,0.04)" }}>
-            <div>
-              <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Questions per exam (5–20)</label>
-              <input className={inputCls} type="number" min="5" max="20" placeholder="e.g. 10"
-                value={specialQuestionCount}
-                onChange={(e) => setSpecialQCount(e.target.value === "" ? "" : Number(e.target.value))} />
-            </div>
-            <div>
-              <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Time Limit</label>
-              <div className="flex gap-2">
-                <div className="flex-1">
-                  <input className={inputCls} type="number" min="0" placeholder="min"
-                    value={specialTimeMinutes}
-                    onChange={(e) => setSpecialTimeMinutes(e.target.value === "" ? "" : Math.max(0, Number(e.target.value)))} />
-                  <p className="text-[9px] mt-1" style={{ color: "var(--text-muted)" }}>minutes</p>
-                </div>
-                <div className="flex-1">
-                  <input className={inputCls} type="number" min="0" max="59" placeholder="sec"
-                    value={specialTimeSeconds}
-                    onChange={(e) => setSpecialTimeSeconds(e.target.value === "" ? "" : Math.min(59, Math.max(0, Number(e.target.value))))} />
-                  <p className="text-[9px] mt-1" style={{ color: "var(--text-muted)" }}>seconds</p>
-                </div>
-              </div>
-              {(specialTimeMinutes !== "" || specialTimeSeconds !== "") && (
-                <p className="text-[9px] mt-1" style={{ color: "var(--accent-amber)" }}>
-                  = {(Number(specialTimeMinutes) || 0) * 60 + (Number(specialTimeSeconds) || 0)}s total
-                </p>
-              )}
-            </div>
-            <div>
-              <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Pass Threshold</label>
-              <input className={inputCls} type="number" min="1" placeholder="e.g. 8"
-                value={specialRequiredCorrect}
-                onChange={(e) => setSpecialReqCorrect(e.target.value === "" ? "" : Number(e.target.value))} />
-              <p className="text-[9px] mt-1" style={{ color: "var(--text-muted)" }}>correct to win</p>
-            </div>
-            <div>
-              <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Target bank size <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>(optional)</span></label>
-              <input className={inputCls} type="number" min="1" placeholder="e.g. 300"
-                value={specialTargetBankSize}
-                onChange={(e) => setSpecialTargetBankSize(e.target.value === "" ? "" : Number(e.target.value))} />
-              <p className="text-[9px] mt-1" style={{ color: "var(--text-muted)" }}>visible goal, not enforced</p>
-            </div>
-            <div>
-              <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Max Entries (player cap) <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>(optional)</span></label>
-              <input className={inputCls} type="number" min="1" placeholder="e.g. 100"
-                value={specialMaxEntries}
-                onChange={(e) => setSpecialMaxEntries(e.target.value === "" ? "" : Number(e.target.value))} />
-              <p className="text-[9px] mt-1" style={{ color: "var(--text-muted)" }}>entry limit before cap closes</p>
-            </div>
-          </div>
-          {pills.length > 0 && pills.length < Number(specialQuestionCount || 5) && (
-            <p className="text-[11px] px-1" style={{ color: "var(--accent-amber)" }}>
-              {pills.length}/{specialQuestionCount} questions added
-            </p>
-          )}
-          {/* Entry window expiry */}
-          <div className="border rounded-xl p-4 space-y-3" style={{ borderColor: "rgba(232,163,61,0.2)", backgroundColor: "rgba(232,163,61,0.03)" }}>
-            <div>
-              <p className={labelCls} style={{ color: "var(--text-secondary)" }}>Entry window</p>
-              <p className="text-[10px] mb-2" style={{ color: "var(--text-muted)" }}>
-                Optional — set a closing time to auto-block new entries after a deadline.
-              </p>
-              <div className="flex gap-2 flex-wrap mt-1.5">
-                {([["none","No expiry"],["24h","24 hours"],["48h","48 hours"],["7d","7 days"],["custom","Custom"]] as const).map(([val, label]) => (
-                  <button key={val} type="button" onClick={() => setSpecialExpiryOption(val)}
-                    className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
-                    style={{
-                      backgroundColor: specialExpiryOption === val ? "rgba(232,163,61,0.2)" : "transparent",
-                      border: specialExpiryOption === val ? "1px solid rgba(232,163,61,0.5)" : "1px solid var(--border-hairline)",
-                      color: specialExpiryOption === val ? "var(--accent-amber)" : "var(--text-muted)",
-                    }}>
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
-            {specialExpiryOption === "custom" && (
-              <div>
-                <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Exact date &amp; time <span style={{ color: "#f87171" }}>*</span></label>
-                <input type="datetime-local" className={inputCls} value={specialExpiryCustom}
-                  onChange={(e) => setSpecialExpiryCustom(e.target.value)} />
-              </div>
-            )}
-          </div>
-        </div>
+      {createSuccess && (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+          className="border rounded-xl p-3 text-sm"
+          style={{ borderColor: "rgba(52,211,153,0.3)", backgroundColor: "rgba(52,211,153,0.05)", color: "#34d399" }}>
+          ✓ {loadingStep} — redirecting to question bank…
+        </motion.div>
       )}
 
-      {/* Dev tools: category selector + count + fill button — hidden in production */}
+      {/* Dev tools */}
       {process.env.NODE_ENV === "development" && (
-      <div className="space-y-2 w-full">
-        {/* Category chips — horizontally scrollable on mobile */}
-        <div className="overflow-x-auto overflow-y-hidden whitespace-nowrap" style={{ WebkitOverflowScrolling: "touch", scrollBehavior: "smooth" }}>
-          <div className="flex items-center gap-2 flex-nowrap pb-1" style={{ minWidth: "min-content" }}>
-            <span className="text-[10px] font-bold uppercase tracking-widest flex-shrink-0" style={{ color: "var(--text-muted)" }}>
-              Category:
-            </span>
-            {SAMPLE_CATEGORIES.map((cat) => (
-              <button
-                key={cat}
-                type="button"
-                onClick={() => setSampleCategory(cat)}
-                className="px-1.5 py-0.5 rounded-md text-[9px] font-semibold border transition-all flex-shrink-0"
-                style={{
-                  backgroundColor: sampleCategory === cat ? "rgba(76,111,255,0.15)" : "transparent",
-                  borderColor: sampleCategory === cat ? "rgba(76,111,255,0.5)" : "var(--border-hairline)",
-                  color: sampleCategory === cat ? "var(--accent-indigo)" : "var(--text-muted)",
-                }}
-              >
-                {cat}
-              </button>
-            ))}
+        <div className="space-y-2">
+          <div className="overflow-x-auto overflow-y-hidden" style={{ WebkitOverflowScrolling: "touch" }}>
+            <div className="flex items-center gap-2 flex-nowrap pb-1" style={{ minWidth: "min-content" }}>
+              <span className="text-[10px] font-bold uppercase tracking-widest flex-shrink-0" style={{ color: "var(--text-muted)" }}>Category:</span>
+              {SAMPLE_CATEGORIES.map((cat) => (
+                <button key={cat} type="button" onClick={() => setSampleCategory(cat)}
+                  className="px-1.5 py-0.5 rounded-md text-[9px] font-semibold border transition-all flex-shrink-0"
+                  style={{
+                    backgroundColor: sampleCategory === cat ? "rgba(232,163,61,0.15)" : "transparent",
+                    borderColor:     sampleCategory === cat ? "rgba(232,163,61,0.5)"  : "var(--border-hairline)",
+                    color:           sampleCategory === cat ? "var(--accent-amber)"   : "var(--text-muted)",
+                  }}>
+                  {cat}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
-
-        {/* Count + Fill row */}
-        <div className="flex gap-2">
-          <div className="flex items-center gap-1.5 border rounded-xl px-3" style={{ borderColor: "var(--border-hairline)" }}>
-            <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>Pills:</span>
-            <input
-              type="number"
-              min="1"
-              max="20"
-              value={sampleCount}
-              onChange={(e) => setSampleCount(e.target.value)}
-              className="w-10 bg-transparent text-xs text-center outline-none py-2"
-              style={{ color: "var(--text-primary)" }}
-            />
-          </div>
-          <button
-            type="button"
+          <button type="button"
             onClick={() => {
-              const count = Math.max(1, Math.min(20, parseInt(sampleCount) || 5));
-              const sampled = generateSamplePills(count, sampleCategory);
               const cat = sampleCategory === "Mixed" ? "General" : sampleCategory;
-              setPackName(`${cat} Quick-Fire Pack`);
+              setPackName(`${cat} Special Challenge`);
               setPackCategory(cat);
-              setPills(
-                sampled.map((q, i) => ({
-                  question: q.question,
-                  format: q.format,
-                  options: q.options.length ? q.options : ["", "", "", ""],
-                  correct_answer: q.correct_answer,
-                  timer: q.timer,
-                  color: PILL_COLORS[i % PILL_COLORS.length],
-                }))
-              );
-              setPackEntryFee(sampled[0]?.entry_fee ?? 200);
-              setPackPrize(sampled[0]?.prize ?? 1000);
-              persist({
-                packName: `${cat} Quick-Fire Pack`,
-                packCategory: cat,
-                packEntryFee: sampled[0]?.entry_fee ?? 200,
-                packPrize: sampled[0]?.prize ?? 1000,
-                pills: sampled.map((q, i) => ({
-                  question: q.question,
-                  format: q.format,
-                  options: q.options.length ? q.options : ["", "", "", ""],
-                  correct_answer: q.correct_answer,
-                  timer: q.timer,
-                  color: PILL_COLORS[i % PILL_COLORS.length],
-                })),
-                draft: defaultPill(),
-              });
-              setFormOpen(false);
+              setPackEntryFee(500);
+              setPackPrize(200000);
+              setQCount(10);
+              setTimeMins(4);
+              setTimeSecs(0);
+              setRequiredCorrect(10);
+              setTargetBankSize(50);
+              persist({ packName: `${cat} Special Challenge`, packCategory: cat, packEntryFee: 500, packPrize: 200000, qCount: 10, timeMins: 4, timeSecs: 0, requiredCorrect: 10, targetBankSize: 50 });
               setError("");
             }}
-            className="flex-1 py-2 rounded-xl text-xs font-semibold border transition-colors hover:opacity-80 truncate"
-            style={{ borderColor: "var(--border-hairline)", color: "var(--text-muted)", backgroundColor: "transparent" }}
-          >
+            className="w-full py-2 rounded-xl text-xs font-semibold border transition-colors hover:opacity-80"
+            style={{ borderColor: "var(--border-hairline)", color: "var(--text-muted)", backgroundColor: "transparent" }}>
             Fill test data · {sampleCategory}
           </button>
         </div>
-      </div>
       )}
 
-      {/* Pack Info */}
-      <div
-        className="border rounded-2xl p-5 space-y-4"
-        style={{ borderColor: "var(--border-subtle)", backgroundColor: "var(--bg-card)" }}
-      >
+      {/* ── Pack Details ── */}
+      <div className="border rounded-2xl p-5 space-y-4"
+        style={{ borderColor: "var(--border-subtle)", backgroundColor: "var(--bg-card)" }}>
         <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>Pack Details</p>
         <div className="grid grid-cols-2 gap-3">
-          <div>
+          <div className="col-span-2 sm:col-span-1">
             <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Pack Name *</label>
-            <input
-              className={inputCls}
-              placeholder="e.g. Science Pack 1"
-              value={packName}
-              onChange={(e) => { setPackName(e.target.value); persist({ packName: e.target.value }); }}
-            />
+            <input className={inputCls} placeholder="e.g. hARD-cORE Biology" value={packName}
+              onChange={(e) => { setPackName(e.target.value); persist({ packName: e.target.value }); }} />
           </div>
-          <div>
+          <div className="col-span-2 sm:col-span-1">
             <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Category *</label>
-            <input
-              className={inputCls}
-              placeholder="e.g. Science"
-              value={packCategory}
-              onChange={(e) => { setPackCategory(e.target.value); persist({ packCategory: e.target.value }); }}
-            />
+            <input className={inputCls} placeholder="e.g. Nature & Biology" value={packCategory}
+              onChange={(e) => { setPackCategory(e.target.value); persist({ packCategory: e.target.value }); }} />
           </div>
           <div>
             <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Entry Fee (₦) *</label>
-            <input
-              className={inputCls}
-              type="number"
-              min="50"
-              placeholder="e.g. 200"
-              value={packEntryFee}
-              onChange={(e) => { const v = e.target.value === "" ? "" : Number(e.target.value); setPackEntryFee(v); persist({ packEntryFee: v }); }}
-            />
+            <input className={inputCls} type="number" min="50" placeholder="e.g. 500" value={packEntryFee}
+              onChange={(e) => { const v = e.target.value === "" ? "" : Number(e.target.value); setPackEntryFee(v); persist({ packEntryFee: v }); }} />
           </div>
           <div>
-            <label className={labelCls} style={{ color: "var(--text-secondary)" }}>{isVip ? "Prize (₦) *" : "Prize per Pill (₦) *"}</label>
-            <input
-              className={inputCls}
-              type="number"
-              min="100"
-              placeholder="e.g. 1000"
-              value={packPrize}
-              onChange={(e) => { const v = e.target.value === "" ? "" : Number(e.target.value); setPackPrize(v); persist({ packPrize: v }); }}
-            />
+            <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Prize (₦) *</label>
+            <input className={inputCls} type="number" min="100" placeholder="e.g. 200000" value={packPrize}
+              onChange={(e) => { const v = e.target.value === "" ? "" : Number(e.target.value); setPackPrize(v); persist({ packPrize: v }); }} />
           </div>
         </div>
-        <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>
-          {isVip
-            ? "Entry fee and prize apply to the whole exam pack."
-            : "All pills in this pack share the same entry fee and prize."}
-        </p>
       </div>
 
-      {/* Add Pill Form — Standard packs only */}
-      {!isVip && (
-      <div
-        className="border rounded-2xl overflow-hidden"
-        style={{ borderColor: "var(--border-subtle)", backgroundColor: "var(--bg-card)" }}
-      >
-        {/* Header — always visible, toggles the form */}
-        <button
-          type="button"
-          onClick={() => setFormOpen((o) => !o)}
-          className="w-full flex items-center justify-between px-5 py-4 text-left"
-        >
-          <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>
-            Add Pill
-          </p>
-          <span className="text-xs font-semibold" style={{ color: "var(--accent-indigo)" }}>
-            {formOpen ? "▲ Collapse" : "▼ Expand"}
-          </span>
-        </button>
+      {/* ── Exam Config ── */}
+      <div className="border rounded-2xl p-5 space-y-4"
+        style={{ borderColor: "rgba(232,163,61,0.3)", backgroundColor: "rgba(232,163,61,0.03)" }}>
+        <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "var(--accent-amber)" }}>Exam Configuration</p>
 
-        {formOpen && (
-          <div className="px-5 pb-5 space-y-4 border-t" style={{ borderColor: "var(--border-hairline)" }}>
-            <div className="pt-4">
-              <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Question *</label>
-              <textarea
-                className={inputCls + " resize-none"}
-                rows={2}
-                placeholder="Enter question text..."
-                value={draft.question}
-                onChange={(e) => updateDraft({ question: e.target.value })}
-              />
-            </div>
+        <div className="grid grid-cols-2 gap-3">
+          {/* Question Count */}
+          <div>
+            <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Question Count *</label>
+            <input className={inputCls} type="number" min="1" max="50" placeholder="e.g. 10" value={qCount}
+              onChange={(e) => { const v = e.target.value === "" ? "" : Number(e.target.value); setQCount(v); persist({ qCount: v }); }} />
+            <p className="text-[9px] mt-1" style={{ color: "var(--text-muted)" }}>drawn per exam from question bank</p>
+          </div>
 
-            {/* Format Toggle */}
-            <div>
-              <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Format</label>
-              <div className="flex gap-2">
-                {(["multiple_choice", "type_answer"] as const).map((fmt) => (
-                  <button
-                    key={fmt}
-                    type="button"
-                    onClick={() => updateDraft({ format: fmt })}
-                    className="flex-1 py-2 rounded-xl text-xs font-bold border transition-colors active:scale-95"
-                    style={{
-                      backgroundColor: draft.format === fmt ? "rgba(76,111,255,0.15)" : "var(--bg-base)",
-                      borderColor: draft.format === fmt ? "rgba(76,111,255,0.5)" : "var(--border-subtle)",
-                      color: draft.format === fmt ? "var(--accent-indigo)" : "var(--text-secondary)",
-                    }}
-                  >
-                    {fmt === "multiple_choice" ? "Multiple Choice" : "Type Answer"}
-                  </button>
-                ))}
+          {/* Required Correct */}
+          <div>
+            <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Required Correct *</label>
+            <input className={inputCls} type="number" min="1" placeholder="e.g. 10" value={requiredCorrect}
+              onChange={(e) => { const v = e.target.value === "" ? "" : Number(e.target.value); setRequiredCorrect(v); persist({ requiredCorrect: v }); }} />
+            <p className="text-[9px] mt-1" style={{ color: "var(--text-muted)" }}>pass threshold — must not exceed question count</p>
+          </div>
+
+          {/* Time Limit */}
+          <div className="col-span-2">
+            <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Time Limit (seconds) *</label>
+            <div className="flex gap-2 items-start">
+              <div className="flex-1">
+                <input className={inputCls} type="number" min="0" placeholder="minutes"
+                  value={timeMins}
+                  onChange={(e) => { const v = e.target.value === "" ? "" : Math.max(0, Number(e.target.value)); setTimeMins(v); persist({ timeMins: v }); }} />
+                <p className="text-[9px] mt-1" style={{ color: "var(--text-muted)" }}>minutes</p>
               </div>
-            </div>
-
-            {draft.format === "multiple_choice" && (
-              <div>
-                <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Options</label>
-                <div className="space-y-2">
-                  {draft.options.map((opt, i) => (
-                    <input
-                      key={i}
-                      className={inputCls}
-                      placeholder={`Option ${i + 1}`}
-                      value={opt}
-                      onChange={(e) => {
-                        const newOpts = [...draft.options];
-                        newOpts[i] = e.target.value;
-                        updateDraft({ options: newOpts });
-                      }}
-                    />
-                  ))}
+              <div className="flex-1">
+                <input className={inputCls} type="number" min="0" max="59" placeholder="seconds"
+                  value={timeSecs}
+                  onChange={(e) => { const v = e.target.value === "" ? "" : Math.min(59, Math.max(0, Number(e.target.value))); setTimeSecs(v); persist({ timeSecs: v }); }} />
+                <p className="text-[9px] mt-1" style={{ color: "var(--text-muted)" }}>seconds</p>
+              </div>
+              {totalTimeSecs > 0 && (
+                <div className="flex items-center pt-3">
+                  <span className="text-xs font-bold" style={{ color: "var(--accent-amber)", whiteSpace: "nowrap" }}>= {totalTimeSecs}s</span>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
+          </div>
 
+          {/* Max Entries */}
+          <div>
+            <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Max Entries <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>(optional)</span></label>
+            <input className={inputCls} type="number" min="1" placeholder="e.g. 100" value={maxEntries}
+              onChange={(e) => { const v = e.target.value === "" ? "" : Number(e.target.value); setMaxEntries(v); persist({ maxEntries: v }); }} />
+            <p className="text-[9px] mt-1" style={{ color: "var(--text-muted)" }}>player cap before entry closes</p>
+          </div>
+
+          {/* Target Bank Size */}
+          <div>
+            <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Target Bank Size <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>(optional)</span></label>
+            <input className={inputCls} type="number" min="1" placeholder="e.g. 300" value={targetBankSize}
+              onChange={(e) => { const v = e.target.value === "" ? "" : Number(e.target.value); setTargetBankSize(v); persist({ targetBankSize: v }); }} />
+            <p className="text-[9px] mt-1" style={{ color: "var(--text-muted)" }}>visible goal for question bank coverage</p>
+          </div>
+        </div>
+
+        {/* Quiz expiry window */}
+        <div className="border rounded-xl p-4 space-y-3"
+          style={{ borderColor: "rgba(232,163,61,0.15)", backgroundColor: "rgba(232,163,61,0.02)" }}>
+          <div>
+            <p className={labelCls} style={{ color: "var(--text-secondary)" }}>Quiz Expires At <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>(optional)</span></p>
+            <p className="text-[10px] mb-2" style={{ color: "var(--text-muted)" }}>
+              Auto-blocks new entries after this window. Leave as "No expiry" for indefinite.
+            </p>
+            <div className="flex gap-2 flex-wrap">
+              {([ ["none","No expiry"], ["24h","24h"], ["48h","48h"], ["7d","7 days"], ["custom","Custom"] ] as const).map(([val, label]) => (
+                <button key={val} type="button" onClick={() => { setExpiryOption(val); persist({ expiryOption: val }); }}
+                  className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+                  style={{
+                    backgroundColor: expiryOption === val ? "rgba(232,163,61,0.2)" : "transparent",
+                    border:          expiryOption === val ? "1px solid rgba(232,163,61,0.5)" : "1px solid var(--border-hairline)",
+                    color:           expiryOption === val ? "var(--accent-amber)" : "var(--text-muted)",
+                  }}>
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+          {expiryOption === "custom" && (
             <div>
-              <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Correct Answer *</label>
-              <input
-                className={inputCls}
-                placeholder="Exact correct answer"
-                value={draft.correct_answer}
-                onChange={(e) => updateDraft({ correct_answer: e.target.value })}
-              />
+              <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Exact date &amp; time <span style={{ color: "#f87171" }}>*</span></label>
+              <input type="datetime-local" className={inputCls} value={expiryCustom}
+                onChange={(e) => { setExpiryCustom(e.target.value); persist({ expiryCustom: e.target.value }); }} />
             </div>
+          )}
+        </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className={labelCls} style={{ color: "var(--text-secondary)" }}>
-                  {isVip ? "Exam Time (sec) *" : "Timer (sec)"}
-                </label>
-                <input
-                  className={inputCls}
-                  type="number"
-                  min="5"
-                  placeholder={isVip ? "e.g. 300" : ""}
-                  value={draft.timer || ""}
-                  onChange={(e) => updateDraft({ timer: Number(e.target.value) })}
-                />
-                {isVip && (
-                  <p className="text-[10px] mt-1" style={{ color: "var(--text-muted)" }}>
-                    Overall exam time — overrides the pack-level Total Time if set here.
-                  </p>
-                )}
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={addPill}
-              className="w-full py-3 rounded-xl text-sm font-bold border flex items-center justify-center gap-2 transition-all hover:border-[#4C6FFF]/50 active:scale-[0.98]"
-              style={{ borderColor: "var(--border-subtle)", color: "var(--text-secondary)", backgroundColor: "var(--bg-base)" }}
-            >
-              <Plus size={15} />
-              Add Pill to Pack
-            </button>
+        {/* Summary */}
+        {qCount !== "" && requiredCorrect !== "" && (
+          <div className="rounded-lg p-3 text-xs space-y-1"
+            style={{ backgroundColor: "var(--bg-base)", border: "1px solid var(--border-hairline)" }}>
+            <p style={{ color: "var(--text-secondary)" }}>
+              Players answer <strong style={{ color: "var(--text-primary)" }}>{qCount} questions</strong>
+              {totalTimeSecs > 0 && <> in <strong style={{ color: "var(--text-primary)" }}>{timeMins ? `${timeMins}m ` : ""}{timeSecs ? `${timeSecs}s` : ""}</strong></>}
+              {(requiredCorrect as string | number) !== "" && <> — need <strong style={{ color: "var(--accent-amber)" }}>{requiredCorrect} correct</strong> to pass and win ₦{(packPrize || 0).toLocaleString()}</>}.
+            </p>
+            <p style={{ color: "var(--text-muted)" }}>One attempt only. Questions bank is managed separately after creation.</p>
           </div>
         )}
       </div>
-      )} {/* end !isVip */}
 
-      {/* Pills list — standard packs only */}
-      {!isVip && pills.length > 0 && (
-        <div>
-          <div className="flex items-center justify-between px-1 mb-2">
-            <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>
-              Pills ({pills.length})
-            </p>
-            {!formOpen && (
-              <button
-                type="button"
-                onClick={() => setFormOpen(true)}
-                className="text-xs font-semibold flex items-center gap-1"
-                style={{ color: "var(--accent-indigo)" }}
-              >
-                <Plus size={12} /> Add another
-              </button>
-            )}
-          </div>
-          <div className="space-y-2 overflow-y-auto pr-0.5" style={{ maxHeight: "320px" }}>
-            {pills.map((p, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex items-center gap-3 border rounded-xl p-3"
-                style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-card)" }}
-              >
-                <div className="w-8 h-8 rounded-full flex-shrink-0" style={{ backgroundColor: p.color }} />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold truncate" style={{ color: "var(--text-primary)" }}>{p.question}</p>
-                  <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
-                    {p.timer}s · ✓ {p.correct_answer}
-                  </p>
-                </div>
-                <button
-                  onClick={() => removePill(i)}
-                  className="p-1.5 rounded-lg flex-shrink-0 transition-colors hover:text-red-400"
-                  style={{ color: "var(--text-muted)" }}
-                >
-                  <Trash2 size={14} />
-                </button>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* Submit */}
+      <button
+        onClick={handleCreate}
+        disabled={loading || createSuccess}
+        className="w-full py-4 rounded-xl font-black text-base transition-all disabled:opacity-50"
+        style={{ backgroundColor: "var(--accent-amber)", color: "#000" }}>
+        {loading ? loadingStep || "Creating…" : createSuccess ? "✓ Created!" : "Create Special Pack →"}
+      </button>
 
-      {/* Publish — standard packs only */}
-      {!isVip && pills.length > 0 && packName.trim() && packCategory.trim() && (
-        <motion.button
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          onClick={handleCreate}
-          disabled={loading || createSuccess}
-          className="w-full py-4 rounded-xl font-black text-base flex items-center justify-center gap-2 transition-all hover:opacity-90 disabled:opacity-60"
-          style={{ backgroundColor: createSuccess ? "rgba(76,111,255,0.3)" : "var(--accent-indigo)", color: "white" }}
-        >
-          {createSuccess ? (
-            <><CheckCircle size={18} /> Pack Created!</>
-          ) : loading ? (
-            <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin flex-shrink-0" />{loadingStep}</>
-          ) : (
-            <><CheckCircle size={18} />Create Pack ({pills.length} pill{pills.length !== 1 ? "s" : ""})</>
-          )}
-        </motion.button>
-      )}
-      {/* Specials: Create Pack & go to bank */}
-      {isVip && packName.trim() && packCategory.trim() && packEntryFee && packPrize && (
-        <motion.button
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          onClick={handleCreate}
-          disabled={loading || createSuccess}
-          className="w-full py-4 rounded-xl font-black text-base flex items-center justify-center gap-2 transition-all hover:opacity-90 disabled:opacity-60"
-          style={{ backgroundColor: createSuccess ? "rgba(232,163,61,0.3)" : "var(--accent-amber)", color: "#000" }}
-        >
-          {createSuccess ? (
-            <><CheckCircle size={18} /> Redirecting to Question Bank…</>
-          ) : loading ? (
-            <><div className="w-4 h-4 border-2 border-black/20 border-t-black/60 rounded-full animate-spin flex-shrink-0" />{loadingStep}</>
-          ) : (
-            <><CheckCircle size={18} />Create Pack &amp; Add Questions</>
-          )}
-        </motion.button>
-      )}
+      <p className="text-center text-xs" style={{ color: "var(--text-muted)" }}>
+        After creation you'll land in the Question Bank to start building questions.
+      </p>
     </div>
   );
 }
