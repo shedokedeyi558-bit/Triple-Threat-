@@ -27,7 +27,7 @@ export default function BlitzPlayPage() {
   const [attempt, setAttempt] = useState<BlitzAttemptStart | null>(null);
   const [countdown, setCountdown] = useState(3);
   const [currentQ, setCurrentQ] = useState(0);
-  const [answers, setAnswers] = useState<{ question_id: string; answer: string }[]>([]);
+  const [answers, setAnswers] = useState<{ question_id: string; answer: string; time_taken_ms?: number }[]>([]);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [typeInput, setTypeInput] = useState("");
   const [timeLeft, setTimeLeft] = useState(0);
@@ -36,8 +36,9 @@ export default function BlitzPlayPage() {
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const startTimeRef = useRef<number>(0);
+  const questionStartTimeRef = useRef<number>(0);
   const submittedRef = useRef(false);
-  const answersRef = useRef<{ question_id: string; answer: string }[]>([]);
+  const answersRef = useRef<{ question_id: string; answer: string; time_taken_ms?: number }[]>([]);
 
   useEffect(() => {
     if (!state.isAuthenticated) {
@@ -64,7 +65,7 @@ export default function BlitzPlayPage() {
         score: res.score,
         total: res.total_questions,
         rank_estimate: res.rank_estimate,
-        time_taken_ms: timeTaken,
+        time_taken_ms: res.total_time_ms ?? timeTaken,
       });
       setPhase("done");
     } catch (err) {
@@ -89,6 +90,7 @@ export default function BlitzPlayPage() {
     if (countdown <= 0) {
       setPhase("quiz");
       startTimeRef.current = Date.now();
+      questionStartTimeRef.current = Date.now();
       return;
     }
     const t = setTimeout(() => setCountdown((c) => c - 1), 1000);
@@ -118,11 +120,13 @@ export default function BlitzPlayPage() {
   const advanceQuestion = useCallback((answer: string) => {
     if (!attempt) return;
     const q = attempt.questions[currentQ];
-    const newAnswers = [...answersRef.current, { question_id: q.id, answer }];
+    const timeTakenMs = Date.now() - questionStartTimeRef.current;
+    const newAnswers = [...answersRef.current, { question_id: q.id, answer, time_taken_ms: timeTakenMs }];
     setAnswers(newAnswers);
     answersRef.current = newAnswers;
     setSelectedOption(null);
     setTypeInput("");
+    questionStartTimeRef.current = Date.now();
 
     if (currentQ + 1 >= attempt.questions.length) {
       submitAnswers(newAnswers);

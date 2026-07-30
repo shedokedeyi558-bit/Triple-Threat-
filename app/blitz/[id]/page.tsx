@@ -46,6 +46,20 @@ export default function BlitzDetailPage() {
       .finally(() => setLoading(false));
   }, [state.isAuthenticated, id, router]);
 
+  // Poll every 30s to catch status transitions (registration → active → completed)
+  useEffect(() => {
+    if (!state.isAuthenticated) return;
+    const poll = setInterval(async () => {
+      try {
+        const res = await blitzApi.getOne(id);
+        setTournament(res.tournament);
+        setIsRegistered(res.is_registered);
+        setHasAttempted(res.has_attempted);
+      } catch { /* silent — don't interrupt UI */ }
+    }, 30000);
+    return () => clearInterval(poll);
+  }, [state.isAuthenticated, id]);
+
   useEffect(() => {
     if (!tournament) return;
     const tick = () => {
@@ -66,9 +80,14 @@ export default function BlitzDetailPage() {
     setRegistering(true);
     setError("");
     try {
-      await blitzApi.register(id, ticketCode || undefined);
+      const res = await blitzApi.register(id, ticketCode || undefined);
       setIsRegistered(true);
-      dispatch({ type: "UPDATE_BALANCE", balance: (state.player?.balance ?? 0) - (ticketCode ? 0 : tournament.entry_fee) });
+      // Use newBalance from server response for accuracy
+      dispatch({
+        type: "UPDATE_BALANCE",
+        balance: res.newBalance,
+        bonus_balance: res.newBonusBalance ?? state.player?.bonus_balance ?? 0,
+      });
     } catch (err) {
       if (err instanceof ApiError) {
         if (err.code === "TICKET_EXPIRED") {
@@ -77,6 +96,14 @@ export default function BlitzDetailPage() {
         } else if (err.code === "TICKET_ALREADY_USED") {
           setError("This ticket was already used.");
           setTicketValid({ valid: false, message: "Already used" });
+        } else if (err.code === "TICKET_NOT_FOUND") {
+          setError("Invalid ticket code.");
+          setTicketValid({ valid: false, message: "Not found" });
+        } else if (err.status === 402) {
+          setError("Not enough balance to enter. Top up your wallet.");
+        } else if (err.status === 409) {
+          setError("You're already registered for this tournament.");
+          setIsRegistered(true);
         } else {
           setError(err.message);
         }

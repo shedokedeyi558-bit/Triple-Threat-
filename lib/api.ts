@@ -885,20 +885,28 @@ export interface BlitzSubmitResponse {
   score: number;
   total_questions: number;
   rank_estimate: number;
+  total_time_ms?: number;
+  message?: string;
 }
 
 export interface BlitzResult {
+  tournament?: { title: string; prize_pool: number; total_registered: number };
   leaderboard: {
     position: number;
     player_phone: string;
     score: number;
     total_time_ms: number;
-    prize_type?: "cash" | "free_ticket";
+    prize_type?: "cash" | "free_ticket" | "discount";
     amount?: number;
   }[];
   my_position?: number;
   my_score?: number;
-  my_prize?: { prize_type: "cash" | "free_ticket"; amount: number; ticket_code?: string };
+  my_prize?: {
+    position?: number;
+    prize_type: "cash" | "free_ticket" | "discount" | null;
+    amount: number;
+    ticket_code?: string;
+  } | null;
 }
 
 export const blitzApi = {
@@ -911,7 +919,7 @@ export const blitzApi = {
     ),
 
   register: (id: string, ticket_code?: string) =>
-    request<{ message: string; newBalance: number }>(
+    request<{ message: string; newBalance: number; newBonusBalance?: number; entryFeePaid?: number }>(
       `/api/blitz/${id}/register`,
       { method: "POST", body: { ticket_code }, token: getToken() }
     ),
@@ -921,7 +929,7 @@ export const blitzApi = {
       method: "POST", token: getToken()
     }),
 
-  submitAttempt: (id: string, answers: { question_id: string; answer: string }[]) =>
+  submitAttempt: (id: string, answers: { question_id: string; answer: string; time_taken_ms?: number }[]) =>
     request<BlitzSubmitResponse>(`/api/blitz/${id}/attempt/submit`, {
       method: "POST", body: { answers }, token: getToken()
     }),
@@ -1159,8 +1167,11 @@ export const adminApi = {
     }),
 
   // Pill Packs (admin)
-  getPillPacks: (includeInactive?: boolean) =>
-    request<{ packs: PillPack[] }>(`/api/admin/pills/packs${includeInactive ? "?includeInactive=true" : ""}`, { token: getAdminToken() }),
+  getPillPacks: (includeInactive?: boolean) => {
+    const url = `/api/admin/pills/packs${includeInactive ? "?includeInactive=true" : ""}`;
+    console.log("[DEBUG] getPillPacks called with includeInactive:", includeInactive, "URL:", url);
+    return request<{ packs: PillPack[] }>(url, { token: getAdminToken() });
+  },
 
   createPillPack: (data: { name: string; category: string; entry_fee: number; prize: number; is_vip?: boolean; question_count?: number; total_time_minutes?: number; required_correct?: number; target_bank_size?: number; quiz_expires_at?: string; max_entries?: number; idempotency_key?: string }) =>
     request<{ pack: { id: string; name: string; category: string; status: string } }>(

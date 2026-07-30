@@ -1,189 +1,348 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import { adminApi, type AdminPlayer, ApiError } from "@/lib/api";
-import { Search, Shield, ShieldOff, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useRouter, useParams } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
+import { useApp } from "@/context/AppContext";
+import { blitzApi, type BlitzResult, ApiError } from "@/lib/api";
+import { Trophy, Loader2, ArrowLeft, Copy, CheckCircle, Zap } from "lucide-react";
 
-export default function PlayersPage() {
-  const [players, setPlayers] = useState<AdminPlayer[]>([]);
-  const [total, setTotal] = useState(0);
+function formatTime(ms: number): string {
+  const mins = Math.floor(ms / 60000);
+  const secs = Math.floor((ms % 60000) / 1000);
+  if (mins > 0) return `${mins}m ${secs}s`;
+  return `${secs}.${Math.floor((ms % 1000) / 100)}s`;
+}
+
+function trophyColor(pos: number): string {
+  if (pos === 1) return "#facc15";
+  if (pos === 2) return "#9ca3af";
+  if (pos === 3) return "#ea580c";
+  return "var(--accent-indigo)";
+}
+
+function rankLabel(n: number) {
+  if (n === 1) return "1st";
+  if (n === 2) return "2nd";
+  if (n === 3) return "3rd";
+  return `${n}th`;
+}
+
+export default function BlitzResultsPage() {
+  const { state } = useApp();
+  const router = useRouter();
+  const params = useParams();
+  const id = params.id as string;
+
+  const [results, setResults] = useState<BlitzResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<"" | "active" | "banned">("");
-  const [expanded, setExpanded] = useState<string | null>(null);
-  const [toggling, setToggling] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
-  const fetchPlayers = useCallback(async (q?: string, status?: string) => {
-    setLoading(true);
-    setError("");
-    try {
-      const params: Record<string, string> = {};
-      if (q) params.search = q;
-      if (status) params.status = status;
-      const data = await adminApi.getPlayers(params);
-      setPlayers(data.players);
-      setTotal(data.total ?? data.players.length);
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Failed to load players");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => { fetchPlayers(); }, [fetchPlayers]);
-
-  // Debounce search + filter
   useEffect(() => {
-    const t = setTimeout(() => fetchPlayers(search, filter), 400);
-    return () => clearTimeout(t);
-  }, [search, filter, fetchPlayers]);
+    if (!state.isAuthenticated) { router.push("/auth"); return; }
+    blitzApi.getResults(id)
+      .then(setResults)
+      .catch((err) => setError(err instanceof ApiError ? err.message : "Results not available yet"))
+      .finally(() => setLoading(false));
+  }, [state.isAuthenticated, id, router]);
 
-  const handleToggleBan = async (player: AdminPlayer) => {
-    setToggling(player.id);
-    try {
-      const res = await adminApi.toggleBan(player.id);
-      setPlayers((prev) => prev.map((p) => p.id === player.id ? res.player : p));
-    } catch (err) {
-      alert(err instanceof ApiError ? err.message : "Failed to update player");
-    } finally {
-      setToggling(null);
-    }
+  const handleCopy = (code: string) => {
+    navigator.clipboard.writeText(code).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
   };
 
-  const maskPhone = (ph: string) => `${ph.slice(0, 4)}***${ph.slice(-4)}`;
+  if (!state.isAuthenticated) return null;
 
-  const winRate = (p: AdminPlayer) =>
-    p.games_played > 0 ? Math.round((p.games_won / p.games_played) * 100) : 0;
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center">
+        <Loader2 size={32} className="animate-spin" style={{ color: "var(--accent-indigo)" }} />
+      </div>
+    );
+  }
+
+  if (error || !results) {
+    return (
+      <div className="min-h-screen bg-[#0A0A0A] flex flex-col items-center justify-center gap-4 px-4 text-center">
+        <div className="w-16 h-16 rounded-2xl flex items-center justify-center" style={{ backgroundColor: "rgba(239,68,68,0.1)" }}>
+          <Zap size={28} className="text-red-400" />
+        </div>
+        <p className="text-white font-bold text-lg">{error || "Results not available yet"}</p>
+        <p className="text-gray-500 text-sm">Results are published when the tournament closes.</p>
+        <button
+          onClick={() => router.push("/blitz")}
+          className="mt-4 px-6 py-3 rounded-xl font-bold text-sm"
+          style={{ backgroundColor: "var(--accent-indigo)", color: "#fff" }}
+        >
+          Back to Blitz
+        </button>
+      </div>
+    );
+  }
+
+  const myPrize = results.my_prize;
+  const myPhone = state.player?.phone;
 
   return (
-    <div className="space-y-5">
-      <div>
-        <h1 className="text-2xl font-black text-white">Players</h1>
-        <p className="text-gray-400 text-sm mt-0.5">{total} registered players</p>
-      </div>
-
-      {/* Search + Filter */}
-      <div className="flex gap-2">
-        <div className="relative flex-1">
-          <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500" />
-          <input
-            type="text"
-            placeholder="Search by phone..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-card border border-[#2A2A2A] focus:border-[#4C6FFF] rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-gray-500 outline-none transition-colors"
-          />
-        </div>
-        <select
-          value={filter}
-          onChange={(e) => setFilter(e.target.value as "" | "active" | "banned")}
-          className="bg-card border border-[#2A2A2A] rounded-xl px-3 py-3 text-sm text-white outline-none"
+    <div className="min-h-screen pb-16" style={{ backgroundColor: "var(--bg-base)" }}>
+      <div className="max-w-2xl mx-auto px-4 py-6 space-y-5">
+        {/* Back */}
+        <button
+          onClick={() => router.push("/blitz")}
+          className="flex items-center gap-2 text-sm font-medium"
+          style={{ color: "var(--text-muted)" }}
         >
-          <option value="">All</option>
-          <option value="active">Active</option>
-          <option value="banned">Banned</option>
-        </select>
-      </div>
+          <ArrowLeft size={16} /> Back to Blitz
+        </button>
 
-      {loading && (
-        <div className="flex justify-center py-12">
-          <Loader2 size={28} className="animate-spin" style={{ color: "var(--accent-indigo)" }} />
-        </div>
-      )}
-
-      {error && !loading && (
-        <div className="text-center py-8 text-red-400 text-sm">{error}</div>
-      )}
-
-      {!loading && !error && (
-        <div className="space-y-2">
-          {players.map((p) => (
-            <div key={p.id} className="bg-card border border-[#2A2A2A] rounded-xl overflow-hidden">
-              <button
-                className="w-full px-4 py-3 flex items-center justify-between text-left"
-                onClick={() => setExpanded((prev) => (prev === p.id ? null : p.id))}
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`w-2 h-2 rounded-full flex-shrink-0 ${p.status === "active" ? "bg-[#4C6FFF]" : "bg-red-500"}`} />
-                  <div>
-                    <p className="text-sm text-white font-semibold">{maskPhone(p.phone)}</p>
-                    {p.name && <p className="text-xs text-gray-400">{p.name}</p>}
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="font-mono font-bold text-sm" style={{ color: "var(--accent-amber)" }}>
-                    ₦{p.balance.toLocaleString()}
-                  </span>
-                  {expanded === p.id ? (
-                    <ChevronUp size={16} className="text-gray-400" />
-                  ) : (
-                    <ChevronDown size={16} className="text-gray-400" />
-                  )}
-                </div>
-              </button>
-
-              {expanded === p.id && (
-                <div className="border-t border-[#2A2A2A] px-4 py-4 space-y-4">
-                  <div className="grid grid-cols-3 gap-3">
-                    {[
-                      { label: "Played", value: p.games_played },
-                      { label: "Won", value: p.games_won },
-                      { label: "Win rate", value: `${winRate(p)}%` },
-                    ].map(({ label, value }) => (
-                      <div key={label} className="bg-[#111] rounded-xl p-3 text-center">
-                        <p className="text-white font-bold text-sm">{value}</p>
-                        <p className="text-xs text-gray-500 mt-0.5">{label}</p>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="flex items-center justify-between bg-[#111] rounded-xl p-3">
-                    <span className="text-xs text-gray-400">Total won</span>
-                    <span className="font-mono font-bold text-sm" style={{ color: "var(--accent-amber)" }}>
-                      ₦{p.total_won.toLocaleString()}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between bg-[#111] rounded-xl p-3">
-                    <span className="text-xs text-gray-400">Joined</span>
-                    <span className="text-white text-sm">
-                      {new Date(p.created_at).toLocaleDateString("en-NG", { month: "short", day: "numeric", year: "numeric" })}
-                    </span>
-                  </div>
-
-                  <button
-                    onClick={() => handleToggleBan(p)}
-                    disabled={toggling === p.id}
-                    className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-semibold text-sm transition-all active:scale-[0.98] disabled:opacity-50 ${
-                      p.status === "active"
-                        ? "bg-red-900/30 border border-red-800/40 text-red-400 hover:bg-red-900/50"
-                        : "border hover:opacity-80"
-                    }`}
-                    style={p.status !== "active" ? {
-                      backgroundColor: "rgba(76,111,255,0.1)",
-                      borderColor: "rgba(76,111,255,0.3)",
-                      color: "var(--accent-indigo)",
-                    } : undefined}
-                  >
-                    {toggling === p.id ? (
-                      <Loader2 size={15} className="animate-spin" />
-                    ) : p.status === "active" ? (
-                      <><ShieldOff size={15} /> Ban Player</>
-                    ) : (
-                      <><Shield size={15} /> Unban Player</>
-                    )}
-                  </button>
-                </div>
-              )}
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="rounded-2xl p-5 space-y-1 border"
+          style={{ backgroundColor: "var(--bg-card)", borderColor: "var(--border-subtle)" }}
+        >
+          <div className="flex items-center gap-2 mb-2">
+            <Zap size={16} style={{ color: "var(--accent-amber)" }} />
+            <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>
+              Tournament Results
+            </p>
+          </div>
+          <h1 className="text-xl font-black" style={{ color: "var(--text-primary)" }}>
+            {results.tournament?.title ?? "Blitz Tournament"}
+          </h1>
+          {results.tournament && (
+            <div className="flex gap-4 mt-2">
+              <div>
+                <p className="text-[10px] uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>Prize Pool</p>
+                <p className="font-black text-lg font-mono" style={{ color: "var(--accent-amber)" }}>
+                  ₦{results.tournament.prize_pool.toLocaleString()}
+                </p>
+              </div>
+              <div>
+                <p className="text-[10px] uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>Players</p>
+                <p className="font-black text-lg" style={{ color: "var(--text-primary)" }}>
+                  {results.tournament.total_registered}
+                </p>
+              </div>
             </div>
-          ))}
-
-          {players.length === 0 && (
-            <div className="text-center py-12 text-gray-500">No players found</div>
           )}
-        </div>
-      )}
+        </motion.div>
+
+        {/* My Prize */}
+        <AnimatePresence>
+          {myPrize && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="rounded-2xl p-5 border"
+              style={{
+                backgroundColor:
+                  myPrize.prize_type === "cash" ? "rgba(232,163,61,0.06)" :
+                  myPrize.prize_type === "free_ticket" ? "rgba(76,111,255,0.06)" :
+                  "rgba(124,111,232,0.06)",
+                borderColor:
+                  myPrize.prize_type === "cash" ? "rgba(232,163,61,0.35)" :
+                  myPrize.prize_type === "free_ticket" ? "rgba(76,111,255,0.35)" :
+                  "rgba(124,111,232,0.35)",
+              }}
+            >
+              {myPrize.prize_type === "cash" && (
+                <>
+                  <p className="text-2xl mb-1">🏆</p>
+                  <p className="font-black text-xl" style={{ color: "var(--accent-amber)" }}>
+                    You won ₦{myPrize.amount.toLocaleString()}!
+                  </p>
+                  <p className="text-sm mt-1" style={{ color: "var(--text-secondary)" }}>
+                    Credited to your wallet — {rankLabel(myPrize.position ?? 1)} place
+                  </p>
+                </>
+              )}
+              {myPrize.prize_type === "free_ticket" && (
+                <>
+                  <p className="text-2xl mb-1">🎫</p>
+                  <p className="font-black text-xl" style={{ color: "var(--accent-indigo)" }}>
+                    Free entry to the next tournament!
+                  </p>
+                  {myPrize.ticket_code && (
+                    <div className="flex items-center gap-3 mt-3">
+                      <code className="font-mono font-bold text-sm px-3 py-2 rounded-lg" style={{ backgroundColor: "rgba(76,111,255,0.12)", color: "var(--accent-indigo)" }}>
+                        {myPrize.ticket_code}
+                      </code>
+                      <button
+                        onClick={() => handleCopy(myPrize.ticket_code!)}
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-colors"
+                        style={{ backgroundColor: "rgba(76,111,255,0.15)", color: "var(--accent-indigo)" }}
+                      >
+                        {copied ? <CheckCircle size={12} /> : <Copy size={12} />}
+                        {copied ? "Copied!" : "Copy"}
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
+              {myPrize.prize_type === "discount" && (
+                <>
+                  <p className="text-2xl mb-1">🏷️</p>
+                  <p className="font-black text-xl" style={{ color: "#c084fc" }}>
+                    Discount on your next entry!
+                  </p>
+                  {myPrize.ticket_code && (
+                    <div className="flex items-center gap-3 mt-3">
+                      <code className="font-mono font-bold text-sm px-3 py-2 rounded-lg" style={{ backgroundColor: "rgba(124,111,232,0.12)", color: "#c084fc" }}>
+                        {myPrize.ticket_code}
+                      </code>
+                      <button
+                        onClick={() => handleCopy(myPrize.ticket_code!)}
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-colors"
+                        style={{ backgroundColor: "rgba(124,111,232,0.15)", color: "#c084fc" }}
+                      >
+                        {copied ? <CheckCircle size={12} /> : <Copy size={12} />}
+                        {copied ? "Copied!" : "Copy"}
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
+              {myPrize.prize_type === null && (
+                <>
+                  <p className="text-2xl mb-1">💪</p>
+                  <p className="font-bold text-lg" style={{ color: "var(--text-primary)" }}>Good effort!</p>
+                  <p className="text-sm mt-1" style={{ color: "var(--text-secondary)" }}>
+                    Keep playing — prizes are waiting in the next round.
+                  </p>
+                </>
+              )}
+            </motion.div>
+          )}
+          {!myPrize && results.my_score != null && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="rounded-2xl p-5 border"
+              style={{ backgroundColor: "var(--bg-card)", borderColor: "var(--border-subtle)" }}
+            >
+              <p className="text-2xl mb-1">💪</p>
+              <p className="font-bold text-lg" style={{ color: "var(--text-primary)" }}>Good effort!</p>
+              <p className="text-sm mt-1" style={{ color: "var(--text-secondary)" }}>
+                You scored {results.my_score} • Rank #{results.my_position ?? "—"}. Watch for the next tournament.
+              </p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* My score summary */}
+        {results.my_score != null && (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="rounded-2xl p-5 border"
+            style={{ backgroundColor: "var(--bg-card)", borderColor: "var(--border-subtle)" }}
+          >
+            <p className="text-[11px] font-bold uppercase tracking-widest mb-3" style={{ color: "var(--text-muted)" }}>
+              Your Result
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-xl p-3" style={{ backgroundColor: "var(--bg-base)" }}>
+                <p className="text-[10px] uppercase tracking-wide mb-1 font-bold" style={{ color: "var(--text-muted)" }}>Score</p>
+                <p className="font-black text-2xl font-mono" style={{ color: "var(--accent-amber)" }}>{results.my_score}</p>
+              </div>
+              <div className="rounded-xl p-3" style={{ backgroundColor: "var(--bg-base)" }}>
+                <p className="text-[10px] uppercase tracking-wide mb-1 font-bold" style={{ color: "var(--text-muted)" }}>Rank</p>
+                <p className="font-black text-2xl font-mono" style={{ color: "var(--text-primary)" }}>
+                  #{results.my_position ?? "—"}
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Leaderboard */}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="rounded-2xl overflow-hidden border"
+          style={{ backgroundColor: "var(--bg-card)", borderColor: "var(--border-subtle)" }}
+        >
+          <div className="px-5 py-4 border-b" style={{ borderColor: "var(--border-hairline)" }}>
+            <p className="text-[11px] font-bold uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>
+              Leaderboard
+            </p>
+          </div>
+          <div className="divide-y" style={{ borderColor: "var(--border-hairline)" }}>
+            {results.leaderboard.slice(0, 20).map((entry) => {
+              const isMe = myPhone && entry.player_phone.slice(-4) === myPhone.slice(-4);
+              return (
+                <div
+                  key={entry.position}
+                  className="flex items-center gap-3 px-5 py-3.5"
+                  style={{
+                    backgroundColor: isMe ? "rgba(232,163,61,0.05)" : "transparent",
+                    borderLeft: isMe ? "3px solid var(--accent-amber)" : "3px solid transparent",
+                  }}
+                >
+                  {/* Rank */}
+                  <div className="w-8 flex-shrink-0 flex items-center justify-center">
+                    {entry.position <= 3 ? (
+                      <Trophy size={16} style={{ color: trophyColor(entry.position) }} />
+                    ) : (
+                      <span className="text-xs font-bold" style={{ color: "var(--text-muted)" }}>
+                        #{entry.position}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Phone */}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-sm" style={{ color: isMe ? "var(--accent-amber)" : "var(--text-primary)" }}>
+                      {entry.player_phone}
+                      {isMe && <span className="ml-2 text-[10px] font-bold uppercase tracking-wider" style={{ color: "var(--accent-amber)" }}>You</span>}
+                    </p>
+                    <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+                      {formatTime(entry.total_time_ms)}
+                    </p>
+                  </div>
+
+                  {/* Score + prize */}
+                  <div className="text-right flex-shrink-0">
+                    <p className="font-black text-sm font-mono" style={{ color: "var(--text-primary)" }}>
+                      {entry.score}
+                    </p>
+                    {entry.prize_type === "cash" && entry.amount != null && (
+                      <p className="text-[10px] font-bold" style={{ color: "var(--accent-amber)" }}>
+                        ₦{entry.amount.toLocaleString()}
+                      </p>
+                    )}
+                    {entry.prize_type === "free_ticket" && (
+                      <p className="text-[10px] font-bold" style={{ color: "var(--accent-indigo)" }}>🎫 Ticket</p>
+                    )}
+                    {entry.prize_type === "discount" && (
+                      <p className="text-[10px] font-bold" style={{ color: "#c084fc" }}>🏷️ Discount</p>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </motion.div>
+
+        {/* CTA */}
+        <motion.button
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.2 }}
+          whileTap={{ scale: 0.97 }}
+          onClick={() => router.push("/blitz")}
+          className="w-full py-4 rounded-xl font-black text-base"
+          style={{ backgroundColor: "var(--accent-indigo)", color: "#fff" }}
+        >
+          View Next Tournament →
+        </motion.button>
+      </div>
     </div>
   );
 }
-

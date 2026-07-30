@@ -5,13 +5,14 @@ import { useApp } from "@/context/AppContext";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { Pill, Wallet, User, LogOut, Loader2 } from "lucide-react";
+import { Pill, Wallet, User, LogOut, Loader2, Zap } from "lucide-react";
 import { removeToken } from "@/lib/api";
 import { useRouter } from "next/navigation";
 import { NotificationBell } from "@/components/ui/NotificationBell";
 
 const navItems = [
   { href: "/pills",   label: "Pills",   icon: Pill },
+  { href: "/blitz",   label: "Blitz",   icon: Zap },
   { href: "/wallet",  label: "Wallet",  icon: Wallet },
   { href: "/profile", label: "Profile", icon: User },
 ];
@@ -103,6 +104,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const isActive = (href: string) => {
     if (href === "/pills")  return pathname === "/pills" || pathname.startsWith("/pills/");
+    if (href === "/blitz")  return pathname === "/blitz";
     return pathname.startsWith(href);
   };
 
