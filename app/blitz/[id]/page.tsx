@@ -142,17 +142,22 @@ export default function BlitzDetailPage() {
   }
 
   // ── Prize model ────────────────────────────────────────────────────────────
+  // Use sensible fallbacks for optional fields — backend may omit them on older records
   const cashWinnerCount = tournament.cash_winner_count ?? 3;
-  const payoutDist      = tournament.payout_distribution ?? [60, 25, 15];
-  const totalPayoutPct  = tournament.total_payout_percent ?? (100 - (tournament.platform_cut_percent ?? 30));
+  const payoutDist      = (tournament.payout_distribution && tournament.payout_distribution.length > 0)
+    ? tournament.payout_distribution
+    : [60, 25, 15];
+  const totalPayoutPct  = tournament.total_payout_percent
+    ?? (100 - (tournament.platform_cut_percent ?? 30));
   const maxParticipants = tournament.max_participants ?? 0;
 
   // Live pool from actual registrations (always show ₦0 not "—" when 0)
   const livePool    = tournament.prize_pool ?? 0;
-  const hasLivePool = tournament.total_registered > 0;
+  const hasLivePool = livePool > 0;
 
   // Ceiling pool: max_participants × entry_fee × totalPayoutPct
-  const ceilingPool = maxParticipants > 0
+  // Always compute — fall back to a reasonable display even if max_participants is 0
+  const ceilingPool = maxParticipants > 0 && totalPayoutPct > 0
     ? Math.floor(tournament.entry_fee * maxParticipants * totalPayoutPct / 100)
     : null;
 
@@ -163,11 +168,14 @@ export default function BlitzDetailPage() {
     ? `up to ₦${ceilingPool.toLocaleString()}`
     : `₦0`;
 
-  // Per-rank cash prizes — always show ₦ amounts, never just %
+  // Per-rank cash prizes — ALWAYS show ₦ amounts, never bare %
+  // If ceilingPool is null (missing max_participants), show % only as fallback label
   const cashPrizes = Array.from({ length: cashWinnerCount }, (_, i) => {
-    const pct = payoutDist[i] ?? 0;
-    const livePrize    = hasLivePool ? Math.floor(livePool * pct / 100) : null;
-    const ceilingPrize = ceilingPool != null ? Math.floor(ceilingPool * pct / 100) : null;
+    const pct          = payoutDist[i] ?? 0;
+    const livePrize    = hasLivePool && pct > 0 ? Math.floor(livePool * pct / 100) : null;
+    const ceilingPrize = !hasLivePool && ceilingPool != null && pct > 0
+      ? Math.floor(ceilingPool * pct / 100)
+      : null;
     return { rank: i + 1, pct, livePrize, ceilingPrize };
   });
 
@@ -265,7 +273,6 @@ export default function BlitzDetailPage() {
               <div className="flex items-center gap-2 text-sm">
                 <Trophy size={15} style={{ color: trophyColor(p.rank) }} />
                 <span className="font-semibold" style={{ color: "var(--text-primary)" }}>{rankLabel(p.rank)} Place</span>
-                <span className="text-[11px]" style={{ color: "var(--text-muted)" }}>({p.pct}%)</span>
               </div>
               <div className="text-right">
                 {p.livePrize != null ? (
@@ -277,7 +284,10 @@ export default function BlitzDetailPage() {
                     up to ₦{p.ceilingPrize.toLocaleString()}
                   </span>
                 ) : (
-                  <span className="font-black font-mono" style={{ color: "var(--text-muted)" }}>₦0</span>
+                  // Fallback when max_participants not set — show % share at least
+                  <span className="text-sm font-semibold" style={{ color: "var(--text-muted)" }}>
+                    {p.pct}% of pool
+                  </span>
                 )}
               </div>
             </div>

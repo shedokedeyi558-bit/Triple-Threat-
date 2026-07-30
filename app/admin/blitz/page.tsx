@@ -63,6 +63,18 @@ export default function AdminBlitzPage() {
     }
   };
 
+  const handlePublish = async (id: string) => {
+    setActionLoading(id + ":publish");
+    try {
+      await adminApi.publishBlitz(id);
+      await fetchTournaments();
+    } catch (err) {
+      if (err instanceof ApiError) setError(err.message);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   const handleScore = async (id: string) => {
     setConfirmScore(null);
     setActionLoading(id + ":score");
@@ -135,10 +147,15 @@ export default function AdminBlitzPage() {
                   </div>
                   <div className="flex items-center gap-4 text-xs text-gray-500 flex-wrap">
                     <span className="text-[#E8A33D] font-semibold">₦{t.entry_fee.toLocaleString()} entry</span>
-                    <span>Pool: ₦{t.prize_pool.toLocaleString()}</span>
+                    <span>Pool: {t.prize_pool > 0
+                      ? `₦${t.prize_pool.toLocaleString()}`
+                      : (t.max_participants && t.total_payout_percent)
+                      ? `up to ₦${Math.floor(t.entry_fee * t.max_participants * t.total_payout_percent / 100).toLocaleString()}`
+                      : "₦0"
+                    }</span>
                     <span className="flex items-center gap-1">
                       <Users size={11} />
-                      {t.total_registered} registered
+                      {t.total_registered}{t.max_participants ? `/${t.max_participants}` : ""}
                     </span>
                     <span>{t.question_count} questions</span>
                   </div>
@@ -146,13 +163,22 @@ export default function AdminBlitzPage() {
 
                 <div className="flex items-center gap-2 flex-shrink-0">
                   {t.status === "draft" && (
-                    <button
-                      onClick={() => router.push(`/admin/blitz/${t.id}/setup`)}
-                      className="px-3 py-1.5 text-xs font-bold bg-[#1E1E1E] border border-[#333] text-white rounded-lg hover:border-[#4C6FFF]/40 transition-colors flex items-center gap-1"
-                    >
-                      Add Questions
-                      <ChevronRight size={12} />
-                    </button>
+                    <>
+                      <button
+                        onClick={() => router.push(`/admin/blitz/${t.id}/setup`)}
+                        className="px-3 py-1.5 text-xs font-bold bg-[#1E1E1E] border border-[#333] text-white rounded-lg hover:border-[#4C6FFF]/40 transition-colors flex items-center gap-1"
+                      >
+                        Edit Questions
+                        <ChevronRight size={12} />
+                      </button>
+                      <button
+                        onClick={() => handlePublish(t.id)}
+                        disabled={actionLoading === t.id + ":publish"}
+                        className="px-3 py-1.5 text-xs font-bold bg-[#4C6FFF]/10 border border-[#4C6FFF]/40 text-[#4C6FFF] rounded-lg hover:bg-[#4C6FFF]/20 transition-colors disabled:opacity-50"
+                      >
+                        {actionLoading === t.id + ":publish" ? "…" : "Publish"}
+                      </button>
+                    </>
                   )}
                   {t.status === "registration" && (
                     <button
@@ -165,11 +191,15 @@ export default function AdminBlitzPage() {
                   )}
                   {(t.status === "active" || t.status === "scoring") && (
                     <button
-                      onClick={() => setConfirmScore(t.id)}
-                      disabled={actionLoading === t.id + ":score"}
+                      onClick={() => t.status === "active" ? setConfirmScore(t.id) : undefined}
+                      disabled={actionLoading === t.id + ":score" || t.status === "scoring"}
                       className="px-3 py-1.5 text-xs font-bold bg-yellow-500/10 border border-yellow-500/40 text-yellow-400 rounded-lg hover:bg-yellow-500/20 transition-colors disabled:opacity-50"
                     >
-                      {actionLoading === t.id + ":score" ? "..." : "Score & Pay"}
+                      {actionLoading === t.id + ":score"
+                        ? "…"
+                        : t.status === "scoring"
+                        ? "Calculating…"
+                        : "Score & Pay"}
                     </button>
                   )}
                   {t.status === "completed" && (
