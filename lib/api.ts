@@ -1238,13 +1238,20 @@ export const adminApi = {
   getPackLiveStats: (packId: string) =>
     request<{
       pack_id: string;
-      pack_type?: "standard" | "special";  // new: indicates pack type
-      live: number;                         // renamed: in_progress → live
-      won: number;                          // correct answer count
-      lost: number;                         // incorrect answer count
-      total: number;                        // renamed: total_attempts/total_completed → total
-      win_rate: number;                     // 0–100 percentage
+      pack_type?: "standard" | "special";
+      live: number;
+      won: number;
+      lost: number;
+      total: number;
+      win_rate: number;
     }>(`/api/admin/pills/packs/${packId}/stats`, { token: getAdminToken() }),
+
+  // Specials-only aggregate attempt stats — replaces removed getAllPacksLiveStats
+  getSpecialsAttemptStats: () =>
+    request<{
+      totals: { live: number; won: number; lost: number; total: number; win_rate: number };
+      by_pack: { pack_id: string; pack_name: string; live: number; won: number; lost: number; total: number; win_rate: number }[];
+    }>(`/api/admin/pills/packs/attempt-stats`, { token: getAdminToken() }),
 
   updatePackQuestion: (packId: string, questionId: string, data: {
     question?: string;
