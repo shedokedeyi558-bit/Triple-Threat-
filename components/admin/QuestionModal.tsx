@@ -214,7 +214,7 @@ export function QuestionModal({ open, onClose, question, onSaved }: Props) {
                   <label className="text-xs text-gray-400 mb-1.5 block">Status</label>
                   <select
                     value={form.status}
-                    onChange={(e) => set("status", e.target.value)}
+                    onChange={(e) => set("status", e.target.value as "active" | "inactive" | "deleted")}
                     className="w-full bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl px-3 py-2.5 text-white text-sm outline-none"
                   >
                     <option value="active">Active</option>

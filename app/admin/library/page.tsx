@@ -256,6 +256,8 @@ export default function LibraryPage() {
   const [deleteTarget, setDeleteTarget] = useState<PackQuestion | null>(null);
   const [saving, setSaving]         = useState(false);
   const [deleting, setDeleting]     = useState(false);
+  const [showDeleteAll, setShowDeleteAll] = useState(false);
+  const [deletingAll, setDeletingAll] = useState(false);
 
   const load = useCallback(async () => {
     try { const r = await adminApi.getLibraryQuestions(); setQuestions(r.questions ?? []); }
@@ -287,6 +289,19 @@ export default function LibraryPage() {
     finally { setDeleting(false); }
   };
 
+  const handleDeleteAll = async () => {
+    setDeletingAll(true);
+    try {
+      await adminApi.deleteAllLibraryQuestions();
+      setQuestions([]);
+      setShowDeleteAll(false);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Failed to delete all questions");
+    } finally {
+      setDeletingAll(false);
+    }
+  };
+
   return (
     <div style={{ maxWidth: 860, margin: "0 auto", paddingBottom: 60 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
@@ -306,6 +321,12 @@ export default function LibraryPage() {
             style={{ display: "flex", alignItems: "center", gap: 6, padding: "9px 14px", borderRadius: 9, border: "none", backgroundColor: "var(--accent-amber)", color: "#000", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
             <Plus size={13} /> Add Question
           </button>
+          {questions.length > 0 && (
+            <button onClick={() => setShowDeleteAll(true)}
+              style={{ display: "flex", alignItems: "center", gap: 6, padding: "9px 14px", borderRadius: 9, border: "1px solid rgba(239,68,68,0.4)", backgroundColor: "rgba(239,68,68,0.08)", color: "#f87171", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+              <Trash2 size={13} /> Delete All
+            </button>
+          )}
         </div>
       </div>
 
@@ -392,6 +413,30 @@ export default function LibraryPage() {
                   style={{ flex: 1, padding: "9px 0", borderRadius: 8, border: "none", backgroundColor: "#ef4444", color: "#fff", fontSize: 12, fontWeight: 700, cursor: deleting?"not-allowed":"pointer", opacity: deleting?0.6:1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
                   {deleting ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
                   {deleting ? "Removing..." : "Remove"}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {showDeleteAll && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            style={{ position: "fixed", inset: 0, zIndex: 60, display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "rgba(0,0,0,0.75)", backdropFilter: "blur(4px)", padding: 16 }}
+            onClick={() => setShowDeleteAll(false)}>
+            <motion.div initial={{ scale: 0.92 }} animate={{ scale: 1 }} exit={{ scale: 0.92 }}
+              onClick={e => e.stopPropagation()}
+              style={{ width: "100%", maxWidth: 380, borderRadius: 16, padding: "24px 22px", backgroundColor: "var(--bg-card)", border: "1px solid rgba(239,68,68,0.25)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+                <AlertTriangle size={18} style={{ color: "#f87171" }} />
+                <p style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Delete all {questions.length} question{questions.length !== 1 ? "s" : ""}?</p>
+              </div>
+              <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 18 }}>This will permanently remove all {questions.length} question{questions.length !== 1 ? "s" : ""} from the library. This action cannot be undone.</p>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button onClick={() => setShowDeleteAll(false)} style={{ flex: 1, padding: "9px 0", borderRadius: 8, border: "1px solid var(--border-subtle)", backgroundColor: "transparent", color: "var(--text-secondary)", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>Cancel</button>
+                <button onClick={handleDeleteAll} disabled={deletingAll}
+                  style={{ flex: 1, padding: "9px 0", borderRadius: 8, border: "none", backgroundColor: "#ef4444", color: "#fff", fontSize: 12, fontWeight: 700, cursor: deletingAll?"not-allowed":"pointer", opacity: deletingAll?0.6:1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                  {deletingAll ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
+                  {deletingAll ? "Deleting..." : "Delete All"}
                 </button>
               </div>
             </motion.div>

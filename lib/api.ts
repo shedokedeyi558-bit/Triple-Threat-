@@ -1311,6 +1311,11 @@ export const adminApi = {
       method: "DELETE", token: getAdminToken()
     }),
 
+  deleteAllLibraryQuestions: () =>
+    request<{ deleted: number }>(`/api/admin/specials-bank/library`, {
+      method: "DELETE", token: getAdminToken()
+    }),
+
   importFromLibrary: (packId: string, questionIds: string[]) =>
     request<{ inserted: number }>(
       `/api/admin/specials-bank/library/copy-to-pack`,
