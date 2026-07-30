@@ -524,7 +524,7 @@ function PillSheet({ pack, pill, onConfirm, onClose, onStale, balance, bonusBala
   const { label: entryCapLabel, full: entryCapped } = formatEntryCap(pack.max_entries, pack.entries_made, pack.entry_cap_reached);
 
   const challengePhrase = isSpecial && qCount != null
-    ? `Answer ${qCount} questions${timeMins != null ? ` in ${timeMins} minute${timeMins !== 1 ? "s" : ""}` : ""}${passReq != null ? ` — get ${passReq} or more right to win` : " — pass to win"}.`
+    ? `Answer ${qCount} questions${timeMins != null ? ` in ${timeMins} minute${timeMins !== 1 ? "s" : ""}` : ""}${passReq != null ? ` — get ${passReq === qCount ? passReq : `${passReq} or more`} right to win` : " — pass to win"}.`
     : `Answer correctly and win instantly.`;
 
   const timerSec   = (pill as any).timer as number | undefined;

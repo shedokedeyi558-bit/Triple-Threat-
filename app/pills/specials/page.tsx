@@ -50,7 +50,7 @@ function SpecialConfirmSheet({ pack, balance, bonusBalance, onConfirm, onClose }
   const canStart  = canAfford && !expired;
 
   const challengePhrase = qCount != null
-    ? `Answer ${qCount} questions${timeMins != null ? ` in ${timeMins} minute${timeMins !== 1 ? "s" : ""}` : ""}${passReq != null ? ` — get ${passReq} or more right to win` : " — pass to win"}.`
+    ? `Answer ${qCount} questions${timeMins != null ? ` in ${timeMins} minute${timeMins !== 1 ? "s" : ""}` : ""}${passReq != null ? ` — get ${passReq === qCount ? passReq : `${passReq} or more`} right to win` : " — pass to win"}.`
     : `Complete the exam — pass to win the prize.`;
 
   return (
