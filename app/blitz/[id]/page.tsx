@@ -46,7 +46,7 @@ export default function BlitzDetailPage() {
       .finally(() => setLoading(false));
   }, [state.isAuthenticated, id, router]);
 
-  // Poll every 30s to catch status transitions (registration → active → completed)
+  // Poll every 30s to catch status transitions
   useEffect(() => {
     if (!state.isAuthenticated) return;
     const poll = setInterval(async () => {
@@ -55,7 +55,7 @@ export default function BlitzDetailPage() {
         setTournament(res.tournament);
         setIsRegistered(res.is_registered);
         setHasAttempted(res.has_attempted);
-      } catch { /* silent — don't interrupt UI */ }
+      } catch { /* silent */ }
     }, 30000);
     return () => clearInterval(poll);
   }, [state.isAuthenticated, id]);
@@ -67,8 +67,8 @@ export default function BlitzDetailPage() {
       else if (tournament.status === "active") setCountdown(formatCountdown(tournament.tournament_end));
     };
     tick();
-    const id = setInterval(tick, 1000);
-    return () => clearInterval(id);
+    const timerId = setInterval(tick, 1000);
+    return () => clearInterval(timerId);
   }, [tournament]);
 
   useEffect(() => {
@@ -82,7 +82,6 @@ export default function BlitzDetailPage() {
     try {
       const res = await blitzApi.register(id, ticketCode || undefined);
       setIsRegistered(true);
-      // Use newBalance from server response for accuracy
       dispatch({
         type: "UPDATE_BALANCE",
         balance: res.newBalance,
@@ -114,19 +113,11 @@ export default function BlitzDetailPage() {
   };
 
   const validateTicket = async (code: string) => {
-    if (!code.trim()) {
-      setTicketValid(null);
-      return;
-    }
+    if (!code.trim()) { setTicketValid(null); return; }
     setTicketValidating(true);
     try {
-      // Validate by attempting to register with dry-run (we'll catch the response)
-      // For now, assume it's valid if it's 6+ chars (backend will validate on register)
-      if (code.length >= 6) {
-        setTicketValid({ valid: true });
-      } else {
-        setTicketValid({ valid: false, message: "Invalid format" });
-      }
+      if (code.length >= 6) setTicketValid({ valid: true });
+      else setTicketValid({ valid: false, message: "Invalid format" });
     } finally {
       setTicketValidating(false);
     }
@@ -152,43 +143,43 @@ export default function BlitzDetailPage() {
 
   // ── Prize model ────────────────────────────────────────────────────────────
   const cashWinnerCount = tournament.cash_winner_count ?? 3;
-  const payoutDist = tournament.payout_distribution ?? [60, 25, 15];
-  const totalPayoutPct = tournament.total_payout_percent ?? (100 - (tournament.platform_cut_percent ?? 30));
-  const ticketTierPct = tournament.ticket_tier_percent ?? 0;
-
-  // Live pool (from actual registrations)
-  const currentPool = tournament.prize_pool > 0 ? tournament.prize_pool : null;
-
-  // Ceiling pool: max_participants × entry_fee × totalPayoutPct — always calculable
+  const payoutDist      = tournament.payout_distribution ?? [60, 25, 15];
+  const totalPayoutPct  = tournament.total_payout_percent ?? (100 - (tournament.platform_cut_percent ?? 30));
   const maxParticipants = tournament.max_participants ?? 0;
+
+  // Live pool from actual registrations (always show ₦0 not "—" when 0)
+  const livePool    = tournament.prize_pool ?? 0;
+  const hasLivePool = tournament.total_registered > 0;
+
+  // Ceiling pool: max_participants × entry_fee × totalPayoutPct
   const ceilingPool = maxParticipants > 0
     ? Math.floor(tournament.entry_fee * maxParticipants * totalPayoutPct / 100)
     : null;
 
-  // What to show in the Prize Pool stat card
-  const poolDisplay = currentPool
-    ? `₦${currentPool.toLocaleString()}`
-    : ceilingPool
+  // Prize pool stat card: show live value if players registered, else "up to ₦X"
+  const poolDisplay = hasLivePool
+    ? `₦${livePool.toLocaleString()}`
+    : ceilingPool != null
     ? `up to ₦${ceilingPool.toLocaleString()}`
-    : "—";
+    : `₦0`;
 
-  // Per-rank rows — use ceiling pool for "up to ₦X" figures; never show "—"
-  const cashPrizes: { rank: number; pct: number; ceiling: number | null; live: number | null }[] = Array.from(
-    { length: cashWinnerCount },
-    (_, i) => {
-      const pct = payoutDist[i] ?? 0;
-      return {
-        rank: i + 1,
-        pct,
-        ceiling: ceilingPool != null ? Math.floor(ceilingPool * pct / 100) : null,
-        live: currentPool != null ? Math.floor(currentPool * pct / 100) : null,
-      };
-    }
-  );
+  // Per-rank cash prizes — always show ₦ amounts, never just %
+  const cashPrizes = Array.from({ length: cashWinnerCount }, (_, i) => {
+    const pct = payoutDist[i] ?? 0;
+    const livePrize    = hasLivePool ? Math.floor(livePool * pct / 100) : null;
+    const ceilingPrize = ceilingPool != null ? Math.floor(ceilingPool * pct / 100) : null;
+    return { rank: i + 1, pct, livePrize, ceilingPrize };
+  });
 
-  const hasTicketTier = ticketTierPct > 0;
-  const rankLabel = (n: number) => n === 1 ? "1st Place" : n === 2 ? "2nd Place" : n === 3 ? "3rd Place" : `${n}th Place`;
+  // Non-cash position prizes from position_prizes array
+  const positionPrizes = tournament.position_prizes ?? [];
+
+  const rankLabel  = (n: number) => n === 1 ? "1st" : n === 2 ? "2nd" : n === 3 ? "3rd" : `${n}th`;
   const trophyColor = (n: number) => n === 1 ? "#facc15" : n === 2 ? "#9ca3af" : n === 3 ? "#ea580c" : "var(--accent-indigo)";
+
+  // Affordability — uses total (balance + bonus)
+  const totalBalance = (state.player?.balance ?? 0) + (state.player?.bonus_balance ?? 0);
+  const canAfford    = totalBalance >= tournament.entry_fee;
 
   return (
     <div className="max-w-2xl mx-auto px-4 lg:px-8 py-6 space-y-4">
@@ -213,10 +204,10 @@ export default function BlitzDetailPage() {
         </div>
         <div className="grid grid-cols-2 gap-3">
           {[
-            { label: "Entry Fee", value: `₦${tournament.entry_fee.toLocaleString()}`, color: "var(--text-primary)" },
-            { label: "Prize Pool", value: poolDisplay, color: "var(--accent-amber)" },
-            { label: "Questions", value: String(tournament.question_count), color: "var(--text-primary)" },
-            { label: "Time Limit", value: `${Math.floor(tournament.time_limit_seconds / 60)}m`, color: "var(--text-primary)" },
+            { label: "Entry Fee",   value: `₦${tournament.entry_fee.toLocaleString()}`, color: "var(--text-primary)" },
+            { label: "Prize Pool",  value: poolDisplay,                                  color: "var(--accent-amber)" },
+            { label: "Questions",   value: String(tournament.question_count),            color: "var(--text-primary)" },
+            { label: "Time Limit",  value: `${Math.floor(tournament.time_limit_seconds / 60)}m`, color: "var(--text-primary)" },
           ].map((s) => (
             <div key={s.label} className="rounded-xl p-3" style={{ backgroundColor: "var(--bg-base)" }}>
               <p className="text-[10px] uppercase tracking-wide mb-1 font-bold" style={{ color: "var(--text-muted)" }}>{s.label}</p>
@@ -259,13 +250,13 @@ export default function BlitzDetailPage() {
         </motion.div>
       )}
 
-      {/* Prize breakdown — dynamic from cash_winner_count + payout_distribution */}
+      {/* Prize breakdown — ₦ amounts, never bare % */}
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
         className="rounded-2xl p-5 space-y-3 border" style={{ backgroundColor: "var(--bg-card)", borderColor: "var(--border-subtle)" }}>
         <div className="flex items-center justify-between">
           <p className="text-[11px] uppercase tracking-widest font-bold" style={{ color: "var(--text-muted)" }}>Prize Breakdown</p>
           <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>
-            {currentPool ? "live pool" : ceilingPool ? "at max capacity" : ""}
+            {hasLivePool ? "live pool" : ceilingPool ? "at max capacity" : ""}
           </p>
         </div>
         <div className="space-y-3">
@@ -273,43 +264,48 @@ export default function BlitzDetailPage() {
             <div key={p.rank} className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-sm">
                 <Trophy size={15} style={{ color: trophyColor(p.rank) }} />
-                <span className="font-semibold" style={{ color: "var(--text-primary)" }}>{rankLabel(p.rank)}</span>
+                <span className="font-semibold" style={{ color: "var(--text-primary)" }}>{rankLabel(p.rank)} Place</span>
                 <span className="text-[11px]" style={{ color: "var(--text-muted)" }}>({p.pct}%)</span>
               </div>
               <div className="text-right">
-                {p.live != null ? (
+                {p.livePrize != null ? (
                   <span className="font-black font-mono" style={{ color: "var(--accent-amber)" }}>
-                    ₦{p.live.toLocaleString()}
+                    ₦{p.livePrize.toLocaleString()}
                   </span>
-                ) : p.ceiling != null ? (
-                  <span className="font-black font-mono" style={{ color: "var(--text-secondary)" }}>
-                    up to ₦{p.ceiling.toLocaleString()}
+                ) : p.ceilingPrize != null ? (
+                  <span className="font-black font-mono text-sm" style={{ color: "var(--text-secondary)" }}>
+                    up to ₦{p.ceilingPrize.toLocaleString()}
                   </span>
                 ) : (
-                  <span className="font-black font-mono" style={{ color: "var(--text-muted)" }}>—</span>
+                  <span className="font-black font-mono" style={{ color: "var(--text-muted)" }}>₦0</span>
                 )}
               </div>
             </div>
           ))}
-          {hasTicketTier && (
-            <div className="flex items-center justify-between pt-3 border-t" style={{ borderColor: "var(--border-hairline)" }}>
+
+          {/* Non-cash position prizes from position_prizes array */}
+          {positionPrizes.map((p) => (
+            <div key={p.position} className="flex items-center justify-between pt-2 border-t" style={{ borderColor: "var(--border-hairline)" }}>
               <div className="flex items-center gap-2 text-sm">
                 <Ticket size={15} style={{ color: "var(--accent-violet)" }} />
-                <span style={{ color: "var(--text-secondary)" }}>
-                  {cashWinnerCount + 1}th+ Place
-                </span>
+                <span style={{ color: "var(--text-secondary)" }}>{rankLabel(p.position)} Place</span>
               </div>
-              <span className="font-bold text-sm" style={{ color: "var(--accent-violet)" }}>Free Ticket ({ticketTierPct}%)</span>
+              <span className="font-bold text-sm" style={{ color: "var(--accent-violet)" }}>
+                {p.prize_type === "free_ticket"
+                  ? "🎫 Free next entry"
+                  : `🏷️ ${p.discount_percent ?? "?"}% off next entry`}
+              </span>
             </div>
-          )}
+          ))}
         </div>
       </motion.div>
 
-      {/* CTA */}
+      {/* CTA — correct status → UI mapping */}
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
+
+        {/* REGISTRATION OPEN — show register button */}
         {tournament.status === "registration" && !isRegistered && (
           <>
-            {/* Ticket Code Input */}
             <div className="mb-4 space-y-3">
               <div>
                 <label className="text-[11px] font-bold uppercase tracking-widest mb-2 block" style={{ color: "var(--text-muted)" }}>
@@ -349,10 +345,24 @@ export default function BlitzDetailPage() {
               )}
             </div>
 
+            {/* Insufficient balance warning — only if total is too low AND no free ticket */}
+            {!canAfford && !(ticketCode && ticketValid?.valid) && (
+              <p className="text-sm text-center mb-3" style={{ color: "#f87171" }}>
+                Insufficient balance. <a href="/wallet" style={{ textDecoration: "underline", fontWeight: 600 }}>Add funds</a>
+              </p>
+            )}
+
+            {/* Bonus breakdown hint */}
+            {!ticketCode && (state.player?.bonus_balance ?? 0) > 0 && canAfford && (
+              <p className="text-xs text-center mb-2" style={{ color: "var(--accent-amber)" }}>
+                ₦{Math.min(state.player?.bonus_balance ?? 0, tournament.entry_fee).toLocaleString()} from bonus credit
+              </p>
+            )}
+
             <motion.button
               whileTap={{ scale: 0.97 }}
               onClick={handleRegister}
-              disabled={registering || (state.player?.balance ?? 0) + (state.player?.bonus_balance ?? 0) < tournament.entry_fee}
+              disabled={registering || (!(ticketCode && ticketValid?.valid) && !canAfford)}
               className="w-full py-4 font-black text-lg rounded-xl disabled:opacity-40 transition-opacity"
               style={{ backgroundColor: "var(--accent-indigo)", color: "#fff" }}
             >
@@ -360,15 +370,10 @@ export default function BlitzDetailPage() {
                 ? "Register — FREE ENTRY"
                 : `Register — ₦${tournament.entry_fee.toLocaleString()}`}
             </motion.button>
-            {/* Bonus breakdown */}
-            {!ticketCode && (state.player?.bonus_balance ?? 0) > 0 && (
-              <p className="text-xs text-center mt-2" style={{ color: "var(--accent-amber)" }}>
-                ₦{Math.min(state.player?.bonus_balance ?? 0, tournament.entry_fee).toLocaleString()} from bonus credit
-              </p>
-            )}
           </>
         )}
 
+        {/* REGISTRATION OPEN — already registered */}
         {tournament.status === "registration" && isRegistered && (
           <div className="w-full py-4 rounded-xl text-center space-y-1 border" style={{ backgroundColor: "var(--bg-card)", borderColor: "var(--border-subtle)" }}>
             <div className="flex items-center justify-center gap-2 font-black" style={{ color: "var(--accent-indigo)" }}>
@@ -378,6 +383,7 @@ export default function BlitzDetailPage() {
           </div>
         )}
 
+        {/* ACTIVE — registered and haven't played */}
         {tournament.status === "active" && isRegistered && !hasAttempted && (
           <motion.button
             whileTap={{ scale: 0.97 }}
@@ -389,6 +395,7 @@ export default function BlitzDetailPage() {
           </motion.button>
         )}
 
+        {/* ACTIVE — registered and already played */}
         {tournament.status === "active" && isRegistered && hasAttempted && (
           <div className="w-full py-4 rounded-xl text-center border" style={{ backgroundColor: "var(--bg-card)", borderColor: "var(--border-subtle)" }}>
             <p className="font-bold" style={{ color: "var(--text-primary)" }}>Attempt submitted</p>
@@ -396,20 +403,22 @@ export default function BlitzDetailPage() {
           </div>
         )}
 
+        {/* ACTIVE — missed registration window */}
         {tournament.status === "active" && !isRegistered && (
           <div className="w-full py-4 rounded-xl text-center border" style={{ backgroundColor: "var(--bg-card)", borderColor: "var(--border-subtle)" }}>
-            <p className="text-sm" style={{ color: "var(--text-muted)" }}>Registration is closed</p>
+            <p className="text-sm font-semibold" style={{ color: "var(--text-muted)" }}>Registration is closed</p>
+            <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>This tournament is already live</p>
           </div>
         )}
 
+        {/* SCORING */}
         {tournament.status === "scoring" && (
-          <div className="space-y-3">
-            <div className="w-full py-4 rounded-xl text-center border" style={{ backgroundColor: "rgba(234,179,8,0.06)", borderColor: "rgba(234,179,8,0.25)" }}>
-              <p className="font-bold text-sm" style={{ color: "var(--accent-amber)" }}>⚡ Tournament ended — calculating results</p>
-              <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>Results will be posted automatically. Keep this page open.</p>
-            </div>
+          <div className="w-full py-4 rounded-xl text-center border" style={{ backgroundColor: "rgba(234,179,8,0.06)", borderColor: "rgba(234,179,8,0.25)" }}>
+            <p className="font-bold text-sm" style={{ color: "var(--accent-amber)" }}>⚡ Tournament ended — calculating results</p>
+            <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>Results will be posted automatically. Keep this page open.</p>
           </div>
         )}
+
       </motion.div>
 
     </div>
