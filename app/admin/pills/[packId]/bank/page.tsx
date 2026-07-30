@@ -866,50 +866,61 @@ export default function QuestionBankPage() {
   const tooEasy   = questions.filter(q => (q.times_shown ?? 0) >= 5 && (q.correct_rate ?? 0) > 85).length;
   const checkThis = questions.filter(q => (q.times_shown ?? 0) >= 5 && (q.correct_rate ?? 0) < 20).length;
 
+  // Detect mobile width for responsive layout
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
   return (
     <div style={{ maxWidth: 860, margin: "0 auto", paddingBottom: 60 }}>
-      {/* Header — stacked layout prevents text/button collision on mobile */}
+      {/* Header — responsive stacked layout for mobile */}
       <div style={{ marginBottom: 20 }}>
-        {/* Row 1: back button + pack name */}
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
+        {/* Row 1: back button + pack name (full width on mobile) */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: isMobile ? 12 : 6 }}>
           <button onClick={() => router.push("/admin/pills")}
             style={{ padding: "6px 8px", borderRadius: 8, border: "1px solid var(--border-subtle)", backgroundColor: "transparent", cursor: "pointer", display: "flex", alignItems: "center", flexShrink: 0 }}>
             <ChevronLeft size={16} style={{ color: "var(--text-secondary)" }} />
           </button>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0, flex: 1 }}>
             <BookOpen size={15} style={{ color: "var(--accent-indigo)", flexShrink: 0 }} />
-            <h1 style={{ fontSize: 17, fontWeight: 800, color: "var(--text-primary)", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            <h1 style={{ fontSize: isMobile ? 15 : 17, fontWeight: 800, color: "var(--text-primary)", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {loading ? "Loading…" : `${packName} — Question Bank`}
             </h1>
           </div>
         </div>
-        {/* Row 2: count + flags, then action buttons below */}
-        <div style={{ paddingLeft: 38 }}>
+        {/* Row 2: count + flags (below title on mobile, padded left on desktop) */}
+        <div style={{ paddingLeft: isMobile ? 0 : 38, marginBottom: isMobile ? 10 : 0 }}>
           <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "0 0 10px" }}>
             {questions.length} question{questions.length !== 1 ? "s" : ""} in bank
             {tooEasy > 0 && <span style={{ color: "#fbbf24", marginLeft: 8 }}>· {tooEasy} too easy</span>}
             {checkThis > 0 && <span style={{ color: "#f87171", marginLeft: 8 }}>· {checkThis} to review</span>}
           </p>
-          {/* Action buttons — wrap naturally on narrow screens */}
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+        </div>
+        {/* Row 3: action buttons (separate row on mobile for proper spacing) */}
+        <div style={{ paddingLeft: isMobile ? 0 : 38 }}>
+          <div style={{ display: "flex", gap: isMobile ? 6 : 6, flexWrap: "wrap", justifyContent: isMobile ? "space-between" : "flex-start" }}>
             <button onClick={() => { setShowBulk(v => !v); setShowAdd(false); setShowPaste(false); }}
-              style={{ display: "flex", alignItems: "center", gap: 5, padding: "8px 12px", borderRadius: 8, border: "1px solid rgba(76,111,255,0.3)", backgroundColor: showBulk ? "rgba(76,111,255,0.1)" : "transparent", color: "var(--accent-indigo)", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
+              style={{ display: "flex", alignItems: "center", gap: 5, padding: "8px 12px", borderRadius: 8, border: "1px solid rgba(76,111,255,0.3)", backgroundColor: showBulk ? "rgba(76,111,255,0.1)" : "transparent", color: "var(--accent-indigo)", fontSize: 11, fontWeight: 700, cursor: "pointer", flex: isMobile ? "1 1 calc(50% - 3px)" : "0 1 auto", justifyContent: isMobile ? "center" : "flex-start" }}>
               <Upload size={12} /> Bulk
             </button>
             <button onClick={() => { setShowPaste(v => !v); setShowBulk(false); setShowAdd(false); }}
-              style={{ display: "flex", alignItems: "center", gap: 5, padding: "8px 12px", borderRadius: 8, border: "1px solid rgba(139,92,246,0.35)", backgroundColor: showPaste ? "rgba(139,92,246,0.1)" : "transparent", color: "#a78bfa", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
+              style={{ display: "flex", alignItems: "center", gap: 5, padding: "8px 12px", borderRadius: 8, border: "1px solid rgba(139,92,246,0.35)", backgroundColor: showPaste ? "rgba(139,92,246,0.1)" : "transparent", color: "#a78bfa", fontSize: 11, fontWeight: 700, cursor: "pointer", flex: isMobile ? "1 1 calc(50% - 3px)" : "0 1 auto", justifyContent: isMobile ? "center" : "flex-start" }}>
               <Sparkles size={12} /> AI Paste
             </button>
             <button onClick={() => setShowImport(true)}
-              style={{ display: "flex", alignItems: "center", gap: 5, padding: "8px 12px", borderRadius: 8, border: "1px solid rgba(232,163,61,0.3)", backgroundColor: "transparent", color: "var(--accent-amber)", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
+              style={{ display: "flex", alignItems: "center", gap: 5, padding: "8px 12px", borderRadius: 8, border: "1px solid rgba(232,163,61,0.3)", backgroundColor: "transparent", color: "var(--accent-amber)", fontSize: 11, fontWeight: 700, cursor: "pointer", flex: isMobile ? "1 1 calc(50% - 3px)" : "0 1 auto", justifyContent: isMobile ? "center" : "flex-start" }}>
               <Library size={12} /> Library
             </button>
             <button onClick={() => setShowClone(true)}
-              style={{ display: "flex", alignItems: "center", gap: 5, padding: "8px 12px", borderRadius: 8, border: "1px solid var(--border-subtle)", backgroundColor: "transparent", color: "var(--text-secondary)", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
+              style={{ display: "flex", alignItems: "center", gap: 5, padding: "8px 12px", borderRadius: 8, border: "1px solid var(--border-subtle)", backgroundColor: "transparent", color: "var(--text-secondary)", fontSize: 11, fontWeight: 700, cursor: "pointer", flex: isMobile ? "1 1 calc(50% - 3px)" : "0 1 auto", justifyContent: isMobile ? "center" : "flex-start" }}>
               <Copy size={12} /> Clone
             </button>
             <button onClick={() => { setShowAdd(true); setShowBulk(false); setShowPaste(false); setEditTarget(null); }}
-              style={{ display: "flex", alignItems: "center", gap: 6, padding: "9px 14px", borderRadius: 9, border: "none", backgroundColor: "var(--accent-indigo)", color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+              style={{ display: "flex", alignItems: "center", gap: 6, padding: "9px 14px", borderRadius: 9, border: "none", backgroundColor: "var(--accent-indigo)", color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", flex: isMobile ? "1 1 100%" : "0 1 auto", justifyContent: isMobile ? "center" : "flex-start" }}>
               <Plus size={13} /> Add
             </button>
           </div>
