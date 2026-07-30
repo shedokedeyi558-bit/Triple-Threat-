@@ -284,26 +284,14 @@ export default function SpecialsPage() {
   useEffect(() => {
     if (!state.isAuthenticated) { router.push("/auth"); return; }
 
-    const isSpecial = (p: PillPack) => p.is_vip === true || (p as any).pack_type === "special";
-
-    Promise.allSettled([pillsApi.getPacks(), pillsApi.getSpecials()])
-      .then(([packsR, specialsR]) => {
-        const fromPacks = packsR.status === "fulfilled"
-          ? (packsR.value.packs ?? []).filter((p) => p.status === "active" && isSpecial(p))
-          : [];
-        const fromSpecials = specialsR.status === "fulfilled"
-          ? (specialsR.value.packs ?? []).filter((p) => p.status === "active")
-          : [];
-        // Merge, deduplicate by id
-        const seen = new Set<string>();
-        const all = [...fromPacks, ...fromSpecials].filter((p) => seen.has(p.id) ? false : (seen.add(p.id), true));
-        // Filter out featured — they live on the main page now
-        const nonFeatured = all.filter((p) => !p.is_featured);
-        // Sort by prize descending
-        nonFeatured.sort((a, b) =>
+    // Standard pills removed — only call getSpecials()
+    pillsApi.getSpecials()
+      .then((res) => {
+        const packs = (res.packs ?? []).filter((p) => p.status === "active");
+        packs.sort((a, b) =>
           (b.prize_amount ?? b.pills[0]?.prize ?? 0) - (a.prize_amount ?? a.pills[0]?.prize ?? 0)
         );
-        setPacks(nonFeatured);
+        setPacks(packs);
       })
       .catch((e) => setError(e instanceof ApiError ? e.message : "Failed to load specials"))
       .finally(() => setLoading(false));

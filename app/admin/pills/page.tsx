@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { adminApi, ApiError } from "@/lib/api";
-import { Loader2, Plus, Package, Eye, EyeOff, Trash2, ClipboardCheck, Star, BookOpen, BarChart2, TrendingUp, Activity, Clock, Search } from "lucide-react";
+import { Loader2, Plus, Package, Eye, EyeOff, Trash2, ClipboardCheck, BookOpen, BarChart2, TrendingUp, Activity, Clock, Search } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 // ── Inline live stats strip — mounts when a pack row is expanded ─────────────
@@ -148,7 +148,6 @@ export default function AdminPillsPage() {
   const [error, setError] = useState("");
   const [toggling, setToggling] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
-  const [featuring, setFeaturing] = useState<string | null>(null);
   const [forceDeleteTarget, setForceDeleteTarget] = useState<PillPack | null>(null);
   const [expandedActions, setExpandedActions] = useState<string | null>(null);
   const [search, setSearch] = useState("");
@@ -193,22 +192,6 @@ export default function AdminPillsPage() {
       setError(err instanceof ApiError ? err.message : "Failed to update");
     } finally {
       setToggling(null);
-    }
-  };
-
-  const handleFeature = async (pack: PillPack) => {
-    setFeaturing(pack.id);
-    try {
-      const newFeatured = !pack.is_featured;
-      await adminApi.featurePillPack(pack.id, newFeatured);
-      setPacks((prev) => prev.map((p) => ({
-        ...p,
-        is_featured: p.id === pack.id ? newFeatured : (newFeatured ? false : p.is_featured),
-      })));
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Failed to update featured status");
-    } finally {
-      setFeaturing(null);
     }
   };
 
@@ -350,13 +333,7 @@ export default function AdminPillsPage() {
                       {pack.is_featured && isSpecial && (
                         <span className="text-[9px] font-black px-1.5 py-0.5 rounded flex items-center gap-0.5 flex-shrink-0"
                           style={{ backgroundColor: "rgba(52,211,153,0.15)", color: "#34d399", border: "1px solid rgba(52,211,153,0.3)" }}>
-                          <Star size={8} fill="currentColor" /> FEATURED
-                        </span>
-                      )}
-                      {pack.is_featured && !isSpecial && (
-                        <span className="text-[9px] font-black px-1.5 py-0.5 rounded flex items-center gap-0.5 flex-shrink-0"
-                          style={{ backgroundColor: "rgba(76,111,255,0.12)", color: "var(--accent-indigo)", border: "1px solid rgba(76,111,255,0.25)" }}>
-                          <Star size={8} fill="currentColor" /> FEATURED
+                          ★ FEATURED
                         </span>
                       )}
                       {available === 0 && !isSpecial && (
@@ -489,19 +466,7 @@ export default function AdminPillsPage() {
                           </button>
                         )}
 
-                        {/* Feature — active packs only (both standard and specials) */}
-                        {pack.status === "active" && (
-                          <button onClick={() => handleFeature(pack)} disabled={featuring === pack.id}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors disabled:opacity-50"
-                            style={pack.is_featured
-                              ? isSpecial
-                                ? { backgroundColor: "rgba(52,211,153,0.2)", border: "1px solid rgba(52,211,153,0.5)", color: "#34d399" }
-                                : { backgroundColor: "rgba(76,111,255,0.2)", border: "1px solid rgba(76,111,255,0.4)", color: "var(--accent-indigo)" }
-                              : { backgroundColor: "rgba(76,111,255,0.06)", border: "1px solid rgba(76,111,255,0.15)", color: "var(--text-muted)" }}>
-                            {featuring === pack.id ? <Loader2 size={11} className="animate-spin" /> : <Star size={11} fill={pack.is_featured ? "currentColor" : "none"} />}
-                            {pack.is_featured ? "Featured" : "Set Featured"}
-                          </button>
-                        )}
+                        {/* Feature toggle removed — standard pills no longer exist */}
 
                         {/* Delete — safe if no available pills, force otherwise (one button, not two) */}
                         {canSafeDelete ? (
@@ -517,21 +482,16 @@ export default function AdminPillsPage() {
                           </button>
                         )}
 
-                        {/* View stats — all packs */}
-                        <button onClick={() => router.push(`/admin/pills/${pack.id}/stats`)}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors"
-                          style={{ backgroundColor: "rgba(76,111,255,0.08)", border: "1px solid rgba(76,111,255,0.2)", color: "var(--accent-indigo)" }}>
-                          <BarChart2 size={11} /> Stats
-                        </button>
-
-                        {/* View pills — Standard packs only */}
-                        {!isSpecial && (
-                          <button onClick={() => router.push(`/admin/pills/${pack.id}/pills`)}
+                        {/* View stats — Specials only (stats endpoint now specials-only) */}
+                        {isSpecial && (
+                          <button onClick={() => router.push(`/admin/pills/${pack.id}/stats`)}
                             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors"
-                            style={{ backgroundColor: "rgba(124,111,232,0.08)", border: "1px solid rgba(124,111,232,0.2)", color: "var(--accent-violet)" }}>
-                            <Eye size={11} /> View Pills
+                            style={{ backgroundColor: "rgba(76,111,255,0.08)", border: "1px solid rgba(76,111,255,0.2)", color: "var(--accent-indigo)" }}>
+                            <BarChart2 size={11} /> Stats
                           </button>
                         )}
+
+                        {/* View Pills button removed — standard pills no longer exist */}
 
                         {/* Manage bank — Specials only (have a question bank) */}
                         {isSpecial && (

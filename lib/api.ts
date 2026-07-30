@@ -715,28 +715,8 @@ export const specialsApi = {
 };
 
 export const pillsApi = {
-  getAvailable: () =>
-    request<{ pills: PillData[] }>("/api/pills/available", { token: getToken() }),
-
-  getPacks: () =>
-    request<{ packs: PillPack[] }>("/api/pills/packs", { token: getToken() }),
-
   getSpecials: () =>
     request<{ packs: PillPack[] }>("/api/pills/specials", { token: getToken() }),
-
-  open: (pillId: string) =>
-    request<PillOpenResponse>("/api/pills/open", {
-      method: "POST",
-      body: { pillId },
-      token: getToken(),
-    }),
-
-  submit: (pillId: string, answer: string) =>
-    request<PillSubmitResponse>("/api/pills/submit", {
-      method: "POST",
-      body: { pillId, answer },
-      token: getToken(),
-    }),
 };
 
 // ─── PREDICTIONS ──────────────────────────────────────────────────────────────
@@ -1216,12 +1196,6 @@ export const adminApi = {
       { method: "DELETE", token: getAdminToken() }
     ),
 
-  featurePillPack: (packId: string, featured: boolean) =>
-    request<{ pack: { id: string; is_featured: boolean } }>(
-      `/api/admin/pills/packs/${packId}/feature`,
-      { method: "PUT", body: { featured }, token: getAdminToken() }
-    ),
-
   addPillToPack: (packId: string, data: {
     question: string;
     format: "multiple_choice" | "type_answer";
@@ -1271,20 +1245,6 @@ export const adminApi = {
       total: number;                        // renamed: total_attempts/total_completed → total
       win_rate: number;                     // 0–100 percentage
     }>(`/api/admin/pills/packs/${packId}/stats`, { token: getAdminToken() }),
-
-  getAllPacksLiveStats: () =>
-    request<{
-      packs: {
-        pack_id: string;
-        pack_name: string;
-        pack_type?: "standard" | "special";  // new: indicates pack type
-        live: number;                         // renamed: in_progress → live
-        won: number;
-        lost: number;
-        total: number;                        // renamed: total_attempts/total_completed → total
-        win_rate: number;
-      }[];
-    }>(`/api/admin/pills/packs/stats`, { token: getAdminToken() }),
 
   updatePackQuestion: (packId: string, questionId: string, data: {
     question?: string;
