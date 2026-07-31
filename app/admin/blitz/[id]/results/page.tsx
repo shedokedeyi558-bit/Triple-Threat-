@@ -117,7 +117,17 @@ export default function AdminBlitzResultsPage() {
   useEffect(() => {
     if (!state.isAuthenticated) { router.push("/admin/login"); return; }
     adminApi.getBlitzResults(id)
-      .then(setResults)
+      .then((res) => {
+        // Normalize: backend may nest data differently
+        const raw = res as any;
+        const normalized: BlitzAdminResults = {
+          tournament:    raw.tournament    ?? raw.data?.tournament    ?? null,
+          scoring_event: raw.scoring_event ?? raw.data?.scoring_event ?? null,
+          revenue:       raw.revenue       ?? raw.data?.revenue       ?? null,
+          players:       raw.players       ?? raw.data?.players       ?? [],
+        };
+        setResults(normalized);
+      })
       .catch((e) => setError(e instanceof ApiError ? e.message : "Failed to load results"))
       .finally(() => setLoading(false));
   }, [state.isAuthenticated, id, router]);
@@ -267,13 +277,13 @@ export default function AdminBlitzResultsPage() {
               <span className="text-right">Prize</span>
             </div>
 
-            {results.players.length === 0 ? (
+            {(results.players ?? []).length === 0 ? (
               <div className="px-5 py-10 text-center text-sm" style={{ color: "var(--text-muted)" }}>
                 No player data
               </div>
             ) : (
               <div className="divide-y divide-[#1A1A1A]">
-                {results.players.map((p, i) => (
+                {(results.players ?? []).map((p, i) => (
                   <motion.div key={p.player_id}
                     initial={{ opacity: 0, x: -8 }}
                     animate={{ opacity: 1, x: 0 }}
