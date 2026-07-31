@@ -1560,7 +1560,7 @@ export interface PlayLimits {
 
 export const playerApi = {
   getSpendSummary: () =>
-    request<SpendSummary>("/api/player/spend-summary", { token: getToken() }),
+    request<SpendSummary>("/api/wallet/spend-summary", { token: getToken() }),
 
   setPlayLimits: (daily_limit: number | null, weekly_limit: number | null) =>
     request<{ message: string; limits: PlayLimits }>("/api/player/limits", {
