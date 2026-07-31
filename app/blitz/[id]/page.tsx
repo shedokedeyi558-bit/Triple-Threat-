@@ -210,16 +210,16 @@ export default function BlitzDetailPage() {
           </div>
           {tournament.description && <p className="text-sm" style={{ color: "var(--text-muted)" }}>{tournament.description}</p>}
         </div>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-2">
           {[
             { label: "Entry Fee",   value: `₦${tournament.entry_fee.toLocaleString()}`, color: "var(--text-primary)" },
             { label: "Prize Pool",  value: poolDisplay,                                  color: "var(--accent-amber)" },
             { label: "Questions",   value: String(tournament.question_count),            color: "var(--text-primary)" },
-            { label: "Time Limit",  value: `${Math.floor(tournament.time_limit_seconds / 60)}m`, color: "var(--text-primary)" },
+            { label: "Time Limit",  value: tournament.time_limit_seconds > 0 ? `${Math.floor(tournament.time_limit_seconds / 60)}m` : "—", color: "var(--text-primary)" },
           ].map((s) => (
             <div key={s.label} className="rounded-xl p-3" style={{ backgroundColor: "var(--bg-base)" }}>
-              <p className="text-[10px] uppercase tracking-wide mb-1 font-bold" style={{ color: "var(--text-muted)" }}>{s.label}</p>
-              <p className="font-black text-xl font-mono" style={{ color: s.color }}>{s.value}</p>
+              <p className="text-[10px] uppercase tracking-wide mb-0.5 font-bold" style={{ color: "var(--text-muted)" }}>{s.label}</p>
+              <p className="font-black text-lg font-mono" style={{ color: s.color }}>{s.value}</p>
             </div>
           ))}
         </div>
@@ -293,20 +293,28 @@ export default function BlitzDetailPage() {
             </div>
           ))}
 
-          {/* Non-cash position prizes from position_prizes array */}
-          {positionPrizes.map((p) => (
-            <div key={p.position} className="flex items-center justify-between pt-2 border-t" style={{ borderColor: "var(--border-hairline)" }}>
-              <div className="flex items-center gap-2 text-sm">
-                <Ticket size={15} style={{ color: "var(--accent-violet)" }} />
-                <span style={{ color: "var(--text-secondary)" }}>{rankLabel(p.position)} Place</span>
-              </div>
-              <span className="font-bold text-sm" style={{ color: "var(--accent-violet)" }}>
-                {p.prize_type === "free_ticket"
-                  ? "🎫 Free next entry"
-                  : `🏷️ ${p.discount_percent ?? "?"}% off next entry`}
-              </span>
-            </div>
-          ))}
+          {/* Non-cash position prizes — skip any positions already covered by cash winners */}
+          {(() => {
+            const nonCash = positionPrizes.filter(p => p.position > cashWinnerCount);
+            return nonCash.length > 0 ? (
+              <>
+                <div className="border-t" style={{ borderColor: "var(--border-hairline)" }} />
+                {nonCash.map((p) => (
+                  <div key={p.position} className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-sm">
+                      <Ticket size={15} style={{ color: "var(--accent-violet)" }} />
+                      <span style={{ color: "var(--text-secondary)" }}>{rankLabel(p.position)} Place</span>
+                    </div>
+                    <span className="font-bold text-sm" style={{ color: "var(--accent-violet)" }}>
+                      {p.prize_type === "free_ticket"
+                        ? "🎫 Free next entry"
+                        : `🏷️ ${p.discount_percent ?? "?"}% off next entry`}
+                    </span>
+                  </div>
+                ))}
+              </>
+            ) : null;
+          })()}
         </div>
       </motion.div>
 
