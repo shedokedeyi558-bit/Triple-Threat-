@@ -10,7 +10,7 @@ import {
   Upload, Library, Copy, Check, Sparkles,
 } from "lucide-react";
 import Link from "next/link";
-import { PastePanel } from "@/app/admin/library/page";
+import { PastePanel } from "@/components/admin/PastePanel";
 import { type PastedQuestion } from "@/lib/parseQuestions";
 
 // ── Bank health bar ───────────────────────────────────────────────────────────
