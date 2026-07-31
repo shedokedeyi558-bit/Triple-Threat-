@@ -172,13 +172,18 @@ export default function AdminBlitzPage() {
                         Edit Questions
                         <ChevronRight size={12} />
                       </button>
-                      <button
-                        onClick={() => handlePublish(t.id)}
-                        disabled={actionLoading === t.id + ":publish"}
-                        className="px-3 py-1.5 text-xs font-bold bg-[#4C6FFF]/10 border border-[#4C6FFF]/40 text-[#4C6FFF] rounded-lg hover:bg-[#4C6FFF]/20 transition-colors disabled:opacity-50"
-                      >
-                        {actionLoading === t.id + ":publish" ? "…" : "Publish"}
-                      </button>
+                      <div className="flex flex-col items-end gap-0.5">
+                        <button
+                          onClick={() => handlePublish(t.id)}
+                          disabled={actionLoading === t.id + ":publish"}
+                          className="px-3 py-1.5 text-xs font-bold bg-transparent border border-[#4C6FFF]/40 text-[#4C6FFF] rounded-lg hover:bg-[#4C6FFF]/10 transition-colors disabled:opacity-50"
+                        >
+                          {actionLoading === t.id + ":publish" ? "…" : "Open Registration Now (Early)"}
+                        </button>
+                        <span className="text-[9px] text-right" style={{ color: "var(--text-muted)", maxWidth: 160 }}>
+                          Optional — opens automatically at scheduled time
+                        </span>
+                      </div>
                     </>
                   )}
                   {t.status === "registration" && (

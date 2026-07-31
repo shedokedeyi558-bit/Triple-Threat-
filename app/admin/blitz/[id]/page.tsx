@@ -688,26 +688,26 @@ export default function AdminBlitzDetailPage() {
             {t.status === "draft" && (
               <div className="space-y-2">
                 <button onClick={handlePublish} disabled={actionLoading === "publish"}
-                  className="w-full py-3 rounded-xl text-sm font-black flex items-center justify-center gap-2 disabled:opacity-50"
-                  style={{ backgroundColor: "rgba(76,111,255,0.12)", border: "1px solid rgba(76,111,255,0.35)", color: "var(--accent-indigo)" }}>
+                  className="w-full py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-50"
+                  style={{ backgroundColor: "transparent", border: "1px solid rgba(76,111,255,0.5)", color: "var(--accent-indigo)" }}>
                   {actionLoading === "publish" ? <Loader2 size={15} className="animate-spin" /> : <CheckCircle size={15} />}
-                  {actionLoading === "publish" ? "Opening registration…" : "Open Registration Now (Early)"}
+                  {actionLoading === "publish" ? "Opening…" : "Open Registration Now (Early)"}
                 </button>
-                <p className="text-[11px] text-center leading-snug" style={{ color: "var(--text-muted)" }}>
-                  Optional — registration opens automatically at {t.registration_start ? fmtDate(t.registration_start) : "scheduled time"}. Click only to open early.
+                <p className="text-center text-xs" style={{ color: "var(--text-muted)" }}>
+                  Optional — registration opens automatically at {fmtDate(t.registration_start)}. Click only to open early.
                 </p>
               </div>
             )}
             {t.status === "registration" && (
               <div className="space-y-2">
                 <button onClick={handleActivate} disabled={actionLoading === "activate"}
-                  className="w-full py-3 rounded-xl text-sm font-black flex items-center justify-center gap-2 disabled:opacity-50"
-                  style={{ backgroundColor: "rgba(76,111,255,0.12)", border: "1px solid rgba(76,111,255,0.35)", color: "var(--accent-indigo)" }}>
+                  className="w-full py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-50"
+                  style={{ backgroundColor: "transparent", border: "1px solid rgba(76,111,255,0.5)", color: "var(--accent-indigo)" }}>
                   {actionLoading === "activate" ? <Loader2 size={15} className="animate-spin" /> : <Zap size={15} />}
                   {actionLoading === "activate" ? "Going live…" : "Go Live Now (Early)"}
                 </button>
-                <p className="text-[11px] text-center leading-snug" style={{ color: "var(--text-muted)" }}>
-                  Optional — tournament goes live automatically at {t.tournament_start ? fmtDate(t.tournament_start) : "scheduled time"}. Click only to go live early.
+                <p className="text-center text-xs" style={{ color: "var(--text-muted)" }}>
+                  Optional — tournament goes live automatically at {fmtDate(t.tournament_start)}. Click only to go live early.
                 </p>
               </div>
             )}
