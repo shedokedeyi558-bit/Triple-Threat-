@@ -7,15 +7,6 @@ import { useApp } from "@/context/AppContext";
 import { blitzApi, type BlitzTournament, ApiError } from "@/lib/api";
 import { Zap, Users, Clock, Trophy, Timer } from "lucide-react";
 
-"use client";
-
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
-import { useApp } from "@/context/AppContext";
-import { blitzApi, type BlitzTournament, ApiError } from "@/lib/api";
-import { Zap, Users, Clock, Trophy, Timer } from "lucide-react";
-
 function StatusBadge({ status }: { status: BlitzTournament["status"] }) {
   const config = {
     registration: { label: "Open",    color: "bg-blue-500/20 text-blue-400 border-blue-500/30" },
