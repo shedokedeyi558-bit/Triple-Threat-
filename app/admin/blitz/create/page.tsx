@@ -30,6 +30,7 @@ interface TournamentDetails {
   per_question_time_seconds: string;
   cash_winner_count: string; payout_distribution: string[];
   total_payout_percent: string; guaranteed_minimum: string;
+  first_place_percent: string; third_place_discount_percent: string;
 }
 interface TournamentSchedule {
   registration_start: string; tournament_start: string; tournament_end: string;
@@ -123,6 +124,7 @@ function DevTools({ sampleCategory, setSampleCategory, step, details, setDetails
       per_question_time_seconds: "8",
       cash_winner_count: "3", payout_distribution: ["50", "30", "20"],
       total_payout_percent: "70", guaranteed_minimum: "",
+      first_place_percent: "40", third_place_discount_percent: "50",
     });
     setSchedule({
       registration_start: regStart.toISOString().slice(0, 16),
@@ -177,6 +179,7 @@ export default function AdminBlitzCreatePage() {
     time_limit_seconds: "", max_participants: "", per_question_time_seconds: "",
     cash_winner_count: "", payout_distribution: [],
     total_payout_percent: "", guaranteed_minimum: "",
+    first_place_percent: "", third_place_discount_percent: "",
   });
   const [schedule, setSchedule] = useState<TournamentSchedule>({
     registration_start: "", tournament_start: "", tournament_end: "",
@@ -325,6 +328,8 @@ export default function AdminBlitzCreatePage() {
         total_payout_percent: details.total_payout_percent ? Number(details.total_payout_percent) : undefined,
         ticket_tier_percent: undefined,
         guaranteed_minimum: details.guaranteed_minimum ? Number(details.guaranteed_minimum) : undefined,
+        ...(details.first_place_percent ? { first_place_percent: Number(details.first_place_percent) } : {}),
+        ...(details.third_place_discount_percent ? { third_place_discount_percent: Number(details.third_place_discount_percent) } : {}),
         registration_start: new Date(schedule.registration_start).toISOString(),
         tournament_start: new Date(schedule.tournament_start).toISOString(),
         tournament_end: new Date(schedule.tournament_end).toISOString(),
@@ -451,8 +456,22 @@ export default function AdminBlitzCreatePage() {
                     <Field label="Max Participants *">
                       <input style={inputStyle} type="number" placeholder="1000" value={details.max_participants} onChange={(e) => updateDetails({ ...details, max_participants: e.target.value })} />
                     </Field>
+                    <Field label="1st Place Prize (%) *">
+                      <input style={inputStyle} type="number" placeholder="40" min={1} max={100}
+                        value={details.first_place_percent}
+                        onChange={(e) => updateDetails({ ...details, first_place_percent: e.target.value })} />
+                      <p style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 4 }}>% of total entry revenue paid to 1st place. E.g. 40 = 40% of all entry fees collected.</p>
+                    </Field>
+                    <Field label="3rd Place Discount (%) *">
+                      <input style={inputStyle} type="number" placeholder="50" min={1} max={99}
+                        value={details.third_place_discount_percent}
+                        onChange={(e) => updateDetails({ ...details, third_place_discount_percent: e.target.value })} />
+                      <p style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 4 }}>% off next Blitz entry for 3rd place winner.</p>
+                    </Field>
                   </FieldGrid>
-                  {/* Per-question timer — when set, replaces the Time Limit field */}
+                  <div style={{ padding: "8px 12px", borderRadius: 8, backgroundColor: "rgba(124,111,232,0.07)", border: "1px solid rgba(124,111,232,0.18)", fontSize: 11, color: "var(--accent-violet)" }}>
+                    🥈 2nd Place: Free entry ticket (automatic)
+                  </div>
                   <Field label="Per-Question Time (sec)">
                     <input style={inputStyle} type="number" placeholder="Leave blank for manual time limit" min={3} max={120}
                       value={details.per_question_time_seconds}

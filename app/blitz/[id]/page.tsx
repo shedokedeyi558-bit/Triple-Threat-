@@ -252,41 +252,83 @@ export default function BlitzDetailPage() {
           </p>
         </div>
 
-        {cashPrizes.map((p) => (
-          <div key={p.rank} className="flex items-center justify-between py-1">
-            <div className="flex items-center gap-2">
-              <Trophy size={14} style={{ color: trophyColor(p.rank) }} />
-              <span className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>{rankLabel(p.rank)} Place</span>
+        {tournament.first_place_percent != null ? (
+          // ── New simplified prize model ──
+          <>
+            {/* 1st Place — % of revenue */}
+            <div className="flex items-center justify-between py-1">
+              <div className="flex items-center gap-2">
+                <Trophy size={14} style={{ color: "#facc15" }} />
+                <span className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+                  1st Place ({tournament.first_place_percent}%)
+                </span>
+              </div>
+              <span className="font-black text-sm font-mono" style={{ color: "var(--accent-amber)" }}>
+                {livePool > 0
+                  ? `₦${Math.round(livePool * tournament.first_place_percent / 100).toLocaleString()}`
+                  : ceilingPool != null
+                  ? `up to ₦${Math.round(ceilingPool * tournament.first_place_percent / 100).toLocaleString()}`
+                  : `${tournament.first_place_percent}% of pool`}
+              </span>
             </div>
-            <span className="font-black text-sm font-mono" style={{ color: p.livePrize != null ? "var(--accent-amber)" : "var(--text-secondary)" }}>
-              {p.livePrize != null
-                ? `₦${p.livePrize.toLocaleString()}`
-                : p.ceilingPrize != null
-                ? `up to ₦${p.ceilingPrize.toLocaleString()}`
-                : `${p.pct}% of pool`}
-            </span>
-          </div>
-        ))}
-
-        {(() => {
-          const nonCash = positionPrizes.filter(p => p.position > cashWinnerCount);
-          return nonCash.length > 0 ? (
-            <>
-              <div className="my-1" style={{ borderTop: "1px solid var(--border-hairline)" }} />
-              {nonCash.map((p) => (
-                <div key={p.position} className="flex items-center justify-between py-1">
-                  <div className="flex items-center gap-2">
-                    <Ticket size={14} style={{ color: "var(--accent-violet)" }} />
-                    <span className="text-sm" style={{ color: "var(--text-secondary)" }}>{rankLabel(p.position)} Place</span>
-                  </div>
-                  <span className="font-bold text-sm" style={{ color: "var(--accent-violet)" }}>
-                    {p.prize_type === "free_ticket" ? "🎫 Free next entry" : `🏷️ ${p.discount_percent ?? "?"}% off`}
-                  </span>
+            {/* 2nd Place — always free ticket */}
+            <div className="flex items-center justify-between py-1">
+              <div className="flex items-center gap-2">
+                <Trophy size={14} style={{ color: "#9ca3af" }} />
+                <span className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>2nd Place</span>
+              </div>
+              <span className="font-bold text-sm" style={{ color: "var(--accent-violet)" }}>🎫 Free next entry</span>
+            </div>
+            {/* 3rd Place — discount */}
+            <div className="flex items-center justify-between py-1">
+              <div className="flex items-center gap-2">
+                <Trophy size={14} style={{ color: "#ea580c" }} />
+                <span className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>3rd Place</span>
+              </div>
+              <span className="font-bold text-sm" style={{ color: "var(--accent-violet)" }}>
+                🏷️ {tournament.third_place_discount_percent ?? "?"}% off next entry
+              </span>
+            </div>
+          </>
+        ) : (
+          // ── Legacy prize model ──
+          <>
+            {cashPrizes.map((p) => (
+              <div key={p.rank} className="flex items-center justify-between py-1">
+                <div className="flex items-center gap-2">
+                  <Trophy size={14} style={{ color: trophyColor(p.rank) }} />
+                  <span className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>{rankLabel(p.rank)} Place</span>
                 </div>
-              ))}
-            </>
-          ) : null;
-        })()}
+                <span className="font-black text-sm font-mono" style={{ color: p.livePrize != null ? "var(--accent-amber)" : "var(--text-secondary)" }}>
+                  {p.livePrize != null
+                    ? `₦${p.livePrize.toLocaleString()}`
+                    : p.ceilingPrize != null
+                    ? `up to ₦${p.ceilingPrize.toLocaleString()}`
+                    : `${p.pct}% of pool`}
+                </span>
+              </div>
+            ))}
+            {(() => {
+              const nonCash = positionPrizes.filter(p => p.position > cashWinnerCount);
+              return nonCash.length > 0 ? (
+                <>
+                  <div className="my-1" style={{ borderTop: "1px solid var(--border-hairline)" }} />
+                  {nonCash.map((p) => (
+                    <div key={p.position} className="flex items-center justify-between py-1">
+                      <div className="flex items-center gap-2">
+                        <Ticket size={14} style={{ color: "var(--accent-violet)" }} />
+                        <span className="text-sm" style={{ color: "var(--text-secondary)" }}>{rankLabel(p.position)} Place</span>
+                      </div>
+                      <span className="font-bold text-sm" style={{ color: "var(--accent-violet)" }}>
+                        {p.prize_type === "free_ticket" ? "🎫 Free next entry" : `🏷️ ${p.discount_percent ?? "?"}% off`}
+                      </span>
+                    </div>
+                  ))}
+                </>
+              ) : null;
+            })()}
+          </>
+        )}
       </motion.div>
 
       {/* ── CTA ── */}

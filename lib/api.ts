@@ -848,6 +848,9 @@ export interface BlitzTournament {
     prize_type: "free_ticket" | "discount";
     discount_percent?: number;
   }[];
+  // Simplified prize model fields
+  first_place_percent?: number;           // % of total revenue paid to 1st place
+  third_place_discount_percent?: number;  // % discount off next entry for 3rd place
   created_at: string;
 }
 
@@ -1389,6 +1392,8 @@ export const adminApi = {
     total_payout_percent?: number;
     ticket_tier_percent?: number;
     guaranteed_minimum?: number;
+    first_place_percent?: number;
+    third_place_discount_percent?: number;
   }) =>
     request<{ tournament: BlitzTournament; warnings?: string[] }>("/api/admin/blitz", {
       method: "POST", body: data, token: getAdminToken()
