@@ -305,31 +305,18 @@ export default function AdminBlitzCreatePage() {
     setLoading(true); setError(""); setWarnings([]);
     try {
       const perQ = details.per_question_time_seconds.trim();
-      const builtPositionPrizes = positionPrizes
-        .filter((p) => p.type !== "none")
-        .map((p) => ({
-          position: p.position,
-          prize_type: p.type as "free_ticket" | "discount",
-          ...(p.type === "discount" ? { discount_percent: Number(p.discount_percent) || 50 } : {}),
-        }));
 
       const res = await adminApi.createBlitz({
         title: details.title, description: details.description || undefined,
         entry_fee: Number(details.entry_fee), question_count: Number(details.question_count),
-        time_limit_seconds: effectiveTimeLimit,   // uses computed value when perQ is active
+        time_limit_seconds: effectiveTimeLimit,
         per_question_time_seconds: perQ ? Number(perQ) : null,
         max_participants: details.max_participants ? Number(details.max_participants) : undefined,
-        cash_winner_count: details.cash_winner_count ? Number(details.cash_winner_count) : undefined,
-        payout_distribution: details.payout_distribution.length ? details.payout_distribution.map(Number) : undefined,
-        total_payout_percent: details.total_payout_percent ? Number(details.total_payout_percent) : undefined,
-        ticket_tier_percent: undefined,
-        guaranteed_minimum: details.guaranteed_minimum ? Number(details.guaranteed_minimum) : undefined,
-        ...(details.first_place_percent ? { first_place_percent: Number(details.first_place_percent) } : {}),
-        ...(details.third_place_discount_percent ? { third_place_discount_percent: Number(details.third_place_discount_percent) } : {}),
+        first_place_percent: Number(details.first_place_percent),
+        third_place_discount_percent: Number(details.third_place_discount_percent),
         registration_start: new Date(schedule.registration_start).toISOString(),
         tournament_start: new Date(schedule.tournament_start).toISOString(),
         tournament_end: new Date(schedule.tournament_end).toISOString(),
-        ...(builtPositionPrizes.length > 0 ? { position_prizes: builtPositionPrizes } : {}),
       } as Parameters<typeof adminApi.createBlitz>[0]);
 
       if (res.warnings && res.warnings.length > 0) setWarnings(res.warnings);
