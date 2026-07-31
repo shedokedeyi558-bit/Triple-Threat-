@@ -258,7 +258,7 @@ export default function ProfilePage() {
                       {(process.env.NEXT_PUBLIC_APP_URL || "").replace(/^https?:\/\//, "")}/auth?ref={referralStats.referral_code}
                     </p>
                     <p className="text-[10px] mt-1" style={{ color: "var(--text-muted)" }}>
-                      Invite a friend. You earn ₦200 bonus when they make their first deposit and play their first game
+                      Invite a friend. You earn ₦200 bonus when they make their first deposit
                     </p>
                   </div>
                   <button
@@ -315,20 +315,16 @@ export default function ProfilePage() {
                   How to earn your ₦200
                 </p>
                 <p className="text-xs" style={{ color: "var(--text-secondary)", lineHeight: 1.55 }}>
-                  Your referred friend must complete <strong style={{ color: "var(--text-primary)" }}>both steps</strong> for you to earn ₦200:
+                  Your referred friend must complete <strong style={{ color: "var(--text-primary)" }}>this step</strong> for you to earn ₦200:
                 </p>
                 <div className="space-y-1.5">
                   <div className="flex items-start gap-2">
                     <span className="text-[11px] mt-0.5" style={{ color: "#34d399" }}>✓</span>
                     <p className="text-xs" style={{ color: "var(--text-secondary)" }}>Make their first deposit <span style={{ color: "var(--text-muted)" }}>(any amount)</span></p>
                   </div>
-                  <div className="flex items-start gap-2">
-                    <span className="text-[11px] mt-0.5" style={{ color: "#34d399" }}>✓</span>
-                    <p className="text-xs" style={{ color: "var(--text-secondary)" }}>Play their first game <span style={{ color: "var(--text-muted)" }}>(pill or special)</span></p>
-                  </div>
                 </div>
                 <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>
-                  Once both are done, your bonus is credited automatically.
+                  Once done, your bonus is credited automatically.
                 </p>
               </div>
             </>
