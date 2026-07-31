@@ -274,6 +274,7 @@ export default function WalletPage() {
         walletApi.withdraw(amt, accNum, selectedBank.name, selectedBank.code),
         18000
       );
+      console.log("[withdraw] response:", data);
       setWithdrawMsg(data.message);
       dispatch({
         type: "UPDATE_BALANCE",
@@ -288,7 +289,8 @@ export default function WalletPage() {
       setConfirmed(false);
       walletApi.getTransactions().then((d) => setTransactions(d.transactions)).catch(() => {});
     } catch (err) {
-      setWithdrawError(err instanceof ApiError ? err.message : "Withdrawal failed. Try again.");
+      console.error("[withdraw] error:", err);
+      setWithdrawError(err instanceof ApiError ? `${err.status}: ${err.message}` : "Withdrawal failed. Try again.");
     } finally {
       setWithdrawLoading(false);
     }
