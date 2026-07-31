@@ -74,7 +74,19 @@ export default function AdminDashboard() {
           adminApi.getPillPacks(),
           adminApi.getBlitzTournaments(),
         ]);
-        if (statsRes.status === "fulfilled") setStats(statsRes.value);
+        if (statsRes.status === "fulfilled") {
+          const raw = statsRes.value as any;
+          // Normalize: backend may return snake_case or camelCase
+          setStats({
+            playsToday:          raw.playsToday          ?? raw.plays_today          ?? 0,
+            revenueToday:        raw.revenueToday        ?? raw.revenue_today        ?? 0,
+            payoutsToday:        raw.payoutsToday        ?? raw.payouts_today        ?? 0,
+            profitToday:         raw.profitToday         ?? raw.profit_today         ?? 0,
+            totalPlayers:        raw.totalPlayers        ?? raw.total_players        ?? 0,
+            pendingWithdrawals:  raw.pendingWithdrawals  ?? raw.pending_withdrawals  ?? 0,
+            predictions:         raw.predictions         ?? undefined,
+          });
+        }
         if (gamesRes.status === "fulfilled") {
           setPredictions(
             ((gamesRes.value.predictions as any[]) || []).slice(0, 3) as RecentPrediction[]
