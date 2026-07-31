@@ -24,7 +24,7 @@ export async function POST(
         },
         // Pass the raw ReadableStream — never JSON.stringify() a multipart body
         body: request.body,
-        // @ts-ignore — duplex: 'half' required for streaming request body in Node 18+
+        // @ts-expect-error — duplex: 'half' required for streaming request body in Node 18+
         duplex: "half",
       }
     );
