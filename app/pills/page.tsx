@@ -10,6 +10,12 @@ import { Clock, Package, Loader2, AlertCircle } from "lucide-react";
 import Link from "next/link";
 
 // ── Live expiry countdown ─────────────────────────────────────────────────
+function formatSeconds(s: number): string {
+  const m = Math.floor(s / 60);
+  const sec = s % 60;
+  return sec > 0 ? `${m}m ${sec}s` : `${m}m`;
+}
+
 function usePackExpiry(expiresAt?: string | null) {
   const [secondsLeft, setSecondsLeft] = useState<number>(() =>
     expiresAt ? Math.max(0, Math.floor((new Date(expiresAt).getTime() - Date.now()) / 1000)) : -1
@@ -40,7 +46,8 @@ function ConfirmSheet({ pack, balance, bonusBalance, onConfirm, onClose }: {
   const entryFee = pack.entry_fee ?? 0;
   const prize    = pack.prize_amount ?? 0;
   const qCount   = pack.question_count ?? null;
-  const timeMins = pack.time_limit_minutes ?? null;
+  const rawSecs  = pack.total_time_seconds ?? (pack.time_limit_minutes != null ? pack.time_limit_minutes * 60 : null);
+  const timeDisplay = rawSecs != null ? formatSeconds(rawSecs) : null;
   const passReq  = pack.required_correct ?? (pack as any).pass_threshold ?? null;
   const total    = (balance ?? 0) + (bonusBalance ?? 0);
   const canAfford = total >= entryFee;
@@ -50,7 +57,7 @@ function ConfirmSheet({ pack, balance, bonusBalance, onConfirm, onClose }: {
   const canStart = canAfford && !expired;
 
   const challengePhrase = qCount != null
-    ? `Answer ${qCount} question${qCount !== 1 ? "s" : ""}${timeMins != null ? ` in ${timeMins} minute${timeMins !== 1 ? "s" : ""}` : ""}${passReq != null ? ` — get ${passReq === qCount ? passReq : `${passReq} or more`} right to win` : " — pass to win"}.`
+    ? `Answer ${qCount} question${qCount !== 1 ? "s" : ""}${timeDisplay != null ? ` in ${timeDisplay}` : ""}${passReq != null ? ` — get ${passReq === qCount ? passReq : `${passReq} or more`} right to win` : " — pass to win"}.`
     : "Complete the exam — pass to win the prize.";
 
   return (
@@ -146,14 +153,15 @@ function PackCard({ pack, playerId, onTap }: {
   const entryFee = pack.entry_fee ?? 0;
   const prize    = pack.prize_amount ?? 0;
   const qCount   = pack.question_count ?? null;
-  const timeMins = pack.time_limit_minutes ?? null;
+  const rawSecs  = pack.total_time_seconds ?? (pack.time_limit_minutes != null ? pack.time_limit_minutes * 60 : null);
+  const timeDisplay = rawSecs != null ? formatSeconds(rawSecs) : null;
   const passReq  = pack.required_correct ?? (pack as any).pass_threshold ?? null;
   const { label: expiryLabel, expired } = usePackExpiry(pack.quiz_expires_at);
   const isAttempted = pack.user_attempted === true || hasAttempted(playerId, pack.id);
   const disabled = isAttempted || expired;
 
   const challengePhrase = qCount != null
-    ? `Answer ${qCount} question${qCount !== 1 ? "s" : ""}${timeMins != null ? ` in ${timeMins} minute${timeMins !== 1 ? "s" : ""}` : ""}${passReq != null ? ` — get ${passReq === qCount ? passReq : `${passReq} or more`} right to win` : " — pass to win"}.`
+    ? `Answer ${qCount} question${qCount !== 1 ? "s" : ""}${timeDisplay != null ? ` in ${timeDisplay}` : ""}${passReq != null ? ` — get ${passReq === qCount ? passReq : `${passReq} or more`} right to win` : " — pass to win"}.`
     : "Complete the exam — pass to win the prize.";
 
   return (
@@ -205,10 +213,10 @@ function PackCard({ pack, playerId, onTap }: {
               <p style={{ fontSize: 14, fontFamily: "monospace", fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>{qCount}</p>
             </div>
           )}
-          {timeMins != null && (
+          {timeDisplay != null && (
             <div style={{ flex: 1, borderRadius: 8, padding: "8px 10px", textAlign: "center", backgroundColor: "var(--bg-base)", border: "1px solid var(--border-hairline)" }}>
               <p style={{ fontSize: 9, color: "var(--text-muted)", margin: "0 0 2px", textTransform: "uppercase" }}>Time</p>
-              <p style={{ fontSize: 14, fontFamily: "monospace", fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>{timeMins}m</p>
+              <p style={{ fontSize: 14, fontFamily: "monospace", fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>{timeDisplay}</p>
             </div>
           )}
         </div>
