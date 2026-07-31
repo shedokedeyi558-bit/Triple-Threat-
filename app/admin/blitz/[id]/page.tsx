@@ -665,10 +665,12 @@ export default function AdminBlitzDetailPage() {
                           {q.options.join(" · ")}
                         </p>
                       )}
-                      <p className="text-[11px] mt-0.5">
-                        <span style={{ color: "var(--text-muted)" }}>✓ </span>
-                        <span className="font-semibold" style={{ color: "var(--accent-indigo)" }}>{q.correct_answer}</span>
-                      </p>
+                      {(q as any).correct_answer && (
+                        <p className="text-[11px] mt-0.5">
+                          <span style={{ color: "var(--text-muted)" }}>✓ </span>
+                          <span className="font-semibold" style={{ color: "var(--accent-indigo)" }}>{(q as any).correct_answer}</span>
+                        </p>
+                      )}
                     </div>
                     <button onClick={() => setDeleteTarget(q.id)}
                       className="p-1.5 rounded-lg flex-shrink-0 hover:opacity-80 transition-opacity"
