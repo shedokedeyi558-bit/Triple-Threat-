@@ -156,7 +156,7 @@ export default function AdminBlitzPage() {
                     }</span>
                     <span className="flex items-center gap-1">
                       <Users size={11} />
-                      {t.total_registered}{t.max_participants ? `/${t.max_participants}` : ""}
+                      {t.total_registered ?? 0}{t.max_participants ? `/${t.max_participants}` : ""}
                     </span>
                     <span>{t.question_count} questions</span>
                   </div>
@@ -203,7 +203,7 @@ export default function AdminBlitzPage() {
                       Calculating…
                     </button>
                   )}
-                  {t.status === "active" && t.total_registered > 0 && (
+                  {t.status === "active" && (t.total_registered ?? 0) > 0 && (
                     <button
                       onClick={() => setConfirmScore(t.id)}
                       disabled={actionLoading === t.id + ":score"}

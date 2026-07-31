@@ -283,9 +283,17 @@ export default function AdminBlitzDetailPage() {
     setLoading(true); setError("");
     try {
       const res = await adminApi.getBlitzDetail(id);
-      const t = (res as any).tournament ?? (res as any).data?.tournament;
-      const qs = (res as any).questions ?? (res as any).data?.questions ?? [];
-      setTournament(t);
+      const raw = (res as any).tournament ?? (res as any).data?.tournament;
+      const qs  = (res as any).questions ?? (res as any).data?.questions ?? [];
+      // Normalize registered count — backend may use different field names
+      if (raw && raw.total_registered == null) {
+        raw.total_registered =
+          raw.registered_count ??
+          raw.total_participants ??
+          raw.participant_count ??
+          0;
+      }
+      setTournament(raw);
       setQuestions(qs);
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "Failed to load");
@@ -544,7 +552,7 @@ export default function AdminBlitzDetailPage() {
                     { label: "Prize Pool",   value: t.prize_pool > 0 ? fmt(t.prize_pool) : maxPool ? `up to ${fmt(maxPool)}` : t.first_place_percent && t.max_participants ? `up to ${fmt(Math.floor(t.entry_fee * t.max_participants * t.first_place_percent / 100))}` : "₦0" },
                     { label: "Questions",    value: `${questions.length} / ${t.question_count}` },
                     { label: "Per-Q Time",   value: t.per_question_time_seconds ? `${t.per_question_time_seconds}s` : "—" },
-                    { label: "Players",      value: t.max_participants ? `${t.total_registered} / ${t.max_participants}` : String(t.total_registered) },
+                    { label: "Players",      value: t.max_participants ? `${t.total_registered ?? 0} / ${t.max_participants}` : String(t.total_registered ?? 0) },
                     { label: "Cash Winners", value: String(t.cash_winner_count ?? 1) },
                   ].map(s => (
                     <div key={s.label} className="rounded-lg p-3" style={{ backgroundColor: "var(--bg-base)" }}>
