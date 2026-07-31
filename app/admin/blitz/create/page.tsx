@@ -33,7 +33,7 @@ interface TournamentDetails {
   first_place_percent: string; third_place_discount_percent: string;
 }
 interface TournamentSchedule {
-  registration_start: string; tournament_start: string; tournament_end: string;
+  tournament_start: string; tournament_end: string;
 }
 
 // ─── Shared layout primitives ───────────────────────────────────────────────
@@ -127,7 +127,6 @@ function DevTools({ sampleCategory, setSampleCategory, step, details, setDetails
       first_place_percent: "40", third_place_discount_percent: "50",
     });
     setSchedule({
-      registration_start: regStart.toISOString().slice(0, 16),
       tournament_start: tourStart.toISOString().slice(0, 16),
       tournament_end: tourEnd.toISOString().slice(0, 16),
     });
@@ -182,7 +181,7 @@ export default function AdminBlitzCreatePage() {
     first_place_percent: "", third_place_discount_percent: "",
   });
   const [schedule, setSchedule] = useState<TournamentSchedule>({
-    registration_start: "", tournament_start: "", tournament_end: "",
+    tournament_start: "", tournament_end: "",
   });
   const [positionPrizes, setPositionPrizes] = useState<PositionPrizeDraft[]>([
     { position: 2, type: "none", discount_percent: "50" },
@@ -291,10 +290,8 @@ export default function AdminBlitzCreatePage() {
     return null;
   };
   const validateStep2 = (): string | null => {
-    if (!schedule.registration_start) return "Registration start required";
     if (!schedule.tournament_start) return "Tournament start required";
     if (!schedule.tournament_end) return "Tournament end required";
-    if (new Date(schedule.tournament_start) <= new Date(schedule.registration_start)) return "Tournament must start after registration";
     if (new Date(schedule.tournament_end) <= new Date(schedule.tournament_start)) return "Tournament end must be after start";
     return null;
   };
@@ -314,7 +311,7 @@ export default function AdminBlitzCreatePage() {
         max_participants: details.max_participants ? Number(details.max_participants) : undefined,
         first_place_percent: Number(details.first_place_percent),
         third_place_discount_percent: Number(details.third_place_discount_percent),
-        registration_start: new Date(schedule.registration_start).toISOString(),
+        registration_start: new Date(schedule.tournament_start).toISOString(),
         tournament_start: new Date(schedule.tournament_start).toISOString(),
         tournament_end: new Date(schedule.tournament_end).toISOString(),
       } as Parameters<typeof adminApi.createBlitz>[0]);
@@ -559,9 +556,6 @@ export default function AdminBlitzCreatePage() {
             <motion.div key="step2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
               style={{ width: "100%", minWidth: 0, boxSizing: "border-box", borderRadius: 14, padding: "20px 16px", border: "1px solid var(--border-subtle)", backgroundColor: "var(--bg-card)", display: "flex", flexDirection: "column", gap: 16 }}>
               <p style={sectionHeadStyle}>Schedule</p>
-              <Field label="Registration Opens *">
-                <input style={inputStyle} type="datetime-local" value={schedule.registration_start} onChange={(e) => updateSchedule({ ...schedule, registration_start: e.target.value })} />
-              </Field>
               <Field label="Tournament Starts *">
                 <input style={inputStyle} type="datetime-local" value={schedule.tournament_start} onChange={(e) => updateSchedule({ ...schedule, tournament_start: e.target.value })} />
               </Field>
