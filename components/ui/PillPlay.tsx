@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import { handleNumericInputChange } from "@/lib/inputUtils";
 
 interface PillPlayProps {
   question: string;
@@ -9,84 +10,89 @@ interface PillPlayProps {
   format: "multiple_choice" | "type_answer";
   options?: string[];
   timer: number;
+  answer_input_mode?: "text" | "numeric";
   onSubmit: (answer: string) => void;
   isLoading?: boolean;
 }
 
 export default function PillPlay({
-  question,
-  category,
-  format,
-  options,
-  timer,
-  onSubmit,
-  isLoading = false,
+  question, category, format, options, timer, answer_input_mode, onSubmit, isLoading = false,
 }: PillPlayProps) {
   const [timeLeft, setTimeLeft] = useState(timer);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [textAnswer, setTextAnswer] = useState("");
+  const [timedOut, setTimedOut] = useState(false);
 
   useEffect(() => {
-    if (timeLeft <= 0) return;
-    const interval = setInterval(() => {
-      setTimeLeft((prev) => Math.max(0, prev - 1));
-    }, 1000);
+    if (timeLeft <= 0) {
+      if (!timedOut) {
+        setTimedOut(true);
+        const answer = format === "multiple_choice" ? selectedOption ?? "" : textAnswer.trim();
+        onSubmit(answer);
+      }
+      return;
+    }
+    const interval = setInterval(() => setTimeLeft((prev) => Math.max(0, prev - 1)), 1000);
     return () => clearInterval(interval);
-  }, [timeLeft]);
+  }, [timeLeft]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const progress = ((timer - timeLeft) / timer) * 100;
   const isTimeRunningOut = timeLeft <= 5;
 
   const handleSubmit = () => {
+    // Don't allow manual submit if time has expired
+    if (timedOut) return;
     const answer = format === "multiple_choice" ? selectedOption : textAnswer;
-    if (answer) {
-      onSubmit(answer);
-    }
+    if (answer) onSubmit(answer);
   };
 
-  const isValid =
-    format === "multiple_choice" ? selectedOption !== null : textAnswer.trim() !== "";
+  const isValid = format === "multiple_choice" ? selectedOption !== null : textAnswer.trim() !== "";
+  // Disable all interaction once time expires
+  const isInteractionDisabled = timedOut;
 
   return (
-    <div className="space-y-6">
-      {/* Category & Question */}
+    <div className="space-y-6" style={{ userSelect: "none" }} onContextMenu={(e) => e.preventDefault()}>
       <div>
         <p className="text-xs text-[#888] uppercase tracking-tight font-bold">{category}</p>
-        <h2 className="text-2xl font-bold mt-4 leading-tight">{question}</h2>
+        <h2 className="text-2xl font-bold mt-4 leading-tight" style={{ color: "var(--text-primary)" }}>{question}</h2>
       </div>
 
-      {/* Timer Bar */}
+      {/* Timer bar — amber (plenty of time), yellow (mid), red (urgent) */}
       <div className="space-y-2">
         <div className="bg-[#0A0A0A] border border-[#2A2A2A] rounded-xl overflow-hidden h-2">
           <motion.div
-            className={`h-full ${isTimeRunningOut ? "bg-red-500" : "bg-[#00FF66]"}`}
+            className="h-full"
+            style={{ backgroundColor: isTimeRunningOut ? "#ef4444" : "var(--accent-amber)" }}
             initial={{ width: "100%" }}
             animate={{ width: `${100 - progress}%` }}
             transition={{ type: "linear", duration: 0.1 }}
           />
         </div>
         <div className="flex justify-between items-center px-1">
-          <p className="text-xs text-[#888]">Time remaining</p>
-          <p className={`font-bold ${isTimeRunningOut ? "text-red-500" : "text-[#00FF66]"}`}>
-            {timeLeft}s
+          <p className="text-xs text-[#888]">
+            {timedOut ? "Time's up" : "Time remaining"}
+          </p>
+          <p className="font-bold" style={{ color: timedOut ? "#ef4444" : isTimeRunningOut ? "#ef4444" : "var(--accent-amber)" }}>
+            {timedOut ? "0s" : `${timeLeft}s`}
           </p>
         </div>
       </div>
 
-      {/* Answer Section */}
+      {/* Answer section */}
       {format === "multiple_choice" ? (
         <div className="space-y-3">
           {options?.map((option, idx) => (
             <motion.button
               key={idx}
-              onClick={() => setSelectedOption(option)}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className={`w-full p-4 rounded-xl font-bold uppercase tracking-tight transition-all min-h-12 ${
-                selectedOption === option
-                  ? "bg-[#00FF66] text-black border border-[#00FF66]"
-                  : "bg-[#1A1A1A] text-white border border-[#2A2A2A] hover:border-[#00FF66]"
-              }`}
+              onClick={() => !isInteractionDisabled && setSelectedOption(option)}
+              disabled={isInteractionDisabled}
+              whileHover={{ scale: !isInteractionDisabled ? 1.02 : 1 }}
+              whileTap={{ scale: !isInteractionDisabled ? 0.98 : 1 }}
+              className="w-full p-4 rounded-xl font-bold uppercase tracking-tight transition-all min-h-12 disabled:opacity-50 disabled:cursor-not-allowed"
+              style={selectedOption === option
+                ? { backgroundColor: "var(--accent-indigo)", color: "#fff", border: "1px solid var(--accent-indigo)" }
+                : { backgroundColor: "#1A1A1A", color: "var(--text-primary)", border: "1px solid #2A2A2A" }
+              }
             >
               {option}
             </motion.button>
@@ -98,27 +104,27 @@ export default function PillPlay({
             type="text"
             placeholder="Type your answer..."
             value={textAnswer}
-            onChange={(e) => setTextAnswer(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && isValid && !isLoading) {
-                handleSubmit();
-              }
-            }}
-            disabled={isLoading}
-            className="w-full bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl p-4 text-white placeholder-[#666] focus:border-[#00FF66] focus:outline-none transition-colors disabled:opacity-50"
+            onChange={(e) => !isInteractionDisabled && handleNumericInputChange(e, setTextAnswer, answer_input_mode === "numeric")}
+            onKeyDown={(e) => { if (e.key === "Enter" && isValid && !isLoading && !isInteractionDisabled) handleSubmit(); }}
+            disabled={isInteractionDisabled || isLoading}
+            inputMode={answer_input_mode === "numeric" ? "decimal" : "text"}
+            className="w-full bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl p-4 text-white placeholder-[#666] outline-none transition-colors disabled:opacity-50"
+            style={{ outline: "none" }}
+            onFocus={(e) => !isInteractionDisabled && (e.currentTarget.style.borderColor = "var(--accent-indigo)")}
+            onBlur={(e) => e.currentTarget.style.borderColor = "#2A2A2A"}
           />
         </div>
       )}
 
-      {/* Submit Button */}
       <motion.button
         onClick={handleSubmit}
-        disabled={!isValid || isLoading}
-        whileHover={{ scale: isValid && !isLoading ? 1.02 : 1 }}
-        whileTap={{ scale: isValid && !isLoading ? 0.98 : 1 }}
-        className="w-full bg-[#00FF66] text-black font-bold uppercase tracking-tight rounded-xl py-3 min-h-12 hover:bg-[#00DD55] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+        disabled={!isValid || isLoading || isInteractionDisabled}
+        whileHover={{ scale: (isValid && !isLoading && !isInteractionDisabled) ? 1.02 : 1 }}
+        whileTap={{ scale: (isValid && !isLoading && !isInteractionDisabled) ? 0.98 : 1 }}
+        className="w-full font-bold uppercase tracking-tight rounded-xl py-3 min-h-12 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+        style={{ backgroundColor: "var(--accent-indigo)", color: "#fff" }}
       >
-        {isLoading ? "Submitting..." : "Submit"}
+        {timedOut ? "Time's up" : isLoading ? "Submitting..." : "Submit"}
       </motion.button>
     </div>
   );

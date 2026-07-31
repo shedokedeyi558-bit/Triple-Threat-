@@ -1,243 +1,220 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { adminApi, ApiError } from "@/lib/api";
 import {
-  AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip,
-  ResponsiveContainer, PieChart, Pie, Cell, Legend,
-} from "recharts";
-import { adminApi, type RevenuePoint, type DoorStat, ApiError } from "@/lib/api";
-import { Download, Loader2 } from "lucide-react";
+  Loader2, TrendingUp, DollarSign, Users, Gamepad2,
+  ArrowDownCircle, ArrowUpCircle, Clock, CheckCircle,
+  XCircle, AlertCircle, Calendar, ChevronDown,
+} from "lucide-react";
 
-type Range = "today" | "week" | "month";
+type FilterMode = "today" | "month";
 
-const DOOR_COLORS = ["#00FF66", "#FFD700", "#FF4444"];
-const PRIZE_COLORS = ["#00FF66", "#FFD700", "#FF4444"];
+interface Overview {
+  money: { total_revenue: number; total_payouts: number; net_profit: number; pending_withdrawal_value: number };
+  players: { total_registered: number; new_this_period: number; active_this_period: number };
+  games: { pills_played: number; predictions_entered: number; blitz_registrations: number; total_plays: number };
+  withdrawals: { total_requested: number; total_approved: number; total_pending: number; total_rejected: number };
+}
 
-function StatCard({ label, value, sub, color }: { label: string; value: string; sub: string; color: string }) {
+function MetricRow({ icon, label, value, color = "text-white", highlight = false }: {
+  icon: React.ReactNode; label: string; value: string; color?: string; highlight?: boolean;
+}) {
   return (
-    <div className="bg-card border border-[#2A2A2A] rounded-2xl p-4">
-      <p className="text-xs text-gray-500 mb-1">{label}</p>
-      <p className={`text-xl font-black ${color}`}>{value}</p>
-      <p className="text-xs text-gray-500 mt-1">{sub}</p>
+    <div className={`flex items-center justify-between px-4 py-3 rounded-xl ${highlight ? "bg-[#4C6FFF]/5 border border-[#4C6FFF]/20" : "bg-[#111] border border-[#1E1E1E]"}`}>
+      <div className="flex items-center gap-3">
+        <div className="w-7 h-7 rounded-lg bg-[#1A1A1A] flex items-center justify-center flex-shrink-0 text-sm">
+          {icon}
+        </div>
+        <span className="text-gray-400 text-sm">{label}</span>
+      </div>
+      <span className={`font-black text-base ${color}`}>{value}</span>
     </div>
   );
 }
 
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-2">
+      <p className="text-[10px] text-gray-600 uppercase tracking-widest font-bold px-1">{title}</p>
+      {children}
+    </div>
+  );
+}
+
+function getMonthOptions() {
+  const options = [];
+  const now = new Date();
+  for (let i = 0; i < 12; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    const label = d.toLocaleDateString("en-NG", { month: "long", year: "numeric" });
+    options.push({ value, label });
+  }
+  return options;
+}
+
 export default function AnalyticsPage() {
-  const [range, setRange] = useState<Range>("today");
-  const [revenue, setRevenue] = useState<RevenuePoint[]>([]);
-  const [doorStats, setDoorStats] = useState<DoorStat[]>([]);
-  const [activity, setActivity] = useState<{ hour: string; plays: number }[]>([]);
+  const [filterMode, setFilterMode] = useState<FilterMode>("month");
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  });
+  const [overview, setOverview] = useState<Overview | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const monthOptions = getMonthOptions();
 
-  const rangeToParams: Record<Range, { period: "hourly" | "daily"; days: number }> = {
-    today: { period: "hourly", days: 1 },
-    week: { period: "daily", days: 7 },
-    month: { period: "daily", days: 30 },
+  const getPeriodParam = () => {
+    if (filterMode === "today") return "today";
+    return `month:${selectedMonth}`;
   };
 
-  const fetchData = useCallback(async (r: Range) => {
+  const getPeriodLabel = () => {
+    if (filterMode === "today") {
+      return new Date().toLocaleDateString("en-NG", {
+        weekday: "long", month: "long", day: "numeric", year: "numeric",
+      });
+    }
+    return monthOptions.find((o) => o.value === selectedMonth)?.label ?? selectedMonth;
+  };
+
+  const fetchData = useCallback(async () => {
     setLoading(true);
     setError("");
-    const { period, days } = rangeToParams[r];
     try {
-      const [revRes, doorRes, actRes] = await Promise.all([
-        adminApi.getRevenueAnalytics(period, days),
-        adminApi.getDoorAnalytics(),
-        adminApi.getActivityAnalytics(),
-      ]);
-      setRevenue(revRes.revenue);
-      setDoorStats(doorRes.doors);
-      setActivity(actRes.activity);
+      const res = await adminApi.getAnalyticsOverview(getPeriodParam());
+      setOverview(res as unknown as Overview);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Failed to load analytics");
+      if (err instanceof ApiError && err.status === 401) {
+        setError("Session expired. Log out and log back in.");
+      } else {
+        setError(err instanceof ApiError ? err.message : "Failed to load analytics");
+      }
     } finally {
       setLoading(false);
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [filterMode, selectedMonth]); // eslint-disable-line
 
-  useEffect(() => { fetchData(range); }, [range, fetchData]);
+  useEffect(() => { fetchData(); }, [fetchData]);
 
-  // Computed summary from revenue data
-  const totalRevenue = revenue.reduce((s, r) => s + r.revenue, 0);
-  const totalPayouts = revenue.reduce((s, r) => s + r.payouts, 0);
-  const netProfit = totalRevenue - totalPayouts;
-  const totalPlays = revenue.reduce((s, r) => s + r.plays, 0);
-
-  // Win rate per door from doorStats
-  const doorWinRate = doorStats.map((d, i) => ({
-    door: `Door ${d.doorId}`,
-    winRate: d.plays > 0 ? Math.round((d.wins / d.plays) * 100) : 0,
-    color: DOOR_COLORS[i] ?? "#888",
-  }));
-
-  // Prize distribution — use door revenue as proxy
-  const prizeDistrib = doorStats.map((d, i) => ({
-    name: `Door ${d.doorId}`,
-    value: d.plays,
-    color: PRIZE_COLORS[i] ?? "#888",
-  }));
-
-  // Heatmap — fill 24 slots
-  const heatmap = Array.from({ length: 24 }, (_, i) => {
-    const hourStr = `${String(i).padStart(2, "0")}:00`;
-    const match = activity.find((a) => a.hour.slice(11, 16) === hourStr);
-    return { hour: i, plays: match?.plays ?? 0 };
-  });
-  const maxPlays = Math.max(...heatmap.map((h) => h.plays), 1);
-
-  const xAxisKey = range === "today" ? "period" : "period";
-  const xFormatter = (v: string) =>
-    range === "today" ? v.slice(11, 16) : v.slice(5);
+  const margin = overview && overview.money.total_revenue > 0
+    ? Math.round((overview.money.net_profit / overview.money.total_revenue) * 100) : 0;
+  const approvalRate = overview && overview.withdrawals.total_requested > 0
+    ? Math.round((overview.withdrawals.total_approved / overview.withdrawals.total_requested) * 100) : 100;
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between flex-wrap gap-3">
+    <div className="max-w-5xl space-y-6">
+
+      {/* Header + filters */}
+      <div className="flex items-start justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-2xl font-black text-white">Analytics</h1>
-          <p className="text-gray-400 text-sm mt-0.5">Revenue &amp; performance data</p>
+          <p className="text-gray-500 text-sm mt-0.5">{getPeriodLabel()}</p>
         </div>
-        <a
-          href={adminApi.getExportUrl("sessions", range === "today" ? 1 : range === "week" ? 7 : 30)}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-[#2A2A2A] text-gray-400 text-sm hover:text-white hover:border-gray-400 transition-colors"
-        >
-          <Download size={15} />
-          Export CSV
-        </a>
-      </div>
 
-      {/* Date range */}
-      <div className="flex bg-card border border-[#2A2A2A] p-1 rounded-xl gap-1">
-        {(["today", "week", "month"] as Range[]).map((r) => (
-          <button
-            key={r}
-            onClick={() => setRange(r)}
-            className={`flex-1 py-2 rounded-lg text-xs font-semibold capitalize transition-all ${
-              range === r ? "bg-neon text-black" : "text-gray-400"
-            }`}
-          >
-            {r === "today" ? "Today" : r === "week" ? "This Week" : "This Month"}
-          </button>
-        ))}
-      </div>
-
-      {loading && (
-        <div className="flex justify-center py-12">
-          <Loader2 size={28} className="text-neon animate-spin" />
-        </div>
-      )}
-
-      {error && !loading && (
-        <div className="text-center py-8 text-red-400 text-sm">{error}</div>
-      )}
-
-      {!loading && !error && (
-        <>
-          {/* Summary cards */}
-          <div className="grid grid-cols-2 gap-3">
-            <StatCard label="Total Revenue" value={`₦${totalRevenue.toLocaleString()}`} sub={`${totalPlays} plays`} color="text-neon" />
-            <StatCard label="Total Payouts" value={`₦${totalPayouts.toLocaleString()}`} sub={`${totalRevenue > 0 ? Math.round((totalPayouts / totalRevenue) * 100) : 0}% payout rate`} color="text-orange-400" />
-            <StatCard label="Net Profit" value={`₦${netProfit.toLocaleString()}`} sub={`${totalRevenue > 0 ? Math.round((netProfit / totalRevenue) * 100) : 0}% margin`} color="text-gold" />
-            <StatCard
-              label="Overall Win Rate"
-              value={`${doorStats.reduce((s, d) => s + d.plays, 0) > 0 ? Math.round((doorStats.reduce((s, d) => s + d.wins, 0) / doorStats.reduce((s, d) => s + d.plays, 0)) * 100) : 0}%`}
-              sub="across all doors"
-              color="text-blue-400"
-            />
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Mode toggle: Today | Month */}
+          <div className="flex bg-[#111] border border-[#1E1E1E] p-1 rounded-xl gap-1">
+            <button
+              onClick={() => setFilterMode("today")}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                filterMode === "today"
+                  ? "bg-[#4C6FFF] text-[#042C53]"
+                  : "text-gray-400 hover:text-white"
+              }`}
+            >Today</button>
+            <button
+              onClick={() => setFilterMode("month")}
+              className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                filterMode === "month"
+                  ? "bg-[#4C6FFF] text-[#042C53]"
+                  : "text-gray-400 hover:text-white"
+              }`}
+            ><Calendar size={11} /> Month</button>
           </div>
 
-          {/* Revenue over time */}
-          {revenue.length > 0 && (
-            <div className="bg-card border border-[#2A2A2A] rounded-2xl p-4">
-              <h3 className="text-sm font-bold text-white mb-4">Revenue over time</h3>
-              <ResponsiveContainer width="100%" height={180}>
-                <AreaChart data={revenue}>
-                  <defs>
-                    <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#00FF66" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#00FF66" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <XAxis dataKey={xAxisKey} tick={{ fill: "#666", fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={xFormatter} />
-                  <YAxis tick={{ fill: "#666", fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(v) => `₦${(v / 1000).toFixed(0)}k`} />
-                  <Tooltip
-                    contentStyle={{ background: "#1A1A1A", border: "1px solid #2A2A2A", borderRadius: 12, fontSize: 12 }}
-                    formatter={(v: number) => [`₦${v.toLocaleString()}`, ""]}
-                    labelFormatter={xFormatter}
-                  />
-                  <Area type="monotone" dataKey="revenue" stroke="#00FF66" strokeWidth={2} fill="url(#revGrad)" name="Revenue" />
-                </AreaChart>
-              </ResponsiveContainer>
+          {filterMode === "month" && (
+            <div className="relative">
+              <select value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)}
+                className="appearance-none bg-[#111] border border-[#1E1E1E] rounded-xl pl-3 pr-8 py-2 text-white text-xs font-semibold outline-none focus:border-[#4C6FFF]/40 cursor-pointer">
+                {monthOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+              <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
             </div>
           )}
+        </div>
+      </div>
 
-          {/* Win rate per door */}
-          {doorWinRate.length > 0 && (
-            <div className="bg-card border border-[#2A2A2A] rounded-2xl p-4">
-              <h3 className="text-sm font-bold text-white mb-4">Win rate per door</h3>
-              <ResponsiveContainer width="100%" height={160}>
-                <BarChart data={doorWinRate}>
-                  <XAxis dataKey="door" tick={{ fill: "#666", fontSize: 11 }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fill: "#666", fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}%`} />
-                  <Tooltip
-                    contentStyle={{ background: "#1A1A1A", border: "1px solid #2A2A2A", borderRadius: 12, fontSize: 12 }}
-                    formatter={(v: number) => [`${v}%`, "Win Rate"]}
-                  />
-                  <Bar dataKey="winRate" radius={[6, 6, 0, 0]}>
-                    {doorWinRate.map((entry, i) => (
-                      <Cell key={i} fill={entry.color} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-
-          {/* Prize distribution */}
-          {prizeDistrib.some((p) => p.value > 0) && (
-            <div className="bg-card border border-[#2A2A2A] rounded-2xl p-4">
-              <h3 className="text-sm font-bold text-white mb-4">Plays by door</h3>
-              <ResponsiveContainer width="100%" height={200}>
-                <PieChart>
-                  <Pie data={prizeDistrib} cx="50%" cy="50%" outerRadius={70} paddingAngle={3} dataKey="value">
-                    {prizeDistrib.map((entry, i) => <Cell key={i} fill={entry.color} />)}
-                  </Pie>
-                  <Legend wrapperStyle={{ fontSize: 12 }} />
-                  <Tooltip
-                    contentStyle={{ background: "#1A1A1A", border: "1px solid #2A2A2A", borderRadius: 12, fontSize: 12 }}
-                    formatter={(v: number) => [`${v} plays`, ""]}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-
-          {/* Peak hours heatmap */}
-          <div className="bg-card border border-[#2A2A2A] rounded-2xl p-4">
-            <h3 className="text-sm font-bold text-white mb-4">Peak playing hours (last 24h)</h3>
-            <div className="grid grid-cols-12 gap-1">
-              {heatmap.map(({ hour, plays }) => (
-                <div key={hour} className="flex flex-col items-center gap-1">
-                  <div
-                    className="w-full rounded-sm"
-                    style={{
-                      background: `rgba(0,255,102,${(plays / maxPlays).toFixed(2)})`,
-                      minHeight: 20,
-                      aspectRatio: "1",
-                    }}
-                    title={`${hour}:00 — ${plays} plays`}
-                  />
-                  {hour % 6 === 0 && <span className="text-[9px] text-gray-600">{hour}h</span>}
-                </div>
-              ))}
-            </div>
-            <p className="text-xs text-gray-500 mt-2">Darker = more plays</p>
-          </div>
-        </>
+      {error && (
+        <div className="bg-red-900/10 border border-red-800/30 rounded-xl p-3 text-red-400 text-sm flex gap-2">
+          <AlertCircle size={14} className="flex-shrink-0 mt-0.5" /> {error}
+        </div>
       )}
+
+      {loading ? (
+        <div className="flex justify-center py-16"><Loader2 size={24} className="animate-spin" style={{ color: "var(--accent-indigo)" }} /></div>
+      ) : overview ? (
+        /* Desktop: 2-col. Mobile: single col */
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+          {/* Left column */}
+          <div className="space-y-6">
+            <Section title="Money">
+              <MetricRow icon={<DollarSign size={13} style={{ color: "var(--accent-amber)" }} />} label="Total Revenue"
+                value={`₦${overview.money.total_revenue.toLocaleString()}`} color="text-[#E8A33D]" highlight />
+              <MetricRow icon={<ArrowUpCircle size={13} className="text-orange-400" />} label="Total Payouts"
+                value={`₦${overview.money.total_payouts.toLocaleString()}`} color="text-orange-400" />
+              <MetricRow icon={<TrendingUp size={13} className="text-blue-400" />}
+                label={`Net Profit (${margin}% margin)`}
+                value={`₦${overview.money.net_profit.toLocaleString()}`}
+                color={overview.money.net_profit >= 0 ? "text-blue-400" : "text-red-400"} />
+              <MetricRow icon={<Clock size={13} className="text-yellow-400" />} label="Pending Payouts"
+                value={`₦${overview.money.pending_withdrawal_value.toLocaleString()}`}
+                color={overview.money.pending_withdrawal_value > 0 ? "text-yellow-400" : "text-gray-500"} />
+            </Section>
+
+            <Section title="Players">
+              <MetricRow icon={<Users size={13} className="text-white" />} label="Total Registered"
+                value={overview.players.total_registered.toLocaleString()} />
+              <MetricRow icon={<ArrowDownCircle size={13} style={{ color: "var(--accent-indigo)" }} />} label="New This Period"
+                value={overview.players.new_this_period.toLocaleString()} color="text-[#4C6FFF]" />
+              <MetricRow icon={<Gamepad2 size={13} className="text-purple-400" />} label="Active Players"
+                value={overview.players.active_this_period.toLocaleString()} color="text-purple-400" />
+            </Section>
+          </div>
+
+          {/* Right column */}
+          <div className="space-y-6">
+            <Section title="Game Activity">
+              <MetricRow icon="💊" label="Pills Played"
+                value={overview.games.pills_played.toLocaleString()} />
+              <MetricRow icon={<Clock size={13} className="text-purple-400" />} label="Predictions Entered"
+                value={overview.games.predictions_entered.toLocaleString()} color="text-purple-400" />
+              <MetricRow icon="⚡" label="Blitz Registrations"
+                value={overview.games.blitz_registrations.toLocaleString()} />
+              <MetricRow icon={<TrendingUp size={13} style={{ color: "var(--accent-amber)" }} />} label="Total Plays"
+                value={overview.games.total_plays.toLocaleString()} color="text-[#E8A33D]" highlight />
+            </Section>
+
+            <Section title="Withdrawals">
+              <MetricRow icon={<ArrowUpCircle size={13} className="text-gray-400" />} label="Total Requested"
+                value={overview.withdrawals.total_requested.toLocaleString()} />
+              <MetricRow icon={<CheckCircle size={13} style={{ color: "var(--accent-indigo)" }} />}
+                label={`Approved (${approvalRate}% rate)`}
+                value={overview.withdrawals.total_approved.toLocaleString()} color="text-[#4C6FFF]" />
+              <MetricRow icon={<Clock size={13} className="text-yellow-400" />}
+                label={overview.withdrawals.total_pending > 0 ? "Pending ⚠️" : "Pending"}
+                value={overview.withdrawals.total_pending.toLocaleString()}
+                color={overview.withdrawals.total_pending > 0 ? "text-yellow-400" : "text-gray-500"} />
+              <MetricRow icon={<XCircle size={13} className="text-red-400" />} label="Rejected"
+                value={overview.withdrawals.total_rejected.toLocaleString()}
+                color={overview.withdrawals.total_rejected > 0 ? "text-red-400" : "text-gray-500"} />
+            </Section>
+          </div>
+
+        </div>
+      ) : null}
     </div>
   );
 }

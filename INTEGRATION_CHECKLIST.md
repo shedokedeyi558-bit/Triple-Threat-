@@ -1,4 +1,4 @@
-# Integration Checklist: Auth Flow Complete
+c# Integration Checklist: Auth Flow Complete
 
 ## ✅ Backend Implementation
 - [x] Phone existence check in `register()` endpoint

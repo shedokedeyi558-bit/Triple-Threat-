@@ -1,12 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 
-export async function PUT(_: NextRequest, { params }: { params: { id: string } }) {
-  return NextResponse.json({
-    success: true,
-    data: {
-      withdrawal: { id: params.id, status: "approved" },
-      message: "Withdrawal approved",
-      transferError: null,
-    },
-  });
+const BACKEND = process.env.NEXT_PUBLIC_API_URL || "https://bitlyfe-production.up.railway.app";
+
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const token = request.headers.get("authorization");
+    const res = await fetch(`${BACKEND}/api/admin/withdrawals/${params.id}/approve`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: token } : {}),
+      },
+    });
+    const data = await res.json();
+    return NextResponse.json(data, { status: res.status });
+  } catch {
+    return NextResponse.json({ success: false, error: "Server error" }, { status: 500 });
+  }
 }

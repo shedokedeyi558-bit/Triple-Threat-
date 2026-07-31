@@ -1,17 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 
-export async function GET(_: NextRequest, { params }: { params: { id: string } }) {
-  return NextResponse.json({
-    success: true,
-    data: {
-      game: { id: params.id },
-      stats: {
-        total_players: 18,
-        total_revenue: 18000,
-        total_payout: 16000,
-        profit: 2000,
-        completion_rate: 0.95,
+const BACKEND = process.env.NEXT_PUBLIC_API_URL || "https://bitlyfe-production.up.railway.app";
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const token = request.headers.get("authorization");
+    const res = await fetch(`${BACKEND}/api/admin/games/${params.id}/stats`, {
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: token } : {}),
       },
-    },
-  });
+    });
+    const data = await res.json();
+    return NextResponse.json(data, { status: res.status });
+  } catch {
+    return NextResponse.json({ success: false, error: "Server error" }, { status: 500 });
+  }
 }

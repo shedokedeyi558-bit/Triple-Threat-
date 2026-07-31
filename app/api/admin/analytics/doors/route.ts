@@ -1,14 +1,19 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
-export async function GET() {
-  return NextResponse.json({
-    success: true,
-    data: {
-      doors: [
-        { doorId: 1, plays: 154, wins: 72, revenue: 30800, payouts: 14400 },
-        { doorId: 2, plays: 120, wins: 48, revenue: 24000, payouts: 19200 },
-        { doorId: 3, plays: 68, wins: 18, revenue: 13600, payouts: 18000 },
-      ],
-    },
-  });
+const BACKEND = process.env.NEXT_PUBLIC_API_URL || "https://bitlyfe-production.up.railway.app";
+
+export async function GET(request: NextRequest) {
+  try {
+    const token = request.headers.get("authorization");
+    const res = await fetch(`${BACKEND}/api/admin/analytics/doors`, {
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: token } : {}),
+      },
+    });
+    const data = await res.json();
+    return NextResponse.json(data, { status: res.status });
+  } catch {
+    return NextResponse.json({ success: false, error: "Server error" }, { status: 500 });
+  }
 }

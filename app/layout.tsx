@@ -1,15 +1,20 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { AppProvider } from "@/context/AppContext";
-import { BottomNavigation } from "@/components/ui/BottomNavigation";
+import { AppShell } from "@/components/ui/AppShell";
+import { ToastContainer } from "@/components/ui/Toast";
 
 export const metadata: Metadata = {
   title: "BitLyfe — Play Smart. Win Real.",
   description: "BitLyfe: Play smart, win real. Pick a pill or predict the future and earn real money.",
   manifest: "/manifest.json",
   icons: {
-    icon: "/favicon.svg",
-    apple: "/icon-192.png",
+    icon: [
+      { url: "/favicon-16.png", sizes: "16x16", type: "image/png" },
+      { url: "/favicon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon.ico" },
+    ],
+    apple: "/apple-touch-icon.png",
   },
   appleWebApp: {
     capable: true,
@@ -29,16 +34,28 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: "#0A0A0A",
+  themeColor: "#0B0E14",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className="bg-bg text-white antialiased">
+      <head>
+        <link
+          href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600&family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Mono:wght@500&family=Sora:wght@700;800&display=swap"
+          rel="stylesheet"
+        />
+        <link
+          href="https://api.fontshare.com/v2/css?f[]=clash-display@600,700,800&display=swap"
+          rel="stylesheet"
+        />
+      </head>
+      <body className="bg-bg text-white antialiased" style={{ backgroundColor: "var(--bg-base)", color: "var(--text-primary)" }}>
         <AppProvider>
-          {children}
-          <BottomNavigation />
+          <AppShell>
+            {children}
+          </AppShell>
+          <ToastContainer />
         </AppProvider>
       </body>
     </html>

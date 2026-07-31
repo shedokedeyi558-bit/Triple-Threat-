@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Loader2 } from "lucide-react";
 import { adminApi, type AdminQuestion, ApiError } from "@/lib/api";
+import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
 
 interface Props {
   open: boolean;
@@ -36,17 +37,23 @@ export function QuestionModal({ open, onClose, question, onSaved }: Props) {
   const [correctOptionIdx, setCorrectOptionIdx] = useState(0);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [originalForm, setOriginalForm] = useState<Partial<AdminQuestion>>(empty());
+
+  // Track unsaved changes
+  const isDirty = JSON.stringify(form) !== JSON.stringify(originalForm);
+  useUnsavedChanges(isDirty && open);
 
   useEffect(() => {
     if (question) {
       setForm({ ...question });
-      // Determine correct option index from correct_answer matching an option
+      setOriginalForm({ ...question });
       const idx = (question.options ?? []).findIndex(
         (o) => o.text.toLowerCase() === (question.correct_answer ?? "").toLowerCase()
       );
       setCorrectOptionIdx(idx >= 0 ? idx : 0);
     } else {
       setForm(empty());
+      setOriginalForm(empty());
       setCorrectOptionIdx(0);
     }
     setError("");
@@ -59,7 +66,6 @@ export function QuestionModal({ open, onClose, question, onSaved }: Props) {
     const opts = [...(form.options ?? [])];
     opts[idx] = { ...opts[idx], text };
     set("options", opts);
-    // Keep correct_answer in sync for MC
     if (idx === correctOptionIdx && form.format === "multiple_choice") {
       set("correct_answer", text);
     }
@@ -144,7 +150,7 @@ export function QuestionModal({ open, onClose, question, onSaved }: Props) {
                   value={form.text}
                   onChange={(e) => set("text", e.target.value)}
                   placeholder="Enter your question..."
-                  className="w-full bg-[#1A1A1A] border border-[#2A2A2A] focus:border-neon rounded-xl px-4 py-3 text-white text-sm resize-none outline-none transition-colors"
+                  className="w-full bg-[#1A1A1A] border border-[#2A2A2A] focus:border-[#4C6FFF] rounded-xl px-4 py-3 text-white text-sm resize-none outline-none transition-colors"
                 />
               </div>
 
@@ -174,7 +180,7 @@ export function QuestionModal({ open, onClose, question, onSaved }: Props) {
                   <label className="text-xs text-gray-400 mb-1.5 block">Difficulty</label>
                   <select
                     value={form.difficulty ?? ""}
-                    onChange={(e) => set("difficulty", e.target.value as AdminQuestion["difficulty"])}
+                    onChange={(e) => set("difficulty", e.target.value as any)}
                     className="w-full bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl px-3 py-2.5 text-white text-sm outline-none"
                   >
                     {["Easy", "Medium", "Hard"].map((d) => <option key={d}>{d}</option>)}
@@ -188,7 +194,7 @@ export function QuestionModal({ open, onClose, question, onSaved }: Props) {
                   <label className="text-xs text-gray-400 mb-1.5 block">Format</label>
                   <select
                     value={form.format}
-                    onChange={(e) => set("format", e.target.value as AdminQuestion["format"])}
+                    onChange={(e) => set("format", e.target.value as any)}
                     className="w-full bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl px-3 py-2.5 text-white text-sm outline-none"
                   >
                     <option value="multiple_choice">MC</option>
@@ -208,7 +214,7 @@ export function QuestionModal({ open, onClose, question, onSaved }: Props) {
                   <label className="text-xs text-gray-400 mb-1.5 block">Status</label>
                   <select
                     value={form.status}
-                    onChange={(e) => set("status", e.target.value as AdminQuestion["status"])}
+                    onChange={(e) => set("status", e.target.value as "active" | "inactive" | "deleted")}
                     className="w-full bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl px-3 py-2.5 text-white text-sm outline-none"
                   >
                     <option value="active">Active</option>
@@ -234,13 +240,13 @@ export function QuestionModal({ open, onClose, question, onSaved }: Props) {
                           placeholder={`Option ${String.fromCharCode(65 + i)}`}
                           value={opt.text}
                           onChange={(e) => handleOptionChange(i, e.target.value)}
-                          className="flex-1 bg-[#1A1A1A] border border-[#2A2A2A] focus:border-neon rounded-xl px-3 py-2.5 text-white text-sm outline-none transition-colors"
+                          className="flex-1 bg-[#1A1A1A] border border-[#2A2A2A] focus:border-[#4C6FFF] rounded-xl px-3 py-2.5 text-white text-sm outline-none transition-colors"
                         />
                         <button
                           onClick={() => handleSetCorrect(i)}
                           className={`w-8 h-8 flex-shrink-0 rounded-full border-2 text-xs font-bold transition-colors ${
                             correctOptionIdx === i
-                              ? "border-neon bg-neon/20 text-neon"
+                              ? "border-[#4C6FFF] bg-[#4C6FFF]/20 text-[#4C6FFF]"
                               : "border-[#2A2A2A] text-gray-600 hover:border-gray-400"
                           }`}
                           aria-label="Mark as correct"
@@ -249,46 +255,6 @@ export function QuestionModal({ open, onClose, question, onSaved }: Props) {
                         </button>
                       </div>
                     ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Type answer options */}
-              {form.format === "type_answer" && (
-                <div className="space-y-3">
-                  <div>
-                    <label className="text-xs text-gray-400 mb-1.5 block">Correct answer *</label>
-                    <input
-                      type="text"
-                      value={form.correct_answer}
-                      onChange={(e) => set("correct_answer", e.target.value)}
-                      placeholder="e.g. Au"
-                      className="w-full bg-[#1A1A1A] border border-[#2A2A2A] focus:border-neon rounded-xl px-4 py-3 text-white text-sm outline-none transition-colors"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-xs text-gray-400 mb-1.5 block">Case sensitive</label>
-                      <select
-                        value={form.case_sensitive ? "yes" : "no"}
-                        onChange={(e) => set("case_sensitive", e.target.value === "yes")}
-                        className="w-full bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl px-3 py-2.5 text-white text-sm outline-none"
-                      >
-                        <option value="no">No</option>
-                        <option value="yes">Yes</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="text-xs text-gray-400 mb-1.5 block">Spelling</label>
-                      <select
-                        value={form.spelling_tolerance}
-                        onChange={(e) => set("spelling_tolerance", e.target.value as "strict" | "lenient")}
-                        className="w-full bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl px-3 py-2.5 text-white text-sm outline-none"
-                      >
-                        <option value="strict">Strict</option>
-                        <option value="lenient">Lenient (±1 char)</option>
-                      </select>
-                    </div>
                   </div>
                 </div>
               )}
@@ -309,7 +275,8 @@ export function QuestionModal({ open, onClose, question, onSaved }: Props) {
                 <button
                   onClick={handleSave}
                   disabled={saving}
-                  className="flex-1 py-3 rounded-xl bg-neon text-black font-bold text-sm active:scale-95 transition-transform disabled:opacity-60 flex items-center justify-center gap-2"
+                  className="flex-1 py-3 rounded-xl text-sm font-bold active:scale-95 transition-transform disabled:opacity-60 flex items-center justify-center gap-2"
+                  style={{ backgroundColor: "var(--accent-indigo)", color: "#fff" }}
                 >
                   {saving ? <Loader2 size={15} className="animate-spin" /> : null}
                   {saving ? "Saving…" : "Save Question"}

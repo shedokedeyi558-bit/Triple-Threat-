@@ -46,17 +46,13 @@ export function TimerBar({ duration, onExpire, running }: Props) {
   const isLow = timeLeft <= 3;
   const isMid = timeLeft <= 5 && timeLeft > 3;
 
-  const barColor = isLow
-    ? "bg-red-500"
-    : isMid
-    ? "bg-yellow-400"
-    : "bg-neon";
+  const barColor = isLow ? "bg-red-500" : isMid ? "bg-yellow-400" : "bg-[#4C6FFF]";
 
   return (
     <div className={`w-full ${isLow ? "animate-shake" : ""}`}>
       <div className="flex justify-between text-xs font-semibold mb-1 px-1">
         <span className="text-gray-400">Time</span>
-        <span className={isLow ? "text-red-400" : "text-neon"}>
+        <span className={isLow ? "text-red-400" : "text-[#4C6FFF]"}>
           {timeLeft}s
         </span>
       </div>

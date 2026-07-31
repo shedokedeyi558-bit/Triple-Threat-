@@ -1,10 +1,35 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600&family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Mono:wght@500&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
+  /* New color tokens */
+  --bg-base: #0B0E14;
+  --bg-card: #12161F;
+  --text-primary: #F2EFE9;
+  --text-secondary: #8A93A6;
+  --accent-amber: #E8A33D;
+  --accent-indigo: #4C6FFF;
+  --accent-violet: #7C6FE8;
+  --border-subtle: #2A3040;
+  --border-hairline: #1C2130;
+
+  /* v0 landing page tokens */
+  --brand-bg: #080B14;
+  --brand-indigo: #4C6FFF;
+  --brand-violet: #7C6FE8;
+  --brand-amber: #E8A33D;
+  --brand-green: #22c55e;
+  --foreground: #F2EFE9;
+  --muted-foreground: #8A93A6;
+  --border: #2A3040;
+  --card: #12161F;
+  --secondary: #1C2130;
+
+  /* Legacy tokens for compatibility */
   --neon: #00FF66;
   --gold: #FFD700;
   --bg: #0A0A0A;
@@ -16,16 +41,87 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+/* ── Global instant tap/click feedback ─────────────────────────────────────
+   Pure CSS :active — fires immediately on touch, no JS, no network needed.
+   Works on all interactive elements: buttons, links, cards, nav items.
+   scale + opacity gives physical "press" feel at ~100ms, snaps back instantly.
+────────────────────────────────────────────────────────────────────────── */
+button:active,
+a:active,
+[role="button"]:active,
+[tabindex]:active {
+  opacity: 0.72;
+  transform: scale(0.97);
+  transition: opacity 80ms ease, transform 80ms ease;
+}
+
+/* Disable the global active scale on elements that already have their own
+   more specific active transform (e.g. Framer Motion whileTap), so they
+   don't compound. Use data-no-press to opt out. */
+[data-no-press]:active {
+  opacity: 1;
+  transform: none;
+}
+
+/* Skeleton loading utility ─────────────────────────────────────────────── */
+@keyframes skeleton-shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.skeleton {
+  border-radius: 8px;
+  background: linear-gradient(
+    90deg,
+    var(--bg-card) 25%,
+    #1e2436 50%,
+    var(--bg-card) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.4s ease infinite;
+}
+
 html {
   font-size: 16px;
 }
 
 body {
-  background-color: var(--bg);
-  color: #ffffff;
-  font-family: 'Inter', system-ui, sans-serif;
+  background-color: var(--bg-base);
+  color: var(--text-primary);
+  font-family: 'IBM Plex Sans', system-ui, sans-serif;
   min-height: 100dvh;
   overscroll-behavior: none;
+}
+
+/* Font families */
+.font-headline {
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  font-weight: 600;
+}
+
+.font-subheadline {
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  font-weight: 500;
+}
+
+.font-mono {
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: 500;
+}
+
+/* ── Currency symbol guard ──────────────────────────────────────────────────
+   Prevents any accidental strikethrough/line-through on ₦ amounts.
+   The ₦ glyph (U+20A6) is reliably present in IBM Plex Mono; we force
+   font-variant-numeric for consistent rendering and explicitly ban
+   text-decoration on any element that carries a font-mono class or
+   explicit monospace font — the most common container for currency values.
+────────────────────────────────────────────────────────────────────────── */
+.font-mono,
+[style*="font-family: monospace"],
+[style*="fontFamily: monospace"],
+[style*="IBM Plex Mono"] {
+  text-decoration: none;
+  font-variant-numeric: tabular-nums;
+  -webkit-text-decoration: none;
 }
 
 /* Scrollbar */
@@ -108,3 +204,147 @@ body {
 .btn-danger {
   @apply w-full py-4 rounded-xl bg-red-600 text-white font-bold text-lg active:scale-95 transition-transform;
 }
+
+/* Standard Pack card — responsive width in horizontal scroll row ────────── */
+/* Mobile (<768px): ~44vw shows 2 cards + peek of 3rd                        */
+/* Tablet (768-1023px): ~30vw shows ~3 cards                                 */
+/* Desktop (≥1024px): ~22vw shows ~4 cards, more breathing room per card    */
+.pack-card {
+  flex: 0 0 clamp(150px, 44vw, 200px);
+}
+@media (min-width: 768px) {
+  .pack-card {
+    flex-basis: clamp(200px, 30vw, 260px);
+  }
+}
+@media (min-width: 1024px) {
+  .pack-card {
+    flex-basis: clamp(240px, 22vw, 320px);
+  }
+}
+
+/* Pack card internals scale at larger breakpoints ─────────────────────────── */
+.pack-card .pack-card-body {
+  padding: 12px 12px 0;
+}
+.pack-card .pack-card-name {
+  font-size: 13px;
+  /* Let the name wrap naturally within the card's fixed width.
+     No line-clamp — wrapping onto 2 lines is the intended behaviour.
+     min-height keeps all cards the same height when a name fits on 1 line. */
+  white-space: normal;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  overflow: visible;
+  min-height: 2.7em;
+  line-height: 1.35;
+}
+.pack-card .pack-card-footer {
+  margin: 0 12px;
+  padding-top: 12px;
+  padding-bottom: 12px;
+  margin-top: 12px;
+}
+@media (min-width: 1024px) {
+  .pack-card .pack-card-body {
+    padding: 16px 16px 0;
+  }
+  .pack-card .pack-card-name {
+    font-size: 14px;
+    min-height: 2.8em;
+    line-height: 1.35;
+  }
+  .pack-card .pack-card-footer {
+    margin: 0 16px;
+    padding-top: 14px;
+    padding-bottom: 14px;
+    margin-top: 14px;
+  }
+}
+
+/* Hero carousel — hide scrollbar across all browsers */
+.hero-carousel::-webkit-scrollbar { display: none; }
+
+/* Specials hero card — diagonal wipe + pulsing border + live dot ──────── */
+@keyframes specials-wipe {
+  0%   { transform: translateX(-120%) skewX(-20deg); opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { transform: translateX(260%) skewX(-20deg); opacity: 0; }
+}
+@keyframes specials-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(232,163,61,0); border-color: rgba(232,163,61,0.35); }
+  50%       { box-shadow: 0 0 18px 2px rgba(232,163,61,0.18); border-color: rgba(232,163,61,0.6); }
+}
+@keyframes live-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.55; transform: scale(1.5); }
+}
+
+.specials-hero-card { animation: specials-glow 3.5s ease-in-out infinite; }
+
+.specials-wipe {
+  position: absolute; inset: 0;
+  background: linear-gradient(105deg, transparent 30%, rgba(232,163,61,0.08) 50%, transparent 70%);
+  animation: specials-wipe 5s ease-in-out infinite;
+  animation-delay: 1.2s;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.live-dot {
+  display: inline-block;
+  width: 7px; height: 7px; border-radius: 50%;
+  background-color: #4ade80;
+  animation: live-pulse 1.8s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+/* ── Landing page (v0) animations ─────────────────────────────────────── */
+@keyframes blob-1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33%       { transform: translate(4%, 6%) scale(1.06); }
+  66%       { transform: translate(-3%, 3%) scale(0.97); }
+}
+@keyframes blob-2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33%       { transform: translate(-5%, -4%) scale(1.04); }
+  66%       { transform: translate(3%, -6%) scale(0.98); }
+}
+@keyframes blob-3 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33%       { transform: translate(5%, -5%) scale(1.05); }
+  66%       { transform: translate(-4%, 4%) scale(0.96); }
+}
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+.animate-blob-1 { animation: blob-1 12s ease-in-out infinite; }
+.animate-blob-2 { animation: blob-2 15s ease-in-out infinite; }
+.animate-blob-3 { animation: blob-3 18s ease-in-out infinite; }
+.animate-marquee { animation: marquee 32s linear infinite; }
+
+/* Landing page Tailwind token bridge */
+.bg-brand-bg      { background-color: var(--brand-bg); }
+.bg-brand-indigo  { background-color: var(--brand-indigo); }
+.bg-brand-violet  { background-color: var(--brand-violet); }
+.bg-brand-amber   { background-color: var(--brand-amber); }
+.bg-brand-green   { background-color: var(--brand-green); }
+.bg-card          { background-color: var(--card); }
+.bg-secondary     { background-color: var(--secondary); }
+.text-foreground  { color: var(--foreground); }
+.text-muted-foreground { color: var(--muted-foreground); }
+.text-brand-indigo { color: var(--brand-indigo); }
+.text-brand-amber  { color: var(--brand-amber); }
+.text-brand-green  { color: var(--brand-green); }
+.text-brand-bg     { color: var(--brand-bg); }
+.border-border     { border-color: var(--border); }
+.border-brand-indigo { border-color: var(--brand-indigo); }
+.border-brand-amber  { border-color: var(--brand-amber); }
+.border-brand-green  { border-color: var(--brand-green); }
+.border-brand-bg     { border-color: var(--brand-bg); }
+.font-display { font-family: 'Sora', 'Space Grotesk', sans-serif; letter-spacing: -0.02em; }
+.shadow-\[0_8px_30px_-6px_var\(--brand-amber\)\] { box-shadow: 0 8px 30px -6px var(--brand-amber); }
+.shadow-\[0_0_20px_-2px_var\(--brand-indigo\)\]   { box-shadow: 0 0 20px -2px var(--brand-indigo); }

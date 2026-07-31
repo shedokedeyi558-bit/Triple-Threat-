@@ -1,0 +1,93 @@
+## Backend Contract Update: Add `user_attempted` Flag to Specials Pack List
+
+### Context
+Specials packs have a one-attempt-per-player rule. Currently, players only discover they've already attempted a pack AFTER tapping in and hitting the play page (triggering a 409 ALREADY_ATTEMPTED error).
+
+### Requirement
+Add a `user_attempted: boolean` field to pack responses so the frontend can show an "Attempted" badge on the card *before* the player taps in.
+
+### API Changes
+
+#### GET /api/pills/specials
+- **Response format**: Already returns `{ packs: PillPack[] }`
+- **Add to each pack**:
+  ```json
+  {
+    "id": "pack-uuid",
+    "name": "Football Special",
+    "user_attempted": true,  // NEW: true if current player already sat this exam
+    ... other fields
+  }
+  ```
+- **Logic**: Check the `specials_attempts` or equivalent table for a record matching (current_player_id, pack_id). If found, set `user_attempted: true`. Otherwise, `false`.
+- **Requires**: Authentication (token already required for this endpoint)
+
+#### GET /api/pills/packs
+- **Background**: Standard Pills packs use the same list endpoint, but only Pills marked `is_vip: true` are Specials
+- **Clarification**: Do standard Pills packs need this field? For now, assume only Specials need it (Pills don't have one-attempt restriction)
+- **If needed for all**: Add the same `user_attempted` field to all packs for consistency
+
+#### GET /api/pills/specials/[packId]  (pack detail endpoint, if it exists)
+- **If this endpoint exists** (for Specials detail view): Also add `user_attempted` field
+
+### Data Model
+Assumed backend tracks attempts like this:
+- Table: `specials_attempts` or `vip_attempts`
+- Columns: `player_id`, `pack_id`, `attempted_at`, `passed` (or similar)
+- Each record = one player's one attempt
+
+### Backward Compatibility
+- Field is new; old clients won't see it
+- Old clients will still hit the 409 error on play page start
+- New field is optional (don't break if adding it causes issues)
+
+### Frontend Usage
+Once this field is available, the frontend will:
+1. Check `pack.user_attempted` on card render
+2. If `true`, show a badge like "Attempted" or "Already Tried"
+3. Card remains tappable (routes to play page, which shows full "Already Attempted" screen)
+4. Optionally disable entry CTA buttons (e.g., "Enter Exam" button becomes disabled/greyed)
+
+### Example Response
+```json
+{
+  "success": true,
+  "data": {
+    "packs": [
+      {
+        "id": "12345-abc",
+        "name": "Premier League Special",
+        "category": "Football",
+        "status": "active",
+        "is_vip": true,
+        "entry_fee": 5000,
+        "prize_amount": 25000,
+        "question_count": 10,
+        "time_limit_minutes": 5,
+        "required_correct": 7,
+        "user_attempted": true,  // NEW
+        "entry_window_end": null,
+        "pills": []
+      },
+      {
+        "id": "67890-def",
+        "name": "Crypto Special",
+        "category": "Crypto",
+        "status": "active",
+        "is_vip": true,
+        "entry_fee": 3000,
+        "prize_amount": 15000,
+        "question_count": 8,
+        "time_limit_minutes": 4,
+        "required_correct": 6,
+        "user_attempted": false,  // NEW — player can still attempt this
+        "entry_window_end": null,
+        "pills": []
+      }
+    ]
+  }
+}
+```
+
+### No Frontend Changes Yet
+Frontend will be updated once this field is available on the backend response.

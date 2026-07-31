@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { adminApi, type AdminPlayer, ApiError } from "@/lib/api";
-import { Search, Shield, ShieldOff, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
+import { Search, ChevronDown, ChevronUp, Loader2, ExternalLink } from "lucide-react";
 
 export default function PlayersPage() {
+  const router = useRouter();
   const [players, setPlayers] = useState<AdminPlayer[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -12,7 +14,6 @@ export default function PlayersPage() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"" | "active" | "banned">("");
   const [expanded, setExpanded] = useState<string | null>(null);
-  const [toggling, setToggling] = useState<string | null>(null);
 
   const fetchPlayers = useCallback(async (q?: string, status?: string) => {
     setLoading(true);
@@ -39,18 +40,6 @@ export default function PlayersPage() {
     return () => clearTimeout(t);
   }, [search, filter, fetchPlayers]);
 
-  const handleToggleBan = async (player: AdminPlayer) => {
-    setToggling(player.id);
-    try {
-      const res = await adminApi.toggleBan(player.id);
-      setPlayers((prev) => prev.map((p) => p.id === player.id ? res.player : p));
-    } catch (err) {
-      alert(err instanceof ApiError ? err.message : "Failed to update player");
-    } finally {
-      setToggling(null);
-    }
-  };
-
   const maskPhone = (ph: string) => `${ph.slice(0, 4)}***${ph.slice(-4)}`;
 
   const winRate = (p: AdminPlayer) =>
@@ -72,7 +61,7 @@ export default function PlayersPage() {
             placeholder="Search by phone..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-card border border-[#2A2A2A] focus:border-neon rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-gray-500 outline-none transition-colors"
+            className="w-full bg-card border border-[#2A2A2A] focus:border-[#4C6FFF] rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-gray-500 outline-none transition-colors"
           />
         </div>
         <select
@@ -88,7 +77,7 @@ export default function PlayersPage() {
 
       {loading && (
         <div className="flex justify-center py-12">
-          <Loader2 size={28} className="text-neon animate-spin" />
+          <Loader2 size={28} className="animate-spin" style={{ color: "var(--accent-indigo)" }} />
         </div>
       )}
 
@@ -105,14 +94,16 @@ export default function PlayersPage() {
                 onClick={() => setExpanded((prev) => (prev === p.id ? null : p.id))}
               >
                 <div className="flex items-center gap-3">
-                  <div className={`w-2 h-2 rounded-full flex-shrink-0 ${p.status === "active" ? "bg-neon" : "bg-red-500"}`} />
+                  <div className={`w-2 h-2 rounded-full flex-shrink-0 ${p.status === "active" ? "bg-[#4C6FFF]" : "bg-red-500"}`} />
                   <div>
                     <p className="text-sm text-white font-semibold">{maskPhone(p.phone)}</p>
                     {p.name && <p className="text-xs text-gray-400">{p.name}</p>}
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="text-neon text-sm font-bold">₦{p.balance.toLocaleString()}</span>
+                  <span className="font-mono font-bold text-sm" style={{ color: "var(--accent-amber)" }}>
+                    ₦{p.balance.toLocaleString()}
+                  </span>
                   {expanded === p.id ? (
                     <ChevronUp size={16} className="text-gray-400" />
                   ) : (
@@ -138,7 +129,9 @@ export default function PlayersPage() {
 
                   <div className="flex items-center justify-between bg-[#111] rounded-xl p-3">
                     <span className="text-xs text-gray-400">Total won</span>
-                    <span className="text-neon font-bold">₦{p.total_won.toLocaleString()}</span>
+                    <span className="font-mono font-bold text-sm" style={{ color: "var(--accent-amber)" }}>
+                      ₦{p.total_won.toLocaleString()}
+                    </span>
                   </div>
                   <div className="flex items-center justify-between bg-[#111] rounded-xl p-3">
                     <span className="text-xs text-gray-400">Joined</span>
@@ -147,22 +140,13 @@ export default function PlayersPage() {
                     </span>
                   </div>
 
+                  {/* Open detail page */}
                   <button
-                    onClick={() => handleToggleBan(p)}
-                    disabled={toggling === p.id}
-                    className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-semibold text-sm transition-colors disabled:opacity-50 ${
-                      p.status === "active"
-                        ? "bg-red-900/30 border border-red-800/40 text-red-400 hover:bg-red-900/50"
-                        : "bg-neon/10 border border-neon/30 text-neon hover:bg-neon/20"
-                    }`}
+                    onClick={() => router.push(`/admin/players/${p.id}`)}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-semibold text-sm border"
+                    style={{ backgroundColor: "rgba(76,111,255,0.06)", borderColor: "rgba(76,111,255,0.2)", color: "var(--accent-indigo)" }}
                   >
-                    {toggling === p.id ? (
-                      <Loader2 size={15} className="animate-spin" />
-                    ) : p.status === "active" ? (
-                      <><ShieldOff size={15} /> Ban Player</>
-                    ) : (
-                      <><Shield size={15} /> Unban Player</>
-                    )}
+                    <ExternalLink size={14} /> View full profile
                   </button>
                 </div>
               )}
@@ -177,3 +161,4 @@ export default function PlayersPage() {
     </div>
   );
 }
+

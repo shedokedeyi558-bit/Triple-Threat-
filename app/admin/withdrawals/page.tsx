@@ -85,19 +85,22 @@ export default function WithdrawalsPage() {
         <p className="text-gray-400 text-sm mt-0.5">Approve or reject player withdrawals</p>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-2 bg-card border border-[#2A2A2A] p-1 rounded-xl">
+      {/* Tabs — indigo segmented control */}
+      <div className="flex gap-1 p-1 rounded-xl border" style={{ backgroundColor: "var(--bg-card)", borderColor: "var(--border-subtle)" }}>
         {(["pending", "approved", "rejected"] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`flex-1 py-2.5 rounded-lg text-xs font-semibold capitalize transition-all ${
-              tab === t ? "bg-neon text-black" : "text-gray-400"
-            }`}
+            className="flex-1 py-2.5 rounded-lg text-xs font-semibold capitalize transition-all active:scale-[0.97] active:opacity-80"
+            style={{
+              backgroundColor: tab === t ? "var(--accent-indigo)" : "transparent",
+              color: tab === t ? "white" : "var(--text-secondary)",
+              border: tab === t ? "none" : "1px solid transparent",
+            }}
           >
             {t}
             {tab === t && total > 0 && (
-              <span className={`ml-1.5 text-xs px-1.5 py-0.5 rounded-full ${tab === t ? "bg-black/20" : "bg-[#2A2A2A]"}`}>
+              <span className="ml-1.5 text-[10px] px-1.5 py-0.5 rounded-full bg-white/20">
                 {total}
               </span>
             )}
@@ -107,11 +110,12 @@ export default function WithdrawalsPage() {
 
       {/* Bulk approve */}
       {tab === "pending" && selected.length > 0 && (
-        <div className="bg-card border border-neon/20 rounded-xl px-4 py-3 flex items-center justify-between">
-          <span className="text-sm text-gray-300">{selected.length} selected</span>
+        <div className="border rounded-xl px-4 py-3 flex items-center justify-between" style={{ backgroundColor: "var(--bg-card)", borderColor: "rgba(76,111,255,0.2)" }}>
+          <span className="text-sm" style={{ color: "var(--text-secondary)" }}>{selected.length} selected</span>
           <button
             onClick={handleBulkApprove}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neon/10 text-neon text-xs font-semibold hover:bg-neon/20 transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all active:scale-95"
+            style={{ backgroundColor: "rgba(76,111,255,0.15)", color: "var(--accent-indigo)", border: "1px solid rgba(76,111,255,0.3)" }}
           >
             <CheckCircle size={13} /> Approve Selected
           </button>
@@ -120,7 +124,7 @@ export default function WithdrawalsPage() {
 
       {loading && (
         <div className="flex justify-center py-12">
-          <Loader2 size={28} className="text-neon animate-spin" />
+          <Loader2 size={28} className="animate-spin" style={{ color: "var(--accent-indigo)" }} />
         </div>
       )}
 
@@ -133,9 +137,11 @@ export default function WithdrawalsPage() {
           {withdrawals.map((w) => (
             <div
               key={w.id}
-              className={`bg-card border rounded-xl p-4 transition-colors ${
-                selected.includes(w.id) ? "border-neon" : "border-[#2A2A2A]"
-              }`}
+              className="border rounded-xl p-4 transition-colors"
+              style={{
+                backgroundColor: "var(--bg-card)",
+                borderColor: selected.includes(w.id) ? "var(--accent-indigo)" : "var(--border-subtle)",
+              }}
             >
               {/* Transfer warning from failed Paystack */}
               {transferWarnings[w.id] && (
@@ -156,16 +162,16 @@ export default function WithdrawalsPage() {
                 )}
                 <div className="flex-1">
                   <div className="flex items-center justify-between mb-2">
-                    <p className="text-sm text-white font-semibold">
+                    <p className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
                       {w.phone.replace(/(\d{4})(\d{3})(\d{4})/, "$1***$3")}
                       {w.players?.name && (
-                        <span className="text-gray-400 font-normal ml-2 text-xs">({w.players.name})</span>
+                        <span className="font-normal ml-2 text-xs" style={{ color: "var(--text-muted)" }}>({w.players.name})</span>
                       )}
                     </p>
-                    <span className={`text-base font-black ${
-                      w.status === "approved" ? "text-neon" :
-                      w.status === "rejected" ? "text-red-400" : "text-white"
-                    }`}>
+                    <span className="text-base font-black font-mono" style={{
+                      color: w.status === "approved" ? "var(--accent-amber)" :
+                             w.status === "rejected" ? "#f87171" : "var(--text-primary)"
+                    }}>
                       ₦{w.amount.toLocaleString()}
                     </span>
                   </div>
@@ -182,11 +188,12 @@ export default function WithdrawalsPage() {
               </div>
 
               {tab === "pending" && (
-                <div className="flex gap-2 mt-3 pt-3 border-t border-[#2A2A2A]">
+                <div className="flex gap-2 mt-3 pt-3 border-t" style={{ borderColor: "var(--border-hairline)" }}>
                   <button
                     onClick={() => handleApprove(w.id)}
                     disabled={processing === w.id}
-                    className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-neon/10 border border-neon/30 text-neon text-sm font-semibold hover:bg-neon/20 transition-colors disabled:opacity-50"
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-[0.98] disabled:opacity-50"
+                    style={{ backgroundColor: "rgba(76,111,255,0.1)", border: "1px solid rgba(76,111,255,0.3)", color: "var(--accent-indigo)" }}
                   >
                     {processing === w.id ? (
                       <Loader2 size={14} className="animate-spin" />
@@ -197,7 +204,7 @@ export default function WithdrawalsPage() {
                   <button
                     onClick={() => handleReject(w.id)}
                     disabled={processing === w.id}
-                    className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-red-900/20 border border-red-800/30 text-red-400 text-sm font-semibold hover:bg-red-900/30 transition-colors disabled:opacity-50"
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-red-900/20 border border-red-800/30 text-red-400 text-sm font-semibold hover:bg-red-900/30 transition-all active:scale-[0.98] disabled:opacity-50"
                   >
                     <XCircle size={15} /> Reject
                   </button>

@@ -20,7 +20,8 @@ export default function Error({
         <p className="text-gray-400 mb-6">{error.message || 'An error occurred'}</p>
         <button
           onClick={() => reset()}
-          className="px-6 py-2 bg-neon text-black font-semibold rounded-lg hover:bg-neon/90 transition-colors"
+          className="px-6 py-2 font-semibold rounded-lg transition-colors"
+          style={{ backgroundColor: "var(--accent-indigo)", color: "#fff" }}
         >
           Try again
         </button>

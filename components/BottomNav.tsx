@@ -33,7 +33,7 @@ export function BottomNav() {
               href={href}
               className={`flex-1 flex flex-col items-center justify-center py-4 px-3 gap-1 transition-colors ${
                 active
-                  ? "text-neon"
+                  ? "text-[#E8A33D]"
                   : "text-gray-500 hover:text-gray-300"
               }`}
             >

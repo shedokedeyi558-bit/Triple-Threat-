@@ -1,8 +1,20 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
-export async function POST() {
-  return NextResponse.json({
-    success: true,
-    data: { gameKillSwitch: false, message: "Kill switch toggled" },
-  });
+const BACKEND = process.env.NEXT_PUBLIC_API_URL || "https://bitlyfe-production.up.railway.app";
+
+export async function POST(request: NextRequest) {
+  try {
+    const token = request.headers.get("authorization");
+    const res = await fetch(`${BACKEND}/api/admin/kill-switch`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: token } : {}),
+      },
+    });
+    const data = await res.json();
+    return NextResponse.json(data, { status: res.status });
+  } catch {
+    return NextResponse.json({ success: false, error: "Server error" }, { status: 500 });
+  }
 }
