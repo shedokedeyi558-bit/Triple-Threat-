@@ -266,7 +266,6 @@ export default function WalletPage() {
     if (!amt || amt < 1000) { setWithdrawError("Minimum withdrawal is ₦1,000"); return; }
     if (!selectedBank) { setWithdrawError("Select a bank"); return; }
     if (accNum.length < 10) { setWithdrawError("Enter a valid 10-digit account number"); return; }
-    if (!confirmed || !resolvedName) { setWithdrawError("Confirm the account name before submitting"); return; }
     if (state.player && state.player.balance < amt) { setWithdrawError("Insufficient balance"); return; }
     setWithdrawError("");
     setWithdrawLoading(true);
@@ -498,9 +497,11 @@ export default function WalletPage() {
                       {!resolving && resolveError && (
                         <motion.div key="resolve-err"
                           initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                          style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 14px", borderRadius: 12, border: "1px solid rgba(239,68,68,0.3)", backgroundColor: "rgba(239,68,68,0.06)" }}>
-                          <AlertCircle size={13} style={{ color: "#f87171", flexShrink: 0 }} />
-                          <span style={{ fontSize: 12, color: "#f87171" }}>{resolveError}</span>
+                          style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 14px", borderRadius: 12, border: "1px solid rgba(251,191,36,0.3)", backgroundColor: "rgba(251,191,36,0.06)" }}>
+                          <AlertCircle size={13} style={{ color: "#fbbf24", flexShrink: 0 }} />
+                          <span style={{ fontSize: 12, color: "#fbbf24" }}>
+                            Could not verify account name — you can still submit. Admin will verify before transfer.
+                          </span>
                         </motion.div>
                       )}
 
@@ -561,8 +562,7 @@ export default function WalletPage() {
                       withdrawLoading ||
                       !withdrawAmt || parseInt(withdrawAmt) < 1000 ||
                       !selectedBank ||
-                      accNum.length < 10 ||
-                      !confirmed
+                      accNum.length < 10
                     }
                     className="w-full py-4 font-black rounded-xl disabled:opacity-40 flex items-center justify-center gap-2 text-sm"
                     style={{ backgroundColor: "var(--accent-amber)", color: "#000" }}
@@ -572,7 +572,7 @@ export default function WalletPage() {
                   </button>
                   {!confirmed && accNum.length === 10 && selectedBank && !resolving && resolvedName && (
                     <p className="text-[11px] text-center" style={{ color: "var(--text-muted)" }}>
-                      Confirm the account name above before submitting
+                      {resolvedName} — tap confirm above before submitting
                     </p>
                   )}
                 </>
