@@ -10,6 +10,8 @@ import {
   Upload, Library, Copy, Check, Sparkles,
 } from "lucide-react";
 import Link from "next/link";
+import { PastePanel } from "@/app/admin/library/page";
+import { type PastedQuestion } from "@/lib/parseQuestions";
 
 // ── Bank health bar ───────────────────────────────────────────────────────────
 function BankHealth({ total, questionCount, targetBankSize }: { total: number; questionCount: number | null; targetBankSize?: number | null }) {
@@ -540,242 +542,18 @@ function ImportLibraryModal({ packId, onDone, onCancel }: { packId: string; onDo
   );
 }
 
-// ── AI Paste Panel ────────────────────────────────────────────────────────────
-// Parses raw AI output into structured questions
-// Handles multiple AI output formats with flexible regex patterns
-function parseAIText(raw: string): { question: string; options: string[]; correct_answer: string; error?: string }[] {
-  const results: { question: string; options: string[]; correct_answer: string; error?: string }[] = [];
-
-  // Normalize line endings and clean markdown
-  const cleaned = raw
-    .replace(/\r\n/g, "\n")
-    .replace(/\*\*/g, "")
-    .replace(/^#+\s+/gm, "") // Remove markdown headers
-    .replace(/\r/g, "\n");
-
-  // Split into lines and process
-  const lines = cleaned.split("\n").map(l => l.trim()).filter(l => l.length > 0);
-
-  let currentQ = "";
-  let currentOpts: string[] = [];
-  let currentOptMap: Record<string, string> = {};
-  let correctLetter = "";
-
-  // FLEXIBLE REGEX PATTERNS for common AI output formats
-  // Question lines: "Q:", "Q1:", "Question 1:", "1)", "1.", etc.
-  const isQuestionLine = (l: string) => 
-    /^(?:q\s*[):.]|question\s+\d+[):.]|\d+\s*[.):]\s*\S)/i.test(l);
-  
-  // Option lines: "A)", "A.", "Option A:", "a)", "(a)", etc.
-  const isOptionLine = (l: string) => 
-    /^(?:[a-d]\s*[.)\-:]|option\s+[a-d]|[(]\s*[a-d]\s*[)])/i.test(l);
-  
-  // Answer lines: "Correct:", "Answer:", "Ans:", case-insensitive
-  const isAnswerLine = (l: string) => 
-    /^(?:correct|answer|ans)\s*[:\s]/i.test(l);
-
-  const flush = () => {
-    if (currentQ && currentOpts.length >= 2) {
-      let correct_answer = currentOpts[0];
-      if (correctLetter) {
-        const upper = correctLetter.toUpperCase();
-        correct_answer = currentOptMap[upper] ?? currentOpts[upper.charCodeAt(0) - 65] ?? currentOpts[0];
-      }
-      results.push({ question: currentQ, options: currentOpts, correct_answer });
-    }
-    currentQ = ""; currentOpts = []; currentOptMap = {}; correctLetter = "";
+// ── Paste panel (reuses Library's PastePanel with bank-specific save) ────────
+function BankPastePanel({ packId, onDone, onCancel }: { packId: string; onDone: () => void; onCancel: () => void }) {
+  const handleSave = async (questions: PastedQuestion[]) => {
+    await adminApi.bulkUploadQuestions(packId, questions.map(q => ({
+      question: q.question,
+      format: "multiple_choice" as const,
+      options: q.options,
+      correct_answer: q.correct_answer,
+      timer: 30,
+    })));
   };
-
-  for (const line of lines) {
-    if (isQuestionLine(line)) {
-      flush();
-      // Strip leading markers: "Q:", "Q1:", "Question 1:", "1)", "1.", etc.
-      currentQ = line
-        .replace(/^(?:q\s*[):.]|question\s+\d+[):.]|\d+\s*[.):]\s*)/i, "")
-        .trim();
-    } else if (isOptionLine(line)) {
-      // Extract the letter: "A)", "Option A:", "(A)", etc.
-      const letterMatch = line.match(/[a-d]/i);
-      const letter = letterMatch ? letterMatch[0].toUpperCase() : "";
-      
-      // Remove prefix and extract text
-      const text = line
-        .replace(/^(?:[a-d]\s*[.)\-:]|option\s+[a-d]|[(]\s*[a-d]\s*[)])/i, "")
-        .trim();
-      
-      if (text && letter) {
-        currentOpts.push(text);
-        currentOptMap[letter] = text;
-      }
-    } else if (isAnswerLine(line)) {
-      const match = line.match(/(?:correct|answer|ans)\s*[:\s]+([a-d])/i);
-      if (match) correctLetter = match[1];
-    } else if (currentQ && !isQuestionLine(line) && !isOptionLine(line) && !isAnswerLine(line)) {
-      // Continuation of question text (multi-line questions)
-      if (currentOpts.length === 0) currentQ += " " + line;
-    }
-  }
-  flush(); // Don't forget the last question
-
-  return results;
-}
-
-function AIPastePanel({ packId, onDone, onCancel }: { packId: string; onDone: () => void; onCancel: () => void }) {
-  const [rawText, setRawText] = React.useState("");
-  const [parsed, setParsed] = React.useState<{ question: string; options: string[]; correct_answer: string; error?: string }[]>([]);
-  const [saving, setSaving] = React.useState(false);
-  const [saveError, setSaveError] = React.useState("");
-  const [parseError, setParseError] = React.useState("");
-  const [saved, setSaved] = React.useState(false);
-
-  const handleParse = () => {
-    try {
-      const items = parseAIText(rawText);
-      
-      if (!items.length) {
-        // Parser returned empty array — show error feedback
-        setParseError("Couldn't parse any questions. Check your format matches the examples below. Common formats: Q: ... A) ... Correct: A  OR  1. Question\\nA) Option\\nCorrect: A");
-        setParsed([]);
-        return;
-      }
-      
-      // Successfully parsed some questions
-      setParsed(items);
-      setParseError("");
-    } catch (err) {
-      // Unexpected error during parsing
-      setParseError("Parse error: " + (err instanceof Error ? err.message : "Unknown error"));
-      setParsed([]);
-    }
-  };
-
-  const updateCorrect = (i: number, val: string) => {
-    setParsed(prev => prev.map((q, idx) => idx === i ? { ...q, correct_answer: val } : q));
-  };
-
-  const removeItem = (i: number) => setParsed(prev => prev.filter((_, idx) => idx !== i));
-
-  const handleSave = async () => {
-    if (!parsed.length) return;
-    const questions = parsed.map(q => ({
-      question: q.question, format: "multiple_choice" as const,
-      options: q.options, correct_answer: q.correct_answer, timer: 30,
-    }));
-    setSaving(true); setSaveError("");
-    try {
-      await adminApi.bulkUploadQuestions(packId, questions);
-      setSaved(true);
-      setTimeout(() => onDone(), 900);
-    } catch (err) {
-      setSaveError(err instanceof ApiError ? err.message : "Save failed");
-    } finally { setSaving(false); }
-  };
-
-  return (
-    <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
-      style={{ borderRadius: 12, padding: 18, border: "1px solid rgba(139,92,246,0.3)", backgroundColor: "var(--bg-card)", marginBottom: 16 }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <Sparkles size={14} style={{ color: "#a78bfa" }} />
-          <p style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", color: "#a78bfa", margin: 0 }}>AI Paste</p>
-        </div>
-        <button onClick={onCancel} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)" }}><X size={14} /></button>
-      </div>
-
-      {/* Prompt hint */}
-      {!parsed.length && (
-        <p style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 10, lineHeight: 1.55 }}>
-          Copy questions from ChatGPT, Gemini, or any AI and paste below. Works with formats like: <strong style={{ color: "var(--text-secondary)" }}>Q: ... A) ... Correct: A</strong> or <strong style={{ color: "var(--text-secondary)" }}>1. Question, Option A:, Ans: A</strong>
-        </p>
-      )}
-
-      {/* Paste area — only show before parse */}
-      {!parsed.length && (
-        <>
-          <textarea value={rawText} onChange={e => setRawText(e.target.value)} rows={10}
-            placeholder={`Q: What is the capital of France? A) Paris B) London C) Berlin D) Madrid Correct: A\nQ: Who wrote Romeo and Juliet? A) Dickens B) Shakespeare C) Hemingway D) Orwell Correct: B\n\n--- Also supports:\n1. Question text\nOption A: Answer 1\nOption B: Answer 2\nAnswer: A`}
-            style={{ width: "100%", boxSizing: "border-box", padding: "10px 12px", borderRadius: 8,
-              border: "1px solid var(--border-subtle)", backgroundColor: "var(--bg-base)",
-              color: "var(--text-primary)", fontSize: 12, resize: "vertical", outline: "none",
-              fontFamily: "monospace", lineHeight: 1.5, marginBottom: 10 }} />
-          {parseError && (
-            <div style={{ padding: "8px 12px", borderRadius: 6, backgroundColor: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.3)", marginBottom: 10 }}>
-              <p style={{ fontSize: 11, color: "#f87171", margin: 0 }}>{parseError}</p>
-            </div>
-          )}
-          <button onClick={handleParse} disabled={!rawText.trim()}
-            style={{ display: "flex", alignItems: "center", gap: 6, padding: "9px 18px", borderRadius: 8,
-              border: "none", backgroundColor: "#7c3aed", color: "#fff", fontSize: 12, fontWeight: 700,
-              cursor: rawText.trim() ? "pointer" : "not-allowed", opacity: rawText.trim() ? 1 : 0.45 }}>
-            <Sparkles size={12} /> Parse Questions
-          </button>
-        </>
-      )}
-
-      {/* Preview */}
-      {parsed.length > 0 && !saved && (
-        <>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-            <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-primary)", margin: 0 }}>
-              {parsed.length} question{parsed.length !== 1 ? "s" : ""} parsed — review before saving
-            </p>
-            <button onClick={() => { setParsed([]); setSaveError(""); setParseError(""); }}
-              style={{ fontSize: 11, color: "var(--text-muted)", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>
-              Re-paste
-            </button>
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 14, maxHeight: 400, overflowY: "auto" }}>
-            {parsed.map((q, i) => (
-              <div key={i} style={{ borderRadius: 8, padding: "12px 13px", backgroundColor: "var(--bg-base)", border: "1px solid var(--border-subtle)" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, marginBottom: 7 }}>
-                  <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-primary)", margin: 0, flex: 1, lineHeight: 1.45 }}>
-                    <span style={{ fontSize: 9, fontWeight: 700, color: "#a78bfa", marginRight: 6 }}>Q{i + 1}</span>
-                    {q.question}
-                  </p>
-                  <button onClick={() => removeItem(i)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", flexShrink: 0 }}>
-                    <X size={12} />
-                  </button>
-                </div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 8 }}>
-                  {q.options.map((opt, j) => (
-                    <span key={j} style={{ fontSize: 10, padding: "3px 8px", borderRadius: 5,
-                      backgroundColor: opt === q.correct_answer ? "rgba(52,211,153,0.15)" : "rgba(255,255,255,0.05)",
-                      border: `1px solid ${opt === q.correct_answer ? "rgba(52,211,153,0.4)" : "var(--border-hairline)"}`,
-                      color: opt === q.correct_answer ? "#34d399" : "var(--text-secondary)" }}>
-                      {opt}
-                    </span>
-                  ))}
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <span style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--text-muted)" }}>Correct:</span>
-                  <select value={q.correct_answer} onChange={e => updateCorrect(i, e.target.value)}
-                    style={{ flex: 1, padding: "4px 8px", borderRadius: 6, border: "1px solid var(--border-subtle)", backgroundColor: "var(--bg-base)", color: "#34d399", fontSize: 11, fontWeight: 600, outline: "none", cursor: "pointer" }}>
-                    {q.options.map((opt, j) => <option key={j} value={opt}>{opt}</option>)}
-                  </select>
-                </div>
-              </div>
-            ))}
-          </div>
-          {saveError && <p style={{ fontSize: 11, color: "#f87171", marginBottom: 8 }}>{saveError}</p>}
-          <button onClick={handleSave} disabled={saving || parsed.some(q => !q.correct_answer)}
-            style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-              width: "100%", padding: "11px 0", borderRadius: 9, border: "none",
-              backgroundColor: "#7c3aed", color: "#fff", fontSize: 13, fontWeight: 700,
-              cursor: saving ? "not-allowed" : "pointer", opacity: saving ? 0.6 : 1 }}>
-            {saving ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}
-            {saving ? "Saving..." : `Save ${parsed.length} question${parsed.length !== 1 ? "s" : ""}`}
-          </button>
-        </>
-      )}
-
-      {saved && (
-        <div style={{ textAlign: "center", padding: "16px 0" }}>
-          <Check size={28} style={{ color: "#34d399", margin: "0 auto 8px", display: "block" }} />
-          <p style={{ fontSize: 13, fontWeight: 700, color: "#34d399", margin: 0 }}>Saved successfully!</p>
-        </div>
-      )}
-    </motion.div>
-  );
+  return <PastePanel onDone={onDone} onCancel={onCancel} onSaveOverride={handleSave} />;
 }
 
 // ── Main page ─────────────────────────────────────────────────────────────────
@@ -944,7 +722,7 @@ export default function QuestionBankPage() {
 
       {/* AI Paste panel */}
       <AnimatePresence>
-        {showPaste && <AIPastePanel packId={packId} onDone={() => { setShowPaste(false); load(); }} onCancel={() => setShowPaste(false)} />}
+        {showPaste && <BankPastePanel packId={packId} onDone={() => { setShowPaste(false); load(); }} onCancel={() => setShowPaste(false)} />}
       </AnimatePresence>
 
       {/* Add form */}
