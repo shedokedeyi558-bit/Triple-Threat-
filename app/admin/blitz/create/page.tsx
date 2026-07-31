@@ -324,9 +324,9 @@ export default function AdminBlitzCreatePage() {
       for (let i = 0; i < questions.length; i++) {
         const q = questions[i];
         await adminApi.addBlitzQuestion(id, {
-          question: q.question, format: q.format,
-          options: q.format === "multiple_choice" ? q.options.filter((o) => o.trim()) : undefined,
-          correct_answer: q.correct_answer, order_index: i + 1,
+          question: q.question.trim(), format: q.format,
+          options: q.format === "multiple_choice" ? q.options.map(o => o.trim()).filter((o) => o) : undefined,
+          correct_answer: q.correct_answer.trim(), order_index: i + 1,
           ...(q.image_url ? { image_url: q.image_url } : {}),
         });
       }
@@ -649,8 +649,19 @@ export default function AdminBlitzCreatePage() {
                   onClick={() => {
                     if (!qDraft.question.trim()) { setError("Question text required"); return; }
                     if (!qDraft.correct_answer.trim()) { setError("Correct answer required"); return; }
-                    if (qDraft.format === "multiple_choice" && qDraft.options.filter((o) => o.trim()).length < 2) { setError("At least 2 options required"); return; }
-                    updateQuestions((prev) => [...prev, { ...qDraft }]);
+                    const trimmedOpts = qDraft.options.map(o => o.trim()).filter(Boolean);
+                    if (qDraft.format === "multiple_choice") {
+                      if (trimmedOpts.length < 2) { setError("At least 2 options required"); return; }
+                      if (!trimmedOpts.includes(qDraft.correct_answer.trim())) {
+                        setError("Correct answer must exactly match one of the options"); return;
+                      }
+                    }
+                    updateQuestions((prev) => [...prev, {
+                      ...qDraft,
+                      question: qDraft.question.trim(),
+                      correct_answer: qDraft.correct_answer.trim(),
+                      options: qDraft.options.map(o => o.trim()),
+                    }]);
                     setQDraft({ question: "", format: "multiple_choice", options: ["", "", "", ""], correct_answer: "" });
                     setError(""); setNotice(null);
                   }}
