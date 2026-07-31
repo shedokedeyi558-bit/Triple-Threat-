@@ -71,7 +71,6 @@ function ConfirmSheet({ pack, balance, bonusBalance, onConfirm, onClose }: {
           </div>
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
-              <span style={{ fontSize: 8, fontWeight: 800, padding: "2px 6px", borderRadius: 3, textTransform: "uppercase", letterSpacing: "0.07em", backgroundColor: "rgba(232,163,61,0.15)", color: "var(--accent-amber)" }}>SPECIAL</span>
               <p style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>{pack.name}</p>
             </div>
             <p style={{ fontSize: 12, color: "var(--text-secondary)", margin: 0 }}>{pack.category}</p>
@@ -169,7 +168,6 @@ function PackCard({ pack, playerId, onTap }: {
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10, marginBottom: 10 }}>
           <div style={{ minWidth: 0 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 4 }}>
-              <span style={{ fontSize: 9, fontWeight: 800, padding: "2px 7px", borderRadius: 4, textTransform: "uppercase", letterSpacing: "0.07em", backgroundColor: "rgba(232,163,61,0.15)", color: "var(--accent-amber)" }}>SPECIAL</span>
               <span style={{ fontSize: 10, color: "var(--text-muted)" }}>{pack.category}</span>
               {isAttempted && (
                 <span style={{ fontSize: 9, fontWeight: 800, padding: "2px 7px", borderRadius: 4, textTransform: "uppercase", letterSpacing: "0.06em", backgroundColor: "rgba(139,92,246,0.2)", color: "#c084fc" }}>Attempted</span>
@@ -252,7 +250,7 @@ export default function PillsPage() {
         all.sort((a, b) => (b.prize_amount ?? 0) - (a.prize_amount ?? 0));
         setPacks(all);
       })
-      .catch((e) => setError(e instanceof ApiError ? e.message : "Failed to load challenges"))
+      .catch((e) => setError(e instanceof ApiError ? e.message : "Failed to load pill packs"))
       .finally(() => setLoading(false));
   }, [state.isAuthenticated, router]);
 
@@ -265,7 +263,7 @@ export default function PillsPage() {
 
       {/* Page header */}
       <div style={{ marginBottom: 24 }}>
-        <h1 style={{ fontSize: 24, fontWeight: 900, color: "var(--text-primary)", margin: "0 0 4px" }}>Challenges</h1>
+        <h1 style={{ fontSize: 24, fontWeight: 900, color: "var(--text-primary)", margin: "0 0 4px" }}>Pill Packs</h1>
         <p style={{ fontSize: 13, color: "var(--text-muted)", margin: 0 }}>One shot. Sharp minds only.</p>
       </div>
 
@@ -288,8 +286,8 @@ export default function PillsPage() {
           <div style={{ width: 64, height: 64, borderRadius: 20, backgroundColor: "rgba(232,163,61,0.08)", border: "1px solid rgba(232,163,61,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <Loader2 size={28} style={{ color: "rgba(232,163,61,0.3)" }} />
           </div>
-          <p style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>No challenges live right now</p>
-          <p style={{ fontSize: 13, color: "var(--text-muted)", margin: 0 }}>Check back soon — new challenges drop regularly</p>
+          <p style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>No pill packs live right now</p>
+          <p style={{ fontSize: 13, color: "var(--text-muted)", margin: 0 }}>Check back soon — new packs drop regularly</p>
         </div>
       ) : (
         /* Full-width cards, one per pack, no section labels */
