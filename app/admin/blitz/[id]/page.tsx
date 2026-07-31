@@ -701,13 +701,19 @@ export default function AdminBlitzDetailPage() {
                 {actionLoading === "activate" ? "Activating…" : "Activate Tournament"}
               </button>
             )}
-            {t.status === "active" && (
+            {t.status === "active" && t.total_registered > 0 && (
               <button onClick={() => setShowScoreConfirm(true)} disabled={actionLoading === "score"}
                 className="w-full py-3 rounded-xl text-sm font-black flex items-center justify-center gap-2 disabled:opacity-50"
                 style={{ backgroundColor: "rgba(234,179,8,0.15)", border: "1px solid rgba(234,179,8,0.4)", color: "#facc15" }}>
                 {actionLoading === "score" ? <Loader2 size={15} className="animate-spin" /> : <Trophy size={15} />}
                 {actionLoading === "score" ? "Scoring…" : "Score & Pay"}
               </button>
+            )}
+            {t.status === "active" && t.total_registered === 0 && (
+              <div className="w-full py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2"
+                style={{ border: "1px solid var(--border-subtle)", color: "var(--text-muted)" }}>
+                No participants yet
+              </div>
             )}
             {t.status === "scoring" && (
               <div className="w-full py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 opacity-50"

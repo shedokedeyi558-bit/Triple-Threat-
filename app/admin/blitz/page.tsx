@@ -190,18 +190,28 @@ export default function AdminBlitzPage() {
                       {actionLoading === t.id + ":activate" ? "..." : "Activate"}
                     </button>
                   )}
-                  {(t.status === "active" || t.status === "scoring") && (
+                  {t.status === "scoring" && (
                     <button
-                      onClick={() => t.status === "active" ? setConfirmScore(t.id) : undefined}
-                      disabled={actionLoading === t.id + ":score" || t.status === "scoring"}
+                      disabled
+                      className="px-3 py-1.5 text-xs font-bold bg-yellow-500/10 border border-yellow-500/40 text-yellow-400 rounded-lg disabled:opacity-50"
+                    >
+                      Calculating…
+                    </button>
+                  )}
+                  {t.status === "active" && t.total_registered > 0 && (
+                    <button
+                      onClick={() => setConfirmScore(t.id)}
+                      disabled={actionLoading === t.id + ":score"}
                       className="px-3 py-1.5 text-xs font-bold bg-yellow-500/10 border border-yellow-500/40 text-yellow-400 rounded-lg hover:bg-yellow-500/20 transition-colors disabled:opacity-50"
                     >
-                      {actionLoading === t.id + ":score"
-                        ? "…"
-                        : t.status === "scoring"
-                        ? "Calculating…"
-                        : "Score & Pay"}
+                      {actionLoading === t.id + ":score" ? "…" : "Score & Pay"}
                     </button>
+                  )}
+                  {t.status === "active" && t.total_registered === 0 && (
+                    <span className="px-3 py-1.5 text-xs font-semibold rounded-lg"
+                      style={{ border: "1px solid var(--border-subtle)", color: "var(--text-muted)" }}>
+                      No participants
+                    </span>
                   )}
                   {t.status === "completed" && (
                     <button
