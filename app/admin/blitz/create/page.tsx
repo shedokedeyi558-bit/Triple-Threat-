@@ -281,17 +281,13 @@ export default function AdminBlitzCreatePage() {
     if (!details.title.trim()) return "Title is required";
     if (!details.entry_fee || isNaN(Number(details.entry_fee)) || Number(details.entry_fee) <= 0) return "Valid entry fee required";
     if (!details.question_count || Number(details.question_count) < 1) return "Valid question count required";
-    // Time limit: accept computed or manual
     if (!perQActive && (!details.time_limit_seconds || Number(details.time_limit_seconds) < 10))
       return "Time limit must be at least 10 seconds (or set a per-question time)";
     if (!details.max_participants || Number(details.max_participants) < 1) return "Valid max participants required";
-    if (!details.cash_winner_count || Number(details.cash_winner_count) < 1) return "Valid cash winner count required";
-    const cashWinners = Number(details.cash_winner_count);
-    if (details.payout_distribution.length !== cashWinners) return `Payout distribution must have exactly ${cashWinners} entries`;
-    const total = details.payout_distribution.reduce((s, p) => s + (isNaN(Number(p)) ? 0 : Number(p)), 0);
-    if (Math.abs(total - 100) > 0.01) return `Payout percentages must sum to 100 (currently ${total.toFixed(1)}%)`;
-    const tp = Number(details.total_payout_percent);
-    if (isNaN(tp) || tp < 1 || tp > 100) return "Total payout percent must be 1–100";
+    if (!details.first_place_percent || Number(details.first_place_percent) < 1 || Number(details.first_place_percent) > 100)
+      return "1st place % must be between 1 and 100";
+    if (!details.third_place_discount_percent || Number(details.third_place_discount_percent) < 1 || Number(details.third_place_discount_percent) > 99)
+      return "3rd place discount % must be between 1 and 99";
     return null;
   };
   const validateStep2 = (): string | null => {
@@ -500,77 +496,6 @@ export default function AdminBlitzCreatePage() {
                     <div style={{ marginTop: 10, padding: "7px 10px", borderRadius: 7, backgroundColor: "rgba(124,111,232,0.08)", border: "1px solid rgba(124,111,232,0.18)", fontSize: 11, color: "var(--accent-violet)" }}>
                       🥈 2nd Place: Free entry ticket (automatic — no input needed)
                     </div>
-                  </div>
-
-                  <FieldGrid>
-                    <Field label="Cash Winners *">
-                      <input style={inputStyle} type="number" placeholder="3" value={details.cash_winner_count}
-                        onChange={(e) => {
-                          const count = Number(e.target.value);
-                          updateDetails({ ...details, cash_winner_count: e.target.value,
-                            payout_distribution: Array(count).fill("").map((_, i) => details.payout_distribution[i] ?? "") });
-                        }} />
-                    </Field>
-                    <Field label="Guaranteed Min">
-                      <input style={inputStyle} type="number" placeholder="Optional" value={details.guaranteed_minimum} onChange={(e) => updateDetails({ ...details, guaranteed_minimum: e.target.value })} />
-                    </Field>
-                  </FieldGrid>
-
-                  {Number(details.cash_winner_count) > 0 && (
-                    <div>
-                      <label style={labelStyle}>Payout Distribution % (must sum to 100) *</label>
-                      {Array.from({ length: Number(details.cash_winner_count) }).map((_, i) => (
-                        <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, minWidth: 0 }}>
-                          <span style={{ fontSize: 11, fontFamily: "monospace", color: "var(--text-muted)", flexShrink: 0, width: 52 }}>Rank {i + 1}</span>
-                          <input style={{ ...inputStyle, flex: 1, minWidth: 0 }} type="number" placeholder="0"
-                            value={details.payout_distribution[i] ?? ""}
-                            onChange={(e) => { const d = [...details.payout_distribution]; d[i] = e.target.value; updateDetails({ ...details, payout_distribution: d }); }} />
-                          <span style={{ fontSize: 12, color: "var(--text-muted)", flexShrink: 0 }}>%</span>
-                        </div>
-                      ))}
-                      <p style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>
-                        Total: {details.payout_distribution.reduce((s, p) => s + (isNaN(Number(p)) ? 0 : Number(p)), 0).toFixed(1)}%
-                      </p>
-                    </div>
-                  )}
-
-                  <Field label="Total Payout % *">
-                    <input style={inputStyle} type="number" placeholder="70" value={details.total_payout_percent} onChange={(e) => updateDetails({ ...details, total_payout_percent: e.target.value })} />
-                  </Field>
-
-                  {/* Position prizes */}
-                  <div>
-                    <label style={labelStyle}>Position Prizes (optional)</label>
-                    <p style={{ fontSize: 10, color: "var(--text-muted)", marginBottom: 10 }}>
-                      Non-cash rewards for specific positions. These are not deducted from the cash pool.
-                    </p>
-                    {positionPrizes.map((pp, i) => (
-                      <div key={pp.position} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, minWidth: 0 }}>
-                        <span style={{ fontSize: 11, fontFamily: "monospace", color: "var(--text-muted)", flexShrink: 0, width: 52 }}>{pp.position === 2 ? "2nd" : pp.position === 3 ? "3rd" : `${pp.position}th`}</span>
-                        <select value={pp.type}
-                          onChange={(e) => {
-                            const updated = [...positionPrizes];
-                            updated[i] = { ...updated[i], type: e.target.value as PositionPrizeType };
-                            updatePositionPrizes(updated);
-                          }}
-                          style={{ ...inputStyle, flex: 1, minWidth: 0, cursor: "pointer" }}>
-                          <option value="none">None</option>
-                          <option value="free_ticket">Free Entry Ticket</option>
-                          <option value="discount">Discount %</option>
-                        </select>
-                        {pp.type === "discount" && (
-                          <input type="number" min={1} max={100} placeholder="50"
-                            value={pp.discount_percent}
-                            onChange={(e) => {
-                              const updated = [...positionPrizes];
-                              updated[i] = { ...updated[i], discount_percent: e.target.value };
-                              updatePositionPrizes(updated);
-                            }}
-                            style={{ ...inputStyle, width: 70, flex: "none" }} />
-                        )}
-                        {pp.type === "discount" && <span style={{ fontSize: 12, color: "var(--text-muted)", flexShrink: 0 }}>%</span>}
-                      </div>
-                    ))}
                   </div>
 
                   {/* Payout summary — live computed values */}
