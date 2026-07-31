@@ -726,14 +726,19 @@ export default function AdminBlitzCreatePage() {
               )}
 
               {questions.length >= requiredCount && requiredCount > 0 && (
-                <motion.button initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                  onClick={handlePublish} disabled={loading}
-                  style={{ width: "100%", boxSizing: "border-box", padding: "14px 0", borderRadius: 10, border: "none", backgroundColor: "var(--accent-indigo)", color: "#fff", fontSize: 15, fontWeight: 800, cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.6 : 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-                  {loading
-                    ? <div style={{ width: 18, height: 18, borderRadius: "50%", border: "2px solid rgba(255,255,255,0.3)", borderTopColor: "#fff", animation: "spin 0.7s linear infinite" }} />
-                    : <><CheckCircle size={17} /> Publish Tournament</>
-                  }
-                </motion.button>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  <motion.button initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                    onClick={handlePublish} disabled={loading}
+                    style={{ width: "100%", boxSizing: "border-box", padding: "14px 0", borderRadius: 10, border: "1px solid rgba(76,111,255,0.35)", backgroundColor: "rgba(76,111,255,0.12)", color: "var(--accent-indigo)", fontSize: 15, fontWeight: 800, cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.6 : 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                    {loading
+                      ? <div style={{ width: 18, height: 18, borderRadius: "50%", border: "2px solid rgba(255,255,255,0.3)", borderTopColor: "currentColor", animation: "spin 0.7s linear infinite" }} />
+                      : <><CheckCircle size={17} /> Open Registration Now (Early)</>
+                    }
+                  </motion.button>
+                  <p style={{ fontSize: 11, textAlign: "center", color: "var(--text-muted)", lineHeight: 1.5, margin: 0 }}>
+                    Optional — registration opens automatically at the scheduled time. Click only to open early.
+                  </p>
+                </div>
               )}
             </motion.div>
           )}
