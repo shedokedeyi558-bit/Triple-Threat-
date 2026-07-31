@@ -761,11 +761,18 @@ export default function AdminBlitzDetailPage() {
               </div>
             )}
             {t.status === "completed" && (
-              <button onClick={() => router.push(`/admin/blitz/${id}/leaderboard`)}
-                className="w-full py-3 rounded-xl text-sm font-black flex items-center justify-center gap-2"
-                style={{ backgroundColor: "rgba(76,111,255,0.1)", border: "1px solid rgba(76,111,255,0.3)", color: "var(--accent-indigo)" }}>
-                <Trophy size={15} /> View Leaderboard
-              </button>
+              <div className="flex gap-2">
+                <button onClick={() => router.push(`/admin/blitz/${id}/leaderboard`)}
+                  className="flex-1 py-3 rounded-xl text-sm font-black flex items-center justify-center gap-2"
+                  style={{ backgroundColor: "rgba(76,111,255,0.1)", border: "1px solid rgba(76,111,255,0.3)", color: "var(--accent-indigo)" }}>
+                  <Trophy size={15} /> Leaderboard
+                </button>
+                <button onClick={() => router.push(`/admin/blitz/${id}/results`)}
+                  className="flex-1 py-3 rounded-xl text-sm font-black flex items-center justify-center gap-2"
+                  style={{ backgroundColor: "rgba(52,211,153,0.08)", border: "1px solid rgba(52,211,153,0.3)", color: "#34d399" }}>
+                  <CheckCircle size={15} /> Results &amp; Audit
+                </button>
+              </div>
             )}
           </div>
         </>

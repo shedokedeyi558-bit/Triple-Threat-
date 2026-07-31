@@ -880,6 +880,50 @@ export interface BlitzSubmitResponse {
   message?: string;
 }
 
+export interface BlitzAdminResults {
+  tournament: {
+    id: string;
+    title: string;
+    status: BlitzTournament["status"];
+    entry_fee: number;
+    total_registered: number;
+    tournament_start: string;
+    tournament_end: string;
+  };
+  scoring_event: {
+    scored_at: string;
+    triggered_by: "scheduler" | "admin" | "unknown";
+  } | null;
+  revenue: {
+    total_revenue_actual: number;
+    total_cash_paid_out: number;
+    platform_kept: number;
+    discrepancy: number;
+    math_check: {
+      match: boolean;
+      formula: string;
+    };
+  };
+  players: {
+    player_id: string;
+    player_phone: string;
+    player_name?: string;
+    submitted: boolean;
+    rank: number | null;
+    score: number | null;
+    total_time_ms: number | null;
+    entry_fee_paid: number;
+    ticket_code_used?: string | null;
+    prize: {
+      prize_type: "cash" | "free_ticket" | "discount" | null;
+      amount_credited?: number;
+      discount_percent?: number;
+      ticket_code?: string;
+      ticket_status?: "unused" | "used" | "expired";
+    } | null;
+  }[];
+}
+
 export interface BlitzResult {
   tournament?: { title: string; prize_pool: number; total_registered: number };
   leaderboard: {
@@ -1443,6 +1487,11 @@ export const adminApi = {
 
   getBlitzLeaderboard: (id: string) =>
     request<{ leaderboard: BlitzResult["leaderboard"] }>(`/api/admin/blitz/${id}/leaderboard`, {
+      token: getAdminToken()
+    }),
+
+  getBlitzResults: (id: string) =>
+    request<BlitzAdminResults>(`/api/admin/blitz/${id}/results`, {
       token: getAdminToken()
     }),
 
