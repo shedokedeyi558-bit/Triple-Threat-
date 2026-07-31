@@ -137,7 +137,8 @@ export default function AdminBlitzPage() {
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.05 }}
-              className="bg-[#141414] border border-[#1E1E1E] rounded-xl p-4"
+              onClick={() => router.push(`/admin/blitz/${t.id}`)}
+              className="bg-[#141414] border border-[#1E1E1E] rounded-xl p-4 cursor-pointer hover:border-[#4C6FFF]/30 transition-colors"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
@@ -161,7 +162,7 @@ export default function AdminBlitzPage() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 flex-shrink-0">
+                <div className="flex items-center gap-2 flex-shrink-0" onClick={e => e.stopPropagation()}>
                   {t.status === "draft" && (
                     <>
                       <button

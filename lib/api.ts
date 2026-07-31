@@ -1346,6 +1346,32 @@ export const adminApi = {
   getBlitzTournaments: () =>
     request<{ tournaments: BlitzTournament[] }>("/api/admin/blitz", { token: getAdminToken() }),
 
+  getBlitzDetail: (id: string) =>
+    request<{ tournament: BlitzTournament & {
+      min_participants?: number;
+      registration_start: string;
+      tournament_start: string;
+      tournament_end: string;
+    }; questions: BlitzQuestion[] }>(`/api/admin/blitz/${id}`, { token: getAdminToken() }),
+
+  updateBlitz: (id: string, data: Partial<{
+    title: string; description: string; entry_fee: number;
+    question_count: number; time_limit_seconds: number;
+    per_question_time_seconds: number | null;
+    max_participants: number; cash_winner_count: number;
+    payout_distribution: number[]; total_payout_percent: number;
+    registration_start: string; tournament_start: string; tournament_end: string;
+    position_prizes: { position: number; prize_type: string; discount_percent?: number }[];
+  }>) =>
+    request<{ tournament: BlitzTournament }>(`/api/admin/blitz/${id}`, {
+      method: "PUT", body: data, token: getAdminToken()
+    }),
+
+  deleteBlitzQuestion: (tournamentId: string, questionId: string) =>
+    request<{ message: string }>(`/api/admin/blitz/${tournamentId}/questions/${questionId}`, {
+      method: "DELETE", token: getAdminToken()
+    }),
+
   createBlitz: (data: {
     title: string;
     description?: string;
