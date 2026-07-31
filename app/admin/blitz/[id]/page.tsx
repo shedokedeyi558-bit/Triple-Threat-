@@ -541,7 +541,7 @@ export default function AdminBlitzDetailPage() {
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   {[
                     { label: "Entry Fee",    value: fmt(t.entry_fee) },
-                    { label: "Prize Pool",   value: t.prize_pool > 0 ? fmt(t.prize_pool) : maxPool ? `up to ${fmt(maxPool)}` : "₦0" },
+                    { label: "Prize Pool",   value: t.prize_pool > 0 ? fmt(t.prize_pool) : maxPool ? `up to ${fmt(maxPool)}` : t.first_place_percent && t.max_participants ? `up to ${fmt(Math.floor(t.entry_fee * t.max_participants * t.first_place_percent / 100))}` : "₦0" },
                     { label: "Questions",    value: `${questions.length} / ${t.question_count}` },
                     { label: "Per-Q Time",   value: t.per_question_time_seconds ? `${t.per_question_time_seconds}s` : "—" },
                     { label: "Players",      value: t.max_participants ? `${t.total_registered} / ${t.max_participants}` : String(t.total_registered) },
@@ -555,37 +555,66 @@ export default function AdminBlitzDetailPage() {
                 </div>
 
                 {/* Prize breakdown */}
-                {(t.payout_distribution?.length || positionPrizes.length > 0) && (
+                {(t.first_place_percent != null || t.payout_distribution?.length || positionPrizes.length > 0) && (
                   <div className="space-y-1.5">
                     <p className="text-[9px] font-bold uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>Prize Breakdown</p>
-                    {(t.payout_distribution ?? []).map((pct, i) => {
-                      const rankPool = maxPool ? Math.floor(maxPool * pct / 100) : null;
-                      const label = i === 0 ? "1st" : i === 1 ? "2nd" : i === 2 ? "3rd" : `${i + 1}th`;
-                      return (
-                        <div key={i} className="flex items-center justify-between text-sm">
-                          <span className="flex items-center gap-1.5">
-                            <Trophy size={12} style={{ color: i === 0 ? "#facc15" : i === 1 ? "#9ca3af" : "#ea580c" }} />
-                            <span style={{ color: "var(--text-secondary)" }}>{label} Place ({pct}%)</span>
-                          </span>
-                          <span className="font-bold font-mono" style={{ color: "var(--accent-amber)" }}>
-                            {rankPool ? `up to ${fmt(rankPool)}` : `${pct}% of pool`}
-                          </span>
-                        </div>
-                      );
-                    })}
-                    {positionPrizes.map(p => (
-                      <div key={p.position} className="flex items-center justify-between text-sm">
-                        <span className="flex items-center gap-1.5">
-                          <Ticket size={12} style={{ color: "var(--accent-violet)" }} />
-                          <span style={{ color: "var(--text-secondary)" }}>
-                            {p.position === 2 ? "2nd" : p.position === 3 ? "3rd" : `${p.position}th`} Place
-                          </span>
-                        </span>
-                        <span className="font-bold text-purple-400">
-                          {p.prize_type === "free_ticket" ? "🎫 Free entry" : `🏷️ ${p.discount_percent ?? "?"}% off`}
-                        </span>
-                      </div>
-                    ))}
+
+                    {t.first_place_percent != null ? (
+                      // New simplified model
+                      <>
+                        {[
+                          { rank: "1st", icon: "#facc15", prize: (() => {
+                            const liveP = t.prize_pool > 0 ? Math.round(t.prize_pool * t.first_place_percent! / 100) : null;
+                            const capP  = maxPool ? Math.round(maxPool * t.first_place_percent! / 100) : null;
+                            return liveP ? fmt(liveP) : capP ? `up to ${fmt(capP)}` : `${t.first_place_percent}% of revenue`;
+                          })() },
+                          { rank: "2nd", icon: "#9ca3af", prize: "🎫 Free entry" },
+                          { rank: "3rd", icon: "#ea580c", prize: `🏷️ ${t.third_place_discount_percent ?? "?"}% off next entry` },
+                        ].map(row => (
+                          <div key={row.rank} className="flex items-center justify-between text-sm">
+                            <span className="flex items-center gap-1.5">
+                              <Trophy size={12} style={{ color: row.icon }} />
+                              <span style={{ color: "var(--text-secondary)" }}>{row.rank} Place</span>
+                            </span>
+                            <span className="font-bold font-mono" style={{ color: row.rank === "1st" ? "var(--accent-amber)" : "var(--accent-violet)" }}>
+                              {row.prize}
+                            </span>
+                          </div>
+                        ))}
+                      </>
+                    ) : (
+                      // Legacy model
+                      <>
+                        {(t.payout_distribution ?? []).map((pct, i) => {
+                          const rankPool = maxPool ? Math.floor(maxPool * pct / 100) : null;
+                          const label = i === 0 ? "1st" : i === 1 ? "2nd" : i === 2 ? "3rd" : `${i + 1}th`;
+                          return (
+                            <div key={i} className="flex items-center justify-between text-sm">
+                              <span className="flex items-center gap-1.5">
+                                <Trophy size={12} style={{ color: i === 0 ? "#facc15" : i === 1 ? "#9ca3af" : "#ea580c" }} />
+                                <span style={{ color: "var(--text-secondary)" }}>{label} Place ({pct}%)</span>
+                              </span>
+                              <span className="font-bold font-mono" style={{ color: "var(--accent-amber)" }}>
+                                {rankPool ? `up to ${fmt(rankPool)}` : `${pct}% of pool`}
+                              </span>
+                            </div>
+                          );
+                        })}
+                        {positionPrizes.map(p => (
+                          <div key={p.position} className="flex items-center justify-between text-sm">
+                            <span className="flex items-center gap-1.5">
+                              <Ticket size={12} style={{ color: "var(--accent-violet)" }} />
+                              <span style={{ color: "var(--text-secondary)" }}>
+                                {p.position === 2 ? "2nd" : p.position === 3 ? "3rd" : `${p.position}th`} Place
+                              </span>
+                            </span>
+                            <span className="font-bold text-purple-400">
+                              {p.prize_type === "free_ticket" ? "🎫 Free entry" : `🏷️ ${p.discount_percent ?? "?"}% off`}
+                            </span>
+                          </div>
+                        ))}
+                      </>
+                    )}
                   </div>
                 )}
 

@@ -46,6 +46,11 @@ function useCountdown(target: string) {
 }
 
 function computeMaxPool(t: BlitzTournament): number | null {
+  // New model: 1st place gets first_place_percent of total revenue
+  if (t.first_place_percent != null && (t.max_participants ?? 0) > 0) {
+    return Math.floor(t.entry_fee * t.max_participants! * t.first_place_percent / 100);
+  }
+  // Legacy model: total_payout_percent of total revenue
   const maxP = t.max_participants ?? 0;
   const pct  = t.total_payout_percent ?? 0;
   if (maxP <= 0 || pct <= 0) return null;
@@ -65,7 +70,7 @@ function TournamentCard({ t, index }: { t: BlitzTournament; index: number }) {
   const livePool       = t.prize_pool ?? 0;
   const maxPool        = computeMaxPool(t);
   const poolDisplay    = livePool > 0 ? `₦${livePool.toLocaleString()}` : maxPool != null ? `₦${maxPool.toLocaleString()}` : "—";
-  const poolSub        = livePool > 0 ? null : maxPool != null ? "est. max" : null;
+  const poolSub        = livePool > 0 ? null : maxPool != null ? "if full" : null;
   const positionPrizes = t.position_prizes ?? [];
 
   const accentColor = isActive ? "var(--accent-amber)" : "var(--accent-indigo)";

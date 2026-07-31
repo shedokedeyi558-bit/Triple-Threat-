@@ -456,22 +456,7 @@ export default function AdminBlitzCreatePage() {
                     <Field label="Max Participants *">
                       <input style={inputStyle} type="number" placeholder="1000" value={details.max_participants} onChange={(e) => updateDetails({ ...details, max_participants: e.target.value })} />
                     </Field>
-                    <Field label="1st Place Prize (%) *">
-                      <input style={inputStyle} type="number" placeholder="40" min={1} max={100}
-                        value={details.first_place_percent}
-                        onChange={(e) => updateDetails({ ...details, first_place_percent: e.target.value })} />
-                      <p style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 4 }}>% of total entry revenue paid to 1st place. E.g. 40 = 40% of all entry fees collected.</p>
-                    </Field>
-                    <Field label="3rd Place Discount (%) *">
-                      <input style={inputStyle} type="number" placeholder="50" min={1} max={99}
-                        value={details.third_place_discount_percent}
-                        onChange={(e) => updateDetails({ ...details, third_place_discount_percent: e.target.value })} />
-                      <p style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 4 }}>% off next Blitz entry for 3rd place winner.</p>
-                    </Field>
                   </FieldGrid>
-                  <div style={{ padding: "8px 12px", borderRadius: 8, backgroundColor: "rgba(124,111,232,0.07)", border: "1px solid rgba(124,111,232,0.18)", fontSize: 11, color: "var(--accent-violet)" }}>
-                    🥈 2nd Place: Free entry ticket (automatic)
-                  </div>
                   <Field label="Per-Question Time (sec)">
                     <input style={inputStyle} type="number" placeholder="Leave blank for manual time limit" min={3} max={120}
                       value={details.per_question_time_seconds}
@@ -494,6 +479,29 @@ export default function AdminBlitzCreatePage() {
               <div style={{ borderTop: "1px solid var(--border-hairline)", paddingTop: 16 }}>
                 <p style={sectionHeadStyle}>Payout Configuration</p>
                 <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+
+                  {/* Prize structure — new simplified model */}
+                  <div style={{ padding: "12px 14px", borderRadius: 10, backgroundColor: "rgba(232,163,61,0.06)", border: "1px solid rgba(232,163,61,0.18)" }}>
+                    <p style={{ ...sectionHeadStyle, marginBottom: 10, color: "var(--accent-amber)" }}>Prize Structure</p>
+                    <FieldGrid>
+                      <Field label="1st Place — % of Revenue *">
+                        <input style={inputStyle} type="number" placeholder="40" min={1} max={100}
+                          value={details.first_place_percent}
+                          onChange={(e) => updateDetails({ ...details, first_place_percent: e.target.value })} />
+                        <p style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 4 }}>% of all entry fees collected paid to 1st place.</p>
+                      </Field>
+                      <Field label="3rd Place — % Discount *">
+                        <input style={inputStyle} type="number" placeholder="50" min={1} max={99}
+                          value={details.third_place_discount_percent}
+                          onChange={(e) => updateDetails({ ...details, third_place_discount_percent: e.target.value })} />
+                        <p style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 4 }}>% off next Blitz entry for 3rd place.</p>
+                      </Field>
+                    </FieldGrid>
+                    <div style={{ marginTop: 10, padding: "7px 10px", borderRadius: 7, backgroundColor: "rgba(124,111,232,0.08)", border: "1px solid rgba(124,111,232,0.18)", fontSize: 11, color: "var(--accent-violet)" }}>
+                      🥈 2nd Place: Free entry ticket (automatic — no input needed)
+                    </div>
+                  </div>
+
                   <FieldGrid>
                     <Field label="Cash Winners *">
                       <input style={inputStyle} type="number" placeholder="3" value={details.cash_winner_count}
@@ -567,27 +575,49 @@ export default function AdminBlitzCreatePage() {
 
                   {/* Payout summary — live computed values */}
                   <div style={{ borderRadius: 10, padding: "12px 14px", border: "1px solid var(--border-hairline)", backgroundColor: "rgba(76,111,255,0.06)" }}>
-                    <p style={{ ...sectionHeadStyle, marginBottom: 10 }}>Payout Summary (at max capacity)</p>
+                    <p style={{ ...sectionHeadStyle, marginBottom: 10 }}>Payout Preview (at max capacity)</p>
                     {maxRevenue > 0 ? (
                       <>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
                           <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>Max revenue:</span>
                           <span style={{ fontSize: 12, fontFamily: "monospace", fontWeight: 600, color: "var(--text-primary)" }}>₦{maxRevenue.toLocaleString()}</span>
                         </div>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                          <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>Cash pool ({tp}%):</span>
-                          <span style={{ fontSize: 12, fontFamily: "monospace", fontWeight: 600, color: "var(--accent-indigo)" }}>₦{maxCashPool.toLocaleString()}</span>
-                        </div>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                          <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>Platform keeps ({platformPct.toFixed(0)}%):</span>
-                          <span style={{ fontSize: 12, fontFamily: "monospace", fontWeight: 600, color: "var(--text-primary)" }}>₦{Math.floor(maxRevenue * platformPct / 100).toLocaleString()}</span>
-                        </div>
-                        {positionPrizes.filter(p => p.type !== "none").length > 0 && (
-                          <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 6, paddingTop: 6, borderTop: "1px solid var(--border-hairline)" }}>
-                            Position prizes: {positionPrizes.filter(p => p.type !== "none").map(p => `${p.position === 2 ? "2nd" : "3rd"} ${p.type === "free_ticket" ? "free ticket" : `${p.discount_percent}% off`}`).join(", ")}
-                          </div>
+                        {details.first_place_percent ? (
+                          // New simplified model preview
+                          <>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                              <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>🥇 1st Place ({details.first_place_percent}%):</span>
+                              <span style={{ fontSize: 12, fontFamily: "monospace", fontWeight: 600, color: "var(--accent-amber)" }}>up to ₦{Math.floor(maxRevenue * Number(details.first_place_percent) / 100).toLocaleString()}</span>
+                            </div>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                              <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>🥈 2nd Place:</span>
+                              <span style={{ fontSize: 12, fontWeight: 600, color: "var(--accent-violet)" }}>Free entry ticket</span>
+                            </div>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                              <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>🥉 3rd Place:</span>
+                              <span style={{ fontSize: 12, fontWeight: 600, color: "var(--accent-violet)" }}>
+                                {details.third_place_discount_percent ? `${details.third_place_discount_percent}% off next entry` : "—"}
+                              </span>
+                            </div>
+                          </>
+                        ) : (
+                          // Legacy model preview
+                          <>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                              <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>Cash pool ({tp}%):</span>
+                              <span style={{ fontSize: 12, fontFamily: "monospace", fontWeight: 600, color: "var(--accent-indigo)" }}>₦{maxCashPool.toLocaleString()}</span>
+                            </div>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                              <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>Platform keeps ({platformPct.toFixed(0)}%):</span>
+                              <span style={{ fontSize: 12, fontFamily: "monospace", fontWeight: 600, color: "var(--text-primary)" }}>₦{Math.floor(maxRevenue * platformPct / 100).toLocaleString()}</span>
+                            </div>
+                            {positionPrizes.filter(p => p.type !== "none").length > 0 && (
+                              <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 6, paddingTop: 6, borderTop: "1px solid var(--border-hairline)" }}>
+                                Position prizes: {positionPrizes.filter(p => p.type !== "none").map(p => `${p.position === 2 ? "2nd" : "3rd"} ${p.type === "free_ticket" ? "free ticket" : `${p.discount_percent}% off`}`).join(", ")}
+                              </div>
+                            )}
+                          </>
                         )}
-                        {/* Fix 3: Quiz duration line when per-question time is set */}
                         {computedTimeLimit != null && (
                           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 6, paddingTop: 6, borderTop: "1px solid var(--border-hairline)" }}>
                             <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>Quiz duration:</span>
@@ -598,9 +628,9 @@ export default function AdminBlitzCreatePage() {
                         )}
                       </>
                     ) : (
-                      <p style={{ fontSize: 11, color: "var(--text-muted)" }}>Fill in entry fee, max participants, and total payout % to see preview.</p>
+                      <p style={{ fontSize: 11, color: "var(--text-muted)" }}>Fill in entry fee and max participants to see preview.</p>
                     )}
-                    {tp > 90 && <p style={{ fontSize: 11, color: "var(--accent-amber)", marginTop: 8 }}>⚠ Less than 10% platform margin</p>}
+                    {tp > 90 && !details.first_place_percent && <p style={{ fontSize: 11, color: "var(--accent-amber)", marginTop: 8 }}>⚠ Less than 10% platform margin</p>}
                   </div>
                 </div>
               </div>

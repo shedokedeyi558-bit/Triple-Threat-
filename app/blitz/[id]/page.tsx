@@ -118,10 +118,21 @@ export default function BlitzDetailPage() {
   const maxParticipants = tournament.max_participants ?? 0;
   const livePool        = tournament.prize_pool ?? 0;
   const hasLivePool     = livePool > 0;
-  const ceilingPool     = maxParticipants > 0 && totalPayoutPct > 0
-    ? Math.floor(tournament.entry_fee * maxParticipants * totalPayoutPct / 100)
+
+  // Ceiling pool: for new model use first_place_percent of revenue; for legacy use total_payout_percent
+  const ceilingPool = maxParticipants > 0
+    ? tournament.first_place_percent != null
+      ? Math.floor(tournament.entry_fee * maxParticipants * tournament.first_place_percent / 100)
+      : totalPayoutPct > 0
+      ? Math.floor(tournament.entry_fee * maxParticipants * totalPayoutPct / 100)
+      : null
     : null;
-  const poolDisplay     = hasLivePool ? `₦${livePool.toLocaleString()}` : ceilingPool != null ? `up to ₦${ceilingPool.toLocaleString()}` : "₦0";
+
+  const poolDisplay = hasLivePool
+    ? `₦${livePool.toLocaleString()}`
+    : ceilingPool != null
+    ? `up to ₦${ceilingPool.toLocaleString()} if full`
+    : "₦0";
   const cashPrizes      = Array.from({ length: cashWinnerCount }, (_, i) => {
     const pct          = payoutDist[i] ?? 0;
     const livePrize    = hasLivePool && pct > 0 ? Math.floor(livePool * pct / 100) : null;
