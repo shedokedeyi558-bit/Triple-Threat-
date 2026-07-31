@@ -5,25 +5,24 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { useApp } from "@/context/AppContext";
 import { blitzApi, type BlitzTournament, ApiError } from "@/lib/api";
-import { Zap, Users, Clock, Trophy, Timer } from "lucide-react";
+import { Zap, Users, Clock, Trophy, Timer, ChevronRight } from "lucide-react";
 
-function StatusBadge({ status }: { status: BlitzTournament["status"] }) {
-  const config = {
-    registration: { label: "Open",    color: "bg-blue-500/20 text-blue-400 border-blue-500/30" },
-    active:        { label: "Live",    color: "bg-[#E8A33D]/20 text-[#E8A33D] border-[#E8A33D]/30" },
-    completed:     { label: "Ended",  color: "bg-gray-700/30 text-gray-500 border-gray-700/30" },
-    draft:         { label: "Soon",   color: "bg-gray-700/20 text-gray-600 border-gray-700/20" },
-    scoring:       { label: "Scoring",color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" },
+function StatusPill({ status }: { status: BlitzTournament["status"] }) {
+  const cfg: Record<string, { label: string; cls: string }> = {
+    registration: { label: "Open",     cls: "bg-blue-500/15 text-blue-400 border-blue-500/25" },
+    active:       { label: "Live",     cls: "bg-[#E8A33D]/15 text-[#E8A33D] border-[#E8A33D]/30" },
+    completed:    { label: "Ended",    cls: "bg-white/5 text-gray-500 border-white/8" },
+    draft:        { label: "Soon",     cls: "bg-white/5 text-gray-600 border-white/8" },
+    scoring:      { label: "Scoring",  cls: "bg-yellow-500/15 text-yellow-400 border-yellow-500/25" },
   };
-  const c = config[status] ?? config.draft;
+  const c = cfg[status] ?? cfg.draft;
   return (
-    <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider border flex-shrink-0 ${c.color}`}>
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border flex-shrink-0 ${c.cls}`}>
       {c.label}
     </span>
   );
 }
 
-// Live ticking countdown
 function useCountdown(target: string) {
   const calc = () => {
     const diff = new Date(target).getTime() - Date.now();
@@ -31,22 +30,21 @@ function useCountdown(target: string) {
     const h = Math.floor(diff / 3600000);
     const m = Math.floor((diff % 3600000) / 60000);
     const s = Math.floor((diff % 60000) / 1000);
-    const urgent = diff < 30 * 60 * 1000; // < 30 min
+    const urgent = diff < 30 * 60 * 1000;
     if (h > 48) return { label: `${Math.floor(h / 24)}d`, urgent: false };
     if (h > 0)  return { label: `${h}h ${m}m`, urgent };
     if (m > 0)  return { label: `${m}m ${s}s`, urgent };
     return { label: `${s}s`, urgent: true };
   };
-  const [state, setState] = useState(calc);
+  const [st, setSt] = useState(calc);
   useEffect(() => {
-    const id = setInterval(() => setState(calc()), 1000);
+    const id = setInterval(() => setSt(calc()), 1000);
     return () => clearInterval(id);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [target]);
-  return state;
+  return st;
 }
 
-// Compute the potential max prize pool from tournament metadata
 function computeMaxPool(t: BlitzTournament): number | null {
   const maxP = t.max_participants ?? 0;
   const pct  = t.total_payout_percent ?? 0;
@@ -54,7 +52,7 @@ function computeMaxPool(t: BlitzTournament): number | null {
   return Math.floor(t.entry_fee * maxP * pct / 100);
 }
 
-function TournamentCard({ t }: { t: BlitzTournament }) {
+function TournamentCard({ t, index }: { t: BlitzTournament; index: number }) {
   const router      = useRouter();
   const isReg       = t.status === "registration";
   const isActive    = t.status === "active";
@@ -64,156 +62,126 @@ function TournamentCard({ t }: { t: BlitzTournament }) {
   const countdownTarget = isActive ? t.tournament_end : t.tournament_start;
   const { label: countdownLabel, urgent } = useCountdown(countdownTarget ?? "");
 
-  const livePool    = t.prize_pool ?? 0;
-  const maxPool     = computeMaxPool(t);
-  const poolDisplay = livePool > 0
-    ? `₦${livePool.toLocaleString()}`
-    : maxPool != null ? `Up to ₦${maxPool.toLocaleString()}` : "₦0";
-  const poolIsEstimate = livePool === 0 && maxPool != null;
-
+  const livePool       = t.prize_pool ?? 0;
+  const maxPool        = computeMaxPool(t);
+  const poolDisplay    = livePool > 0 ? `₦${livePool.toLocaleString()}` : maxPool != null ? `₦${maxPool.toLocaleString()}` : "—";
+  const poolSub        = livePool > 0 ? null : maxPool != null ? "est. max" : null;
   const positionPrizes = t.position_prizes ?? [];
 
-  const ctaLabel    = isReg ? "Register →" : isCompleted ? "View Results →" : isScoring ? "Scoring…" : "View →";
-  const ctaDisabled = isCompleted || isScoring;
-
-  const cardBorder = isActive
-    ? "border-[#E8A33D]/25 hover:border-[#E8A33D]/50"
-    : "border-[#1E1E1E] hover:border-[#4C6FFF]/30";
+  const accentColor = isActive ? "var(--accent-amber)" : "var(--accent-indigo)";
+  const accentBg    = isActive ? "rgba(232,163,61,0.08)" : "rgba(76,111,255,0.06)";
+  const accentBord  = isActive ? "rgba(232,163,61,0.2)"  : "rgba(76,111,255,0.18)";
 
   return (
-    <motion.button
-      initial={{ opacity: 0, y: 16 }}
+    <motion.div
+      initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
-      whileHover={{ y: -2 }}
-      whileTap={{ scale: 0.99 }}
+      transition={{ delay: index * 0.04 }}
       onClick={() => router.push(`/blitz/${t.id}`)}
-      className={`w-full bg-[#111] border rounded-2xl p-5 text-left transition-all ${cardBorder}`}
+      className="cursor-pointer rounded-2xl overflow-hidden transition-all"
+      style={{
+        backgroundColor: "var(--bg-card)",
+        border: `1px solid ${isActive ? "rgba(232,163,61,0.22)" : "var(--border-subtle)"}`,
+        boxShadow: isActive ? "0 0 0 1px rgba(232,163,61,0.08) inset" : "none",
+      }}
+      whileHover={{ y: -1 }}
+      whileTap={{ scale: 0.99 }}
     >
-      {/* ── Header: title + LIVE badge ── */}
-      <div className="flex items-start justify-between gap-3 mb-3">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <Zap size={14} className="flex-shrink-0" style={{ color: "var(--accent-amber)" }} />
-            <h3 className="text-white font-black text-base leading-tight truncate">{t.title}</h3>
-            <StatusBadge status={t.status} />
-          </div>
-          {t.description ? (
-            <p className="text-xs leading-relaxed line-clamp-2 ml-[22px]" style={{ color: "var(--text-muted)" }}>
-              {t.description}
-            </p>
-          ) : isActive ? (
-            <p className="text-xs ml-[22px]" style={{ color: "var(--text-muted)" }}>
-              Tournament is live — answers being submitted now
-            </p>
-          ) : isReg ? (
-            <p className="text-xs ml-[22px]" style={{ color: "var(--text-muted)" }}>
-              Registration is open — grab your spot
-            </p>
-          ) : null}
+      {/* Accent top strip for active */}
+      {isActive && (
+        <div className="h-0.5 w-full" style={{ background: "linear-gradient(90deg, var(--accent-amber) 0%, rgba(232,163,61,0.2) 100%)" }} />
+      )}
+
+      <div className="p-4 space-y-3.5">
+
+        {/* ── Row 1: title + badge ── */}
+        <div className="flex items-center gap-2 min-w-0">
+          <Zap size={15} className="flex-shrink-0" style={{ color: accentColor }} />
+          <h3 className="font-black text-[15px] leading-snug text-white truncate flex-1">{t.title}</h3>
+          <StatusPill status={t.status} />
         </div>
-      </div>
 
-      {/* ── Stats row ── */}
-      <div className="grid grid-cols-3 gap-2 mb-3">
-        {[
-          {
-            icon: <Zap size={11} style={{ color: "var(--accent-amber)" }} />,
-            label: "Entry",
-            value: `₦${t.entry_fee.toLocaleString()}`,
-            valueColor: "var(--accent-amber)",
-          },
-          {
-            icon: <Trophy size={11} style={{ color: livePool > 0 ? "var(--accent-amber)" : "var(--text-muted)" }} />,
-            label: "Prize Pool",
-            value: poolDisplay,
-            valueColor: livePool > 0 ? "var(--text-primary)" : "var(--text-muted)",
-            sub: poolIsEstimate ? "estimated" : undefined,
-          },
-          {
-            icon: <Users size={11} style={{ color: "var(--accent-indigo)" }} />,
-            label: "Players",
-            value: `${t.total_registered}${t.max_participants ? `/${t.max_participants}` : ""}`,
-            valueColor: "var(--text-primary)",
-          },
-        ].map((s) => (
-          <div key={s.label} className="rounded-xl p-2.5 text-center"
-            style={{ backgroundColor: "var(--bg-base)", border: "1px solid var(--border-hairline)" }}>
-            <div className="flex items-center justify-center gap-1 mb-1">
-              {s.icon}
-              <p className="text-[9px] font-bold uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>{s.label}</p>
+        {/* ── Row 2: 3 stat chips in a single row ── */}
+        <div className="grid grid-cols-3 gap-1.5">
+          {[
+            { label: "Entry",      value: `₦${t.entry_fee.toLocaleString()}`,   color: "var(--accent-amber)" },
+            { label: "Prize Pool", value: poolDisplay, sub: poolSub ?? undefined, color: livePool > 0 ? "var(--text-primary)" : "var(--text-secondary)" },
+            { label: "Players",    value: `${t.total_registered}${t.max_participants ? `/${t.max_participants}` : ""}`, color: "var(--text-primary)" },
+          ].map((s) => (
+            <div key={s.label} className="rounded-xl px-2.5 py-2 text-center"
+              style={{ backgroundColor: "var(--bg-base)", border: "1px solid var(--border-hairline)" }}>
+              <p className="text-[9px] font-bold uppercase tracking-widest mb-1" style={{ color: "var(--text-muted)" }}>{s.label}</p>
+              <p className="font-black text-[13px] font-mono leading-none" style={{ color: s.color }}>{s.value}</p>
+              {s.sub && <p className="text-[8px] mt-0.5 font-medium" style={{ color: "var(--text-muted)" }}>{s.sub}</p>}
             </div>
-            <p className="font-black text-sm font-mono leading-tight" style={{ color: s.valueColor }}>{s.value}</p>
-            {s.sub && <p className="text-[9px] mt-0.5" style={{ color: "var(--text-muted)" }}>{s.sub}</p>}
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
 
-      {/* ── Rank rewards ── */}
-      {(positionPrizes.length > 0 || t.per_question_time_seconds != null) && (
-        <div className="mb-3 space-y-1.5">
-          {positionPrizes.length > 0 && (
-            <p className="text-[9px] font-bold uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>
-              Leaderboard rewards
-            </p>
-          )}
+        {/* ── Row 3: speed + rank rewards (only when present) ── */}
+        {(t.per_question_time_seconds != null || positionPrizes.length > 0) && (
           <div className="flex flex-wrap gap-1.5">
             {t.per_question_time_seconds != null && (
-              <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-md"
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full"
                 style={{ backgroundColor: "rgba(232,163,61,0.1)", color: "var(--accent-amber)", border: "1px solid rgba(232,163,61,0.2)" }}>
-                <Timer size={9} />{t.per_question_time_seconds}s per question
+                <Timer size={9} />{t.per_question_time_seconds}s/q
               </span>
             )}
             {positionPrizes.map((p) => (
-              <span key={p.position} className="text-[10px] font-bold px-2 py-1 rounded-md"
-                style={{ backgroundColor: "rgba(124,111,232,0.1)", color: "var(--accent-violet)", border: "1px solid rgba(124,111,232,0.2)" }}>
-                #{p.position} · {p.prize_type === "free_ticket" ? "Free entry 🎫" : `${p.discount_percent ?? "?"}% off 🏷️`}
+              <span key={p.position} className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                style={{ backgroundColor: "rgba(124,111,232,0.1)", color: "var(--accent-violet)", border: "1px solid rgba(124,111,232,0.18)" }}>
+                #{p.position} {p.prize_type === "free_ticket" ? "· Free entry 🎫" : `· ${p.discount_percent ?? "?"}% off 🏷️`}
               </span>
             ))}
           </div>
-        </div>
-      )}
+        )}
 
-      {/* ── Footer: countdown + CTA ── */}
-      <div className="flex items-center justify-between gap-3 pt-3"
-        style={{ borderTop: "1px solid var(--border-hairline)" }}>
+        {/* ── Row 4: countdown + CTA ── */}
+        <div className="flex items-center justify-between gap-2 pt-0.5"
+          style={{ borderTop: "1px solid var(--border-hairline)" }}>
 
-        {/* Countdown */}
-        {(isActive || isReg) && (
-          <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl ${isActive && urgent ? "animate-pulse" : ""}`}
-            style={{
-              backgroundColor: isActive
-                ? urgent ? "rgba(232,163,61,0.15)" : "rgba(232,163,61,0.08)"
-                : "rgba(76,111,255,0.08)",
-              border: `1px solid ${isActive
-                ? urgent ? "rgba(232,163,61,0.45)" : "rgba(232,163,61,0.2)"
-                : "rgba(76,111,255,0.2)"}`,
-            }}>
-            <Clock size={13} style={{ color: isActive ? "var(--accent-amber)" : "var(--accent-indigo)", flexShrink: 0 }} />
-            <span className="font-black text-sm font-mono"
-              style={{ color: isActive ? "var(--accent-amber)" : "var(--accent-indigo)" }}>
+          {/* Countdown pill */}
+          {(isActive || isReg) ? (
+            <div className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-black font-mono ${isActive && urgent ? "animate-pulse" : ""}`}
+              style={{ backgroundColor: accentBg, border: `1px solid ${accentBord}`, color: accentColor }}>
+              <Clock size={11} />
               {isActive ? `Ends ${countdownLabel}` : `Starts ${countdownLabel}`}
-            </span>
-          </div>
-        )}
-        {isCompleted && (
-          <span className="text-xs" style={{ color: "var(--text-muted)" }}>Tournament ended</span>
-        )}
-        {isScoring && (
-          <span className="text-xs" style={{ color: "var(--text-muted)" }}>Calculating results…</span>
-        )}
+            </div>
+          ) : isScoring ? (
+            <span className="text-[11px]" style={{ color: "var(--text-muted)" }}>Calculating results…</span>
+          ) : (
+            <span className="text-[11px]" style={{ color: "var(--text-muted)" }}>Tournament ended</span>
+          )}
 
-        {/* CTA */}
-        <div className={`text-xs font-black px-4 py-2 rounded-xl transition-colors flex-shrink-0 ${
-          ctaDisabled
-            ? "opacity-40 cursor-default"
-            : isActive
-            ? "bg-[#E8A33D]/12 border border-[#E8A33D]/35 text-[#E8A33D]"
-            : "bg-[#4C6FFF]/10 border border-[#4C6FFF]/25 text-[#4C6FFF]"
-        }`}>
-          {ctaLabel}
+          {/* CTA */}
+          <div className={`inline-flex items-center gap-1 text-xs font-black px-3.5 py-1.5 rounded-xl flex-shrink-0 transition-colors ${
+            isCompleted || isScoring
+              ? "opacity-40"
+              : ""
+          }`}
+            style={{
+              backgroundColor: isActive ? "rgba(232,163,61,0.12)" : "rgba(76,111,255,0.1)",
+              border: `1px solid ${isActive ? "rgba(232,163,61,0.3)" : "rgba(76,111,255,0.25)"}`,
+              color: isActive ? "var(--accent-amber)" : isCompleted || isScoring ? "var(--text-muted)" : "var(--accent-indigo)",
+            }}>
+            {isReg ? "Register" : isCompleted ? "Results" : isScoring ? "Scoring…" : "View"}
+            {!isScoring && <ChevronRight size={11} />}
+          </div>
         </div>
       </div>
-    </motion.button>
+    </motion.div>
+  );
+}
+
+// ── Section header ────────────────────────────────────────────────────────────
+function SectionHeader({ title, count }: { title: string; count: number }) {
+  return (
+    <div className="flex items-center gap-2 mb-3">
+      <h2 className="text-[11px] font-black uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>{title}</h2>
+      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+        style={{ backgroundColor: "var(--bg-base)", color: "var(--text-muted)", border: "1px solid var(--border-hairline)" }}>
+        {count}
+      </span>
+    </div>
   );
 }
 
@@ -239,40 +207,61 @@ export default function BlitzLobbyPage() {
   const scoring      = tournaments.filter((t) => t.status === "scoring");
   const completed    = tournaments.filter((t) => t.status === "completed");
 
-  const Section = ({ title, items }: { title: string; items: BlitzTournament[] }) => (
-    <section className="space-y-3">
-      <h2 className="text-[11px] text-gray-500 uppercase tracking-widest font-bold">{title}</h2>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-        {items.map((t) => <TournamentCard key={t.id} t={t} />)}
-      </div>
-    </section>
-  );
-
   return (
-    <div className="max-w-5xl mx-auto px-4 lg:px-8 py-6 space-y-8">
+    <div className="max-w-2xl mx-auto px-4 py-5 space-y-6">
+
       {error && (
-        <p className="text-red-400 text-sm bg-red-900/10 border border-red-900/30 rounded-xl p-3">{error}</p>
+        <p className="text-sm rounded-xl p-3" style={{ color: "#f87171", backgroundColor: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)" }}>{error}</p>
       )}
+
       {loading ? (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+        <div className="space-y-3">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="bg-[#111] border border-[#1E1E1E] rounded-2xl p-5 h-44 animate-pulse" />
+            <div key={i} className="rounded-2xl h-36 animate-pulse" style={{ backgroundColor: "var(--bg-card)" }} />
           ))}
+        </div>
+      ) : tournaments.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-24 text-center">
+          <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4"
+            style={{ backgroundColor: "var(--bg-card)", border: "1px solid var(--border-subtle)" }}>
+            <Zap size={26} style={{ color: "var(--text-muted)" }} />
+          </div>
+          <p className="font-bold text-sm" style={{ color: "var(--text-secondary)" }}>No tournaments right now</p>
+          <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>Check back soon for new Blitz events</p>
         </div>
       ) : (
         <>
-          {active.length > 0       && <Section title="Live Now"            items={active} />}
-          {registration.length > 0 && <Section title="Registration Open"   items={registration} />}
-          {scoring.length > 0      && <Section title="Calculating Results" items={scoring} />}
-          {completed.length > 0    && <Section title="Completed"           items={completed} />}
-          {tournaments.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-24 text-center">
-              <div className="w-16 h-16 rounded-2xl bg-[#141414] border border-[#1E1E1E] flex items-center justify-center mb-4">
-                <Zap size={28} className="text-gray-700" />
+          {active.length > 0 && (
+            <section>
+              <SectionHeader title="Live Now" count={active.length} />
+              <div className="space-y-3">
+                {active.map((t, i) => <TournamentCard key={t.id} t={t} index={i} />)}
               </div>
-              <p className="text-gray-500 font-semibold">No tournaments right now</p>
-              <p className="text-gray-700 text-sm mt-1">Check back soon for new Blitz events</p>
-            </div>
+            </section>
+          )}
+          {registration.length > 0 && (
+            <section>
+              <SectionHeader title="Registration Open" count={registration.length} />
+              <div className="space-y-3">
+                {registration.map((t, i) => <TournamentCard key={t.id} t={t} index={i} />)}
+              </div>
+            </section>
+          )}
+          {scoring.length > 0 && (
+            <section>
+              <SectionHeader title="Calculating Results" count={scoring.length} />
+              <div className="space-y-3">
+                {scoring.map((t, i) => <TournamentCard key={t.id} t={t} index={i} />)}
+              </div>
+            </section>
+          )}
+          {completed.length > 0 && (
+            <section>
+              <SectionHeader title="Completed" count={completed.length} />
+              <div className="space-y-3">
+                {completed.map((t, i) => <TournamentCard key={t.id} t={t} index={i} />)}
+              </div>
+            </section>
           )}
         </>
       )}
