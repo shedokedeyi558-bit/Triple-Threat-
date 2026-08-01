@@ -77,7 +77,6 @@ export default function CreatePillPackPage() {
         category:           packCategory.trim(),
         entry_fee:          Number(packEntryFee),
         prize:              Number(packPrize),
-        is_vip:             true,
         question_count:     Number(qCount),
         total_time_minutes: totalTimeSecs > 0 ? totalTimeSecs / 60 : 15,
         required_correct:   Number(requiredCorrect) || Number(qCount),
@@ -89,7 +88,7 @@ export default function CreatePillPackPage() {
               )[expiryOption]).toISOString(),
         } : {}),
         idempotency_key: idempotencyKey,
-      } as any);
+      });
 
       const packId = (packRes as any).pack?.id ?? (packRes as any).id;
       if (!packId) { setError("Pack created but no ID returned"); setLoading(false); return; }

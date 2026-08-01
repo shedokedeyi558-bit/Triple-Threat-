@@ -1218,10 +1218,10 @@ export const adminApi = {
     return request<{ packs: PillPack[] }>(url, { token: getAdminToken() });
   },
 
-  createPillPack: (data: { name: string; category: string; entry_fee: number; prize: number; is_vip: true; question_count?: number; total_time_minutes?: number; required_correct?: number; target_bank_size?: number; quiz_expires_at?: string; idempotency_key?: string }) =>
+  createPillPack: (data: { name: string; category: string; entry_fee: number; prize: number; question_count?: number; total_time_minutes?: number; required_correct?: number; target_bank_size?: number; quiz_expires_at?: string; idempotency_key?: string }) =>
     request<{ pack: { id: string; name: string; category: string; status: string } }>(
       "/api/admin/pills/packs",
-      { method: "POST", body: data, token: getAdminToken() }
+      { method: "POST", body: { ...data, is_vip: true }, token: getAdminToken() }
     ),
 
   updatePillPack: (packId: string, data: { name?: string; category?: string; status?: string }) =>
