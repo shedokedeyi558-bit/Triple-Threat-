@@ -295,20 +295,21 @@ export default function ProfilePage() {
                 Share on WhatsApp
               </button>
               )}
+              {/* Stat row: equal weight, color-only differentiation */}
               <div className="grid grid-cols-3 gap-3">
                 {[
-                  { label: "Pending", value: referralStats.pending_count, color: "var(--accent-amber)" },
-                  { label: "Completed", value: referralStats.completed_count, color: "#34d399" },
-                  { label: "Earned", value: `₦${referralStats.total_earned.toLocaleString()}`, color: "var(--accent-amber)" },
+                  { label: "Pending",   value: String(referralStats.pending_count),                color: "var(--accent-amber)" },
+                  { label: "Completed", value: String(referralStats.completed_count),              color: "#34d399" },
+                  { label: "Earned",    value: `₦${referralStats.total_earned.toLocaleString()}`,  color: "var(--accent-amber)" },
                 ].map((s) => (
                   <div key={s.label} className="rounded-xl p-3 text-center border" style={{ backgroundColor: "var(--bg-base)", borderColor: "var(--border-hairline)" }}>
                     <p className="text-[10px] text-gray-600 uppercase tracking-wider mb-1">{s.label}</p>
-                    <p className="font-black text-base font-mono" style={{ color: s.color }}>{s.value}</p>
+                    <p className="font-bold text-[15px] font-mono leading-tight" style={{ color: s.color }}>{s.value}</p>
                   </div>
                 ))}
               </div>
 
-              {/* Requirements card */}
+              {/* How to earn ₦200 */}
               <div className="rounded-xl p-4 border space-y-2"
                 style={{ backgroundColor: "rgba(76,111,255,0.04)", borderColor: "rgba(76,111,255,0.15)" }}>
                 <p className="text-[11px] font-bold uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>
@@ -325,6 +326,30 @@ export default function ProfilePage() {
                 </div>
                 <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>
                   Once done, your bonus is credited automatically.
+                </p>
+              </div>
+
+              {/* Milestones card */}
+              <div className="rounded-xl p-4 border space-y-2"
+                style={{ backgroundColor: "rgba(232,163,61,0.04)", borderColor: "rgba(232,163,61,0.18)" }}>
+                <p className="text-[11px] font-bold uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>
+                  Referral Milestones 🏆
+                </p>
+                <div className="space-y-1.5">
+                  {[
+                    { threshold: "5 completed", bonus: "₦1,000 bonus" },
+                    { threshold: "15 completed", bonus: "₦3,000 bonus" },
+                  ].map((m) => (
+                    <div key={m.threshold} className="flex items-center justify-between">
+                      <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                        <strong style={{ color: "var(--text-primary)" }}>{m.threshold}</strong> referrals →
+                      </p>
+                      <p className="text-xs font-bold font-mono" style={{ color: "var(--accent-amber)" }}>{m.bonus}</p>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>
+                  Bonuses credited automatically to your real balance the moment you hit each milestone.
                 </p>
               </div>
             </>
