@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { adminApi, ApiError } from "@/lib/api";
-import { Loader2, Plus, Package, Eye, EyeOff, Trash2, ClipboardCheck, BookOpen, BarChart2, TrendingUp, Activity, Clock, Search } from "lucide-react";
+import { Loader2, Plus, Package, Eye, EyeOff, Trash2, BookOpen, BarChart2, TrendingUp, Activity, Clock, Search } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 // ── Inline live stats strip — mounts when a pack row is expanded ─────────────
@@ -93,12 +93,23 @@ interface PillPack {
   played_count?: number;
   prize_amount?: number;
   entry_fee?: number;
+  question_count?: number;
   quiz_expires_at?: string | null;
   created_at?: string;
   max_entries?: number | null;
   entries_made?: number;
   entry_cap_reached?: boolean;
-  current_entries?: number;  // backend alias for entries_made
+  current_entries?: number;
+  // Attempt outcome (populated when entry_cap_reached / someone won/lost)
+  latest_attempt?: {
+    player_phone?: string;
+    passed?: boolean;
+    score?: number;
+    total_questions?: number;
+    completed_at?: string;
+    expires_at?: string;      // when the claim window closes
+    prize_paid?: number;
+  } | null;
 }
 
 // ── Force-delete confirmation dialog ────────────────────────────────────────
@@ -149,7 +160,6 @@ export default function AdminPillsPage() {
   const [toggling, setToggling] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [forceDeleteTarget, setForceDeleteTarget] = useState<PillPack | null>(null);
-  const [expandedActions, setExpandedActions] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [showInactive, setShowInactive] = useState(false);
 
@@ -305,206 +315,130 @@ export default function AdminPillsPage() {
               <p className="text-center py-12 text-sm text-gray-500">No packs match &ldquo;{search}&rdquo;</p>
             );
             return filtered.map((pack, i) => {
-            const available = pack.available_count ?? pack.pills.filter((p) => p.status === "available").length;
-            const played = pack.played_count ?? pack.pills.filter((p) => p.status === "played").length;
-            const total = pack.pills.length;
             const isSpecial = !!pack.is_vip;
-            const canSafeDelete = pack.status !== "active" && available === 0;
-            const isExpanded = expandedActions === pack.id;
+            const prize = pack.prize_amount ?? (pack.pills[0] as any)?.prize ?? null;
+            const entryFee = pack.entry_fee ?? null;
+            const qCount = pack.question_count ?? pack.pills.length ?? null;
+            const attempt = pack.latest_attempt ?? null;
+            const isClaimed = pack.entry_cap_reached === true;
+            const isWon = isClaimed && attempt?.passed === true;
+            const isLost = isClaimed && attempt?.passed === false;
+            const canSafeDelete = pack.status !== "active" && (pack.available_count ?? 0) === 0;
+
+            // Status chip config
+            type ChipKey = "available" | "claimed" | "won" | "lost" | "inactive";
+            const chipConfig: Record<ChipKey, { label: string; bg: string; color: string; border: string }> = {
+              available: { label: "Available", bg: "rgba(74,222,128,0.12)", color: "#4ADE80", border: "rgba(74,222,128,0.25)" },
+              claimed:   { label: "Claimed",   bg: "rgba(251,191,36,0.12)", color: "#fbbf24", border: "rgba(251,191,36,0.25)" },
+              won:       { label: "Won – Paid", bg: "rgba(244,63,94,0.1)",  color: "#fb7185", border: "rgba(244,63,94,0.25)" },
+              lost:      { label: "Lost",       bg: "rgba(244,63,94,0.1)",  color: "#fb7185", border: "rgba(244,63,94,0.25)" },
+              inactive:  { label: "Inactive",   bg: "rgba(255,255,255,0.05)", color: "#6b7280", border: "rgba(255,255,255,0.08)" },
+            };
+            const chipKey: ChipKey = pack.status !== "active" ? "inactive"
+              : isWon ? "won"
+              : isLost ? "lost"
+              : isClaimed ? "claimed"
+              : "available";
+            const chip = chipConfig[chipKey];
+
+            // Outcome line text
+            let outcomeLine: { phone?: string; detail: string; detailColor?: string } | null = null;
+            if (isClaimed && attempt) {
+              const phone = attempt.player_phone ?? "—";
+              if (isWon) {
+                const ts = attempt.completed_at ? new Date(attempt.completed_at).toLocaleString("en-NG", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "—";
+                outcomeLine = { phone, detail: `${ts} · ${attempt.score ?? "—"}/${attempt.total_questions ?? qCount ?? "—"} correct · ₦${(attempt.prize_paid ?? prize ?? 0).toLocaleString()} paid`, detailColor: "#fb7185" };
+              } else if (isLost) {
+                const ts = attempt.completed_at ? new Date(attempt.completed_at).toLocaleString("en-NG", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "—";
+                outcomeLine = { phone, detail: `${ts} · ${attempt.score ?? "—"}/${attempt.total_questions ?? qCount ?? "—"} correct`, detailColor: "#6b7280" };
+              } else {
+                // Claimed but not yet played — show time remaining
+                const msLeft = attempt.expires_at ? new Date(attempt.expires_at).getTime() - Date.now() : null;
+                const timeLeft = msLeft === null ? "—"
+                  : msLeft <= 0 ? "Expired"
+                  : (() => { const h = Math.floor(msLeft / 3600000); const m = Math.floor((msLeft % 3600000) / 60000); return h > 0 ? `${h}h ${m}m to play` : `${m}m to play`; })();
+                outcomeLine = { phone, detail: timeLeft, detailColor: msLeft !== null && msLeft < 3600000 ? "#f87171" : "#fbbf24" };
+              }
+            }
 
             return (
               <motion.div key={pack.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}
-                className="border rounded-xl overflow-hidden"
-                style={{ borderColor: isSpecial ? "rgba(232,163,61,0.25)" : "var(--border-hairline)", backgroundColor: "var(--bg-card)" }}>
+                style={{ borderRadius: 14, overflow: "hidden", backgroundColor: "var(--bg-card)", border: "1px solid var(--border-hairline)" }}>
 
-                {/* Main row */}
-                <div className="flex items-center gap-3 px-4 py-3 cursor-pointer"
-                  onClick={() => setExpandedActions(isExpanded ? null : pack.id)}>
-                  {/* Category + name + badges */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-gray-500 flex-shrink-0">{pack.category}</span>
-                      {isSpecial && (
-                        <span className="text-[9px] font-black px-1.5 py-0.5 rounded flex items-center gap-0.5 flex-shrink-0"
-                          style={{ backgroundColor: "rgba(232,163,61,0.15)", color: "var(--accent-amber)", border: "1px solid rgba(232,163,61,0.3)" }}>
-                          <ClipboardCheck size={8} /> SPECIAL
-                        </span>
-                      )}
-                      {pack.is_featured && isSpecial && (
-                        <span className="text-[9px] font-black px-1.5 py-0.5 rounded flex items-center gap-0.5 flex-shrink-0"
-                          style={{ backgroundColor: "rgba(52,211,153,0.15)", color: "#34d399", border: "1px solid rgba(52,211,153,0.3)" }}>
-                          ★ FEATURED
-                        </span>
-                      )}
-                      {available === 0 && !isSpecial && (
-                        <span className="text-[9px] font-black px-1.5 py-0.5 rounded flex-shrink-0"
-                          style={{ backgroundColor: "rgba(255,255,255,0.05)", color: "var(--text-muted)", border: "1px solid var(--border-hairline)" }}>
-                          SOLD OUT
-                        </span>
-                      )}
+                {/* ── Card body ── */}
+                <div style={{ padding: "14px 16px" }}>
+
+                  {/* Row 1: name + status chip */}
+                  <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10, marginBottom: 6 }}>
+                    <p style={{ fontSize: 15, fontWeight: 800, color: "var(--text-primary)", margin: 0, lineHeight: 1.2 }}>{pack.name}</p>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 9.5, fontWeight: 700, letterSpacing: "0.04em", padding: "3px 9px", borderRadius: 100, flexShrink: 0, backgroundColor: chip.bg, color: chip.color, border: `1px solid ${chip.border}` }}>
+                      {chipKey === "available" && <span style={{ width: 5, height: 5, borderRadius: "50%", background: chip.color, boxShadow: `0 0 6px ${chip.color}`, animation: "pill-pulse 1.8s infinite", flexShrink: 0 }} />}
+                      {chip.label}
+                    </span>
+                  </div>
+
+                  {/* Row 2: stat chips — Questions · Entry · Prize */}
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: outcomeLine ? 8 : 0 }}>
+                    {[
+                      qCount != null ? { label: "Questions", value: `${qCount}Q` } : null,
+                      entryFee != null ? { label: "Entry", value: `₦${entryFee.toLocaleString()}` } : null,
+                      prize != null ? { label: "Prize", value: `₦${prize.toLocaleString()}` } : null,
+                    ].filter(Boolean).map((s) => (
+                      <span key={s!.label} style={{ fontSize: 10.5, fontWeight: 600, padding: "2px 8px", borderRadius: 6, backgroundColor: "rgba(255,255,255,0.05)", color: "var(--text-secondary)", border: "1px solid var(--border-hairline)" }}>
+                        <span style={{ fontSize: 8.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--text-muted)", marginRight: 3 }}>{s!.label}</span>
+                        {s!.value}
+                      </span>
+                    ))}
+                    <span style={{ fontSize: 10.5, fontWeight: 600, padding: "2px 8px", borderRadius: 6, backgroundColor: "rgba(255,255,255,0.05)", color: "var(--text-secondary)", border: "1px solid var(--border-hairline)" }}>
+                      <span style={{ fontSize: 8.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--text-muted)", marginRight: 3 }}>{pack.category}</span>
+                    </span>
+                  </div>
+
+                  {/* Row 3: outcome line (claimed/won/lost only) */}
+                  {outcomeLine && (
+                    <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginTop: 2, flexWrap: "wrap" }}>
+                      <span style={{ fontSize: 11.5, fontWeight: 700, fontFamily: "monospace", color: "var(--text-primary)" }}>{outcomeLine.phone}</span>
+                      <span style={{ fontSize: 11, color: outcomeLine.detailColor ?? "var(--text-muted)" }}>{outcomeLine.detail}</span>
                     </div>
-                    {/* Name on its own line — wraps freely, no truncate */}
-                    <p className="text-sm font-semibold text-white leading-snug">{pack.name}</p>
-                  </div>
-
-                  {/* Inline stats — readable labels */}
-                  <div className="flex items-center gap-3 flex-shrink-0 text-[11px]">
-                    <span className="text-gray-600">{total} pills</span>
-                    <span style={{ color: "var(--accent-indigo)" }}>{available} left</span>
-                    <span className="text-gray-500">{played} played</span>
-                  </div>
-
-                  {/* Status badge */}
-                  <span className={`text-[9px] font-black px-2 py-0.5 rounded flex-shrink-0 ${
-                    pack.status === "active" ? "bg-[#4C6FFF]/15 text-[#4C6FFF] border border-[#4C6FFF]/30"
-                    : pack.status === "inactive" ? "bg-gray-800 text-gray-500"
-                    : "bg-yellow-900/20 text-yellow-500"
-                  }`}>
-                    {pack.status.toUpperCase()}
-                  </span>
-
-                  {/* Chevron indicator */}
-                  <span className="text-gray-600 flex-shrink-0 text-xs">{isExpanded ? "▲" : "▼"}</span>
+                  )}
                 </div>
 
-                {/* Pack metadata strip — creation date (all packs) + prize + expiry */}
-                {(() => {
-                  const prize = pack.prize_amount ?? (pack.pills[0] as any)?.prize ?? null;
-                  const expiry = isSpecial ? pack.quiz_expires_at : null;
-                  const createdAt = pack.created_at
-                    ? new Date(pack.created_at).toLocaleDateString("en-NG", { day: "numeric", month: "short", year: "numeric" })
-                    : null;
-                  const msLeft = expiry ? new Date(expiry).getTime() - Date.now() : null;
-                  const expired = msLeft !== null && msLeft <= 0;
-                  const expiryLabel = msLeft === null ? null
-                    : expired ? "Expired"
-                    : (() => {
-                        const h = Math.floor(msLeft / 3600000);
-                        const m = Math.floor((msLeft % 3600000) / 60000);
-                        return h > 0 ? `${h}h ${m}m left` : `${m}m left`;
-                      })();
-                  const expiryColor = expired ? "#f87171" : msLeft !== null && msLeft < 7200000 ? "#f87171" : "var(--accent-amber)";
-                  const borderColor = isSpecial ? "rgba(232,163,61,0.1)" : "var(--border-hairline)";
-                  return (
-                    <div className="flex items-center gap-4 px-4 pb-3 flex-wrap"
-                      style={{ borderTop: `1px solid ${borderColor}`, paddingTop: 8, marginTop: -2 }}>
-                      {/* Creation date — always shown */}
-                      {createdAt && (
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-[9px] font-bold uppercase tracking-widest text-gray-500">Created</span>
-                          <span className="text-[11px] text-gray-400">{createdAt}</span>
-                        </div>
-                      )}
-                      {/* Prize — Specials + Standard */}
-                      {prize ? (
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-[9px] font-bold uppercase tracking-widest text-gray-500">Prize</span>
-                          <span className="text-[13px] font-black font-mono" style={{ color: "var(--accent-amber)" }}>
-                            ₦{prize.toLocaleString()}
-                          </span>
-                        </div>
-                      ) : null}
-                      {/* Entries fill indicator — Specials with max_entries set */}
-                      {isSpecial && pack.max_entries ? (() => {
-                        const made = pack.entries_made ?? (pack as any).current_entries ?? 0;
-                        const max = pack.max_entries;
-                        const full = pack.entry_cap_reached || made >= max;
-                        const pct = Math.min(100, Math.round((made / max) * 100));
-                        return (
-                          <div className="flex items-center gap-2">
-                            <span className="text-[9px] font-bold uppercase tracking-widest text-gray-500">Entries</span>
-                            <span className="text-[11px] font-bold font-mono" style={{ color: full ? "#f87171" : "var(--text-primary)" }}>
-                              {made}/{max}
-                            </span>
-                            {/* mini fill bar */}
-                            <div style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: "#1E1E1E", overflow: "hidden" }}>
-                              <div style={{ height: "100%", borderRadius: 2, width: `${pct}%`, backgroundColor: full ? "#f87171" : pct >= 80 ? "var(--accent-amber)" : "var(--accent-indigo)", transition: "width 0.3s" }} />
-                            </div>
-                            {full && (
-                              <span className="text-[9px] font-black px-1.5 py-0.5 rounded" style={{ backgroundColor: "rgba(239,68,68,0.15)", color: "#f87171", border: "1px solid rgba(239,68,68,0.3)" }}>
-                                FULL
-                              </span>
-                            )}
-                          </div>
-                        );
-                      })() : null}
-                      {/* Expiry countdown — Specials only */}                      {expiryLabel ? (
-                        <div className="flex items-center gap-1.5">
-                          <Clock size={11} style={{ color: expiryColor, flexShrink: 0 }} />
-                          <span className="text-[12px] font-bold whitespace-nowrap" style={{ color: expiryColor }}>
-                            {expiryLabel}
-                          </span>
-                        </div>
-                      ) : null}
-                    </div>
-                  );
-                })()}
-
-                {/* Expanded actions */}
-                <AnimatePresence>
-                  {isExpanded && (
-                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.15 }}
-                      className="border-t overflow-hidden"
-                      style={{ borderColor: "var(--border-hairline)" }}>
-                      {/* Live stats strip — polls every 12s while row is expanded */}
-                      <div className="pt-3 pb-1">
-                        <PackStatsMini packId={pack.id} />
-                      </div>
-                      <div className="px-4 py-3 flex items-center gap-2 flex-wrap">
-
-                        {/* Activate / Deactivate — hide for sold-out standard packs (no point activating) */}
-                        {!(pack.status !== "active" && available === 0 && !isSpecial) && (
-                          <button onClick={() => handleToggleStatus(pack)} disabled={toggling === pack.id}
-                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors disabled:opacity-50 ${
-                              pack.status === "active"
-                                ? "bg-red-900/20 border border-red-700/30 text-red-400"
-                                : "bg-[#4C6FFF]/10 border border-[#4C6FFF]/20 text-[#4C6FFF]"
-                            }`}>
-                            {toggling === pack.id ? <Loader2 size={11} className="animate-spin" /> : pack.status === "active" ? <EyeOff size={11} /> : <Eye size={11} />}
-                            {pack.status === "active" ? "Deactivate" : "Activate"}
-                          </button>
-                        )}
-
-                        {/* Feature toggle removed — standard pills no longer exist */}
-
-                        {/* Delete — safe if no available pills, force otherwise (one button, not two) */}
-                        {canSafeDelete ? (
-                          <button onClick={() => handleDelete(pack)} disabled={deleting === pack.id}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border border-red-700/30 bg-red-900/20 text-red-400 transition-colors disabled:opacity-50">
-                            {deleting === pack.id ? <Loader2 size={11} className="animate-spin" /> : <Trash2 size={11} />}
-                            Delete
-                          </button>
-                        ) : (
-                          <button onClick={() => { setForceDeleteTarget(pack); setExpandedActions(null); }}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border border-red-700/20 bg-red-900/10 text-red-500/70 transition-colors hover:text-red-400 hover:border-red-700/40">
-                            <Trash2 size={11} /> Delete
-                          </button>
-                        )}
-
-                        {/* View stats — Specials only (stats endpoint now specials-only) */}
-                        {isSpecial && (
-                          <button onClick={() => router.push(`/admin/pills/${pack.id}/stats`)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors"
-                            style={{ backgroundColor: "rgba(76,111,255,0.08)", border: "1px solid rgba(76,111,255,0.2)", color: "var(--accent-indigo)" }}>
-                            <BarChart2 size={11} /> Stats
-                          </button>
-                        )}
-
-                        {/* View Pills button removed — standard pills no longer exist */}
-
-                        {/* Manage bank — Specials only (have a question bank) */}
-                        {isSpecial && (
-                          <button onClick={() => router.push(`/admin/pills/${pack.id}/bank`)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors"
-                            style={{ backgroundColor: "rgba(232,163,61,0.08)", border: "1px solid rgba(232,163,61,0.2)", color: "var(--accent-amber)" }}>
-                            <BookOpen size={11} /> Manage Bank
-                          </button>
-                        )}
-                      </div>
-                    </motion.div>
+                {/* ── Actions row — always visible ── */}
+                <div style={{ display: "flex", gap: 6, padding: "10px 16px", borderTop: "1px solid var(--border-hairline)", flexWrap: "wrap" }}>
+                  {isSpecial && (
+                    <button onClick={() => router.push(`/admin/pills/${pack.id}/bank`)}
+                      style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 12px", borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: "pointer", backgroundColor: "rgba(232,163,61,0.08)", border: "1px solid rgba(232,163,61,0.2)", color: "var(--accent-amber)" }}>
+                      <BookOpen size={11} /> Manage Bank
+                    </button>
                   )}
-                </AnimatePresence>
+                  {isSpecial && (
+                    <button onClick={() => router.push(`/admin/pills/${pack.id}/stats`)}
+                      style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 12px", borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: "pointer", backgroundColor: "rgba(76,111,255,0.08)", border: "1px solid rgba(76,111,255,0.2)", color: "var(--accent-indigo)" }}>
+                      <BarChart2 size={11} /> Stats
+                    </button>
+                  )}
+                  {!(pack.status !== "active" && (pack.available_count ?? 0) === 0 && !isSpecial) && (
+                    <button onClick={() => handleToggleStatus(pack)} disabled={toggling === pack.id}
+                      style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 12px", borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: "pointer", opacity: toggling === pack.id ? 0.5 : 1,
+                        ...(pack.status === "active"
+                          ? { backgroundColor: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)", color: "#f87171" }
+                          : { backgroundColor: "rgba(76,111,255,0.08)", border: "1px solid rgba(76,111,255,0.2)", color: "var(--accent-indigo)" }) }}>
+                      {toggling === pack.id ? <Loader2 size={11} style={{ animation: "spin .7s linear infinite" }} /> : pack.status === "active" ? <EyeOff size={11} /> : <Eye size={11} />}
+                      {pack.status === "active" ? "Deactivate" : "Activate"}
+                    </button>
+                  )}
+                  {canSafeDelete ? (
+                    <button onClick={() => handleDelete(pack)} disabled={deleting === pack.id}
+                      style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 12px", borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: "pointer", opacity: deleting === pack.id ? 0.5 : 1, backgroundColor: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)", color: "#f87171" }}>
+                      {deleting === pack.id ? <Loader2 size={11} style={{ animation: "spin .7s linear infinite" }} /> : <Trash2 size={11} />} Delete
+                    </button>
+                  ) : (
+                    <button onClick={() => setForceDeleteTarget(pack)}
+                      style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 12px", borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: "pointer", backgroundColor: "rgba(239,68,68,0.05)", border: "1px solid rgba(239,68,68,0.15)", color: "rgba(248,113,113,0.6)" }}>
+                      <Trash2 size={11} /> Delete
+                    </button>
+                  )}
+                </div>
               </motion.div>
             );
           });
