@@ -382,15 +382,15 @@ export default function AdminBlitzDetailPage() {
   };
 
   const handleEditClick = () => {
-      setEditData({
-        entry_fee: t.entry_fee,
-        question_count: t.question_count,
-        max_participants: t.max_participants ?? null,
-        registration_deadline: t.registration_start || "",
-      });
-      setEditMode(true);
-      setEditError("");
-    }
+    if (!t) return;
+    setEditData({
+      entry_fee: t.entry_fee,
+      question_count: t.question_count,
+      max_participants: t.max_participants ?? null,
+      registration_deadline: t.registration_start || "",
+    });
+    setEditMode(true);
+    setEditError("");
   };
 
   const handleEditSave = async () => {

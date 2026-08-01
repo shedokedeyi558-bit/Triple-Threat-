@@ -223,7 +223,7 @@ export default function CreatePillPackPage() {
             <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Question Count *</label>
             <input className={inputCls} type="number" min="1" max="50" placeholder="e.g. 10" value={qCount}
               onChange={(e) => { const v = e.target.value === "" ? "" : Number(e.target.value); setQCount(v); persist({ qCount: v }); }} />
-            <p className="text-[9px] mt-1" style={{ color: "var(--text-muted)" }}>fixed set — you'll attach exactly this many questions</p>
+            <p className="text-[9px] mt-1" style={{ color: "var(--text-muted)" }}>fixed set — you&apos;ll attach exactly this many questions</p>
           </div>
 
           {/* Required Correct */}
@@ -231,7 +231,7 @@ export default function CreatePillPackPage() {
             <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Pass Threshold *</label>
             <input className={inputCls} type="number" min="1" placeholder="e.g. 10" value={requiredCorrect}
               onChange={(e) => { const v = e.target.value === "" ? "" : Number(e.target.value); setRequiredCorrect(v); persist({ requiredCorrect: v }); }} />
-            <p className="text-[9px] mt-1" style={{ color: "var(--text-muted)" }}>correct answers needed to win — can't exceed question count</p>
+            <p className="text-[9px] mt-1" style={{ color: "var(--text-muted)" }}>correct answers needed to win — can&apos;t exceed question count</p>
           </div>
 
           {/* Time Limit */}
