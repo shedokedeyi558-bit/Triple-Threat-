@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useApp } from "@/context/AppContext";
 import { pillsApi, type PillPack, ApiError } from "@/lib/api";
-import { hasAttempted } from "@/lib/attemptedSpecials";
 import { Clock, Lock, Loader2, AlertCircle } from "lucide-react";
 import Link from "next/link";
 
@@ -140,14 +139,16 @@ function ConfirmSheet({ pack, balance, bonusBalance, onConfirm, onClose }: {
 }
 
 // ── Pack card — v4 glass panel ────────────────────────────────────────────────
-function PackCard({ pack, playerId, onTap }: { pack: PillPack; playerId: string | null; onTap: () => void }) {
+function PackCard({ pack, onTap }: { pack: PillPack; onTap: () => void }) {
   const entryFee    = pack.entry_fee ?? 0;
   const prize       = pack.prize_amount ?? 0;
   const qCount      = pack.question_count ?? null;
   const rawSecs     = pack.total_time_seconds ?? (pack.time_limit_minutes != null ? pack.time_limit_minutes * 60 : null);
   const timeDisplay = rawSecs != null ? formatSeconds(rawSecs) : null;
   const { expired } = usePackExpiry(pack.quiz_expires_at);
-  const isClaimed   = pack.user_attempted === true || hasAttempted(playerId, pack.id) || expired;
+  // Global claim status — entry_cap_reached is set by backend when entries_made >= max_entries.
+  // This is identical for every player viewing the list (not per-player).
+  const isClaimed   = pack.entry_cap_reached === true || expired;
   const disabled    = isClaimed;
 
   // Meta line: "15Q · 2m10s · ₦1,500 entry"
@@ -278,8 +279,6 @@ export default function PillsPage() {
 
   if (!state.isAuthenticated) return null;
 
-  const playerId = state.player?.id ?? null;
-
   // Group by category
   const groups = packs.reduce<Record<string, PillPack[]>>((acc, p) => {
     const key = p.category || "General";
@@ -332,7 +331,7 @@ export default function PillsPage() {
             <div key={category}>
               <GroupLabel>{category}</GroupLabel>
               {items.map((pack) => (
-                <PackCard key={pack.id} pack={pack} playerId={playerId} onTap={() => setConfirmPack(pack)} />
+                <PackCard key={pack.id} pack={pack} onTap={() => setConfirmPack(pack)} />
               ))}
             </div>
           ))
