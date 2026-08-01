@@ -1669,3 +1669,107 @@ export const referralApi = {
       { method: "POST", body: { pillId, ticketCode }, token: getToken() }
     ),
 };
+
+// ─── BEAT THE ADMIN ───────────────────────────────────────────────────────────
+// Player-facing: /api/admin-challenge/*
+// Admin-facing:  /api/admin/beat-the-admin/*  (separate, not built here yet)
+
+export type BtaMove = "rock" | "paper" | "scissors";
+export type BtaWinner = "player" | "admin" | "draw";
+export type BtaRequestStatus = "pending" | "approved" | "expired" | "rejected";
+
+export interface BtaStatus {
+  is_available: boolean;
+  match_in_progress: boolean;
+  min_stake: number;
+  max_stake: number;
+}
+
+export interface BtaRequest {
+  request_id: string;
+  game_type: string;
+  stake: number;
+  status: BtaRequestStatus;
+  expires_at: string;
+  time_remaining_seconds?: number;
+}
+
+export interface BtaMatch {
+  status: "in_progress" | "completed";
+  player_move: BtaMove | null;
+  admin_move: BtaMove | null;   // null until result is known (anti-cheat)
+  winner: BtaWinner | null;
+  payout: number;
+}
+
+export interface BtaMyRequestResponse {
+  request: (BtaRequest & { time_remaining_seconds: number }) | null;
+  match: BtaMatch | null;
+}
+
+export interface BtaMoveResponse {
+  move_recorded: boolean;
+  match_resolved: boolean;
+  message?: string;
+  // populated only when match_resolved: true
+  winner?: BtaWinner;
+  admin_move?: BtaMove;
+  player_move?: BtaMove;
+}
+
+export interface BtaHistoryEntry {
+  id: string;
+  game_type: string;
+  stake: number;
+  request_status: BtaRequestStatus;
+  created_at: string;
+  match?: {
+    winner: BtaWinner | null;
+    player_move: BtaMove | null;
+    admin_move: BtaMove | null;
+    payout: number;
+  } | null;
+}
+
+export const beatTheAdminApi = {
+  getStatus: () =>
+    request<{ success: boolean; data: BtaStatus }>("/api/admin-challenge/status", {
+      token: getToken(),
+    }),
+
+  requestChallenge: (stake: number, game_type = "rps") =>
+    request<{
+      success: boolean;
+      data: {
+        request_id: string;
+        game_type: string;
+        stake: number;
+        status: "pending";
+        expires_at: string;
+        new_balance: number;
+        new_bonus_balance: number;
+      };
+    }>("/api/admin-challenge/request", {
+      method: "POST",
+      body: { game_type, stake },
+      token: getToken(),
+    }),
+
+  getMyRequest: () =>
+    request<{ success: boolean; data: BtaMyRequestResponse }>("/api/admin-challenge/my-request", {
+      token: getToken(),
+    }),
+
+  submitMove: (requestId: string, move: BtaMove) =>
+    request<{ success: boolean; data: BtaMoveResponse }>("/api/admin-challenge/move", {
+      method: "POST",
+      body: { requestId, move },
+      token: getToken(),
+    }),
+
+  getHistory: (page = 1, limit = 20) =>
+    request<{ success: boolean; data: { requests: BtaHistoryEntry[]; total: number; page: number } }>(
+      "/api/admin-challenge/history",
+      { token: getToken(), params: { page, limit } }
+    ),
+};
