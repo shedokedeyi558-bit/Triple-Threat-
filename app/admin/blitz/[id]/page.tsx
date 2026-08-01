@@ -7,7 +7,7 @@ import { useAdmin } from "@/context/AdminContext";
 import { adminApi, type BlitzTournament, type BlitzQuestion, ApiError } from "@/lib/api";
 import {
   ArrowLeft, Zap, Trophy, Ticket, Plus,
-  Trash2, CheckCircle, Loader2, AlertTriangle, Pencil, Image, X, Lock,
+  Trash2, CheckCircle, Loader2, AlertTriangle, Pencil, Image, X, Lock, XCircle,
 } from "lucide-react";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -235,6 +235,45 @@ function ScoreConfirm({ onConfirm, onCancel, scoring }: {
   );
 }
 
+// ── Cancel & Refund confirm ───────────────────────────────────────────────────
+function CancelConfirm({ registered, onConfirm, onCancel, cancelling }: {
+  registered: number; onConfirm: () => void; onCancel: () => void; cancelling: boolean;
+}) {
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4"
+      onClick={onCancel}>
+      <motion.div initial={{ scale: 0.92 }} animate={{ scale: 1 }} exit={{ scale: 0.92 }}
+        onClick={e => e.stopPropagation()}
+        className="bg-[#141414] border border-[#1E1E1E] rounded-2xl p-6 max-w-sm w-full space-y-4">
+        <div className="flex items-center gap-2">
+          <AlertTriangle size={18} style={{ color: "#f87171" }} />
+          <h3 className="text-white font-black">Cancel tournament?</h3>
+        </div>
+        {registered > 0 ? (
+          <p className="text-gray-400 text-sm">
+            This will cancel the tournament and <span className="text-white font-semibold">refund all {registered} registered player{registered !== 1 ? "s" : ""}</span> their entry fees. Cannot be undone.
+          </p>
+        ) : (
+          <p className="text-gray-400 text-sm">
+            This will cancel the tournament. No players are registered so no refunds are needed.
+          </p>
+        )}
+        <div className="flex gap-3">
+          <button onClick={onCancel} className="flex-1 py-2.5 bg-[#1A1A1A] border border-[#333] rounded-xl text-white text-sm font-semibold">
+            Keep it
+          </button>
+          <button onClick={onConfirm} disabled={cancelling}
+            className="flex-1 py-2.5 bg-red-500/20 border border-red-500/40 rounded-xl text-red-400 text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-50">
+            {cancelling && <Loader2 size={13} className="animate-spin" />}
+            {cancelling ? "Cancelling…" : registered > 0 ? "Cancel & Refund" : "Cancel"}
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 // ── Main detail page ──────────────────────────────────────────────────────────
 export default function AdminBlitzDetailPage() {
   const { state } = useAdmin();
@@ -261,6 +300,7 @@ export default function AdminBlitzDetailPage() {
   const [deletingQ, setDeletingQ] = useState(false);
   const [showAddQuestion, setShowAddQuestion] = useState(false);
   const [actionMsg, setActionMsg] = useState("");
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
   // Edit state for detail fields
   const [editMode, setEditMode] = useState(false);
@@ -322,6 +362,14 @@ export default function AdminBlitzDetailPage() {
     finally { setActionLoading(null); }
   };
 
+  const handleCancel = async () => {
+    setShowCancelConfirm(false);
+    setActionLoading("cancel");
+    try { await adminApi.cancelBlitz(id); await load(); setActionMsg("Tournament cancelled."); }
+    catch (e) { setError(e instanceof ApiError ? e.message : "Failed to cancel"); }
+    finally { setActionLoading(null); }
+  };
+
   const handleDeleteQ = async () => {
     if (!deleteTarget) return;
     setDeletingQ(true);
@@ -334,7 +382,6 @@ export default function AdminBlitzDetailPage() {
   };
 
   const handleEditClick = () => {
-    if (t && (t.total_registered === 0)) {
       setEditData({
         entry_fee: t.entry_fee,
         question_count: t.question_count,
@@ -733,6 +780,12 @@ export default function AdminBlitzDetailPage() {
                 <p className="text-center text-xs" style={{ color: "var(--text-muted)" }}>
                   Optional — registration opens automatically at {fmtDate(t.registration_start)}. Click only to open early.
                 </p>
+                <button onClick={() => setShowCancelConfirm(true)} disabled={actionLoading === "cancel"}
+                  className="w-full py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 disabled:opacity-50 transition-colors"
+                  style={{ backgroundColor: "transparent", border: "1px solid rgba(239,68,68,0.3)", color: "#f87171" }}>
+                  {actionLoading === "cancel" ? <Loader2 size={13} className="animate-spin" /> : <XCircle size={13} />}
+                  {actionLoading === "cancel" ? "Cancelling…" : "Discard Tournament"}
+                </button>
               </div>
             )}
             {t.status === "registration" && (
@@ -746,20 +799,42 @@ export default function AdminBlitzDetailPage() {
                 <p className="text-center text-xs" style={{ color: "var(--text-muted)" }}>
                   Optional — tournament goes live automatically at {fmtDate(t.tournament_start)}. Click only to go live early.
                 </p>
+                <button onClick={() => setShowCancelConfirm(true)} disabled={actionLoading === "cancel"}
+                  className="w-full py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 disabled:opacity-50 transition-colors"
+                  style={{ backgroundColor: "transparent", border: "1px solid rgba(239,68,68,0.3)", color: "#f87171" }}>
+                  {actionLoading === "cancel" ? <Loader2 size={13} className="animate-spin" /> : <XCircle size={13} />}
+                  {actionLoading === "cancel" ? "Cancelling…" : `Cancel & Refund${(t.total_registered ?? 0) > 0 ? ` (${t.total_registered ?? 0} players)` : ""}`}
+                </button>
               </div>
             )}
             {t.status === "active" && t.total_registered > 0 && (
-              <button onClick={() => setShowScoreConfirm(true)} disabled={actionLoading === "score"}
-                className="w-full py-3 rounded-xl text-sm font-black flex items-center justify-center gap-2 disabled:opacity-50"
-                style={{ backgroundColor: "rgba(234,179,8,0.15)", border: "1px solid rgba(234,179,8,0.4)", color: "#facc15" }}>
-                {actionLoading === "score" ? <Loader2 size={15} className="animate-spin" /> : <Trophy size={15} />}
-                {actionLoading === "score" ? "Scoring…" : "Score & Pay"}
-              </button>
+              <div className="space-y-2">
+                <button onClick={() => setShowScoreConfirm(true)} disabled={actionLoading === "score"}
+                  className="w-full py-3 rounded-xl text-sm font-black flex items-center justify-center gap-2 disabled:opacity-50"
+                  style={{ backgroundColor: "rgba(234,179,8,0.15)", border: "1px solid rgba(234,179,8,0.4)", color: "#facc15" }}>
+                  {actionLoading === "score" ? <Loader2 size={15} className="animate-spin" /> : <Trophy size={15} />}
+                  {actionLoading === "score" ? "Scoring…" : "Score & Pay"}
+                </button>
+                <button onClick={() => setShowCancelConfirm(true)} disabled={actionLoading === "cancel"}
+                  className="w-full py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 disabled:opacity-50 transition-colors"
+                  style={{ backgroundColor: "transparent", border: "1px solid rgba(239,68,68,0.3)", color: "#f87171" }}>
+                  {actionLoading === "cancel" ? <Loader2 size={13} className="animate-spin" /> : <XCircle size={13} />}
+                  {actionLoading === "cancel" ? "Cancelling…" : `Cancel & Refund All (${t.total_registered ?? 0} players)`}
+                </button>
+              </div>
             )}
-            {t.status === "active" && t.total_registered === 0 && (
-              <div className="w-full py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2"
-                style={{ border: "1px solid var(--border-subtle)", color: "var(--text-muted)" }}>
-                No participants yet
+            {t.status === "active" && (t.total_registered ?? 0) === 0 && (
+              <div className="space-y-2">
+                <div className="w-full py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2"
+                  style={{ border: "1px solid var(--border-subtle)", color: "var(--text-muted)" }}>
+                  No participants yet
+                </div>
+                <button onClick={() => setShowCancelConfirm(true)} disabled={actionLoading === "cancel"}
+                  className="w-full py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 disabled:opacity-50 transition-colors"
+                  style={{ backgroundColor: "transparent", border: "1px solid rgba(239,68,68,0.3)", color: "#f87171" }}>
+                  {actionLoading === "cancel" ? <Loader2 size={13} className="animate-spin" /> : <XCircle size={13} />}
+                  {actionLoading === "cancel" ? "Cancelling…" : "Cancel Tournament"}
+                </button>
               </div>
             )}
             {t.status === "scoring" && (
@@ -800,6 +875,14 @@ export default function AdminBlitzDetailPage() {
             onConfirm={handleScore}
             onCancel={() => setShowScoreConfirm(false)}
             scoring={actionLoading === "score"}
+          />
+        )}
+        {showCancelConfirm && (
+          <CancelConfirm
+            registered={t?.total_registered ?? 0}
+            onConfirm={handleCancel}
+            onCancel={() => setShowCancelConfirm(false)}
+            cancelling={actionLoading === "cancel"}
           />
         )}
       </AnimatePresence>

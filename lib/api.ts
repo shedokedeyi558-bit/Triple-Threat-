@@ -1485,6 +1485,11 @@ export const adminApi = {
       method: "POST", token: getAdminToken()
     }),
 
+  cancelBlitz: (id: string) =>
+    request<{ message: string; refunded: number }>(`/api/admin/blitz/${id}/cancel`, {
+      method: "POST", token: getAdminToken()
+    }),
+
   getBlitzLeaderboard: (id: string) =>
     request<{ leaderboard: BlitzResult["leaderboard"] }>(`/api/admin/blitz/${id}/leaderboard`, {
       token: getAdminToken()
