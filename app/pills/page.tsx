@@ -169,8 +169,9 @@ function PackCard({ pack, onTap }: { pack: PillPack; onTap: () => void }) {
         borderRadius: 18,
         padding: "16px",
         marginBottom: 10,
-        background: `linear-gradient(180deg, rgba(255,255,255,0.045), transparent 40%), #12141B`,
-        boxShadow: "0 1px 0 rgba(255,255,255,0.05) inset, 0 12px 24px -16px rgba(0,0,0,0.6)",
+        background: `linear-gradient(180deg, rgba(255,255,255,0.06) 0%, transparent 35%), #13151D`,
+        boxShadow: "0 1px 0 rgba(255,255,255,0.07) inset, 0 16px 32px -12px rgba(0,0,0,0.7)",
+        border: "1px solid rgba(255,255,255,0.04)",
         display: "flex",
         alignItems: "center",
         gap: 14,
@@ -248,9 +249,9 @@ function PackCard({ pack, onTap }: { pack: PillPack; onTap: () => void }) {
 }
 
 // ── Group label ───────────────────────────────────────────────────────────────
-function GroupLabel({ children }: { children: React.ReactNode }) {
+function GroupLabel({ children, first }: { children: React.ReactNode; first?: boolean }) {
   return (
-    <p style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: "0.13em", textTransform: "uppercase", color: "#4A4F5E", padding: "20px 2px 10px" }}>
+    <p style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: "0.13em", textTransform: "uppercase", color: "#4A4F5E", padding: `${first ? 8 : 20}px 2px 10px` }}>
       {children}
     </p>
   );
@@ -301,7 +302,7 @@ export default function PillsPage() {
       <div style={{ maxWidth: 420, margin: "0 auto", padding: "0 0 80px", fontFamily: "'Inter', sans-serif" }}>
 
         {/* Page header */}
-        <div style={{ marginBottom: 24 }}>
+        <div style={{ marginBottom: 16 }}>
           <h1 style={{ fontSize: 26, fontWeight: 900, letterSpacing: "-0.025em", color: "#F5F6F8", margin: "0 0 5px" }}>Pills</h1>
           <p style={{ fontSize: 12.5, color: "#83889A", margin: 0 }}>One pack. One shot. Winner takes it.</p>
         </div>
@@ -327,9 +328,9 @@ export default function PillsPage() {
             <p style={{ fontSize: 13, color: "#83889A", margin: 0 }}>Check back soon — new packs drop regularly</p>
           </div>
         ) : (
-          Object.entries(groups).map(([category, items]) => (
+          Object.entries(groups).map(([category, items], groupIdx) => (
             <div key={category}>
-              <GroupLabel>{category}</GroupLabel>
+              <GroupLabel first={groupIdx === 0}>{category}</GroupLabel>
               {items.map((pack) => (
                 <PackCard key={pack.id} pack={pack} onTap={() => setConfirmPack(pack)} />
               ))}
