@@ -66,10 +66,9 @@ export default function PackStatsPage() {
   const router = useRouter();
   const packId = params.packId as string;
 
-  const [packName, setPackName]         = useState("");
-  const [packType, setPackType]         = useState<"standard" | "special" | null>(null);
+  const [packName, setPackName]           = useState("");
   const [questionCount, setQuestionCount] = useState<number | null>(null);
-  const [bankSize, setBankSize]         = useState<number | null>(null);
+  const [bankSize, setBankSize]           = useState<number | null>(null);
   const [stats, setStats]               = useState<{
     live: number; won: number; lost: number;
     total: number; win_rate: number;
@@ -88,7 +87,6 @@ export default function PackStatsPage() {
         total:    res.total,
         win_rate: res.win_rate <= 1 ? res.win_rate * 100 : res.win_rate,
       });
-      setPackType(res.pack_type ?? null);
       setLastUpdated(new Date());
     } catch { /* silent on poll — only show error on first load */ }
   }, [packId]);
@@ -100,7 +98,6 @@ export default function PackStatsPage() {
         const res = await adminApi.getPackQuestions(packId);
         setPackName(res.pack.name);
         setQuestionCount(res.pack.question_count);
-        // isSpecial will be set from pack_type in fetchStats, but also check question_count as fallback
         setBankSize(res.questions.length);
       } catch {
         // Fallback — stats page still useful without bank meta
@@ -190,8 +187,8 @@ export default function PackStatsPage() {
             )}
           </motion.div>
 
-          {/* Bank health — only for Specials with question_count */}
-          {(packType === "special" || questionCount != null) && questionCount != null && bankSize != null && (
+          {/* Bank health */}
+          {questionCount != null && bankSize != null && (
             <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
               style={{ borderRadius: 12, padding: "16px", border: "1px solid var(--border-hairline)", backgroundColor: "var(--bg-card)" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>

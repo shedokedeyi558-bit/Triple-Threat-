@@ -252,8 +252,7 @@ export const gameApi = {
 export interface BalanceResponse { balance: number; bonus_balance?: number }
 
 export interface DepositResponse {
-  checkout_url: string;        // Squad field
-  authorizationUrl?: string;   // legacy Paystack field (kept for backward compat)
+  authorizationUrl: string;    // Squad hosted-page URL — redirect browser here
   reference: string;
   amount: number;
 }
@@ -617,7 +616,7 @@ export interface PillPack {
   // New fields from updated pack-details endpoints:
   entry_fee?: number;                // pack-level entry fee (mirrors pills[0].price)
   prize_amount?: number;             // pack-level prize
-  question_count?: number | null;    // null for standard Pills; number for Specials
+  question_count?: number | null;    // number of questions drawn per exam
   total_time_seconds?: number | null;
   time_limit_minutes?: number | null; // pre-converted by backend — use directly
   pass_threshold?: number | null;    // display copy only — use required_correct for enforcement
@@ -625,10 +624,9 @@ export interface PillPack {
   entry_window_end?: string | null;
   available_question_count?: number | null;
   quiz_expires_at?: string | null;          // ISO timestamp — pack entry closes at this time
-  // Entry cap fields (Specials only)
-  max_entries?: number | null;       // max number of players allowed to enter
-  entries_made?: number;             // current number of entries
-  entry_cap_reached?: boolean;       // true when max_entries is hit
+  // Entry cap fields (Specials only) — max_entries is fixed at 1 server-side, not admin-configurable
+  entries_made?: number;             // current number of entries (0 or 1)
+  entry_cap_reached?: boolean;       // true when the single allowed entry has been claimed
   // Specials attempt tracking
   user_attempted?: boolean;          // true if current player already sat this exam
   pills: PillPackPill[];
@@ -1220,7 +1218,7 @@ export const adminApi = {
     return request<{ packs: PillPack[] }>(url, { token: getAdminToken() });
   },
 
-  createPillPack: (data: { name: string; category: string; entry_fee: number; prize: number; is_vip?: boolean; question_count?: number; total_time_minutes?: number; required_correct?: number; target_bank_size?: number; quiz_expires_at?: string; max_entries?: number; idempotency_key?: string }) =>
+  createPillPack: (data: { name: string; category: string; entry_fee: number; prize: number; is_vip: true; question_count?: number; total_time_minutes?: number; required_correct?: number; target_bank_size?: number; quiz_expires_at?: string; idempotency_key?: string }) =>
     request<{ pack: { id: string; name: string; category: string; status: string } }>(
       "/api/admin/pills/packs",
       { method: "POST", body: data, token: getAdminToken() }
@@ -1257,25 +1255,7 @@ export const adminApi = {
       { method: "POST", body: data, token: getAdminToken() }
     ),
 
-  // Standard pack pill detail — returns all pills with question content
-  getStandardPackPills: (packId: string) =>
-    request<{
-      pack: { id: string; name: string; category: string; status: string };
-      pills: {
-        id: string;
-        question: string;
-        format: "multiple_choice" | "type_answer";
-        options: string[] | null;
-        correct_answer: string;
-        timer: number;
-        price: number;
-        prize: number;
-        status: "available" | "played";
-        color: string;
-      }[];
-    }>(`/api/admin/pills/packs/${packId}/pills`, { token: getAdminToken() }),
-
-  // Question bank management (Prompts 9 & 10)
+  // Question bank management
   getPackQuestions: (packId: string) =>
     request<{
       pack: { id: string; name: string; category: string; question_count: number | null; target_bank_size?: number | null };
@@ -1286,7 +1266,6 @@ export const adminApi = {
   getPackLiveStats: (packId: string) =>
     request<{
       pack_id: string;
-      pack_type?: "standard" | "special";
       live: number;
       won: number;
       lost: number;

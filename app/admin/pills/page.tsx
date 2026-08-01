@@ -96,13 +96,15 @@ interface PillPack {
   question_count?: number;
   quiz_expires_at?: string | null;
   created_at?: string;
-  max_entries?: number | null;
+  // max_entries is fixed at 1 server-side — not stored or displayed here
   entries_made?: number;
   entry_cap_reached?: boolean;
   current_entries?: number;
+  // Top-level claimer phone — backend returns this directly on the pack when claimed
+  claimer_phone?: string | null;
   // Attempt outcome (populated when entry_cap_reached / someone won/lost)
   latest_attempt?: {
-    player_phone?: string;
+    player_phone?: string | null;  // also accepted; claimer_phone takes precedence
     passed?: boolean;
     score?: number;
     total_questions?: number;
@@ -315,7 +317,6 @@ export default function AdminPillsPage() {
               <p className="text-center py-12 text-sm text-gray-500">No packs match &ldquo;{search}&rdquo;</p>
             );
             return filtered.map((pack, i) => {
-            const isSpecial = !!pack.is_vip;
             const prize = pack.prize_amount ?? (pack.pills[0] as any)?.prize ?? null;
             const entryFee = pack.entry_fee ?? null;
             const qCount = pack.question_count ?? pack.pills.length ?? null;
@@ -341,24 +342,34 @@ export default function AdminPillsPage() {
               : "available";
             const chip = chipConfig[chipKey];
 
+            // Phone: backend may return claimer_phone top-level, or nested as player_phone — use whichever is present
+            const rawPhone = pack.claimer_phone ?? attempt?.player_phone ?? null;
+            // Mask for admin list view: 0803***4567 pattern
+            const maskedPhone = rawPhone && rawPhone.length >= 8
+              ? `${rawPhone.slice(0, 4)}***${rawPhone.slice(-4)}`
+              : rawPhone ?? null;
+
             // Outcome line text
-            let outcomeLine: { phone?: string; detail: string; detailColor?: string } | null = null;
-            if (isClaimed && attempt) {
-              const phone = attempt.player_phone ?? "—";
+            let outcomeLine: { phone?: string | null; detail: string; detailColor?: string } | null = null;
+            if (isClaimed && (attempt || maskedPhone)) {
+              const phone = maskedPhone ?? "—";
               if (isWon) {
-                const ts = attempt.completed_at ? new Date(attempt.completed_at).toLocaleString("en-NG", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "—";
-                outcomeLine = { phone, detail: `${ts} · ${attempt.score ?? "—"}/${attempt.total_questions ?? qCount ?? "—"} correct · ₦${(attempt.prize_paid ?? prize ?? 0).toLocaleString()} paid`, detailColor: "#fb7185" };
+                const ts = attempt?.completed_at ? new Date(attempt.completed_at).toLocaleString("en-NG", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "—";
+                outcomeLine = { phone, detail: `${ts} · ${attempt?.score ?? "—"}/${attempt?.total_questions ?? qCount ?? "—"} correct · ₦${(attempt?.prize_paid ?? prize ?? 0).toLocaleString()} paid`, detailColor: "#fb7185" };
               } else if (isLost) {
-                const ts = attempt.completed_at ? new Date(attempt.completed_at).toLocaleString("en-NG", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "—";
-                outcomeLine = { phone, detail: `${ts} · ${attempt.score ?? "—"}/${attempt.total_questions ?? qCount ?? "—"} correct`, detailColor: "#6b7280" };
+                const ts = attempt?.completed_at ? new Date(attempt.completed_at).toLocaleString("en-NG", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "—";
+                outcomeLine = { phone, detail: `${ts} · ${attempt?.score ?? "—"}/${attempt?.total_questions ?? qCount ?? "—"} correct`, detailColor: "#6b7280" };
               } else {
-                // Claimed but not yet played — show time remaining
-                const msLeft = attempt.expires_at ? new Date(attempt.expires_at).getTime() - Date.now() : null;
-                const timeLeft = msLeft === null ? "—"
+                // Claimed but not yet played — show time remaining on claim window
+                const msLeft = attempt?.expires_at ? new Date(attempt.expires_at).getTime() - Date.now() : null;
+                const timeLeft = msLeft === null ? "awaiting play"
                   : msLeft <= 0 ? "Expired"
                   : (() => { const h = Math.floor(msLeft / 3600000); const m = Math.floor((msLeft % 3600000) / 60000); return h > 0 ? `${h}h ${m}m to play` : `${m}m to play`; })();
                 outcomeLine = { phone, detail: timeLeft, detailColor: msLeft !== null && msLeft < 3600000 ? "#f87171" : "#fbbf24" };
               }
+            } else if (!isClaimed && pack.status === "active") {
+              // Pack is open and unclaimed — show neutral state so the row is never blank
+              outcomeLine = { detail: "Not yet attempted", detailColor: "var(--text-muted)" };
             }
 
             return (
@@ -397,7 +408,9 @@ export default function AdminPillsPage() {
                   {/* Row 3: outcome line (claimed/won/lost only) */}
                   {outcomeLine && (
                     <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginTop: 2, flexWrap: "wrap" }}>
-                      <span style={{ fontSize: 11.5, fontWeight: 700, fontFamily: "monospace", color: "var(--text-primary)" }}>{outcomeLine.phone}</span>
+                      {outcomeLine.phone && (
+                        <span style={{ fontSize: 11.5, fontWeight: 700, fontFamily: "monospace", color: "var(--text-primary)" }}>{outcomeLine.phone}</span>
+                      )}
                       <span style={{ fontSize: 11, color: outcomeLine.detailColor ?? "var(--text-muted)" }}>{outcomeLine.detail}</span>
                     </div>
                   )}
@@ -405,19 +418,15 @@ export default function AdminPillsPage() {
 
                 {/* ── Actions row — always visible ── */}
                 <div style={{ display: "flex", gap: 6, padding: "10px 16px", borderTop: "1px solid var(--border-hairline)", flexWrap: "wrap" }}>
-                  {isSpecial && (
-                    <button onClick={() => router.push(`/admin/pills/${pack.id}/bank`)}
-                      style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 12px", borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: "pointer", backgroundColor: "rgba(232,163,61,0.08)", border: "1px solid rgba(232,163,61,0.2)", color: "var(--accent-amber)" }}>
-                      <BookOpen size={11} /> Manage Bank
-                    </button>
-                  )}
-                  {isSpecial && (
-                    <button onClick={() => router.push(`/admin/pills/${pack.id}/stats`)}
-                      style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 12px", borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: "pointer", backgroundColor: "rgba(76,111,255,0.08)", border: "1px solid rgba(76,111,255,0.2)", color: "var(--accent-indigo)" }}>
-                      <BarChart2 size={11} /> Stats
-                    </button>
-                  )}
-                  {!(pack.status !== "active" && (pack.available_count ?? 0) === 0 && !isSpecial) && (
+                  <button onClick={() => router.push(`/admin/pills/${pack.id}/bank`)}
+                    style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 12px", borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: "pointer", backgroundColor: "rgba(232,163,61,0.08)", border: "1px solid rgba(232,163,61,0.2)", color: "var(--accent-amber)" }}>
+                    <BookOpen size={11} /> Manage Bank
+                  </button>
+                  <button onClick={() => router.push(`/admin/pills/${pack.id}/stats`)}
+                    style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 12px", borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: "pointer", backgroundColor: "rgba(76,111,255,0.08)", border: "1px solid rgba(76,111,255,0.2)", color: "var(--accent-indigo)" }}>
+                    <BarChart2 size={11} /> Stats
+                  </button>
+                  {!(pack.status !== "active" && (pack.available_count ?? 0) === 0) && (
                     <button onClick={() => handleToggleStatus(pack)} disabled={toggling === pack.id}
                       style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 12px", borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: "pointer", opacity: toggling === pack.id ? 0.5 : 1,
                         ...(pack.status === "active"

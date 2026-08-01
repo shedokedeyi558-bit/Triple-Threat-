@@ -146,7 +146,7 @@ function PackCard({ pack, onTap }: { pack: PillPack; onTap: () => void }) {
   const rawSecs     = pack.total_time_seconds ?? (pack.time_limit_minutes != null ? pack.time_limit_minutes * 60 : null);
   const timeDisplay = rawSecs != null ? formatSeconds(rawSecs) : null;
   const { expired } = usePackExpiry(pack.quiz_expires_at);
-  // Global claim status — entry_cap_reached is set by backend when entries_made >= max_entries.
+  // Global claim status — entry_cap_reached is set by backend when the pack's single entry slot is filled.
   // This is identical for every player viewing the list (not per-player).
   const isClaimed   = pack.entry_cap_reached === true || expired;
   const disabled    = isClaimed;
