@@ -6,7 +6,7 @@ import { ToastContainer } from "@/components/ui/Toast";
 
 export const metadata: Metadata = {
   title: "BitLyfe — Play Smart. Win Real.",
-  description: "BitLyfe: Play smart, win real. Pick a pill or predict the future and earn real money.",
+  description: "BitLyfe — real skill games, real cash prizes. Answer fast, win instantly.",
   manifest: "/manifest.json",
   icons: {
     icon: [
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: "BitLyfe — Play Smart. Win Real.",
-    description: "BitLyfe: Play smart, win real. Pick a pill or predict the future and earn real money.",
+    description: "BitLyfe — real skill games, real cash prizes. Answer fast, win instantly.",
     type: "website",
     siteName: "BitLyfe",
   },
