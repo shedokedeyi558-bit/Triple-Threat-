@@ -299,7 +299,7 @@ export default function PillsPage() {
         }
       `}</style>
 
-      <div style={{ width: "100%", maxWidth: 480, margin: "0 auto", padding: "0 16px 80px", boxSizing: "border-box", fontFamily: "'Inter', sans-serif" }}>
+      <div style={{ width: "100%", maxWidth: 480, margin: "0 auto", padding: "20px 16px 80px", boxSizing: "border-box", fontFamily: "'Inter', sans-serif" }}>
 
         {/* Page header */}
         <div style={{ marginBottom: 16 }}>
