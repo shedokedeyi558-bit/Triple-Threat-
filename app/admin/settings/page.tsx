@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { adminApi, type BackendSettings, ApiError } from "@/lib/api";
-import { Save, Loader2 } from "lucide-react";
+import { adminApi, type BackendSettings, ApiError, adminBtaApi } from "@/lib/api";
+import { Save, Loader2, Swords } from "lucide-react";
 
 const inp = "w-full rounded-lg px-4 py-3 text-sm focus:outline-none transition-colors";
 
@@ -34,6 +34,38 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
+
+  // ── Beat the Admin availability ──
+  const [btaAvailable, setBtaAvailable]   = useState<boolean | null>(null);
+  const [btaLoading, setBtaLoading]       = useState(true);
+  const [btaToggling, setBtaToggling]     = useState(false);
+  const [btaError, setBtaError]           = useState("");
+
+  useEffect(() => {
+    adminBtaApi.getStatus()
+      .then((res) => setBtaAvailable(res.data.is_available))
+      .catch(() => setBtaError("Could not load Beat the Admin status"))
+      .finally(() => setBtaLoading(false));
+  }, []);
+
+  const handleBtaToggle = async () => {
+    if (btaAvailable === null || btaToggling) return;
+    const next = !btaAvailable;
+    setBtaToggling(true);
+    setBtaError("");
+    // Optimistic update
+    setBtaAvailable(next);
+    try {
+      const res = await adminBtaApi.updateSettings({ is_available: next });
+      setBtaAvailable(res.data.is_available);
+    } catch (err) {
+      // Revert on failure
+      setBtaAvailable(!next);
+      setBtaError(err instanceof ApiError ? err.message : "Failed to update");
+    } finally {
+      setBtaToggling(false);
+    }
+  };
 
   useEffect(() => {
     adminApi.getSettings()
@@ -160,6 +192,42 @@ export default function SettingsPage() {
               }}
             />
           </Field>
+        </Section>
+
+        {/* Beat the Admin */}
+        <Section title="Beat the Admin">
+          {btaError && (
+            <p className="text-xs" style={{ color: "#f87171" }}>{btaError}</p>
+          )}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Swords size={14} style={{ color: "var(--accent-indigo)", flexShrink: 0 }} />
+              <div>
+                <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
+                  Feature available
+                </p>
+                <p className="text-xs mt-0.5" style={{ color: "var(--text-secondary)" }}>
+                  {btaLoading ? "Loading…" : btaAvailable ? "Players can send challenges" : "Feature hidden from players"}
+                </p>
+              </div>
+            </div>
+            {btaLoading ? (
+              <Loader2 size={16} className="animate-spin" style={{ color: "var(--text-muted)" }} />
+            ) : (
+              <button
+                onClick={handleBtaToggle}
+                disabled={btaToggling}
+                className="w-11 h-6 rounded-full transition-colors relative flex-shrink-0 disabled:opacity-60"
+                style={{ backgroundColor: btaAvailable ? "var(--accent-indigo)" : "var(--border-subtle)" }}
+                aria-label={btaAvailable ? "Disable Beat the Admin" : "Enable Beat the Admin"}
+              >
+                <span
+                  className="absolute top-1 w-4 h-4 rounded-full shadow transition-all"
+                  style={{ backgroundColor: "#fff", left: btaAvailable ? "24px" : "4px" }}
+                />
+              </button>
+            )}
+          </div>
         </Section>
 
         {/* Payout Account — spans full width */}

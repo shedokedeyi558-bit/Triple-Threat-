@@ -1773,3 +1773,18 @@ export const beatTheAdminApi = {
       { token: getToken(), params: { page, limit } }
     ),
 };
+
+// Admin-facing Beat the Admin controls (separate from player beatTheAdminApi)
+export const adminBtaApi = {
+  // Reuse player status endpoint for reading current availability
+  getStatus: () =>
+    request<{ success: boolean; data: BtaStatus }>("/api/admin-challenge/status", {
+      token: getAdminToken(),
+    }),
+
+  updateSettings: (settings: { is_available: boolean }) =>
+    request<{ success: boolean; data: { is_available: boolean } }>(
+      "/api/admin/beat-the-admin/settings",
+      { method: "PUT", body: settings, token: getAdminToken() }
+    ),
+};
