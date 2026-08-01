@@ -255,7 +255,7 @@ export default function ChallengePage() {
     setHistoryLoading(true);
     try {
       const res = await beatTheAdminApi.getHistory();
-      setHistory(res.data?.requests ?? []);
+      setHistory(res.data?.history ?? []);
     } catch { /* silent */ }
     finally { setHistoryLoading(false); }
   }, []);

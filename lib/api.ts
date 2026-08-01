@@ -1768,7 +1768,7 @@ export const beatTheAdminApi = {
     }),
 
   getHistory: (page = 1, limit = 20) =>
-    request<{ success: boolean; data: { requests: BtaHistoryEntry[]; total: number; page: number } }>(
+    request<{ success: boolean; data: { history: BtaHistoryEntry[]; total: number; page: number; limit: number } }>(
       "/api/admin-challenge/history",
       { token: getToken(), params: { page, limit } }
     ),
