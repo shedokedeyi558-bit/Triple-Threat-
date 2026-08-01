@@ -18,7 +18,7 @@ const navItems = [
 ];
 
 // Pages that render the app shell (player-facing)
-const SHELL_PATHS = ["/pills", "/wallet", "/profile", "/blitz", "/time-machine", "/predictions"];
+const SHELL_PATHS = ["/pills", "/wallet", "/profile", "/blitz"];
 
 // Pages that deliberately suppress the shell (full-screen immersive flows)
 const SHELL_SUPPRESS_PATHS = ["/pills/vip/", "/pills/play/", "/blitz/"];

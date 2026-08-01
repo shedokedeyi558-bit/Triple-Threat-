@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useApp } from "@/context/AppContext";
 import { motion, useInView } from "framer-motion";
 import {
-  ArrowRight, Timer, Zap, Clock, GraduationCap,
+  ArrowRight, Timer, Zap, GraduationCap,
   Wallet, MousePointerClick, PartyPopper, Trophy, Users, Gift,
 } from "lucide-react";
 
@@ -239,8 +239,6 @@ function Hero() {
 const PRODUCTS = [
   { icon: Zap, name: "Pills", tagline: "Answer & win instantly", color: "var(--brand-indigo)",
     description: "Answer a question, win instantly. Timer counts down — beat the clock to cash out." },
-  { icon: Clock, name: "Time Machine", tagline: "Predict the future", color: "var(--brand-violet)",
-    description: "Enter before the deadline, collect if you're right. Bigger calls, bigger wins." },
   { icon: GraduationCap, name: "Specials", tagline: "Up to ₦600,000 prize", color: "var(--brand-amber)",
     description: "Exam-format challenges. One attempt, no second chances. High stakes for sharp minds." },
 ];

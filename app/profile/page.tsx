@@ -369,7 +369,7 @@ export default function ProfilePage() {
         >
           <p className="text-[11px] text-gray-600 uppercase tracking-widest font-bold mb-3">About BitLyfe</p>
           <p className="text-gray-500 text-sm leading-relaxed">
-            BitLyfe is a real-money trivia and prediction platform. Pick a pill, answer fast, predict the future — and win real Naira instantly.
+            BitLyfe is a real-money trivia platform. Answer fast, play smart — and win real Naira instantly.
           </p>
           <p className="text-gray-700 text-xs mt-4">Version 1.0.0 · BitLyfe © 2026</p>
         </motion.div>
