@@ -13,7 +13,7 @@ const inputCls =
 
 const labelCls = "block text-[10px] font-bold uppercase tracking-widest mb-1.5";
 
-const DRAFT_KEY = "admin_pill_pack_draft_v2";
+const DRAFT_KEY = "admin_pill_pack_draft_v3";
 
 export default function CreatePillPackPage() {
   const router = useRouter();
@@ -34,13 +34,11 @@ export default function CreatePillPackPage() {
   const [packEntryFee, setPackEntryFee] = useState<number | "">(() => saved().packEntryFee ?? "");
   const [packPrize,    setPackPrize]    = useState<number | "">(() => saved().packPrize    ?? "");
 
-  // Specials fields
+  // Exam config
   const [qCount,          setQCount]          = useState<number | "">(() => saved().qCount          ?? "");
   const [timeMins,        setTimeMins]        = useState<number | "">(() => saved().timeMins        ?? "");
   const [timeSecs,        setTimeSecs]        = useState<number | "">(() => saved().timeSecs        ?? "");
   const [requiredCorrect, setRequiredCorrect] = useState<number | "">(() => saved().requiredCorrect ?? "");
-  const [targetBankSize,  setTargetBankSize]  = useState<number | "">(() => saved().targetBankSize  ?? "");
-  const [maxEntries,      setMaxEntries]      = useState<number | "">(() => saved().maxEntries      ?? "");
   const [expiryOption,    setExpiryOption]    = useState<"none"|"24h"|"48h"|"7d"|"custom">(() => saved().expiryOption ?? "none");
   const [expiryCustom,    setExpiryCustom]    = useState<string>(() => saved().expiryCustom ?? "");
 
@@ -61,6 +59,7 @@ export default function CreatePillPackPage() {
     if (!packCategory.trim()) { setError("Category required");   return; }
     if (!packEntryFee || Number(packEntryFee) <= 0) { setError("Entry fee required"); return; }
     if (!packPrize    || Number(packPrize)    <= 0) { setError("Prize required");     return; }
+    if (!qCount || Number(qCount) < 1) { setError("Question count required"); return; }
     if (Number(requiredCorrect) > Number(qCount)) {
       setError("Pass threshold cannot exceed question count"); return;
     }
@@ -74,20 +73,20 @@ export default function CreatePillPackPage() {
     try {
       setLoadingStep("Creating pack...");
       const packRes = await adminApi.createPillPack({
-        name:          packName.trim(),
-        category:      packCategory.trim(),
-        entry_fee:     Number(packEntryFee),
-        prize:         Number(packPrize),
-        is_vip:        true,                          // always Specials
-        question_count:     Number(qCount)          || 10,
+        name:               packName.trim(),
+        category:           packCategory.trim(),
+        entry_fee:          Number(packEntryFee),
+        prize:              Number(packPrize),
+        is_vip:             true,
+        question_count:     Number(qCount),
         total_time_minutes: totalTimeSecs > 0 ? totalTimeSecs / 60 : 15,
-        required_correct:   Number(requiredCorrect) || 8,
-        ...(targetBankSize ? { target_bank_size: Number(targetBankSize) } : {}),
-        ...(maxEntries     ? { max_entries:      Number(maxEntries)     } : {}),
+        required_correct:   Number(requiredCorrect) || Number(qCount),
         ...(expiryOption !== "none" ? {
           quiz_expires_at: expiryOption === "custom"
             ? new Date(expiryCustom).toISOString()
-            : new Date(Date.now() + ({ "24h": 86400000, "48h": 172800000, "7d": 604800000 } as Record<string, number>)[expiryOption]).toISOString(),
+            : new Date(Date.now() + (
+                { "24h": 86400000, "48h": 172800000, "7d": 604800000 } as Record<string, number>
+              )[expiryOption]).toISOString(),
         } : {}),
         idempotency_key: idempotencyKey,
       } as any);
@@ -123,7 +122,7 @@ export default function CreatePillPackPage() {
             </h1>
           </div>
           <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
-            Exam-style pack — questions managed via Question Bank after creation
+            One player, one attempt, fixed prize — add questions after creation
           </p>
         </div>
       </div>
@@ -140,7 +139,7 @@ export default function CreatePillPackPage() {
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
           className="border rounded-xl p-3 text-sm"
           style={{ borderColor: "rgba(52,211,153,0.3)", backgroundColor: "rgba(52,211,153,0.05)", color: "#34d399" }}>
-          ✓ {loadingStep} — redirecting to question bank…
+          ✓ {loadingStep} — redirecting to add questions…
         </motion.div>
       )}
 
@@ -174,8 +173,7 @@ export default function CreatePillPackPage() {
               setTimeMins(4);
               setTimeSecs(0);
               setRequiredCorrect(10);
-              setTargetBankSize(50);
-              persist({ packName: `${cat} Special Challenge`, packCategory: cat, packEntryFee: 500, packPrize: 200000, qCount: 10, timeMins: 4, timeSecs: 0, requiredCorrect: 10, targetBankSize: 50 });
+              persist({ packName: `${cat} Special Challenge`, packCategory: cat, packEntryFee: 500, packPrize: 200000, qCount: 10, timeMins: 4, timeSecs: 0, requiredCorrect: 10 });
               setError("");
             }}
             className="w-full py-2 rounded-xl text-xs font-semibold border transition-colors hover:opacity-80"
@@ -192,7 +190,7 @@ export default function CreatePillPackPage() {
         <div className="grid grid-cols-2 gap-3">
           <div className="col-span-2 sm:col-span-1">
             <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Pack Name *</label>
-            <input className={inputCls} placeholder="e.g. hARD-cORE Biology" value={packName}
+            <input className={inputCls} placeholder="e.g. Hard-Core Biology" value={packName}
               onChange={(e) => { setPackName(e.target.value); persist({ packName: e.target.value }); }} />
           </div>
           <div className="col-span-2 sm:col-span-1">
@@ -209,6 +207,7 @@ export default function CreatePillPackPage() {
             <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Prize (₦) *</label>
             <input className={inputCls} type="number" min="100" placeholder="e.g. 200000" value={packPrize}
               onChange={(e) => { const v = e.target.value === "" ? "" : Number(e.target.value); setPackPrize(v); persist({ packPrize: v }); }} />
+            <p className="text-[9px] mt-1" style={{ color: "var(--text-muted)" }}>exact amount paid to the winner</p>
           </div>
         </div>
       </div>
@@ -224,20 +223,20 @@ export default function CreatePillPackPage() {
             <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Question Count *</label>
             <input className={inputCls} type="number" min="1" max="50" placeholder="e.g. 10" value={qCount}
               onChange={(e) => { const v = e.target.value === "" ? "" : Number(e.target.value); setQCount(v); persist({ qCount: v }); }} />
-            <p className="text-[9px] mt-1" style={{ color: "var(--text-muted)" }}>drawn per exam from question bank</p>
+            <p className="text-[9px] mt-1" style={{ color: "var(--text-muted)" }}>fixed set — you'll attach exactly this many questions</p>
           </div>
 
           {/* Required Correct */}
           <div>
-            <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Required Correct *</label>
+            <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Pass Threshold *</label>
             <input className={inputCls} type="number" min="1" placeholder="e.g. 10" value={requiredCorrect}
               onChange={(e) => { const v = e.target.value === "" ? "" : Number(e.target.value); setRequiredCorrect(v); persist({ requiredCorrect: v }); }} />
-            <p className="text-[9px] mt-1" style={{ color: "var(--text-muted)" }}>pass threshold — must not exceed question count</p>
+            <p className="text-[9px] mt-1" style={{ color: "var(--text-muted)" }}>correct answers needed to win — can't exceed question count</p>
           </div>
 
           {/* Time Limit */}
           <div className="col-span-2">
-            <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Time Limit (seconds) *</label>
+            <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Time Limit *</label>
             <div className="flex gap-2 items-start">
               <div className="flex-1">
                 <input className={inputCls} type="number" min="0" placeholder="minutes"
@@ -258,34 +257,18 @@ export default function CreatePillPackPage() {
               )}
             </div>
           </div>
-
-          {/* Max Entries */}
-          <div>
-            <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Max Entries <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>(optional)</span></label>
-            <input className={inputCls} type="number" min="1" placeholder="e.g. 100" value={maxEntries}
-              onChange={(e) => { const v = e.target.value === "" ? "" : Number(e.target.value); setMaxEntries(v); persist({ maxEntries: v }); }} />
-            <p className="text-[9px] mt-1" style={{ color: "var(--text-muted)" }}>player cap before entry closes</p>
-          </div>
-
-          {/* Target Bank Size */}
-          <div>
-            <label className={labelCls} style={{ color: "var(--text-secondary)" }}>Target Bank Size <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>(optional)</span></label>
-            <input className={inputCls} type="number" min="1" placeholder="e.g. 300" value={targetBankSize}
-              onChange={(e) => { const v = e.target.value === "" ? "" : Number(e.target.value); setTargetBankSize(v); persist({ targetBankSize: v }); }} />
-            <p className="text-[9px] mt-1" style={{ color: "var(--text-muted)" }}>visible goal for question bank coverage</p>
-          </div>
         </div>
 
         {/* Quiz expiry window */}
         <div className="border rounded-xl p-4 space-y-3"
           style={{ borderColor: "rgba(232,163,61,0.15)", backgroundColor: "rgba(232,163,61,0.02)" }}>
           <div>
-            <p className={labelCls} style={{ color: "var(--text-secondary)" }}>Quiz Expires At <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>(optional)</span></p>
+            <p className={labelCls} style={{ color: "var(--text-secondary)" }}>Entry Deadline <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>(optional)</span></p>
             <p className="text-[10px] mb-2" style={{ color: "var(--text-muted)" }}>
-              Auto-blocks new entries after this window. Leave as &ldquo;No expiry&rdquo; for indefinite.
+              Blocks new entries after this time. Leave as &ldquo;No deadline&rdquo; for indefinite availability.
             </p>
             <div className="flex gap-2 flex-wrap">
-              {([ ["none","No expiry"], ["24h","24h"], ["48h","48h"], ["7d","7 days"], ["custom","Custom"] ] as const).map(([val, label]) => (
+              {([ ["none","No deadline"], ["24h","24h"], ["48h","48h"], ["7d","7 days"], ["custom","Custom"] ] as const).map(([val, label]) => (
                 <button key={val} type="button" onClick={() => { setExpiryOption(val); persist({ expiryOption: val }); }}
                   className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
                   style={{
@@ -308,15 +291,15 @@ export default function CreatePillPackPage() {
         </div>
 
         {/* Summary */}
-        {qCount !== "" && requiredCorrect !== "" && (
+        {qCount !== "" && (
           <div className="rounded-lg p-3 text-xs space-y-1"
             style={{ backgroundColor: "var(--bg-base)", border: "1px solid var(--border-hairline)" }}>
             <p style={{ color: "var(--text-secondary)" }}>
-              Players answer <strong style={{ color: "var(--text-primary)" }}>{qCount} questions</strong>
+              Player answers <strong style={{ color: "var(--text-primary)" }}>{qCount} fixed questions</strong>
               {totalTimeSecs > 0 && <> in <strong style={{ color: "var(--text-primary)" }}>{timeMins ? `${timeMins}m ` : ""}{timeSecs ? `${timeSecs}s` : ""}</strong></>}
-              {(requiredCorrect as string | number) !== "" && <> — need <strong style={{ color: "var(--accent-amber)" }}>{requiredCorrect} correct</strong> to pass and win ₦{(packPrize || 0).toLocaleString()}</>}.
+              {requiredCorrect !== "" && <> — needs <strong style={{ color: "var(--accent-amber)" }}>{requiredCorrect} correct</strong> to win <strong style={{ color: "var(--accent-amber)" }}>₦{(packPrize || 0).toLocaleString()}</strong></>}.
             </p>
-            <p style={{ color: "var(--text-muted)" }}>One attempt only. Questions bank is managed separately after creation.</p>
+            <p style={{ color: "var(--text-muted)" }}>One attempt only · prize paid instantly on pass.</p>
           </div>
         )}
       </div>
@@ -327,11 +310,11 @@ export default function CreatePillPackPage() {
         disabled={loading || createSuccess}
         className="w-full py-4 rounded-xl font-black text-base transition-all disabled:opacity-50"
         style={{ backgroundColor: "var(--accent-amber)", color: "#000" }}>
-        {loading ? loadingStep || "Creating…" : createSuccess ? "✓ Created!" : "Create Special Pack →"}
+        {loading ? loadingStep || "Creating…" : createSuccess ? "✓ Created!" : "Create Pack → Add Questions"}
       </button>
 
       <p className="text-center text-xs" style={{ color: "var(--text-muted)" }}>
-        After creation you&apos;ll land in the Question Bank to start building questions.
+        After creation you&apos;ll land on the question page to attach exactly {qCount || "N"} questions via paste or library.
       </p>
     </div>
   );
