@@ -52,7 +52,7 @@ export default function TermsPage() {
             },
             {
               title: "Payments",
-              body: "Deposits and withdrawals are processed through Paystack. This platform is currently operating in test mode as part of an academic project; no real transactions are being processed at this time.",
+              body: "Deposits and withdrawals are processed through Squad. This platform is currently operating in test mode as part of an academic project; no real transactions are being processed at this time.",
             },
             {
               title: "Fair Play",

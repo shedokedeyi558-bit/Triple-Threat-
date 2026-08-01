@@ -14,7 +14,7 @@ interface FAQItem {
 const faqs: FAQItem[] = [
   {
     question: "How do I deposit funds?",
-    answer: "Go to your Wallet, tap Add Funds, and follow the Paystack payment flow. You can deposit via card, bank transfer, or mobile money. Funds are credited instantly.",
+    answer: "Go to your Wallet, tap Add Funds, and follow the Squad checkout flow. You can deposit via card, bank transfer, or USSD. Funds are credited instantly.",
   },
   {
     question: "How long do withdrawals take?",

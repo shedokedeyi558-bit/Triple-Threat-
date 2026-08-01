@@ -147,7 +147,7 @@ export default function WithdrawalsPage() {
               {transferWarnings[w.id] && (
                 <div className="flex items-start gap-2 bg-yellow-900/20 border border-yellow-700/40 rounded-xl p-3 mb-3 text-yellow-400 text-xs">
                   <AlertTriangle size={14} className="flex-shrink-0 mt-0.5" />
-                  <span>Paystack transfer failed: {transferWarnings[w.id]}. Process manually.</span>
+                  <span>Transfer failed: {transferWarnings[w.id]}. Process manually.</span>
                 </div>
               )}
 

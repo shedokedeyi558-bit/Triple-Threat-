@@ -254,7 +254,10 @@ export default function WalletPage() {
     setDepositLoading(true);
     try {
       const data = await withTimeout(walletApi.deposit(amt), 18000);
-      window.location.href = data.authorizationUrl;
+      // Squad returns checkout_url; legacy Paystack returned authorizationUrl
+      const redirectUrl = data.checkout_url || data.authorizationUrl;
+      if (!redirectUrl) { setDepositError("No checkout URL returned. Try again."); setDepositLoading(false); return; }
+      window.location.href = redirectUrl;
     } catch (err) {
       setDepositError(err instanceof ApiError ? err.message : "Deposit failed. Try again.");
       setDepositLoading(false);

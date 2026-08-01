@@ -252,7 +252,8 @@ export const gameApi = {
 export interface BalanceResponse { balance: number; bonus_balance?: number }
 
 export interface DepositResponse {
-  authorizationUrl: string;
+  checkout_url: string;        // Squad field
+  authorizationUrl?: string;   // legacy Paystack field (kept for backward compat)
   reference: string;
   amount: number;
 }

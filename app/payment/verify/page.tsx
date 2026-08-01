@@ -17,7 +17,8 @@ function VerifyContent() {
   const [amount, setAmount] = useState(0);
 
   useEffect(() => {
-    const reference = searchParams.get("reference") || searchParams.get("trxref");
+    // Squad uses transaction_ref; Paystack used reference/trxref — check all three
+    const reference = searchParams.get("transaction_ref") || searchParams.get("reference") || searchParams.get("trxref");
 
     if (!reference) {
       setStatus("failed");

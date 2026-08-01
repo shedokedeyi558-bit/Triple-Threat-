@@ -83,7 +83,7 @@ export default function PrivacyPage() {
           {[
             {
               title: "Payments",
-              body: "Payment processing is handled by Paystack, our third-party payment provider. We do not store your card or bank details directly\u2014Paystack handles all sensitive payment information according to their own privacy policy and PCI compliance standards.",
+              body: "Payment processing is handled by Squad, our third-party payment provider. We do not store your card or bank details directly — Squad handles all sensitive payment information according to their own privacy policy and PCI compliance standards.",
             },
             {
               title: "Your Control",
