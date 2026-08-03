@@ -1775,16 +1775,57 @@ export const beatTheAdminApi = {
 };
 
 // Admin-facing Beat the Admin controls (separate from player beatTheAdminApi)
+
+export interface BtaQueueEntry {
+  id: string;           // request_id
+  player_id: string;
+  player_phone: string;
+  game_type: string;
+  stake: number;
+  status: BtaRequestStatus;
+  expires_at: string;
+  time_remaining_seconds: number;
+  created_at: string;
+  match?: BtaMatch | null;
+}
+
 export const adminBtaApi = {
-  // Reuse player status endpoint for reading current availability
+  // Read current availability (reuses player status endpoint, admin token)
   getStatus: () =>
     request<{ success: boolean; data: BtaStatus }>("/api/admin-challenge/status", {
       token: getAdminToken(),
     }),
 
-  updateSettings: (settings: { is_available: boolean }) =>
-    request<{ success: boolean; data: { is_available: boolean } }>(
+  // Update availability + optionally stake range
+  updateSettings: (settings: { is_available: boolean; min_stake?: number; max_stake?: number }) =>
+    request<{ success: boolean; data: { is_available: boolean; min_stake: number; max_stake: number } }>(
       "/api/admin/beat-the-admin/settings",
       { method: "PUT", body: settings, token: getAdminToken() }
+    ),
+
+  // Pending request queue
+  getQueue: () =>
+    request<{ success: boolean; data: { requests: BtaQueueEntry[] } }>(
+      "/api/admin/beat-the-admin/queue",
+      { token: getAdminToken() }
+    ),
+
+  approveRequest: (requestId: string) =>
+    request<{ success: boolean; data: { request_id: string; status: string } }>(
+      `/api/admin/beat-the-admin/requests/${requestId}/approve`,
+      { method: "POST", token: getAdminToken() }
+    ),
+
+  rejectRequest: (requestId: string) =>
+    request<{ success: boolean; data: { request_id: string; status: string } }>(
+      `/api/admin/beat-the-admin/requests/${requestId}/reject`,
+      { method: "POST", token: getAdminToken() }
+    ),
+
+  // Admin submits their RPS move for an active match
+  submitMove: (matchId: string, move: BtaMove) =>
+    request<{ success: boolean; data: { winner: BtaWinner; admin_move: BtaMove; player_move: BtaMove; payout: number } }>(
+      `/api/admin/beat-the-admin/match/${matchId}/move`,
+      { method: "POST", body: { move }, token: getAdminToken() }
     ),
 };

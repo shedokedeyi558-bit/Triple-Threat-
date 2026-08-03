@@ -3,12 +3,12 @@
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { adminApi, type AdminStats, type BlitzTournament, ApiError } from "@/lib/api";
+import { adminApi, type AdminStats, type BlitzTournament, ApiError, adminBtaApi, type BtaStatus } from "@/lib/api";
 import { CreatePillPackForm } from "@/components/admin/CreatePillPackForm";
 import { CreateTimeMachineForm } from "@/components/admin/CreateTimeMachineForm";
 import {
   Users, AlertCircle, Banknote, Gamepad2,
-  ChevronRight, Package, Clock, Zap, Activity,
+  ChevronRight, Package, Clock, Zap, Activity, Swords,
 } from "lucide-react";
 
 interface RecentPack {
@@ -49,6 +49,9 @@ export default function AdminDashboard() {
   } | null>(null);
   const specialsTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // BTA status for dashboard card
+  const [btaStatus, setBtaStatus] = useState<BtaStatus | null>(null);
+
   useEffect(() => {
     const fetchSpecialsStats = async () => {
       try {
@@ -68,11 +71,12 @@ export default function AdminDashboard() {
   useEffect(() => {
     (async () => {
       try {
-        const [statsRes, gamesRes, packsRes, blitzRes] = await Promise.allSettled([
+        const [statsRes, gamesRes, packsRes, blitzRes, btaRes] = await Promise.allSettled([
           adminApi.getStats(),
           adminApi.getPredictions({ limit: 20 }),
           adminApi.getPillPacks(),
           adminApi.getBlitzTournaments(),
+          adminBtaApi.getStatus(),
         ]);
         if (statsRes.status === "fulfilled") {
           const raw = statsRes.value as any;
@@ -103,6 +107,9 @@ export default function AdminDashboard() {
               .filter((t: BlitzTournament) => ["registration", "active", "scoring"].includes(t.status))
               .slice(0, 3)
           );
+        }
+        if (btaRes.status === "fulfilled") {
+          setBtaStatus(btaRes.value.data);
         }
       } catch (err) {
         setError(err instanceof ApiError ? err.message : "Failed to load dashboard");
@@ -176,14 +183,14 @@ export default function AdminDashboard() {
               <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>Active Games</span>
             </div>
             <p className="font-mono text-xl font-bold" style={{ color: "var(--text-primary)" }}>
-              {(blitz.length + (stats?.predictions?.live ?? predictions.filter(p => p.status === "active" || p.status === "locked").length) + totalActivePacks).toString()}
+              {(blitz.length + (stats?.predictions?.live ?? predictions.filter(p => p.status === "active" || p.status === "locked").length) + totalActivePacks + (btaStatus?.is_available ? 1 : 0)).toString()}
             </p>
           </motion.div>
         </div>
       ) : null}
 
       {/* Game Summary Cards */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
 
         {/* ── Pill Packs — Desktop: specials attempt stats widget ── */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
@@ -391,6 +398,76 @@ export default function AdminDashboard() {
                 <h2 className="font-headline font-semibold text-sm" style={{ color: "var(--text-primary)" }}>Blitz</h2>
                 <p className="text-xs mt-0.5" style={{ color: "var(--text-secondary)" }}>
                   {blitz.length > 0 ? `${blitz.length} active` : "No tournaments yet"}
+                </p>
+              </div>
+            </div>
+            <ChevronRight size={16} style={{ color: "var(--text-muted)" }} />
+          </Link>
+        </motion.div>
+
+        {/* ── Desktop: Beat the Admin ── */}
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}
+          className="rounded-xl p-4 border hidden lg:block"
+          style={{ backgroundColor: "var(--bg-card)", borderColor: "var(--border-hairline)", borderLeft: "3px solid var(--accent-indigo)" }}>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Swords size={14} style={{ color: "var(--accent-indigo)" }} />
+              <h2 className="font-headline font-semibold text-sm" style={{ color: "var(--text-primary)" }}>Beat the Admin</h2>
+            </div>
+            {!loading && btaStatus && (
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded"
+                style={{
+                  backgroundColor: btaStatus.is_available ? "rgba(74,222,128,0.12)" : "rgba(255,255,255,0.05)",
+                  color: btaStatus.is_available ? "#4ADE80" : "var(--text-muted)",
+                }}>
+                {btaStatus.match_in_progress ? "match live" : btaStatus.is_available ? "online" : "offline"}
+              </span>
+            )}
+          </div>
+          <div className="rounded-lg p-3 mb-3" style={{ backgroundColor: "var(--bg-base)" }}>
+            {loading ? (
+              <div className="h-10 animate-pulse rounded" style={{ backgroundColor: "var(--bg-card)" }} />
+            ) : btaStatus ? (
+              <div className="space-y-1">
+                <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                  Stake range:{" "}
+                  <span className="font-mono font-bold" style={{ color: "var(--text-primary)" }}>
+                    ₦{btaStatus.min_stake.toLocaleString()} – ₦{btaStatus.max_stake.toLocaleString()}
+                  </span>
+                </p>
+                <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+                  {btaStatus.match_in_progress
+                    ? "A match is currently in progress"
+                    : btaStatus.is_available
+                    ? "Players can send challenges"
+                    : "Feature is currently disabled"}
+                </p>
+              </div>
+            ) : (
+              <p className="text-xs" style={{ color: "var(--text-muted)" }}>Status unavailable</p>
+            )}
+          </div>
+          <Link href="/admin/beat-the-admin" className="text-xs font-semibold block text-center py-2 rounded-lg transition-colors"
+            style={{ color: "var(--accent-indigo)", backgroundColor: "var(--accent-indigo)" + "15" }}>
+            Manage requests →
+          </Link>
+        </motion.div>
+
+        {/* ── Mobile: Beat the Admin ── */}
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}
+          className="lg:hidden rounded-xl p-4 border"
+          style={{ backgroundColor: "var(--bg-card)", borderColor: "var(--border-hairline)", borderLeft: "3px solid var(--accent-indigo)" }}>
+          <Link href="/admin/beat-the-admin" className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Swords size={14} style={{ color: "var(--accent-indigo)" }} />
+              <div>
+                <h2 className="font-headline font-semibold text-sm" style={{ color: "var(--text-primary)" }}>Beat the Admin</h2>
+                <p className="text-xs mt-0.5" style={{ color: "var(--text-secondary)" }}>
+                  {loading ? "Loading…"
+                    : !btaStatus ? "Status unavailable"
+                    : btaStatus.match_in_progress ? "Match in progress"
+                    : btaStatus.is_available ? "Online — awaiting challengers"
+                    : "Offline"}
                 </p>
               </div>
             </div>

@@ -54,8 +54,19 @@ function codeToMessage(err: unknown): string {
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
-function StatusBanner({ status }: { status: BtaStatus | null }) {
-  if (!status) return null;
+function StatusBanner({ status, onRetry }: { status: BtaStatus | null; onRetry?: () => void }) {
+  if (!status) {
+    return (
+      <div style={{ borderRadius: 12, padding: "12px 16px", backgroundColor: "rgba(255,255,255,0.04)", border: "1px solid var(--border-hairline)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+        <p style={{ fontSize: 13, color: "var(--text-muted)", margin: 0 }}>Checking availability…</p>
+        {onRetry && (
+          <button onClick={onRetry} style={{ fontSize: 11, fontWeight: 700, color: "var(--accent-indigo)", background: "none", border: "none", cursor: "pointer", padding: 0 }}>
+            Retry
+          </button>
+        )}
+      </div>
+    );
+  }
   const { is_available, match_in_progress } = status;
 
   if (!is_available) {
@@ -265,7 +276,12 @@ export default function ChallengePage() {
     try {
       const res = await beatTheAdminApi.getStatus();
       setStatus(res.data);
-    } catch { /* silent — don't clobber existing status on transient error */ }
+      // Clear any previous fetch error once we get a good response
+      setError((prev) => prev === "Could not load status — check connection and try again." ? "" : prev);
+    } catch (err) {
+      // Surface the error to the user so the lobby isn't silently blank
+      setError("Could not load status — check connection and try again.");
+    }
   }, []);
 
   // ── Poll my-request ────────────────────────────────────────────────────────
@@ -565,10 +581,10 @@ export default function ChallengePage() {
               style={{ display: "flex", flexDirection: "column", gap: 16 }}>
 
               {/* Status banner */}
-              <StatusBanner status={status} />
+              <StatusBanner status={status} onRetry={fetchStatus} />
 
-              {/* Error */}
-              {error && (
+              {/* Error (non-status errors only, e.g. failed challenge request) */}
+              {error && !error.includes("Could not load status") && (
                 <div style={{ borderRadius: 10, padding: "10px 14px", backgroundColor: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.2)", fontSize: 13, color: "#f87171" }}>
                   {error}
                 </div>
