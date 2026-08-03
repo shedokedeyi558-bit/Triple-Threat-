@@ -85,7 +85,7 @@ function AuthForm() {
       });
 
       setStep("success");
-      setTimeout(() => router.push("/pills"), 1500);
+      setTimeout(() => router.push("/treasure-box"), 1500);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Registration failed. Please try again.");
     } finally {

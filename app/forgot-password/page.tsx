@@ -57,7 +57,7 @@ export default function ForgotPasswordPage() {
       });
 
       setSuccess(true);
-      setTimeout(() => router.push("/pills"), 1500);
+      setTimeout(() => router.push("/treasure-box"), 1500);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to reset password. Please try again.");
     } finally {

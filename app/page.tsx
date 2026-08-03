@@ -510,7 +510,7 @@ export default function LandingPage() {
   const router = useRouter();
 
   useEffect(() => {
-    if (hydrated && state.isAuthenticated) router.replace("/pills");
+    if (hydrated && state.isAuthenticated) router.replace("/treasure-box");
   }, [hydrated, state.isAuthenticated, router]);
 
   if (hydrated && state.isAuthenticated) return null;

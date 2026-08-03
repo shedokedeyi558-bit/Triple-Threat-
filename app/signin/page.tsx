@@ -45,7 +45,7 @@ export default function SignInPage() {
       setToken(res.token);
       dispatch({ type: "LOGIN", player: { id: res.player.id, phone: res.player.phone, name: res.player.name, email: "", balance: res.player.balance, bonus_balance: res.player.bonus_balance ?? 0 }, token: res.token });
       setStep("success");
-      setTimeout(() => router.push("/pills"), 1200);
+      setTimeout(() => router.push("/treasure-box"), 1200);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Sign in failed. Check your phone and password.");
     } finally { setLoading(false); }
@@ -62,7 +62,7 @@ export default function SignInPage() {
       setToken(res.token);
       dispatch({ type: "LOGIN", player: { id: res.player.id, phone: res.player.phone, name: res.player.name, email: "", balance: res.player.balance, bonus_balance: res.player.bonus_balance ?? 0 }, token: res.token });
       setFpDone(true);
-      setTimeout(() => router.push("/pills"), 1500);
+      setTimeout(() => router.push("/treasure-box"), 1500);
     } catch (err) {
       setFpError(err instanceof ApiError ? err.message : "Reset failed.");
     } finally { setFpLoading(false); }
