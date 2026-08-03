@@ -48,7 +48,7 @@ function SettingsSection({ onSaved }: { onSaved: () => void }) {
   useEffect(() => {
     adminTreasureBoxApi.getSettings()
       .then((r) => setSettings(r.data))
-      .catch((e) => setError(e instanceof ApiError ? e.message : "Failed to load settings"))
+      .catch((e) => setError(e instanceof ApiError ? `${e.status}: ${e.message}` : String(e)))
       .finally(() => setLoading(false));
   }, []);
 
@@ -220,7 +220,7 @@ function BoxesSection() {
       const res = await adminTreasureBoxApi.getBoxes({ limit: 50 });
       setBoxes(res.data.boxes);
       setTotal(res.data.total);
-    } catch (e) { setError(e instanceof ApiError ? e.message : "Failed to load boxes"); }
+    } catch (e) { setError(e instanceof ApiError ? `${e.status}: ${e.message}` : String(e)); }
     finally { setLoading(false); }
   }, []);
 
