@@ -1790,11 +1790,17 @@ export interface BtaQueueEntry {
 }
 
 export const adminBtaApi = {
-  // Read current availability (reuses player status endpoint, admin token)
+  // Read current availability for the admin queue page.
+  // Calls the admin settings endpoint (accepts admin JWT) rather than the
+  // player-facing /api/admin-challenge/status which rejects admin tokens.
   getStatus: () =>
-    request<{ success: boolean; data: BtaStatus }>("/api/admin-challenge/status", {
-      token: getAdminToken(),
-    }),
+    request<{ success: boolean; data: { is_available: boolean; min_stake: number; max_stake: number; match_in_progress?: boolean } }>(
+      "/api/admin/beat-the-admin/settings",
+      { token: getAdminToken() }
+    ).then((res) => ({
+      ...res,
+      data: { ...res.data, match_in_progress: res.data.match_in_progress ?? false } as BtaStatus,
+    })),
 
   // Update availability + optionally stake range
   updateSettings: (settings: { is_available: boolean; min_stake?: number; max_stake?: number }) =>

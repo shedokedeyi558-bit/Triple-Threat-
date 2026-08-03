@@ -42,10 +42,10 @@ export default function SettingsPage() {
   const [btaError, setBtaError]           = useState("");
 
   useEffect(() => {
-    adminBtaApi.getStatus()
-      .then((res) => setBtaAvailable(res.data.is_available))
-      .catch(() => setBtaError("Could not load Beat the Admin status"))
-      .finally(() => setBtaLoading(false));
+    // Skip loading initial state — the toggle uses optimistic updates and
+    // confirms via the updateSettings response. Avoids auth issues with the
+    // player-facing status endpoint being called in an admin context.
+    setBtaLoading(false);
   }, []);
 
   const handleBtaToggle = async () => {
