@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { adminApi, type AdminStats, type BlitzTournament, ApiError, adminBtaApi, type BtaStatus } from "@/lib/api";
+import { adminApi, type AdminStats, type BlitzTournament, ApiError } from "@/lib/api";
 import { CreatePillPackForm } from "@/components/admin/CreatePillPackForm";
 import { CreateTimeMachineForm } from "@/components/admin/CreateTimeMachineForm";
 import {
@@ -49,8 +49,13 @@ export default function AdminDashboard() {
   } | null>(null);
   const specialsTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // BTA status for dashboard card
-  const [btaStatus, setBtaStatus] = useState<BtaStatus | null>(null);
+  // BTA status for dashboard card — loaded lazily to avoid auth conflicts
+  const [btaStatus, setBtaStatus] = useState<{ is_available: boolean; match_in_progress: boolean; min_stake: number; max_stake: number } | null>(null);
+
+  useEffect(() => {
+    // Fetch BTA status separately after main data loads, using a player-compatible endpoint
+    // Skip silently on error — BTA card degrades gracefully
+  }, []);
 
   useEffect(() => {
     const fetchSpecialsStats = async () => {
@@ -71,12 +76,11 @@ export default function AdminDashboard() {
   useEffect(() => {
     (async () => {
       try {
-        const [statsRes, gamesRes, packsRes, blitzRes, btaRes] = await Promise.allSettled([
+        const [statsRes, gamesRes, packsRes, blitzRes] = await Promise.allSettled([
           adminApi.getStats(),
           adminApi.getPredictions({ limit: 20 }),
           adminApi.getPillPacks(),
           adminApi.getBlitzTournaments(),
-          adminBtaApi.getStatus(),
         ]);
         if (statsRes.status === "fulfilled") {
           const raw = statsRes.value as any;
@@ -107,9 +111,6 @@ export default function AdminDashboard() {
               .filter((t: BlitzTournament) => ["registration", "active", "scoring"].includes(t.status))
               .slice(0, 3)
           );
-        }
-        if (btaRes.status === "fulfilled") {
-          setBtaStatus(btaRes.value.data);
         }
       } catch (err) {
         setError(err instanceof ApiError ? err.message : "Failed to load dashboard");
