@@ -36,7 +36,7 @@ const navGroups: NavGroup[] = [
       { href: "/admin/predictions", label: "Time Machine", icon: Clock, color: "var(--accent-violet)" },
       { href: "/admin/blitz", label: "Blitz", icon: Zap, color: "var(--accent-amber)" },
       { href: "/admin/beat-the-admin", label: "Beat the Admin", icon: Swords, color: "var(--accent-indigo)" },
-      { href: "/admin/treasure-box/settings", label: "Treasure Box", icon: Gift, color: "var(--accent-amber)" },
+      { href: "/admin/treasure-box", label: "Treasure Box", icon: Gift, color: "#E8A33D" },
     ],
   },
   {

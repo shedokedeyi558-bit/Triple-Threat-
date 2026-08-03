@@ -1845,6 +1845,21 @@ export interface TreasureBoxSettings {
   min_stake: number;
   max_stake: number;
   is_available: boolean;
+  rtp_percent?: number;
+}
+
+export interface AdminTreasureBox {
+  id: string;
+  total_slots: number;
+  pop_limit: number;
+  payout_multiplier: number;
+  status: "available" | "claimed" | "completed";
+  stake: number | null;
+  outcome: "won" | "lost" | null;
+  player_phone: string | null;
+  created_at: string;
+  claimed_at: string | null;
+  completed_at: string | null;
 }
 
 export const adminTreasureBoxApi = {
@@ -1858,6 +1873,24 @@ export const adminTreasureBoxApi = {
     request<{ success: boolean; data: TreasureBoxSettings }>(
       "/api/admin/treasure-box/settings",
       { method: "PUT", body: data, token: getAdminToken() }
+    ),
+
+  getBoxes: (params?: { status?: string; page?: number; limit?: number }) =>
+    request<{ success: boolean; data: { boxes: AdminTreasureBox[]; total: number; page: number; limit: number } }>(
+      "/api/admin/treasure-box/boxes",
+      { token: getAdminToken(), params: params as Record<string, string | number> }
+    ),
+
+  createBox: (treasure_slot_index: number) =>
+    request<{ success: boolean; data: AdminTreasureBox }>(
+      "/api/admin/treasure-box/boxes",
+      { method: "POST", body: { treasure_slot_index }, token: getAdminToken() }
+    ),
+
+  deleteBox: (boxId: string) =>
+    request<{ success: boolean; data: { message: string } }>(
+      `/api/admin/treasure-box/boxes/${boxId}`,
+      { method: "DELETE", token: getAdminToken() }
     ),
 };
 

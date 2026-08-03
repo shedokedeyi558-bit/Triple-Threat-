@@ -3,12 +3,12 @@
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { adminApi, type AdminStats, type BlitzTournament, ApiError } from "@/lib/api";
+import { adminApi, type AdminStats, type BlitzTournament, ApiError, adminTreasureBoxApi } from "@/lib/api";
 import { CreatePillPackForm } from "@/components/admin/CreatePillPackForm";
 import { CreateTimeMachineForm } from "@/components/admin/CreateTimeMachineForm";
 import {
   Users, AlertCircle, Banknote, Gamepad2,
-  ChevronRight, Package, Clock, Zap, Activity, Swords,
+  ChevronRight, Package, Clock, Zap, Activity, Swords, Gift,
 } from "lucide-react";
 
 interface RecentPack {
@@ -55,6 +55,15 @@ export default function AdminDashboard() {
   useEffect(() => {
     // Fetch BTA status separately after main data loads, using a player-compatible endpoint
     // Skip silently on error — BTA card degrades gracefully
+  }, []);
+
+  // Treasure Box available count for dashboard card
+  const [availableBoxCount, setAvailableBoxCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    adminTreasureBoxApi.getBoxes({ status: "available", limit: 1 })
+      .then((res) => setAvailableBoxCount(res.data.total))
+      .catch(() => setAvailableBoxCount(0));
   }, []);
 
   useEffect(() => {
@@ -469,6 +478,55 @@ export default function AdminDashboard() {
                     : btaStatus.match_in_progress ? "Match in progress"
                     : btaStatus.is_available ? "Online — awaiting challengers"
                     : "Offline"}
+                </p>
+              </div>
+            </div>
+            <ChevronRight size={16} style={{ color: "var(--text-muted)" }} />
+          </Link>
+        </motion.div>
+
+        {/* ── Desktop: Treasure Box ── */}
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
+          className="rounded-xl p-4 border hidden lg:block"
+          style={{ backgroundColor: "var(--bg-card)", borderColor: "var(--border-hairline)", borderLeft: "3px solid #E8A33D" }}>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Gift size={14} style={{ color: "#E8A33D" }} />
+              <h2 className="font-headline font-semibold text-sm" style={{ color: "var(--text-primary)" }}>Treasure Box</h2>
+            </div>
+            {availableBoxCount !== null && (
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded"
+                style={{ backgroundColor: "rgba(232,163,61,0.12)", color: "#E8A33D" }}>
+                {availableBoxCount} available
+              </span>
+            )}
+          </div>
+          <div className="rounded-lg p-3 mb-3" style={{ backgroundColor: "var(--bg-base)" }}>
+            <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+              {availableBoxCount === null
+                ? "Loading…"
+                : availableBoxCount === 0
+                ? "No boxes available — create one to go live"
+                : `${availableBoxCount} box${availableBoxCount !== 1 ? "es" : ""} waiting to be claimed`}
+            </p>
+          </div>
+          <Link href="/admin/treasure-box" className="text-xs font-semibold block text-center py-2 rounded-lg transition-colors"
+            style={{ color: "#E8A33D", backgroundColor: "rgba(232,163,61,0.12)" }}>
+            Manage Treasure Box →
+          </Link>
+        </motion.div>
+
+        {/* ── Mobile: Treasure Box ── */}
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
+          className="lg:hidden rounded-xl p-4 border"
+          style={{ backgroundColor: "var(--bg-card)", borderColor: "var(--border-hairline)", borderLeft: "3px solid #E8A33D" }}>
+          <Link href="/admin/treasure-box" className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Gift size={14} style={{ color: "#E8A33D" }} />
+              <div>
+                <h2 className="font-headline font-semibold text-sm" style={{ color: "var(--text-primary)" }}>Treasure Box</h2>
+                <p className="text-xs mt-0.5" style={{ color: "var(--text-secondary)" }}>
+                  {availableBoxCount === null ? "Loading…" : `${availableBoxCount} available`}
                 </p>
               </div>
             </div>
