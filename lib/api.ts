@@ -1829,3 +1829,28 @@ export const adminBtaApi = {
       { method: "POST", body: { move }, token: getAdminToken() }
     ),
 };
+
+// ─── TREASURE BOX ─────────────────────────────────────────────────────────────
+
+export interface TreasureBoxSettings {
+  total_slots: number;
+  pop_limit: number;
+  payout_multiplier: number;
+  min_stake: number;
+  max_stake: number;
+  is_available: boolean;
+}
+
+export const adminTreasureBoxApi = {
+  getSettings: () =>
+    request<{ success: boolean; data: TreasureBoxSettings }>(
+      "/api/admin/treasure-box/settings",
+      { token: getAdminToken() }
+    ),
+
+  saveSettings: (data: Partial<TreasureBoxSettings> & { force?: boolean }) =>
+    request<{ success: boolean; data: TreasureBoxSettings }>(
+      "/api/admin/treasure-box/settings",
+      { method: "PUT", body: data, token: getAdminToken() }
+    ),
+};
