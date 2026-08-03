@@ -1854,3 +1854,111 @@ export const adminTreasureBoxApi = {
       { method: "PUT", body: data, token: getAdminToken() }
     ),
 };
+
+// ─── TREASURE BOX (player) ────────────────────────────────────────────────────
+
+export interface TreasureBox {
+  id: string;
+  total_slots: number;
+  pop_limit: number;
+  payout_multiplier: number;
+  status: "available" | "claimed" | "completed";
+  created_at: string;
+}
+
+export interface TbAvailableResponse {
+  is_available: boolean;
+  min_stake: number;
+  max_stake: number;
+  boxes: TreasureBox[];
+}
+
+export interface TbClaimResponse {
+  box_id: string;
+  total_slots: number;
+  pop_limit: number;
+  payout_multiplier: number;
+  status: string;
+  stake: number;
+  claimed_at: string;
+  pops_used: number;
+  pops_remaining: number;
+  new_balance: number;
+  new_bonus_balance: number;
+}
+
+export interface TbPopResponse {
+  pop_number: number;
+  slot_index: number;
+  was_treasure: boolean;
+  game_over: boolean;
+  pops_remaining?: number;
+  outcome?: "won" | "lost";
+  payout?: number;
+  new_balance?: number;
+  treasure_slot_index?: number;
+}
+
+export interface TbBoxState {
+  box_id: string;
+  total_slots: number;
+  pop_limit: number;
+  payout_multiplier: number;
+  status: string;
+  stake: number;
+  payout: number | null;
+  outcome: "won" | "lost" | null;
+  claimed_at: string;
+  completed_at: string | null;
+  pops_used: number;
+  pops_remaining: number;
+  game_over: boolean;
+  treasure_slot_index?: number;
+  pops: { pop_number: number; slot_index: number; was_treasure: boolean; popped_at: string }[];
+}
+
+export interface TbHistoryEntry {
+  id: string;
+  total_slots: number;
+  pop_limit: number;
+  payout_multiplier: number;
+  status: string;
+  stake: number;
+  payout: number | null;
+  outcome: "won" | "lost" | null;
+  created_at: string;
+  claimed_at: string | null;
+  completed_at: string | null;
+}
+
+export const treasureBoxApi = {
+  getAvailable: () =>
+    request<{ success: boolean; data: TbAvailableResponse }>("/api/treasure-box/available", {
+      token: getToken(),
+    }),
+
+  claimBox: (boxId: string, stake: number) =>
+    request<{ success: boolean; data: TbClaimResponse }>(`/api/treasure-box/${boxId}/claim`, {
+      method: "POST",
+      body: { stake },
+      token: getToken(),
+    }),
+
+  popSlot: (boxId: string, slot_index: number) =>
+    request<{ success: boolean; data: TbPopResponse }>(`/api/treasure-box/${boxId}/pop`, {
+      method: "POST",
+      body: { slot_index },
+      token: getToken(),
+    }),
+
+  getBoxState: (boxId: string) =>
+    request<{ success: boolean; data: TbBoxState }>(`/api/treasure-box/${boxId}`, {
+      token: getToken(),
+    }),
+
+  getHistory: (page = 1, limit = 20) =>
+    request<{ success: boolean; data: { history: TbHistoryEntry[]; total: number; page: number; limit: number } }>(
+      "/api/treasure-box/history",
+      { token: getToken(), params: { page, limit } }
+    ),
+};
