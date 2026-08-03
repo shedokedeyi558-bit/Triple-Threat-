@@ -5,22 +5,21 @@ import { useApp } from "@/context/AppContext";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { Pill, Wallet, User, LogOut, Loader2, Zap, Swords, Gift } from "lucide-react";
+import { Wallet, User, LogOut, Loader2, Zap, Swords, Gift } from "lucide-react";
 import { removeToken } from "@/lib/api";
 import { useRouter } from "next/navigation";
 import { NotificationBell } from "@/components/ui/NotificationBell";
 
 const navItems = [
-  { href: "/pills",         label: "Pills",     icon: Pill },
-  { href: "/blitz",         label: "Blitz",     icon: Zap },
-  { href: "/treasure-box",  label: "Boxes",     icon: Gift },
-  { href: "/challenge",     label: "vs Admin",  icon: Swords },
-  { href: "/wallet",        label: "Wallet",    icon: Wallet },
-  { href: "/profile",       label: "Profile",   icon: User },
+  { href: "/treasure-box", label: "Boxes",    icon: Gift },
+  { href: "/blitz",        label: "Blitz",    icon: Zap },
+  { href: "/challenge",    label: "vs Admin", icon: Swords },
+  { href: "/wallet",       label: "Wallet",   icon: Wallet },
+  { href: "/profile",      label: "Profile",  icon: User },
 ];
 
 // Pages that render the app shell (player-facing)
-const SHELL_PATHS = ["/pills", "/wallet", "/profile", "/blitz", "/challenge", "/treasure-box"];
+const SHELL_PATHS = ["/wallet", "/profile", "/blitz", "/challenge", "/treasure-box"];
 
 // Pages that deliberately suppress the shell (full-screen immersive flows)
 const SHELL_SUPPRESS_PATHS = ["/pills/vip/", "/pills/play/", "/blitz/"];
@@ -105,7 +104,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   if (!showShell) return <>{children}</>;
 
   const isActive = (href: string) => {
-    if (href === "/pills")         return pathname === "/pills" || pathname.startsWith("/pills/");
     if (href === "/blitz")         return pathname === "/blitz";
     if (href === "/challenge")     return pathname === "/challenge" || pathname.startsWith("/challenge/");
     if (href === "/treasure-box")  return pathname === "/treasure-box" || pathname.startsWith("/treasure-box/");
@@ -129,7 +127,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-card)" }}>
         {/* Logo */}
         <div className="px-3 py-5 border-b flex items-center justify-center" style={{ borderColor: "var(--border-hairline)" }}>
-          <Link href="/pills" className="flex items-center justify-center w-8 h-8">
+          <Link href="/treasure-box" className="flex items-center justify-center w-8 h-8">
             <Image src="/bitlyfe-mark.svg" alt="BitLyfe" width={28} height={28} priority />
           </Link>
         </div>
@@ -198,7 +196,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {/* Top bar — mobile only */}
         <header className="lg:hidden sticky top-0 z-30 flex items-center justify-between px-4 py-3 border-b"
           style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-base)" }}>
-          <Link href="/pills" className="flex items-center gap-2">
+          <Link href="/treasure-box" className="flex items-center gap-2">
             <Image src="/bitlyfe-mark.svg" alt="BitLyfe" width={36} height={36} priority />
           </Link>
           <div className="flex items-center gap-3">
