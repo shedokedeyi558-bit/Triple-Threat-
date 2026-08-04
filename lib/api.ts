@@ -1787,47 +1787,38 @@ export interface BtaQueueEntry {
 }
 
 export const adminBtaApi = {
-  // Read current availability for the admin queue page.
-  // Calls the admin settings endpoint (accepts admin JWT) rather than the
-  // player-facing /api/admin-challenge/status which rejects admin tokens.
   getStatus: () =>
-    request<{ success: boolean; data: { is_available: boolean; min_stake: number; max_stake: number; match_in_progress?: boolean } }>(
+    request<{ is_available: boolean; min_stake: number; max_stake: number; match_in_progress?: boolean }>(
       "/api/admin/beat-the-admin/settings",
       { token: getAdminToken() }
-    ).then((res) => ({
-      ...res,
-      data: { ...res.data, match_in_progress: res.data.match_in_progress ?? false } as BtaStatus,
-    })),
+    ).then((res) => ({ ...res, match_in_progress: res.match_in_progress ?? false }) as BtaStatus),
 
-  // Update availability + optionally stake range
   updateSettings: (settings: { is_available: boolean; min_stake?: number; max_stake?: number }) =>
-    request<{ success: boolean; data: { is_available: boolean; min_stake: number; max_stake: number } }>(
+    request<{ is_available: boolean; min_stake: number; max_stake: number }>(
       "/api/admin/beat-the-admin/settings",
       { method: "PUT", body: settings, token: getAdminToken() }
     ),
 
-  // Pending request queue
   getQueue: () =>
-    request<{ success: boolean; data: { requests: BtaQueueEntry[] } }>(
+    request<{ requests: BtaQueueEntry[] }>(
       "/api/admin/beat-the-admin/queue",
       { token: getAdminToken() }
     ),
 
   approveRequest: (requestId: string) =>
-    request<{ success: boolean; data: { request_id: string; status: string } }>(
+    request<{ request_id: string; status: string }>(
       `/api/admin/beat-the-admin/requests/${requestId}/approve`,
       { method: "POST", token: getAdminToken() }
     ),
 
   rejectRequest: (requestId: string) =>
-    request<{ success: boolean; data: { request_id: string; status: string } }>(
+    request<{ request_id: string; status: string }>(
       `/api/admin/beat-the-admin/requests/${requestId}/reject`,
       { method: "POST", token: getAdminToken() }
     ),
 
-  // Admin submits their RPS move for an active match
   submitMove: (matchId: string, move: BtaMove) =>
-    request<{ success: boolean; data: { winner: BtaWinner; admin_move: BtaMove; player_move: BtaMove; payout: number } }>(
+    request<{ winner: BtaWinner; admin_move: BtaMove; player_move: BtaMove; payout: number }>(
       `/api/admin/beat-the-admin/match/${matchId}/move`,
       { method: "POST", body: { move }, token: getAdminToken() }
     ),
@@ -1861,31 +1852,31 @@ export interface AdminTreasureBox {
 
 export const adminTreasureBoxApi = {
   getSettings: () =>
-    request<{ success: boolean; data: TreasureBoxSettings }>(
+    request<TreasureBoxSettings>(
       "/api/admin/treasure-box/settings",
       { token: getAdminToken() }
     ),
 
   saveSettings: (data: Partial<TreasureBoxSettings> & { force?: boolean }) =>
-    request<{ success: boolean; data: TreasureBoxSettings }>(
+    request<TreasureBoxSettings>(
       "/api/admin/treasure-box/settings",
       { method: "PUT", body: data, token: getAdminToken() }
     ),
 
   getBoxes: (params?: { status?: string; page?: number; limit?: number }) =>
-    request<{ success: boolean; data: { boxes: AdminTreasureBox[]; total: number; page: number; limit: number } }>(
+    request<{ boxes: AdminTreasureBox[]; total: number; page: number; limit: number }>(
       "/api/admin/treasure-box/boxes",
       { token: getAdminToken(), params: params as Record<string, string | number> }
     ),
 
   createBox: (treasure_slot_index: number) =>
-    request<{ success: boolean; data: AdminTreasureBox }>(
+    request<AdminTreasureBox>(
       "/api/admin/treasure-box/boxes",
       { method: "POST", body: { treasure_slot_index }, token: getAdminToken() }
     ),
 
   deleteBox: (boxId: string) =>
-    request<{ success: boolean; data: { message: string } }>(
+    request<{ message: string }>(
       `/api/admin/treasure-box/boxes/${boxId}`,
       { method: "DELETE", token: getAdminToken() }
     ),
@@ -1969,31 +1960,31 @@ export interface TbHistoryEntry {
 
 export const treasureBoxApi = {
   getAvailable: () =>
-    request<{ success: boolean; data: TbAvailableResponse }>("/api/treasure-box/available", {
+    request<TbAvailableResponse>("/api/treasure-box/available", {
       token: getToken(),
     }),
 
   claimBox: (boxId: string, stake: number) =>
-    request<{ success: boolean; data: TbClaimResponse }>(`/api/treasure-box/${boxId}/claim`, {
+    request<TbClaimResponse>(`/api/treasure-box/${boxId}/claim`, {
       method: "POST",
       body: { stake },
       token: getToken(),
     }),
 
   popSlot: (boxId: string, slot_index: number) =>
-    request<{ success: boolean; data: TbPopResponse }>(`/api/treasure-box/${boxId}/pop`, {
+    request<TbPopResponse>(`/api/treasure-box/${boxId}/pop`, {
       method: "POST",
       body: { slot_index },
       token: getToken(),
     }),
 
   getBoxState: (boxId: string) =>
-    request<{ success: boolean; data: TbBoxState }>(`/api/treasure-box/${boxId}`, {
+    request<TbBoxState>(`/api/treasure-box/${boxId}`, {
       token: getToken(),
     }),
 
   getHistory: (page = 1, limit = 20) =>
-    request<{ success: boolean; data: { history: TbHistoryEntry[]; total: number; page: number; limit: number } }>(
+    request<{ history: TbHistoryEntry[]; total: number; page: number; limit: number }>(
       "/api/treasure-box/history",
       { token: getToken(), params: { page, limit } }
     ),

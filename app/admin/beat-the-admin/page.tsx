@@ -37,8 +37,8 @@ function AvailabilityToggle({ status, onToggled }: {
     setToggling(true);
     try {
       const res = await adminBtaApi.updateSettings({ is_available: next });
-      setLocalAvail(res.data.is_available);
-      onToggled(res.data.is_available);
+      setLocalAvail(res.is_available);
+      onToggled(res.is_available);
     } catch {
       setLocalAvail(!next); // revert
     } finally {
@@ -195,7 +195,7 @@ function ActiveMatchPanel({ req, onMoveSubmitted }: {
     setSubmitting(true); setErr("");
     try {
       const res = await adminBtaApi.submitMove(matchId, selectedMove);
-      setResult(res.data);
+      setResult(res);
       setTimeout(onMoveSubmitted, 2500);
     } catch (e) { setErr(e instanceof ApiError ? e.message : "Failed to submit move"); }
     finally { setSubmitting(false); }
@@ -279,8 +279,8 @@ export default function AdminBeatTheAdminPage() {
         adminBtaApi.getStatus(),
         adminBtaApi.getQueue(),
       ]);
-      if (statusRes.status === "fulfilled") setStatus(statusRes.value.data);
-      if (queueRes.status === "fulfilled")  setQueue(queueRes.value.data?.requests ?? []);
+      if (statusRes.status === "fulfilled") setStatus(statusRes.value);
+      if (queueRes.status === "fulfilled")  setQueue(queueRes.value?.requests ?? []);
       if (statusRes.status === "rejected" && queueRes.status === "rejected") {
         setError("Failed to load — check admin session");
       }

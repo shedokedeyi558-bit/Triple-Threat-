@@ -434,7 +434,7 @@ export default function TreasureBoxPage() {
     setListLoading(true);
     setListError("");
     treasureBoxApi.getAvailable()
-      .then((res) => setAvailability(res.data))
+      .then((res) => setAvailability(res))
       .catch((e) => setListError(e instanceof ApiError ? e.message : "Failed to load boxes"))
       .finally(() => setListLoading(false));
   }, []);
@@ -443,7 +443,7 @@ export default function TreasureBoxPage() {
     if (!appState.isAuthenticated) return;
     loadAvailable();
     treasureBoxApi.getHistory()
-      .then((res) => setHistory(res.data.history))
+      .then((res) => setHistory(res.history))
       .catch(() => {/* silent */})
       .finally(() => setHistoryLoading(false));
   }, [appState.isAuthenticated, loadAvailable]);
@@ -452,7 +452,7 @@ export default function TreasureBoxPage() {
   const handleClaim = async (boxId: string, stake: number) => {
     try {
       const res = await treasureBoxApi.claimBox(boxId, stake);
-      const claim: TbClaimResponse = res.data;
+      const claim: TbClaimResponse = res;
 
       // Update balance in global state
       dispatch({
@@ -493,7 +493,7 @@ export default function TreasureBoxPage() {
     if (phase !== "play" || !playState) return;
     treasureBoxApi.getBoxState(playState.boxId)
       .then((res) => {
-        const s: TbBoxState = res.data;
+        const s: TbBoxState = res;
         // Reconstruct poppedSlots from pops history
         const rebuilt = new Map<number, "empty" | "treasure">();
         for (const pop of s.pops) {
@@ -524,7 +524,7 @@ export default function TreasureBoxPage() {
     setPopError("");
     try {
       const res = await treasureBoxApi.popSlot(playState.boxId, slotIndex);
-      const pop: TbPopResponse = res.data;
+      const pop: TbPopResponse = res;
 
       setPoppedSlots((prev) => {
         const next = new Map(prev);
@@ -570,7 +570,7 @@ export default function TreasureBoxPage() {
         if (e.code === "GAME_ALREADY_OVER") {
           // Re-sync with server
           treasureBoxApi.getBoxState(playState.boxId).then((r) => {
-            const s = r.data;
+            const s = r;
             if (s.game_over) {
               setResultState({
                 outcome: s.outcome ?? "lost",

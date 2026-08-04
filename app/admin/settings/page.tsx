@@ -57,7 +57,7 @@ export default function SettingsPage() {
     setBtaAvailable(next);
     try {
       const res = await adminBtaApi.updateSettings({ is_available: next });
-      setBtaAvailable(res.data.is_available);
+      setBtaAvailable(res.is_available);
     } catch (err) {
       // Revert on failure
       setBtaAvailable(!next);

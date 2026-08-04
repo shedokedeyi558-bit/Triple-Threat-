@@ -47,7 +47,7 @@ function SettingsSection({ onSaved }: { onSaved: () => void }) {
 
   useEffect(() => {
     adminTreasureBoxApi.getSettings()
-      .then((r) => setSettings(r.data))
+      .then((r) => setSettings(r))
       .catch((e) => setError(e instanceof ApiError ? `${e.status}: ${e.message}` : String(e)))
       .finally(() => setLoading(false));
   }, []);
@@ -60,7 +60,7 @@ function SettingsSection({ onSaved }: { onSaved: () => void }) {
     setSaving(true); setError(""); setUnsafeMsg("");
     try {
       const res = await adminTreasureBoxApi.saveSettings({ ...settings, ...(force ? { force: true } : {}) });
-      setSettings(res.data);
+      setSettings(res);
       setSaved(true); setShowForce(false);
       setTimeout(() => setSaved(false), 2500);
       onSaved();
@@ -218,8 +218,8 @@ function BoxesSection() {
     setLoading(true);
     try {
       const res = await adminTreasureBoxApi.getBoxes({ limit: 50 });
-      setBoxes(res.data.boxes);
-      setTotal(res.data.total);
+      setBoxes(res.boxes);
+      setTotal(res.total);
     } catch (e) { setError(e instanceof ApiError ? `${e.status}: ${e.message}` : String(e)); }
     finally { setLoading(false); }
   }, []);
@@ -231,7 +231,7 @@ function BoxesSection() {
     setCreating(true); setCreateError("");
     try {
       const res = await adminTreasureBoxApi.createBox(Number(slotInput));
-      setBoxes((prev) => [res.data, ...prev]);
+      setBoxes((prev) => [res, ...prev]);
       setTotal((t) => t + 1);
       setSlotInput("");
     } catch (e) { setCreateError(e instanceof ApiError ? e.message : "Create failed"); }

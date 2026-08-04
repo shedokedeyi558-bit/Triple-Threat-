@@ -62,7 +62,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     adminTreasureBoxApi.getBoxes({ status: "available", limit: 1 })
-      .then((res) => setAvailableBoxCount(res.data.total))
+      .then((res) => setAvailableBoxCount(res.total))
       .catch(() => setAvailableBoxCount(0));
   }, []);
 
