@@ -165,13 +165,12 @@ export default function TreasureBoxSettingsPage() {
   useEffect(() => {
     adminTreasureBoxApi.getSettings()
       .then((res) => {
-        const s = res.data;
-        setTotalSlots(s.total_slots);
-        setPopLimit(s.pop_limit);
-        setPayoutMultiplier(s.payout_multiplier);
-        setMinStake(s.min_stake);
-        setMaxStake(s.max_stake);
-        setIsAvailable(s.is_available);
+        setTotalSlots(res.total_slots);
+        setPopLimit(res.pop_limit);
+        setPayoutMultiplier(res.payout_multiplier);
+        setMinStake(res.min_stake);
+        setMaxStake(res.max_stake);
+        setIsAvailable(res.is_available);
       })
       .catch((err) => setLoadErr(err instanceof ApiError ? err.message : "Failed to load settings"))
       .finally(() => setLoaded(true));
