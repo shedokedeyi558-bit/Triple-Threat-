@@ -145,7 +145,7 @@ function BoxCard({
           fontSize: 12, fontWeight: 700, cursor: "pointer", flexShrink: 0,
         }}
       >
-        {selected ? "Selected" : "Claim"}
+        {selected ? "Staking…" : "Claim"}
       </button>
     </motion.div>
   );
@@ -165,7 +165,7 @@ function StakePanel({
   onClaim: (stake: number) => Promise<void>;
   onCancel: () => void;
 }) {
-  const [stake, setStake] = useState(minStake);
+  const [stake, setStake] = useState<number | "">(minStake);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
 
@@ -176,14 +176,16 @@ function StakePanel({
     { label: "Max", value: maxStake },
   ];
 
-  const preview = stake * box.payout_multiplier;
+  const stakeNum = stake === "" ? 0 : Number(stake);
+  const stakeValid = stakeNum >= minStake && stakeNum <= maxStake;
+  const preview = stakeNum * box.payout_multiplier;
 
   const handleClaim = async () => {
-    if (busy) return;
+    if (busy || !stakeValid) return;
     setBusy(true);
     setErr("");
     try {
-      await onClaim(stake);
+      await onClaim(stakeNum);
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Something went wrong");
       setBusy(false);
@@ -223,28 +225,37 @@ function StakePanel({
         ))}
       </div>
 
-      {/* Number input */}
+      {/* Number input — free-type, clamped only on blur */}
       <input
         type="number"
         value={stake}
-        min={minStake}
-        max={maxStake}
-        onChange={(e) => {
+        placeholder={`${minStake}–${maxStake}`}
+        onChange={(e) => setStake(e.target.value === "" ? "" : Number(e.target.value))}
+        onBlur={(e) => {
           const v = Number(e.target.value);
-          if (!isNaN(v)) setStake(Math.min(maxStake, Math.max(minStake, v)));
+          if (!isNaN(v) && e.target.value !== "") {
+            setStake(Math.min(maxStake, Math.max(minStake, v)));
+          }
         }}
         style={{
-          width: "100%", padding: "12px 14px", borderRadius: 10, border: "1px solid rgba(255,255,255,0.1)",
+          width: "100%", padding: "12px 14px", borderRadius: 10,
+          border: `1px solid ${!stakeValid && stake !== "" ? "rgba(239,68,68,0.4)" : "rgba(255,255,255,0.1)"}`,
           backgroundColor: "rgba(255,255,255,0.04)", color: "var(--text-primary)",
           fontSize: 16, fontFamily: "'JetBrains Mono', monospace", fontWeight: 700,
-          outline: "none", boxSizing: "border-box", marginBottom: 10,
+          outline: "none", boxSizing: "border-box", marginBottom: 6,
         }}
       />
+      {/* Inline range hint */}
+      <p style={{ fontSize: 10, color: "var(--text-muted)", margin: "0 0 10px" }}>
+        Min ₦{fmt(minStake)} · Max ₦{fmt(maxStake)}
+      </p>
 
       {/* Payout preview */}
-      <p style={{ fontSize: 12, color: "rgba(255,184,77,0.7)", margin: "0 0 14px" }}>
-        If you find the treasure: <strong style={{ color: "#FFB84D" }}>₦{fmt(preview)}</strong>
-      </p>
+      {stakeValid && (
+        <p style={{ fontSize: 12, color: "rgba(255,184,77,0.7)", margin: "0 0 14px" }}>
+          If you find the treasure: <strong style={{ color: "#FFB84D" }}>₦{fmt(preview)}</strong>
+        </p>
+      )}
 
       {/* Error */}
       {err && (
@@ -270,12 +281,12 @@ function StakePanel({
         </button>
         <button
           onClick={handleClaim}
-          disabled={busy}
+          disabled={busy || !stakeValid}
           style={{
             flex: 1, padding: "12px 0", borderRadius: 12, border: "none",
-            background: "linear-gradient(135deg,#FFB84D,#B87A17)",
-            color: "#08090D", fontSize: 14, fontWeight: 800,
-            cursor: busy ? "not-allowed" : "pointer", opacity: busy ? 0.7 : 1,
+            background: stakeValid ? "linear-gradient(135deg,#FFB84D,#B87A17)" : "rgba(255,255,255,0.08)",
+            color: stakeValid ? "#08090D" : "var(--text-muted)", fontSize: 14, fontWeight: 800,
+            cursor: busy || !stakeValid ? "not-allowed" : "pointer", opacity: busy ? 0.7 : 1,
             display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
           }}
         >
@@ -684,7 +695,7 @@ export default function TreasureBoxPage() {
                       <BoxCard
                         box={box}
                         selected={selectedBox?.id === box.id}
-                        onSelect={() => setSelectedBox(selectedBox?.id === box.id ? null : box)}
+                        onSelect={() => setSelectedBox(box)}
                       />
                       <AnimatePresence>
                         {selectedBox?.id === box.id && (
