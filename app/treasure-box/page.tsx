@@ -165,7 +165,8 @@ function StakePanel({
   onClaim: (stake: number) => Promise<void>;
   onCancel: () => void;
 }) {
-  const [stake, setStake] = useState<number | "">(minStake);
+  // Raw string state — lets player type freely, no mid-keystroke clamping
+  const [rawStake, setRawStake] = useState(String(minStake));
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
 
@@ -176,9 +177,10 @@ function StakePanel({
     { label: "Max", value: maxStake },
   ];
 
-  const stakeNum = stake === "" ? 0 : Number(stake);
-  const stakeValid = stakeNum >= minStake && stakeNum <= maxStake;
-  const preview = stakeNum * box.payout_multiplier;
+  // Parse for validation — NaN or empty = invalid
+  const stakeNum = rawStake.trim() === "" ? NaN : Number(rawStake);
+  const stakeValid = !isNaN(stakeNum) && stakeNum >= minStake && stakeNum <= maxStake;
+  const outOfRange = !isNaN(stakeNum) && rawStake.trim() !== "" && !stakeValid;
 
   const handleClaim = async () => {
     if (busy || !stakeValid) return;
@@ -207,16 +209,16 @@ function StakePanel({
         Set your stake for this box
       </p>
 
-      {/* Quick chips */}
+      {/* Quick chips — tap fills input and player can edit further */}
       <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
         {chips.map((c) => (
           <button
             key={c.label}
-            onClick={() => setStake(c.value)}
+            onClick={() => setRawStake(String(c.value))}
             style={{
               padding: "6px 12px", borderRadius: 8, border: "none",
-              background: stake === c.value ? "rgba(255,184,77,0.2)" : "rgba(255,255,255,0.06)",
-              color: stake === c.value ? "#FFB84D" : "var(--text-muted)",
+              background: rawStake === String(c.value) ? "rgba(255,184,77,0.2)" : "rgba(255,255,255,0.06)",
+              color: rawStake === String(c.value) ? "#FFB84D" : "var(--text-muted)",
               fontSize: 11, fontWeight: 700, cursor: "pointer",
             }}
           >
@@ -225,39 +227,43 @@ function StakePanel({
         ))}
       </div>
 
-      {/* Number input — free-type, clamped only on blur */}
+      {/* Fully free-type text input — player can clear and type any number */}
       <input
-        type="number"
-        value={stake}
-        placeholder={`${minStake}–${maxStake}`}
-        onChange={(e) => setStake(e.target.value === "" ? "" : Number(e.target.value))}
-        onBlur={(e) => {
-          const v = Number(e.target.value);
-          if (!isNaN(v) && e.target.value !== "") {
-            setStake(Math.min(maxStake, Math.max(minStake, v)));
-          }
+        type="text"
+        inputMode="numeric"
+        pattern="[0-9]*"
+        value={rawStake}
+        placeholder={`e.g. ${minStake}`}
+        onChange={(e) => {
+          // Only allow digits and one optional leading zero
+          const raw = e.target.value.replace(/[^0-9]/g, "");
+          setRawStake(raw);
         }}
         style={{
           width: "100%", padding: "12px 14px", borderRadius: 10,
-          border: `1px solid ${!stakeValid && stake !== "" ? "rgba(239,68,68,0.4)" : "rgba(255,255,255,0.1)"}`,
-          backgroundColor: "rgba(255,255,255,0.04)", color: "var(--text-primary)",
+          border: `1px solid ${outOfRange ? "rgba(239,68,68,0.45)" : "rgba(255,255,255,0.12)"}`,
+          backgroundColor: "rgba(255,255,255,0.05)", color: "var(--text-primary)",
           fontSize: 16, fontFamily: "'JetBrains Mono', monospace", fontWeight: 700,
-          outline: "none", boxSizing: "border-box", marginBottom: 6,
+          outline: "none", boxSizing: "border-box", marginBottom: 4,
         }}
       />
-      {/* Inline range hint */}
-      <p style={{ fontSize: 10, color: "var(--text-muted)", margin: "0 0 10px" }}>
-        Min ₦{fmt(minStake)} · Max ₦{fmt(maxStake)}
+
+      {/* Range hint / inline validation */}
+      <p style={{ fontSize: 10, margin: "0 0 10px", color: outOfRange ? "#f87171" : "var(--text-muted)" }}>
+        {outOfRange
+          ? `Must be between ₦${fmt(minStake)} and ₦${fmt(maxStake)}`
+          : `Min ₦${fmt(minStake)} · Max ₦${fmt(maxStake)}`}
       </p>
 
-      {/* Payout preview */}
+      {/* Payout preview — only shown when valid */}
       {stakeValid && (
         <p style={{ fontSize: 12, color: "rgba(255,184,77,0.7)", margin: "0 0 14px" }}>
-          If you find the treasure: <strong style={{ color: "#FFB84D" }}>₦{fmt(preview)}</strong>
+          If you find the treasure:{" "}
+          <strong style={{ color: "#FFB84D" }}>₦{fmt(stakeNum * box.payout_multiplier)}</strong>
         </p>
       )}
 
-      {/* Error */}
+      {/* Claim error */}
       {err && (
         <div style={{
           display: "flex", alignItems: "flex-start", gap: 8, padding: "10px 12px",
@@ -284,7 +290,7 @@ function StakePanel({
           disabled={busy || !stakeValid}
           style={{
             flex: 1, padding: "12px 0", borderRadius: 12, border: "none",
-            background: stakeValid ? "linear-gradient(135deg,#FFB84D,#B87A17)" : "rgba(255,255,255,0.08)",
+            background: stakeValid ? "linear-gradient(135deg,#FFB84D,#B87A17)" : "rgba(255,255,255,0.06)",
             color: stakeValid ? "#08090D" : "var(--text-muted)", fontSize: 14, fontWeight: 800,
             cursor: busy || !stakeValid ? "not-allowed" : "pointer", opacity: busy ? 0.7 : 1,
             display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
