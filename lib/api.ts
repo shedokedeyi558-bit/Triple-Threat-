@@ -1733,22 +1733,19 @@ export interface BtaHistoryEntry {
 
 export const beatTheAdminApi = {
   getStatus: () =>
-    request<{ success: boolean; data: BtaStatus }>("/api/admin-challenge/status", {
+    request<BtaStatus>("/api/admin-challenge/status", {
       token: getToken(),
     }),
 
   requestChallenge: (stake: number, game_type = "rps") =>
     request<{
-      success: boolean;
-      data: {
-        request_id: string;
-        game_type: string;
-        stake: number;
-        status: "pending";
-        expires_at: string;
-        new_balance: number;
-        new_bonus_balance: number;
-      };
+      request_id: string;
+      game_type: string;
+      stake: number;
+      status: "pending";
+      expires_at: string;
+      new_balance: number;
+      new_bonus_balance: number;
     }>("/api/admin-challenge/request", {
       method: "POST",
       body: { game_type, stake },
@@ -1756,19 +1753,19 @@ export const beatTheAdminApi = {
     }),
 
   getMyRequest: () =>
-    request<{ success: boolean; data: BtaMyRequestResponse }>("/api/admin-challenge/my-request", {
+    request<BtaMyRequestResponse>("/api/admin-challenge/my-request", {
       token: getToken(),
     }),
 
   submitMove: (requestId: string, move: BtaMove) =>
-    request<{ success: boolean; data: BtaMoveResponse }>("/api/admin-challenge/move", {
+    request<BtaMoveResponse>("/api/admin-challenge/move", {
       method: "POST",
       body: { requestId, move },
       token: getToken(),
     }),
 
   getHistory: (page = 1, limit = 20) =>
-    request<{ success: boolean; data: { history: BtaHistoryEntry[]; total: number; page: number; limit: number } }>(
+    request<{ history: BtaHistoryEntry[]; total: number; page: number; limit: number }>(
       "/api/admin-challenge/history",
       { token: getToken(), params: { page, limit } }
     ),

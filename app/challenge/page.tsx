@@ -266,7 +266,7 @@ export default function ChallengePage() {
     setHistoryLoading(true);
     try {
       const res = await beatTheAdminApi.getHistory();
-      setHistory(res.data?.history ?? []);
+      setHistory(res?.history ?? []);
     } catch { /* silent */ }
     finally { setHistoryLoading(false); }
   }, []);
@@ -275,11 +275,9 @@ export default function ChallengePage() {
   const fetchStatus = useCallback(async () => {
     try {
       const res = await beatTheAdminApi.getStatus();
-      setStatus(res.data);
-      // Clear any previous fetch error once we get a good response
+      setStatus(res);
       setError((prev) => prev === "Could not load status — check connection and try again." ? "" : prev);
     } catch (err) {
-      // Surface the error to the user so the lobby isn't silently blank
       setError("Could not load status — check connection and try again.");
     }
   }, []);
@@ -288,7 +286,7 @@ export default function ChallengePage() {
   const pollMyRequest = useCallback(async () => {
     try {
       const res = await beatTheAdminApi.getMyRequest();
-      const { request, match } = res.data;
+      const { request, match } = res;
 
       if (!request) {
         // Transitioned from pending → null: expired or rejected
@@ -396,18 +394,17 @@ export default function ChallengePage() {
     setError("");
     try {
       const res = await beatTheAdminApi.requestChallenge(Number(stake), GAME_TYPE);
-      const { data } = res;
-      // Update balance immediately
-      dispatch({ type: "UPDATE_BALANCE", balance: data.new_balance, bonus_balance: data.new_bonus_balance });
+      // request() already unwraps json.data, so res IS the payload directly
+      dispatch({ type: "UPDATE_BALANCE", balance: res.new_balance, bonus_balance: res.new_bonus_balance });
       setActiveRequest({
-        request_id: data.request_id,
-        game_type: data.game_type,
-        stake: data.stake,
+        request_id: res.request_id,
+        game_type: res.game_type,
+        stake: res.stake,
         status: "pending",
-        expires_at: data.expires_at,
-        time_remaining_seconds: Math.max(0, Math.floor((new Date(data.expires_at).getTime() - Date.now()) / 1000)),
+        expires_at: res.expires_at,
+        time_remaining_seconds: Math.max(0, Math.floor((new Date(res.expires_at).getTime() - Date.now()) / 1000)),
       });
-      setCountdown(Math.max(0, Math.floor((new Date(data.expires_at).getTime() - Date.now()) / 1000)));
+      setCountdown(Math.max(0, Math.floor((new Date(res.expires_at).getTime() - Date.now()) / 1000)));
       setPhase("pending");
     } catch (err) {
       setError(codeToMessage(err));
@@ -423,14 +420,12 @@ export default function ChallengePage() {
     setError("");
     try {
       const res = await beatTheAdminApi.submitMove(activeRequest.request_id, selectedMove);
-      const { data } = res;
-      if (data.match_resolved) {
+      if (res.match_resolved) {
         clearRequestPolling();
-        setResult(data);
+        setResult(res);
         setPhase("result");
         fetchHistory();
       } else {
-        // Admin hasn't played yet — keep polling my-request
         setPhase("waiting_admin");
       }
     } catch (err) {
