@@ -228,6 +228,8 @@ function BoxesSection() {
 
   const handleCreate = async () => {
     if (slotInput === "") { setCreateError("Enter a slot index"); return; }
+    const idx = Number(slotInput);
+    if (!Number.isInteger(idx) || idx < 0) { setCreateError("Slot index must be a non-negative integer"); return; }
     setCreating(true); setCreateError("");
     try {
       const res = await adminTreasureBoxApi.createBox(Number(slotInput));
@@ -262,7 +264,7 @@ function BoxesSection() {
             <label className="block text-xs mb-1.5" style={{ color: "var(--text-secondary)" }}>
               Treasure slot index (0-based)
             </label>
-            <input type="number" min="0" placeholder="e.g. 7" value={slotInput}
+            <input type="number" placeholder="e.g. 7" value={slotInput}
               onChange={(e) => setSlotInput(e.target.value === "" ? "" : Number(e.target.value))}
               className={inp} style={inpStyle} />
             {createError && <p className="text-xs mt-1" style={{ color: "#f87171" }}>{createError}</p>}
