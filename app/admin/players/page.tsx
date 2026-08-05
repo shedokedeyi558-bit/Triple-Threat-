@@ -105,7 +105,9 @@ function PlayerRow({ player }: { player: AdminPlayer }) {
           ) : (
             <p style={{ fontSize: 10, color: "var(--text-muted)", margin: 0 }}>—</p>
           )}
-          <p style={{ fontSize: 9, color: "var(--text-muted)", margin: 0 }}>{player.games_played}g</p>
+          {player.games_played > 0 && (
+            <p style={{ fontSize: 9, color: "var(--text-muted)", margin: 0 }}>{player.games_played} games</p>
+          )}
         </div>
 
         {/* Chevron */}
@@ -117,24 +119,6 @@ function PlayerRow({ player }: { player: AdminPlayer }) {
       {/* ── Expanded detail ── */}
       {expanded && (
         <div style={{ borderTop: "1px solid var(--border-hairline)", padding: "12px 14px", display: "flex", flexDirection: "column", gap: 10 }}>
-          {/* Stats grid */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}>
-            {[
-              { label: "Played",    value: player.games_played },
-              { label: "Won",       value: player.games_won, color: "var(--accent-amber)" },
-              { label: "Win rate",  value: wr !== null ? `${wr}%` : "—", color: wr !== null ? winRateColor(wr) : undefined },
-              { label: "Total won", value: fmtNaira(player.total_won), color: "var(--accent-amber)" },
-            ].map(({ label, value, color }) => (
-              <div key={label} style={{ borderRadius: 8, padding: "8px 6px", textAlign: "center",
-                backgroundColor: "var(--bg-base)", border: "1px solid var(--border-hairline)" }}>
-                <p style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em",
-                  color: "var(--text-muted)", margin: "0 0 3px" }}>{label}</p>
-                <p style={{ fontSize: 12, fontWeight: 800, fontFamily: "monospace",
-                  color: color ?? "var(--text-primary)", margin: 0 }}>{value}</p>
-              </div>
-            ))}
-          </div>
-
           {/* Meta row */}
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", fontSize: 11, color: "var(--text-muted)" }}>
             <span>Joined {fmtDate(player.created_at)}</span>
