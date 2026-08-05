@@ -23,12 +23,6 @@ function fmtNaira(n: number) {
   return `₦${n.toLocaleString()}`;
 }
 
-function winRateColor(wr: number): string {
-  if (wr >= 60) return "#4ADE80";
-  if (wr >= 30) return "var(--accent-amber)";
-  return "var(--text-muted)";
-}
-
 type SortKey = "balance" | "created_at" | "games_played" | "total_won";
 type SortDir = "asc" | "desc";
 
@@ -49,9 +43,6 @@ function PlayerRow({ player }: { player: AdminPlayer }) {
   const [expanded, setExpanded] = useState(false);
   const isBanned = player.status === "banned";
   const balance = player.real_balance ?? player.balance;
-  const wr = player.games_played > 0
-    ? Math.round((player.games_won / player.games_played) * 100)
-    : null;
 
   return (
     <div style={{
@@ -93,20 +84,6 @@ function PlayerRow({ player }: { player: AdminPlayer }) {
             <p style={{ fontSize: 9, color: "var(--accent-violet)", margin: 0 }}>
               +{fmtNaira(player.bonus_balance)} bonus
             </p>
-          )}
-        </div>
-
-        {/* Win rate */}
-        <div style={{ textAlign: "right", flexShrink: 0, minWidth: 36 }}>
-          {wr !== null ? (
-            <p style={{ fontSize: 12, fontWeight: 700, fontFamily: "monospace", color: winRateColor(wr), margin: 0 }}>
-              {wr}%
-            </p>
-          ) : (
-            <p style={{ fontSize: 10, color: "var(--text-muted)", margin: 0 }}>—</p>
-          )}
-          {player.games_played > 0 && (
-            <p style={{ fontSize: 9, color: "var(--text-muted)", margin: 0 }}>{player.games_played} games</p>
           )}
         </div>
 
