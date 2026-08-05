@@ -387,10 +387,10 @@ export interface AdminPlayerDetail extends AdminPlayer {
   ban_reason?: string | null;
   ban_history?: { reason: string; banned_at: string; banned_by?: string }[];
   referred_by?: { id: string; phone: string; name: string | null } | null;
-  stats?: {
+  stats: {
     games_played: number;
     games_won: number;
-    win_rate: number;
+    win_rate: number;    // always 0–100 percentage format
     total_won: number;
     total_spent: number;
   };

@@ -231,15 +231,14 @@ export default function AdminPlayerDetailPage() {
     </div>
   );
 
-  // ── Derived stats — stats object is optional, fall back to top-level fields
-  const stats       = player.stats;
-  const gamesPlayed = stats?.games_played ?? player.games_played;
-  const gamesWon    = stats?.games_won    ?? player.games_won;
-  const totalWon    = stats?.total_won    ?? player.total_won ?? 0;
-  const totalSpent  = stats?.total_spent;          // only available if stats present
-  const rawWinRate  = stats?.win_rate ?? (gamesPlayed > 0 ? gamesWon / gamesPlayed : null);
-  const winRatePct  = normalizeWinRate(rawWinRate); // shared utility
-  const netPnl      = totalSpent != null ? totalWon - totalSpent : null;
+  // ── Derived stats — stats is now always present per backend guarantee
+  const stats       = player.stats!;
+  const gamesPlayed = stats.games_played;
+  const gamesWon    = stats.games_won;
+  const totalWon    = stats.total_won;
+  const totalSpent  = stats.total_spent;
+  const winRatePct  = normalizeWinRate(stats.win_rate);
+  const netPnl      = totalWon - totalSpent;
   const balance     = player.real_balance ?? player.balance ?? 0;
   const isBanned    = player.status === "banned";
 
@@ -307,21 +306,12 @@ export default function AdminPlayerDetailPage() {
             <StatCell label="Win rate" value={`${winRatePct}%`}
               color={winRatePct >= 50 ? "var(--accent-amber)" : "var(--text-primary)"} />
           )}
-          <StatCell label="Total won" value={fmtNaira(totalWon)} color="var(--accent-amber)" />
-          {totalSpent != null && (
-            <StatCell label="Total spent" value={fmtNaira(totalSpent)} color="var(--text-secondary)" />
-          )}
-          {netPnl != null && (
-            <StatCell label="Net P&L" value={`${netPnl >= 0 ? "+" : ""}${fmtNaira(netPnl)}`}
-              color={netPnl >= 0 ? "#4ADE80" : "#f87171"} />
-          )}
+          <StatCell label="Total won"   value={fmtNaira(totalWon)}   color="var(--accent-amber)" />
+          <StatCell label="Total spent" value={fmtNaira(totalSpent)} color="var(--text-secondary)" />
+          <StatCell label="Net P&L"
+            value={`${netPnl >= 0 ? "+" : ""}${fmtNaira(netPnl)}`}
+            color={netPnl >= 0 ? "#4ADE80" : "#f87171"} />
         </div>
-        {/* Stats note when unavailable */}
-        {!stats && (
-          <p style={{ fontSize: 10, color: "var(--text-muted)", margin: 0 }}>
-            Showing aggregate fields only — detailed stats (total_spent, win_rate) not available from this endpoint.
-          </p>
-        )}
       </Section>
 
       {/* ── Activity ── */}
