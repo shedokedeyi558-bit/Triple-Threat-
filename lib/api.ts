@@ -1874,12 +1874,6 @@ export interface CreateBoxBody {
   force?: boolean;
 }
 
-export interface CreateBoxResponse extends AdminTreasureBox {
-  /** Populated on UNSAFE_RTP rejection; normally absent */
-  rtp?: number;
-  rtp_percent?: number;
-}
-
 export const adminTreasureBoxApi = {
   getSettings: () =>
     request<TreasureBoxSettings>(
