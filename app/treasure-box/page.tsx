@@ -968,7 +968,9 @@ export default function TreasureBoxPage() {
               No games played yet.
             </p>
           ) : (
-            history.map((entry) => <HistoryRow key={entry.id} entry={entry} />)
+            <div style={{ maxHeight: "400px", overflowY: "auto", paddingRight: "8px" }}>
+              {history.map((entry) => <HistoryRow key={entry.id} entry={entry} />)}
+            </div>
           )}
         </div>
 
