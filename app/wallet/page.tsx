@@ -487,6 +487,28 @@ export default function WalletPage() {
                     />
                   </div>
 
+                  {/* ── Account confirmation checkbox ── */}
+                  {accNum.length === 10 && (
+                    <label style={{
+                      display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer",
+                      padding: "10px 12px", borderRadius: 10,
+                      backgroundColor: confirmed ? "rgba(76,111,255,0.06)" : "rgba(255,255,255,0.03)",
+                      border: `1px solid ${confirmed ? "rgba(76,111,255,0.2)" : "var(--border-hairline)"}`,
+                      transition: "all 0.15s",
+                    }}>
+                      <input
+                        type="checkbox"
+                        checked={confirmed}
+                        onChange={(e) => setConfirmed(e.target.checked)}
+                        style={{ marginTop: 1, width: 15, height: 15, accentColor: "var(--accent-indigo)", flexShrink: 0, cursor: "pointer" }}
+                      />
+                      <span style={{ fontSize: 12, color: confirmed ? "var(--accent-indigo)" : "var(--text-secondary)", lineHeight: 1.45, fontWeight: confirmed ? 700 : 400 }}>
+                        I confirm <strong style={{ fontFamily: "monospace" }}>{accNum}</strong>
+                        {selectedBank ? ` (${selectedBank.name})` : ""} is my correct account number
+                      </span>
+                    </label>
+                  )}
+
                   {/* ── Account resolution ── */}
                   {accNum.length === 10 && selectedBank && (
                     <AnimatePresence mode="wait">
@@ -567,7 +589,8 @@ export default function WalletPage() {
                       withdrawLoading ||
                       !withdrawAmt || parseInt(withdrawAmt) < 1000 ||
                       !selectedBank ||
-                      accNum.length < 10
+                      accNum.length < 10 ||
+                      !confirmed
                     }
                     className="w-full py-4 font-black rounded-xl disabled:opacity-40 flex items-center justify-center gap-2 text-sm"
                     style={{ backgroundColor: "var(--accent-amber)", color: "#000" }}
