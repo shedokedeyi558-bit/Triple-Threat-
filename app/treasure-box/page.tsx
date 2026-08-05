@@ -414,6 +414,88 @@ function SlotGrid({
   );
 }
 
+// ─── Filtered Box List with multiplier chips ─────────────────────────────────
+function FilteredBoxList({
+  boxes, multipliers, hasMultipleConfigs,
+  selectedBox, onSelect, minStake, maxStake, onClaim, onCancel,
+}: {
+  boxes: TreasureBox[];
+  multipliers: number[];
+  hasMultipleConfigs: boolean;
+  selectedBox: TreasureBox | null;
+  onSelect: (box: TreasureBox) => void;
+  minStake: number;
+  maxStake: number;
+  onClaim: (boxId: string, stake: number) => Promise<void>;
+  onCancel: () => void;
+}) {
+  const [activeMultiplier, setActiveMultiplier] = useState<number | null>(null);
+
+  // Default to first (highest) multiplier on first render when chips are shown
+  useEffect(() => {
+    if (hasMultipleConfigs && multipliers.length > 0) {
+      setActiveMultiplier(multipliers[0]);
+    }
+  }, [hasMultipleConfigs, multipliers]);
+
+  const filtered = hasMultipleConfigs && activeMultiplier !== null
+    ? boxes.filter((b) => b.payout_multiplier === activeMultiplier)
+    : boxes;
+
+  return (
+    <>
+      {/* Filter chips — only shown when more than one multiplier exists */}
+      {hasMultipleConfigs && (
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 14 }}>
+          {multipliers.map((m) => {
+            const isActive = activeMultiplier === m;
+            const count = boxes.filter((b) => b.payout_multiplier === m).length;
+            return (
+              <button
+                key={m}
+                onClick={() => setActiveMultiplier(m)}
+                style={{
+                  padding: "6px 12px", borderRadius: 100, border: "none", cursor: "pointer",
+                  fontSize: 12, fontWeight: 700, transition: "all 0.15s",
+                  background: isActive
+                    ? "linear-gradient(135deg,#FFB84D,#B87A17)"
+                    : "rgba(255,255,255,0.06)",
+                  color: isActive ? "#08090D" : "var(--text-muted)",
+                  boxShadow: isActive ? "0 2px 8px rgba(255,184,77,0.25)" : "none",
+                }}
+              >
+                {m}x{count > 1 ? ` (${count})` : ""}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Box list */}
+      {filtered.map((box) => (
+        <div key={box.id}>
+          <BoxCard
+            box={box}
+            selected={selectedBox?.id === box.id}
+            onSelect={() => onSelect(box)}
+          />
+          <AnimatePresence>
+            {selectedBox?.id === box.id && (
+              <StakePanel
+                box={box}
+                minStake={minStake}
+                maxStake={maxStake}
+                onClaim={(stake) => onClaim(box.id, stake)}
+                onCancel={onCancel}
+              />
+            )}
+          </AnimatePresence>
+        </div>
+      ))}
+    </>
+  );
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function TreasureBoxPage() {
   const router = useRouter();
@@ -696,26 +778,28 @@ export default function TreasureBoxPage() {
                 </div>
               ) : (
                 <>
-                  {availability.boxes.map((box) => (
-                    <div key={box.id}>
-                      <BoxCard
-                        box={box}
-                        selected={selectedBox?.id === box.id}
-                        onSelect={() => setSelectedBox(box)}
+                  {(() => {
+                    const boxes = availability.boxes;
+                    // Derive distinct multipliers, sorted descending
+                    const multipliers = Array.from(
+                      new Set(boxes.map((b) => b.payout_multiplier))
+                    ).sort((a, b) => b - a);
+                    const hasMultipleConfigs = multipliers.length > 1;
+
+                    return (
+                      <FilteredBoxList
+                        boxes={boxes}
+                        multipliers={multipliers}
+                        hasMultipleConfigs={hasMultipleConfigs}
+                        selectedBox={selectedBox}
+                        onSelect={(box) => setSelectedBox(box)}
+                        minStake={availability.min_stake}
+                        maxStake={availability.max_stake}
+                        onClaim={(boxId, stake) => handleClaim(boxId, stake)}
+                        onCancel={() => setSelectedBox(null)}
                       />
-                      <AnimatePresence>
-                        {selectedBox?.id === box.id && (
-                          <StakePanel
-                            box={box}
-                            minStake={availability.min_stake}
-                            maxStake={availability.max_stake}
-                            onClaim={(stake) => handleClaim(box.id, stake)}
-                            onCancel={() => setSelectedBox(null)}
-                          />
-                        )}
-                      </AnimatePresence>
-                    </div>
-                  ))}
+                    );
+                  })()}
                 </>
               )}
             </motion.div>
