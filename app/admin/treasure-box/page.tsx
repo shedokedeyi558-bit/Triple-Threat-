@@ -281,7 +281,7 @@ function BoxCard({ box, onDelete, deleting }: {
         {/* ── Row 3: pop sequence + timestamps ── */}
         <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
           {/* Pop sequence */}
-          {box.pops.length > 0 ? (
+          {(box.pops?.length ?? 0) > 0 ? (
             <div style={{ display: "flex", alignItems: "center", gap: 3, flexWrap: "wrap" }}>
               <span style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase",
                 letterSpacing: "0.06em", color: "var(--text-muted)", marginRight: 2 }}>pops</span>
@@ -310,7 +310,7 @@ function BoxCard({ box, onDelete, deleting }: {
           )}
 
           {/* Separator dot */}
-          {box.pops.length > 0 && (
+          {(box.pops?.length ?? 0) > 0 && (
             <span style={{ fontSize: 9, color: "var(--border-subtle)" }}>·</span>
           )}
 

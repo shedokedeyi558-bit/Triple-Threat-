@@ -1875,9 +1875,10 @@ export interface AdminTreasureBox {
    */
   treasure_slot_indexes?: number[];
   /**
-   * Chronological pop history — always present (empty array for available boxes).
+   * Chronological pop history — present on GET responses (empty array for available boxes).
+   * May be absent on POST (create) responses.
    */
-  pops: { pop_number: number; slot_index: number; was_treasure: boolean }[];
+  pops?: { pop_number: number; slot_index: number; was_treasure: boolean }[];
 }
 
 export interface CreateBoxBody {
