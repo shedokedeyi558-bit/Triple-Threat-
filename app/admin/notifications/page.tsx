@@ -245,7 +245,7 @@ export default function BroadcastPage() {
     setShowConfirm(false);
     try {
       const ids = mode === "specific" ? Array.from(selectedIds) : undefined;
-      const res = await adminNotificationsApi.broadcast(title.trim(), message.trim(), ids);
+      const res = await adminNotificationsApi.broadcast(title.trim(), message.trim(), mode, ids);
       setResult({ sent_count: res.sent_count });
       setTitle("");
       setMessage("");

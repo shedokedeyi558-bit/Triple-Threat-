@@ -1601,12 +1601,15 @@ export const notificationsApi = {
 };
 
 export const adminNotificationsApi = {
-  broadcast: (title: string, message: string, player_ids?: string[]) =>
+  broadcast: (title: string, message: string, target: "all" | "specific", player_ids?: string[]) =>
     request<{ message: string; sent_count: number }>("/api/admin/notifications/broadcast", {
       method: "POST",
       body: {
-        title, message, type: "announcement",
-        ...(player_ids && player_ids.length > 0 ? { player_ids } : {}),
+        title,
+        message,
+        type: "announcement",
+        target,
+        ...(target === "specific" && player_ids && player_ids.length > 0 ? { player_ids } : {}),
       },
       token: getAdminToken(),
     }),
