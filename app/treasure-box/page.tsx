@@ -418,6 +418,7 @@ function SlotGrid({
 function FilteredBoxList({
   boxes, multipliers, hasMultipleConfigs,
   selectedBox, onSelect, minStake, maxStake, onClaim, onCancel,
+  activeMultiplier, onMultiplierChange,
 }: {
   boxes: TreasureBox[];
   multipliers: number[];
@@ -428,16 +429,9 @@ function FilteredBoxList({
   maxStake: number;
   onClaim: (boxId: string, stake: number) => Promise<void>;
   onCancel: () => void;
+  activeMultiplier: number | null;
+  onMultiplierChange: (m: number) => void;
 }) {
-  const [activeMultiplier, setActiveMultiplier] = useState<number | null>(null);
-
-  // Default to first (highest) multiplier on first render when chips are shown
-  useEffect(() => {
-    if (hasMultipleConfigs && multipliers.length > 0) {
-      setActiveMultiplier(multipliers[0]);
-    }
-  }, [hasMultipleConfigs, multipliers]);
-
   const filtered = hasMultipleConfigs && activeMultiplier !== null
     ? boxes.filter((b) => b.payout_multiplier === activeMultiplier)
     : boxes;
@@ -453,7 +447,7 @@ function FilteredBoxList({
             return (
               <button
                 key={m}
-                onClick={() => setActiveMultiplier(m)}
+                onClick={() => onMultiplierChange(m)}
                 style={{
                   padding: "6px 12px", borderRadius: 100, border: "none", cursor: "pointer",
                   fontSize: 12, fontWeight: 700, transition: "all 0.15s",
@@ -509,6 +503,8 @@ export default function TreasureBoxPage() {
   const [listLoading, setListLoading] = useState(true);
   const [listError, setListError] = useState("");
   const [selectedBox, setSelectedBox] = useState<TreasureBox | null>(null);
+  // Multiplier filter — lives here so it survives box list refreshes after a claim
+  const [selectedMultiplier, setSelectedMultiplier] = useState<number | null>(null);
 
   // ── Play phase state
   const [playState, setPlayState] = useState<PlayState | null>(null);
@@ -538,6 +534,17 @@ export default function TreasureBoxPage() {
       .finally(() => setListLoading(false));
   }, []);
 
+  // ── Initialise selectedMultiplier to highest when boxes first arrive.
+  // Only sets it when it's still null — subsequent refreshes (e.g. after a claim)
+  // do NOT reset it, preserving the filter the player was viewing.
+  useEffect(() => {
+    if (!availability?.boxes?.length) return;
+    setSelectedMultiplier((prev) => {
+      if (prev !== null) return prev; // already set — don't overwrite
+      const multipliers = Array.from(new Set(availability.boxes.map((b) => b.payout_multiplier))).sort((a, b) => b - a);
+      return multipliers[0] ?? null;
+    });
+  }, [availability]);
   useEffect(() => {
     if (!appState.isAuthenticated) return;
     loadAvailable();
@@ -693,6 +700,7 @@ export default function TreasureBoxPage() {
   const goToList = () => {
     setPhase("list");
     setSelectedBox(null);
+    setSelectedMultiplier(null); // will re-init to highest on next availability load
     setPlayState(null);
     setPoppedSlots(new Map());
     setPendingSlot(null);
@@ -797,6 +805,8 @@ export default function TreasureBoxPage() {
                         maxStake={availability.max_stake}
                         onClaim={(boxId, stake) => handleClaim(boxId, stake)}
                         onCancel={() => setSelectedBox(null)}
+                        activeMultiplier={selectedMultiplier}
+                        onMultiplierChange={setSelectedMultiplier}
                       />
                     );
                   })()}
