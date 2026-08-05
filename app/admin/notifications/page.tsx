@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { adminNotificationsApi, adminApi, type AdminPlayer, ApiError } from "@/lib/api";
-import { Megaphone, Send, CheckCircle, AlertCircle, Loader2, Search, Users, X } from "lucide-react";
+import { Megaphone, Send, CheckCircle, AlertCircle, Loader2, Search, Users } from "lucide-react";
 
 const inp = "w-full rounded-lg px-4 py-3 text-sm focus:outline-none transition-colors border"
   + " bg-[var(--bg-base)] border-[var(--border-subtle)] text-[var(--text-primary)] placeholder:text-gray-600"
@@ -178,7 +178,7 @@ function ConfirmDialog({
               Send notification?
             </p>
             <p style={{ fontSize: 12, color: "var(--text-secondary)", margin: 0, lineHeight: 1.5 }}>
-              "{title}" will be sent to <strong style={{ color: "var(--text-primary)" }}>{recipient}</strong>.
+              &ldquo;{title}&rdquo; will be sent to <strong style={{ color: "var(--text-primary)" }}>{recipient}</strong>.
               This cannot be undone.
             </p>
           </div>
