@@ -1964,7 +1964,8 @@ export interface TbPopResponse {
   outcome?: "won" | "lost";
   payout?: number;
   new_balance?: number;
-  treasure_slot_index?: number;
+  /** All treasure slot positions — present when game_over is true */
+  treasure_slot_indexes?: number[];
 }
 
 export interface TbBoxState {
@@ -1981,7 +1982,8 @@ export interface TbBoxState {
   pops_used: number;
   pops_remaining: number;
   game_over: boolean;
-  treasure_slot_index?: number;
+  /** All treasure slot positions — present when game is completed */
+  treasure_slot_indexes?: number[];
   pops: { pop_number: number; slot_index: number; was_treasure: boolean; popped_at: string }[];
 }
 

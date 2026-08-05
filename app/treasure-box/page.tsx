@@ -32,7 +32,7 @@ interface ResultState {
   outcome: "won" | "lost";
   payout: number;
   newBalance: number;
-  treasureSlotIndex?: number;
+  treasureSlotIndexes?: number[];
   stake: number;
   payoutMultiplier: number;
 }
@@ -372,14 +372,14 @@ function SlotGrid({
   poppedSlots,
   pendingSlot,
   gameOver,
-  treasureSlotIndex,
+  treasureSlotIndexes,
   onPop,
 }: {
   totalSlots: number;
   poppedSlots: Map<number, "empty" | "treasure">;
   pendingSlot: number | null;
   gameOver: boolean;
-  treasureSlotIndex?: number;
+  treasureSlotIndexes?: number[];
   onPop: (index: number) => void;
 }) {
   return (
@@ -396,7 +396,10 @@ function SlotGrid({
           gameOver ||
           popped !== undefined ||
           pendingSlot !== null;
-        const isTreasureReveal = gameOver && treasureSlotIndex === i && cellState !== "treasure";
+        // Reveal ALL treasure positions on game-over, not just the first one
+        const isTreasureReveal = gameOver &&
+          (treasureSlotIndexes?.includes(i) ?? false) &&
+          cellState !== "treasure";
 
         return (
           <SlotCell
@@ -612,7 +615,7 @@ export default function TreasureBoxPage() {
             outcome: s.outcome ?? "lost",
             payout: s.payout ?? 0,
             newBalance: appState.player?.balance ?? 0,
-            treasureSlotIndex: s.treasure_slot_index,
+            treasureSlotIndexes: s.treasure_slot_indexes,
             stake: s.stake,
             payoutMultiplier: s.payout_multiplier,
           });
@@ -648,7 +651,7 @@ export default function TreasureBoxPage() {
           outcome: pop.outcome ?? "lost",
           payout: pop.payout ?? 0,
           newBalance: pop.new_balance ?? appState.player?.balance ?? 0,
-          treasureSlotIndex: pop.treasure_slot_index,
+          treasureSlotIndexes: pop.treasure_slot_indexes,
           stake: playState.stake,
           payoutMultiplier: playState.payoutMultiplier,
         });
@@ -682,7 +685,7 @@ export default function TreasureBoxPage() {
                 outcome: s.outcome ?? "lost",
                 payout: s.payout ?? 0,
                 newBalance: appState.player?.balance ?? 0,
-                treasureSlotIndex: s.treasure_slot_index,
+                treasureSlotIndexes: s.treasure_slot_indexes,
                 stake: s.stake,
                 payoutMultiplier: s.payout_multiplier,
               });
@@ -917,22 +920,32 @@ export default function TreasureBoxPage() {
                     <p style={{ fontSize: 20, fontWeight: 900, color: "var(--text-primary)", margin: "0 0 6px" }}>
                       Better luck next time
                     </p>
-                    {resultState.treasureSlotIndex !== undefined && (
+                    {resultState.treasureSlotIndexes && resultState.treasureSlotIndexes.length > 0 && (
                       <p style={{ fontSize: 12, color: "var(--text-muted)", margin: 0 }}>
-                        The treasure was in slot <strong style={{ color: "#FFB84D" }}>#{resultState.treasureSlotIndex + 1}</strong>
+                        {resultState.treasureSlotIndexes.length === 1
+                          ? <>The treasure was in slot <strong style={{ color: "#FFB84D" }}>#{resultState.treasureSlotIndexes[0] + 1}</strong></>
+                          : <>Treasures were in slots{" "}
+                              {resultState.treasureSlotIndexes.map((idx, j) => (
+                                <span key={idx}>
+                                  <strong style={{ color: "#FFB84D" }}>#{idx + 1}</strong>
+                                  {j < resultState.treasureSlotIndexes!.length - 1 ? ", " : ""}
+                                </span>
+                              ))}
+                            </>
+                        }
                       </p>
                     )}
                   </>
                 )}
               </div>
 
-              {/* Grid (frozen, treasure revealed) */}
+              {/* Grid (frozen, all treasures revealed) */}
               <SlotGrid
                 totalSlots={playState.totalSlots}
                 poppedSlots={poppedSlots}
                 pendingSlot={null}
                 gameOver={true}
-                treasureSlotIndex={resultState.treasureSlotIndex}
+                treasureSlotIndexes={resultState.treasureSlotIndexes}
                 onPop={() => {}}
               />
 
