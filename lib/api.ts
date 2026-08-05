@@ -429,8 +429,9 @@ export interface AdminWithdrawal {
   method: string;
   account_number: string;
   bank_name: string;
-  status: "pending" | "approved" | "rejected";
+  status: "pending" | "approved" | "rejected" | "denied";
   reject_reason: string | null;
+  deny_reason: string | null;
   created_at: string;
   players?: { name: string | null };
 }
@@ -1362,6 +1363,12 @@ export const adminApi = {
   rejectWithdrawal: (id: string, reason?: string) =>
     request<{ withdrawal: AdminWithdrawal; message: string }>(
       `/api/admin/withdrawals/${id}/reject`,
+      { method: "PUT", body: { reason }, token: getAdminToken() }
+    ),
+
+  denyWithdrawal: (id: string, reason: string) =>
+    request<{ withdrawal: AdminWithdrawal; message: string }>(
+      `/api/admin/withdrawals/${id}/deny`,
       { method: "PUT", body: { reason }, token: getAdminToken() }
     ),
 
