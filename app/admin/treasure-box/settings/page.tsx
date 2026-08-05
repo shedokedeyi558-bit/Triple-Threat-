@@ -6,12 +6,48 @@ import { adminTreasureBoxApi, ApiError, type TreasureBoxSettings } from "@/lib/a
 import { Save, Loader2, AlertTriangle, Gift } from "lucide-react";
 
 // ── RTP calculation ───────────────────────────────────────────────────────────
-// RTP = (pop_limit / total_slots) × payout_multiplier × 100
-// House edge = 100 - RTP
-function calcRtp(totalSlots: number, popLimit: number, payoutMultiplier: number): number | null {
+// Confirmed formula (backend):
+//   P(win) = 1 - C(total_slots - num_treasures, pop_limit) / C(total_slots, pop_limit)
+//   RTP = P(win) × payout_multiplier × 100
+//
+// Settings preview assumes num_treasures = 1 (single-treasure box).
+// The backend surfaces this assumption in rtp_note.
+//
+// Worked example: 25 slots, 3 pops, 2 treasures, 6× → P(win)=23%, RTP=138%
+// (single-treasure preview for those params → P(win)=11.27%, RTP=67.6%)
+
+function logFactorial(n: number): number {
+  // Stirling / sum-of-logs approach for large n, exact for small n
+  let r = 0;
+  for (let i = 2; i <= n; i++) r += Math.log(i);
+  return r;
+}
+
+function logComb(n: number, k: number): number {
+  if (k < 0 || k > n) return -Infinity;
+  if (k === 0 || k === n) return 0;
+  return logFactorial(n) - logFactorial(k) - logFactorial(n - k);
+}
+
+/**
+ * P(win) = 1 - C(N - T, P) / C(N, P)
+ * where N = total_slots, T = num_treasures (default 1 for preview), P = pop_limit
+ */
+function calcPwin(totalSlots: number, popLimit: number, numTreasures = 1): number | null {
+  const N = totalSlots, T = numTreasures, P = popLimit;
+  if (N <= 0 || P <= 0 || T <= 0 || T > N || P > N) return null;
+  // If there aren't enough non-treasure slots to fill a full pop run, P(win) = 1
+  if (N - T < P) return 1;
+  const logRatio = logComb(N - T, P) - logComb(N, P);
+  return 1 - Math.exp(logRatio);
+}
+
+function calcRtp(totalSlots: number, popLimit: number, payoutMultiplier: number, numTreasures = 1): number | null {
   if (!totalSlots || !popLimit || !payoutMultiplier || totalSlots <= 0 || popLimit <= 0 || payoutMultiplier <= 0) return null;
   if (popLimit > totalSlots) return null;
-  return (popLimit / totalSlots) * payoutMultiplier * 100;
+  const pwin = calcPwin(totalSlots, popLimit, numTreasures);
+  if (pwin === null) return null;
+  return pwin * payoutMultiplier * 100;
 }
 
 type RtpBand = "safe" | "caution" | "unsafe";
@@ -153,6 +189,7 @@ export default function TreasureBoxSettingsPage() {
   const [minStake,         setMinStake]         = useState<number | "">("");
   const [maxStake,         setMaxStake]         = useState<number | "">("");
   const [isAvailable,      setIsAvailable]      = useState(false);
+  const [rtpNote,          setRtpNote]          = useState<string | null>(null);
 
   // ── Save state ──
   const [saving,           setSaving]           = useState(false);
@@ -171,14 +208,15 @@ export default function TreasureBoxSettingsPage() {
         setMinStake(res.min_stake);
         setMaxStake(res.max_stake);
         setIsAvailable(res.is_available);
+        if (res.rtp_note) setRtpNote(res.rtp_note);
       })
       .catch((err) => setLoadErr(err instanceof ApiError ? err.message : "Failed to load settings"))
       .finally(() => setLoaded(true));
   }, []);
 
-  // ── Live RTP calculation ──
+  // ── Live RTP calculation (preview assumes 1 treasure slot per rtp_note) ──
   const rtp = useMemo(
-    () => calcRtp(Number(totalSlots), Number(popLimit), Number(payoutMultiplier)),
+    () => calcRtp(Number(totalSlots), Number(popLimit), Number(payoutMultiplier), 1),
     [totalSlots, popLimit, payoutMultiplier]
   );
   const band     = rtp !== null ? rtpBand(rtp)   : null;
@@ -407,6 +445,12 @@ export default function TreasureBoxSettingsPage() {
                 </div>
               )}
             </div>
+            {/* rtp_note caption — explains the 1-treasure preview assumption */}
+            {rtpNote && (
+              <p style={{ fontSize: 10, color: "var(--text-muted)", margin: "2px 0 0", lineHeight: 1.5 }}>
+                ℹ {rtpNote}
+              </p>
+            )}
           </div>
 
           {/* ── Stake range ── */}

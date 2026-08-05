@@ -1840,6 +1840,8 @@ export interface TreasureBoxSettings {
   max_stake: number;
   is_available: boolean;
   rtp_percent?: number;
+  /** Caption from server: explains that the RTP preview assumes 1 treasure slot */
+  rtp_note?: string;
 }
 
 export interface AdminTreasureBox {
@@ -1847,6 +1849,12 @@ export interface AdminTreasureBox {
   total_slots: number;
   pop_limit: number;
   payout_multiplier: number;
+  /** Number of treasure slots in this box — always present */
+  num_treasures: number;
+  /** RTP as a ratio (e.g. 1.38) — always present */
+  rtp: number;
+  /** RTP as a percentage (e.g. 138.0) — always present */
+  rtp_percent: number;
   status: "available" | "claimed" | "completed";
   stake: number | null;
   outcome: "won" | "lost" | null;
@@ -1854,6 +1862,22 @@ export interface AdminTreasureBox {
   created_at: string;
   claimed_at: string | null;
   completed_at: string | null;
+  /**
+   * Actual treasure slot positions — only present when status === 'completed'.
+   * Do NOT render this field for non-completed boxes.
+   */
+  treasure_slot_indexes?: number[];
+}
+
+export interface CreateBoxBody {
+  treasure_slot_indexes: number[];
+  force?: boolean;
+}
+
+export interface CreateBoxResponse extends AdminTreasureBox {
+  /** Populated on UNSAFE_RTP rejection; normally absent */
+  rtp?: number;
+  rtp_percent?: number;
 }
 
 export const adminTreasureBoxApi = {
@@ -1875,10 +1899,15 @@ export const adminTreasureBoxApi = {
       { token: getAdminToken(), params: params as Record<string, string | number> }
     ),
 
-  createBox: (treasure_slot_index: number) =>
+  /**
+   * POST /api/admin/treasure-box/boxes
+   * Body: { treasure_slot_indexes: number[], force?: boolean }
+   * Throws ApiError with code "UNSAFE_RTP" (and rtp/rtp_percent in body) if RTP > 90% and force is false.
+   */
+  createBox: (body: CreateBoxBody) =>
     request<AdminTreasureBox>(
       "/api/admin/treasure-box/boxes",
-      { method: "POST", body: { treasure_slot_index }, token: getAdminToken() }
+      { method: "POST", body, token: getAdminToken() }
     ),
 
   deleteBox: (boxId: string) =>
