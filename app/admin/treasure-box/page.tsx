@@ -5,9 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { adminTreasureBoxApi, ApiError, type TreasureBoxSettings, type AdminTreasureBox } from "@/lib/api";
 import { Gift, Plus, Trash2, Loader2, Save, RefreshCw, AlertTriangle, X } from "lucide-react";
 
-// ── Combinatorics RTP (mirrors settings page formula) ────────────────────────
-// P(win) = 1 - C(N - T, P) / C(N, P)
-// RTP    = P(win) × payout_multiplier × 100
+// ── Combinatorics RTP ─────────────────────────────────────────────────────────
 function logFactorial(n: number): number {
   let r = 0;
   for (let i = 2; i <= n; i++) r += Math.log(i);
@@ -27,7 +25,7 @@ function calcBoxRtp(totalSlots: number, popLimit: number, payoutMultiplier: numb
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const AMBER = "#E8A33D";
-const UNSAFE_RTP_THRESHOLD = 90; // matches backend
+const UNSAFE_RTP_THRESHOLD = 90;
 const fmtNaira = (n: number | null) => n != null ? `₦${n.toLocaleString()}` : "—";
 const fmtDate = (iso: string | null) =>
   iso ? new Date(iso).toLocaleDateString("en-NG", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "—";
@@ -38,14 +36,14 @@ const inpStyle = { backgroundColor: "var(--bg-base)", border: "1px solid var(--b
 // ── Status chip ───────────────────────────────────────────────────────────────
 function StatusChip({ status }: { status: string }) {
   const cfg: Record<string, { bg: string; color: string }> = {
-    available: { bg: "rgba(74,222,128,0.12)", color: "#4ADE80" },
-    claimed:   { bg: "rgba(232,163,61,0.12)",  color: AMBER },
+    available: { bg: "rgba(74,222,128,0.12)",  color: "#4ADE80" },
+    claimed:   { bg: "rgba(232,163,61,0.12)",   color: AMBER },
     completed: { bg: "rgba(255,255,255,0.06)",  color: "var(--text-muted)" },
   };
   const c = cfg[status] ?? cfg.completed;
   return (
     <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 100,
-      backgroundColor: c.bg, color: c.color }}>
+      backgroundColor: c.bg, color: c.color, whiteSpace: "nowrap" }}>
       {status}
     </span>
   );
@@ -95,10 +93,8 @@ function SettingsSection({ onSaved }: { onSaved: () => void }) {
   return (
     <div className="rounded-2xl p-5 space-y-4 border" style={{ backgroundColor: "var(--bg-card)", borderColor: "var(--border-subtle)" }}>
       <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>Settings</p>
-
       {error && <p className="text-sm" style={{ color: "#f87171" }}>{error}</p>}
 
-      {/* UNSAFE_RTP error */}
       <AnimatePresence>
         {unsafeMsg && (
           <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
@@ -113,11 +109,13 @@ function SettingsSection({ onSaved }: { onSaved: () => void }) {
             </div>
             <div style={{ display: "flex", gap: 8 }}>
               <button onClick={() => setUnsafeMsg("")}
-                style={{ padding: "7px 14px", borderRadius: 8, fontSize: 11, fontWeight: 700, border: "1px solid var(--border-subtle)", backgroundColor: "transparent", color: "var(--text-secondary)", cursor: "pointer" }}>
-                Adjust
-              </button>
+                style={{ padding: "7px 14px", borderRadius: 8, fontSize: 11, fontWeight: 700,
+                  border: "1px solid var(--border-subtle)", backgroundColor: "transparent",
+                  color: "var(--text-secondary)", cursor: "pointer" }}>Adjust</button>
               <button onClick={() => setShowForce(true)}
-                style={{ padding: "7px 14px", borderRadius: 8, fontSize: 11, fontWeight: 800, border: "2px solid rgba(239,68,68,0.4)", backgroundColor: "rgba(239,68,68,0.12)", color: "#f87171", cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
+                style={{ padding: "7px 14px", borderRadius: 8, fontSize: 11, fontWeight: 800,
+                  border: "2px solid rgba(239,68,68,0.4)", backgroundColor: "rgba(239,68,68,0.12)",
+                  color: "#f87171", cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
                 <AlertTriangle size={11} /> Save anyway
               </button>
             </div>
@@ -128,23 +126,30 @@ function SettingsSection({ onSaved }: { onSaved: () => void }) {
       <AnimatePresence>
         {showForce && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            style={{ position: "fixed", inset: 0, zIndex: 60, display: "flex", alignItems: "center", justifyContent: "center",
-              backgroundColor: "rgba(0,0,0,0.75)", backdropFilter: "blur(4px)", padding: 16 }}
+            style={{ position: "fixed", inset: 0, zIndex: 60, display: "flex", alignItems: "center",
+              justifyContent: "center", backgroundColor: "rgba(0,0,0,0.75)", backdropFilter: "blur(4px)", padding: 16 }}
             onClick={() => setShowForce(false)}>
             <motion.div initial={{ scale: 0.92 }} animate={{ scale: 1 }} exit={{ scale: 0.92 }}
               onClick={(e) => e.stopPropagation()}
-              style={{ width: "100%", maxWidth: 380, borderRadius: 18, padding: "24px 22px", backgroundColor: "var(--bg-card)", border: "1px solid rgba(239,68,68,0.35)", display: "flex", flexDirection: "column", gap: 14 }}>
+              style={{ width: "100%", maxWidth: 380, borderRadius: 18, padding: "24px 22px",
+                backgroundColor: "var(--bg-card)", border: "1px solid rgba(239,68,68,0.35)",
+                display: "flex", flexDirection: "column", gap: 14 }}>
               <p style={{ fontSize: 14, fontWeight: 800, color: "var(--text-primary)", margin: 0 }}>Override unsafe RTP?</p>
               <p style={{ fontSize: 12, color: "var(--text-secondary)", margin: 0, lineHeight: 1.55 }}>
-                RTP is <strong style={{ color: "#f87171" }}>{rtp.toFixed(1)}%</strong>. Are you sure? <strong>This configuration loses money on average.</strong>
+                RTP is <strong style={{ color: "#f87171" }}>{rtp.toFixed(1)}%</strong>. Are you sure?{" "}
+                <strong>This configuration loses money on average.</strong>
               </p>
               <div style={{ display: "flex", gap: 8 }}>
                 <button onClick={() => setShowForce(false)}
-                  style={{ flex: 1, padding: "10px 0", borderRadius: 10, border: "1px solid var(--border-subtle)", backgroundColor: "transparent", color: "var(--text-secondary)", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+                  style={{ flex: 1, padding: "10px 0", borderRadius: 10, border: "1px solid var(--border-subtle)",
+                    backgroundColor: "transparent", color: "var(--text-secondary)", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
                   Cancel
                 </button>
                 <button onClick={() => doSave(true)} disabled={saving}
-                  style={{ flex: 1, padding: "10px 0", borderRadius: 10, border: "none", backgroundColor: "#ef4444", color: "#fff", fontSize: 12, fontWeight: 800, cursor: saving ? "not-allowed" : "pointer", opacity: saving ? 0.6 : 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                  style={{ flex: 1, padding: "10px 0", borderRadius: 10, border: "none",
+                    backgroundColor: "#ef4444", color: "#fff", fontSize: 12, fontWeight: 800,
+                    cursor: saving ? "not-allowed" : "pointer", opacity: saving ? 0.6 : 1,
+                    display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
                   {saving && <Loader2 size={12} className="animate-spin" />} Save anyway
                 </button>
               </div>
@@ -154,13 +159,14 @@ function SettingsSection({ onSaved }: { onSaved: () => void }) {
       </AnimatePresence>
 
       <div className="grid grid-cols-3 gap-3">
-        {[
+        {([
           { key: "total_slots" as const, label: "Total Slots" },
           { key: "pop_limit" as const, label: "Pop Limit" },
           { key: "payout_multiplier" as const, label: "Payout ×", step: 0.01 },
-        ].map(({ key, label, step }) => (
+        ]).map(({ key, label, step }) => (
           <div key={key}>
-            <label className="block text-[10px] font-bold uppercase tracking-widest mb-1.5" style={{ color: "var(--text-secondary)" }}>{label}</label>
+            <label className="block text-[10px] font-bold uppercase tracking-widest mb-1.5"
+              style={{ color: "var(--text-secondary)" }}>{label}</label>
             <input type="number" min="0" step={step ?? 1} value={settings[key] as number}
               onChange={(e) => upd(key, Number(e.target.value))}
               className={inp} style={inpStyle} />
@@ -168,7 +174,6 @@ function SettingsSection({ onSaved }: { onSaved: () => void }) {
         ))}
       </div>
 
-      {/* Live RTP */}
       <div style={{ borderRadius: 10, padding: "10px 14px", backgroundColor: "var(--bg-base)", border: `1px solid ${rtpColor}33` }}>
         <span style={{ fontSize: 16, fontWeight: 900, fontFamily: "monospace", color: rtpColor }}>RTP {rtp.toFixed(1)}%</span>
         <span style={{ fontSize: 11, color: "var(--text-muted)", marginLeft: 8 }}>House edge: {(100 - rtp).toFixed(1)}%</span>
@@ -178,12 +183,13 @@ function SettingsSection({ onSaved }: { onSaved: () => void }) {
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        {[
+        {([
           { key: "min_stake" as const, label: "Min Stake (₦)" },
           { key: "max_stake" as const, label: "Max Stake (₦)" },
-        ].map(({ key, label }) => (
+        ]).map(({ key, label }) => (
           <div key={key}>
-            <label className="block text-[10px] font-bold uppercase tracking-widest mb-1.5" style={{ color: "var(--text-secondary)" }}>{label}</label>
+            <label className="block text-[10px] font-bold uppercase tracking-widest mb-1.5"
+              style={{ color: "var(--text-secondary)" }}>{label}</label>
             <input type="number" min="0" value={settings[key] as number}
               onChange={(e) => upd(key, Number(e.target.value))}
               className={inp} style={inpStyle} />
@@ -191,7 +197,6 @@ function SettingsSection({ onSaved }: { onSaved: () => void }) {
         ))}
       </div>
 
-      {/* Availability */}
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>Feature enabled</p>
@@ -213,6 +218,137 @@ function SettingsSection({ onSaved }: { onSaved: () => void }) {
         {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
         {saved ? "Saved!" : saving ? "Saving…" : "Save Settings"}
       </button>
+    </div>
+  );
+}
+
+// ── Box card — scannable 3-row layout ─────────────────────────────────────────
+function BoxCard({ box, onDelete, deleting }: {
+  box: AdminTreasureBox;
+  onDelete: (id: string) => void;
+  deleting: boolean;
+}) {
+  const rtpUnsafe = box.rtp_percent > UNSAFE_RTP_THRESHOLD;
+  const rtpColor  = rtpUnsafe ? "#f87171" : box.rtp_percent > 60 ? "#fbbf24" : "#34d399";
+
+  return (
+    <div style={{ padding: "11px 18px", display: "flex", gap: 10, alignItems: "flex-start" }}>
+      {/* Status chip — fixed width so rows line up */}
+      <div style={{ paddingTop: 1, width: 72, flexShrink: 0 }}>
+        <StatusChip status={box.status} />
+      </div>
+
+      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 3 }}>
+
+        {/* ── Row 1: config summary + treasures + RTP ── */}
+        <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+          <span style={{ fontSize: 11, fontWeight: 700, fontFamily: "monospace", color: "var(--text-primary)" }}>
+            {box.total_slots}s · {box.pop_limit}p · {box.payout_multiplier}×
+          </span>
+          <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 4,
+            backgroundColor: "rgba(232,163,61,0.10)", color: AMBER, fontWeight: 700 }}>
+            {box.num_treasures}T
+          </span>
+          <span style={{ fontSize: 10, fontWeight: 700, fontFamily: "monospace", color: rtpColor }}>
+            RTP {box.rtp_percent.toFixed(1)}%
+          </span>
+        </div>
+
+        {/* ── Row 2: player identity + stake + outcome ── */}
+        {(box.player_phone || box.stake != null || box.outcome) && (
+          <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+            {box.player_phone && (
+              <span style={{ fontSize: 11, fontFamily: "monospace", color: "var(--text-secondary)" }}>
+                {box.player_phone}
+              </span>
+            )}
+            {box.stake != null && (
+              <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>
+                {fmtNaira(box.stake)}
+              </span>
+            )}
+            {box.outcome && (
+              <span style={{ fontSize: 10, fontWeight: 800,
+                color: box.outcome === "won" ? "#4ADE80" : "#f87171",
+                backgroundColor: box.outcome === "won" ? "rgba(74,222,128,0.10)" : "rgba(239,68,68,0.10)",
+                padding: "1px 7px", borderRadius: 4 }}>
+                {box.outcome === "won" ? "WON" : "LOST"}
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* ── Row 3: pop sequence + timestamps ── */}
+        <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+          {/* Pop sequence */}
+          {box.pops.length > 0 ? (
+            <div style={{ display: "flex", alignItems: "center", gap: 3, flexWrap: "wrap" }}>
+              <span style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase",
+                letterSpacing: "0.06em", color: "var(--text-muted)", marginRight: 2 }}>pops</span>
+              {box.pops.map((pop, pi) => (
+                <span key={pop.pop_number} style={{ display: "inline-flex", alignItems: "center", gap: 2 }}>
+                  <span style={{
+                    fontSize: 10, fontWeight: pop.was_treasure ? 800 : 400,
+                    fontFamily: "monospace",
+                    color: pop.was_treasure ? "#4ADE80" : "var(--text-muted)",
+                    backgroundColor: pop.was_treasure ? "rgba(74,222,128,0.12)" : "transparent",
+                    padding: pop.was_treasure ? "1px 5px" : "1px 4px",
+                    borderRadius: 3,
+                  }}>
+                    {pop.slot_index}{pop.was_treasure ? " ✓" : ""}
+                  </span>
+                  {pi < box.pops.length - 1 && (
+                    <span style={{ fontSize: 9, color: "var(--border-subtle)", margin: "0 1px" }}>→</span>
+                  )}
+                </span>
+              ))}
+            </div>
+          ) : (
+            box.status !== "available" && (
+              <span style={{ fontSize: 10, color: "var(--text-muted)", fontStyle: "italic" }}>No pops yet</span>
+            )
+          )}
+
+          {/* Separator dot */}
+          {box.pops.length > 0 && (
+            <span style={{ fontSize: 9, color: "var(--border-subtle)" }}>·</span>
+          )}
+
+          {/* Timestamps */}
+          <span style={{ fontSize: 10, color: "var(--text-muted)" }}>
+            {fmtDate(box.created_at)}
+            {box.completed_at && ` → ${fmtDate(box.completed_at)}`}
+          </span>
+
+          {/* Treasure slot positions (completed only, field may be absent) */}
+          {box.status === "completed" && box.treasure_slot_indexes && box.treasure_slot_indexes.length > 0 && (
+            <>
+              <span style={{ fontSize: 9, color: "var(--border-subtle)" }}>·</span>
+              <span style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase",
+                letterSpacing: "0.06em", color: "var(--text-muted)" }}>hidden</span>
+              {box.treasure_slot_indexes.map((idx) => (
+                <span key={idx} style={{ fontSize: 10, fontWeight: 700, fontFamily: "monospace",
+                  padding: "1px 5px", borderRadius: 3,
+                  backgroundColor: "rgba(52,211,153,0.10)", color: "#34d399" }}>
+                  {idx}
+                </span>
+              ))}
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Delete button — available boxes only */}
+      {box.status === "available" && (
+        <button onClick={() => onDelete(box.id)} disabled={deleting}
+          style={{ padding: "5px 10px", borderRadius: 8, border: "1px solid rgba(239,68,68,0.25)",
+            backgroundColor: "rgba(239,68,68,0.07)", color: "#f87171", cursor: "pointer",
+            display: "flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 700,
+            flexShrink: 0, opacity: deleting ? 0.5 : 1 }}>
+          {deleting ? <Loader2 size={11} className="animate-spin" /> : <Trash2 size={11} />}
+          Delete
+        </button>
+      )}
     </div>
   );
 }
@@ -252,11 +388,9 @@ function BoxesSection() {
 
   useEffect(() => { load(); }, [load]);
 
-  // Max treasures cap: floor(total_slots / 2)
   const maxTreasures = settings ? Math.floor(settings.total_slots / 2) : Infinity;
   const atCap = slotIndexes.length >= maxTreasures;
 
-  // Live client-side RTP preview for the create form
   const previewRtp = settings && slotIndexes.length > 0
     ? calcBoxRtp(settings.total_slots, settings.pop_limit, settings.payout_multiplier, slotIndexes.length)
     : null;
@@ -310,12 +444,10 @@ function BoxesSection() {
     finally { setDeleting(null); }
   };
 
-  const maskPhone = (ph: string | null) =>
-    ph && ph.length >= 8 ? `${ph.slice(0, 4)}***${ph.slice(-4)}` : ph ?? "—";
-
   return (
     <div className="space-y-4">
-      {/* ── Force-create confirm dialog (UNSAFE_RTP) ── */}
+
+      {/* ── Force-create confirm dialog ── */}
       <AnimatePresence>
         {showForceCreate && unsafeRtp && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -372,7 +504,6 @@ function BoxesSection() {
       <div className="rounded-2xl p-5 border" style={{ backgroundColor: "var(--bg-card)", borderColor: "var(--border-subtle)" }}>
         <p className="text-[10px] font-bold uppercase tracking-widest mb-3" style={{ color: "var(--text-muted)" }}>Create Box</p>
 
-        {/* Slot index input + add button */}
         <div className="flex gap-3 items-end">
           <div className="flex-1">
             <label className="block text-xs mb-1.5" style={{ color: "var(--text-secondary)" }}>
@@ -400,7 +531,6 @@ function BoxesSection() {
           </button>
         </div>
 
-        {/* Chip list of added slot indexes */}
         {slotIndexes.length > 0 && (
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
             {slotIndexes.map((idx) => (
@@ -410,8 +540,8 @@ function BoxesSection() {
                 color: AMBER, fontSize: 11, fontWeight: 700, fontFamily: "monospace" }}>
                 {idx}
                 <button onClick={() => removeSlot(idx)}
-                  style={{ background: "none", border: "none", cursor: "pointer", padding: 0, lineHeight: 1,
-                    color: AMBER, opacity: 0.7, display: "flex", alignItems: "center" }}>
+                  style={{ background: "none", border: "none", cursor: "pointer", padding: 0,
+                    lineHeight: 1, color: AMBER, opacity: 0.7, display: "flex", alignItems: "center" }}>
                   <X size={10} />
                 </button>
               </span>
@@ -419,7 +549,6 @@ function BoxesSection() {
           </div>
         )}
 
-        {/* Live RTP preview for this specific box */}
         {previewRtp !== null && (
           <div style={{ marginTop: 10, borderRadius: 8, padding: "8px 12px",
             backgroundColor: previewUnsafe ? "rgba(239,68,68,0.07)" : "rgba(255,255,255,0.03)",
@@ -437,7 +566,6 @@ function BoxesSection() {
 
         {createError && <p className="text-xs mt-2" style={{ color: "#f87171" }}>{createError}</p>}
 
-        {/* UNSAFE_RTP inline banner (after rejection) */}
         <AnimatePresence>
           {unsafeRtp && !showForceCreate && (
             <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
@@ -500,75 +628,12 @@ function BoxesSection() {
         ) : (
           <div>
             {boxes.map((box, i) => (
-              <div key={box.id}
-                style={{ padding: "12px 20px", display: "flex", alignItems: "flex-start", gap: 12, flexWrap: "wrap",
-                  borderBottom: i < boxes.length - 1 ? "1px solid var(--border-hairline)" : "none" }}>
-                <div style={{ paddingTop: 2 }}><StatusChip status={box.status} /></div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  {/* Row 1: config + stake + outcome + phone */}
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, fontFamily: "monospace", color: "var(--text-primary)" }}>
-                      {box.total_slots}s · {box.pop_limit}p · {box.payout_multiplier}×
-                    </span>
-                    {/* num_treasures — always present */}
-                    <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 4,
-                      backgroundColor: "rgba(232,163,61,0.10)", color: AMBER, fontWeight: 700 }}>
-                      {box.num_treasures} treasure{box.num_treasures !== 1 ? "s" : ""}
-                    </span>
-                    {/* rtp_percent — always present */}
-                    {box.rtp_percent != null && (() => {
-                      const unsafe = box.rtp_percent > UNSAFE_RTP_THRESHOLD;
-                      return (
-                        <span style={{ fontSize: 10, fontWeight: 700, fontFamily: "monospace",
-                          color: unsafe ? "#f87171" : box.rtp_percent > 60 ? "#fbbf24" : "#34d399" }}>
-                          RTP {box.rtp_percent.toFixed(1)}%
-                        </span>
-                      );
-                    })()}
-                    {box.stake != null && (
-                      <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>stake {fmtNaira(box.stake)}</span>
-                    )}
-                    {box.outcome && (
-                      <span style={{ fontSize: 10, fontWeight: 700, color: box.outcome === "won" ? AMBER : "#f87171" }}>
-                        {box.outcome}
-                      </span>
-                    )}
-                    {box.player_phone && (
-                      <span style={{ fontSize: 11, fontFamily: "monospace", color: "var(--text-muted)" }}>
-                        {maskPhone(box.player_phone)}
-                      </span>
-                    )}
-                  </div>
-                  {/* Row 2: dates */}
-                  <p style={{ fontSize: 10, color: "var(--text-muted)", margin: "2px 0 0" }}>
-                    Created {fmtDate(box.created_at)}
-                    {box.completed_at && ` · Completed ${fmtDate(box.completed_at)}`}
-                  </p>
-                  {/* Row 3: treasure_slot_indexes — ONLY when status === 'completed' AND field present */}
-                  {box.status === "completed" && box.treasure_slot_indexes && box.treasure_slot_indexes.length > 0 && (
-                    <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 4, flexWrap: "wrap" }}>
-                      <span style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em",
-                        color: "var(--text-muted)" }}>slots</span>
-                      {box.treasure_slot_indexes.map((idx) => (
-                        <span key={idx} style={{ fontSize: 10, fontWeight: 700, fontFamily: "monospace",
-                          padding: "1px 6px", borderRadius: 4,
-                          backgroundColor: "rgba(52,211,153,0.10)", color: "#34d399" }}>
-                          {idx}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                {box.status === "available" && (
-                  <button onClick={() => handleDelete(box.id)} disabled={deleting === box.id}
-                    style={{ padding: "5px 10px", borderRadius: 8, border: "1px solid rgba(239,68,68,0.25)",
-                      backgroundColor: "rgba(239,68,68,0.07)", color: "#f87171", cursor: "pointer",
-                      display: "flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 700, flexShrink: 0,
-                      opacity: deleting === box.id ? 0.5 : 1 }}>
-                    {deleting === box.id ? <Loader2 size={11} className="animate-spin" /> : <Trash2 size={11} />}
-                    Delete
-                  </button>
-                )}
+              <div key={box.id} style={{ borderBottom: i < boxes.length - 1 ? "1px solid var(--border-hairline)" : "none" }}>
+                <BoxCard
+                  box={box}
+                  onDelete={handleDelete}
+                  deleting={deleting === box.id}
+                />
               </div>
             ))}
           </div>
@@ -588,7 +653,6 @@ export default function AdminTreasureBoxPage() {
         <Gift size={18} style={{ color: AMBER }} />
         <h1 className="text-2xl font-black text-white">Treasure Box</h1>
       </div>
-
       <SettingsSection onSaved={() => setRefreshKey((k) => k + 1)} />
       <BoxesSection key={refreshKey} />
     </div>

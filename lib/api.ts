@@ -1867,6 +1867,10 @@ export interface AdminTreasureBox {
    * Do NOT render this field for non-completed boxes.
    */
   treasure_slot_indexes?: number[];
+  /**
+   * Chronological pop history — always present (empty array for available boxes).
+   */
+  pops: { pop_number: number; slot_index: number; was_treasure: boolean }[];
 }
 
 export interface CreateBoxBody {
