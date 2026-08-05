@@ -431,7 +431,7 @@ export interface AdminWithdrawal {
   bank_name: string;
   status: "pending" | "approved" | "rejected" | "denied";
   reject_reason: string | null;
-  deny_reason: string | null;
+  denial_reason: string | null;
   created_at: string;
   players?: { name: string | null };
 }

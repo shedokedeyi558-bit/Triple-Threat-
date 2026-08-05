@@ -354,8 +354,8 @@ export default function WithdrawalsPage() {
                   {w.reject_reason && (
                     <p className="text-xs text-red-400 mt-1.5">Reject reason: {w.reject_reason}</p>
                   )}
-                  {w.deny_reason && (
-                    <p className="text-xs mt-1.5" style={{ color: "#f97316" }}>Deny reason: {w.deny_reason}</p>
+                  {w.denial_reason && (
+                    <p className="text-xs mt-1.5" style={{ color: "#f97316" }}>Denial reason: {w.denial_reason}</p>
                   )}
                 </div>
               </div>
