@@ -280,34 +280,37 @@ function BoxCard({ box, onDelete, deleting }: {
 
         {/* ── Row 3: pop sequence + timestamps ── */}
         <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-          {/* Pop sequence */}
-          {(box.pops?.length ?? 0) > 0 ? (
-            <div style={{ display: "flex", alignItems: "center", gap: 3, flexWrap: "wrap" }}>
-              <span style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase",
-                letterSpacing: "0.06em", color: "var(--text-muted)", marginRight: 2 }}>pops</span>
-              {box.pops.map((pop, pi) => (
-                <span key={pop.pop_number} style={{ display: "inline-flex", alignItems: "center", gap: 2 }}>
-                  <span style={{
-                    fontSize: 10, fontWeight: pop.was_treasure ? 800 : 400,
-                    fontFamily: "monospace",
-                    color: pop.was_treasure ? "#4ADE80" : "var(--text-muted)",
-                    backgroundColor: pop.was_treasure ? "rgba(74,222,128,0.12)" : "transparent",
-                    padding: pop.was_treasure ? "1px 5px" : "1px 4px",
-                    borderRadius: 3,
-                  }}>
-                    {pop.slot_index}{pop.was_treasure ? " ✓" : ""}
+          {/* Pop sequence — use local var so TypeScript knows it's defined inside the branch */}
+          {(() => {
+            const pops = box.pops ?? [];
+            return pops.length > 0 ? (
+              <div style={{ display: "flex", alignItems: "center", gap: 3, flexWrap: "wrap" }}>
+                <span style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase",
+                  letterSpacing: "0.06em", color: "var(--text-muted)", marginRight: 2 }}>pops</span>
+                {pops.map((pop, pi) => (
+                  <span key={pop.pop_number} style={{ display: "inline-flex", alignItems: "center", gap: 2 }}>
+                    <span style={{
+                      fontSize: 10, fontWeight: pop.was_treasure ? 800 : 400,
+                      fontFamily: "monospace",
+                      color: pop.was_treasure ? "#4ADE80" : "var(--text-muted)",
+                      backgroundColor: pop.was_treasure ? "rgba(74,222,128,0.12)" : "transparent",
+                      padding: pop.was_treasure ? "1px 5px" : "1px 4px",
+                      borderRadius: 3,
+                    }}>
+                      {pop.slot_index}{pop.was_treasure ? " ✓" : ""}
+                    </span>
+                    {pi < pops.length - 1 && (
+                      <span style={{ fontSize: 9, color: "var(--border-subtle)", margin: "0 1px" }}>→</span>
+                    )}
                   </span>
-                  {pi < box.pops.length - 1 && (
-                    <span style={{ fontSize: 9, color: "var(--border-subtle)", margin: "0 1px" }}>→</span>
-                  )}
-                </span>
-              ))}
-            </div>
-          ) : (
-            box.status !== "available" && (
-              <span style={{ fontSize: 10, color: "var(--text-muted)", fontStyle: "italic" }}>No pops yet</span>
-            )
-          )}
+                ))}
+              </div>
+            ) : (
+              box.status !== "available"
+                ? <span style={{ fontSize: 10, color: "var(--text-muted)", fontStyle: "italic" }}>No pops yet</span>
+                : null
+            );
+          })()}
 
           {/* Separator dot */}
           {(box.pops?.length ?? 0) > 0 && (
