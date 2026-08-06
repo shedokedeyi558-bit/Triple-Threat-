@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { adminApi, type AdminWithdrawal, ApiError } from "@/lib/api";
-import { CheckCircle, XCircle, Loader2, AlertTriangle, Ban, Banknote } from "lucide-react";
+import { CheckCircle, XCircle, Loader2, AlertTriangle, Ban, Banknote, MoreHorizontal } from "lucide-react";
 
 type Tab = "pending" | "approved" | "rejected" | "denied" | "paid_manual";
 
@@ -258,6 +258,8 @@ export default function WithdrawalsPage() {
 
   const [denyTarget, setDenyTarget]         = useState<AdminWithdrawal | null>(null);
   const [markPaidTarget, setMarkPaidTarget] = useState<AdminWithdrawal | null>(null);
+  // Track which cards have the Squad overflow option expanded
+  const [squadExpanded, setSquadExpanded]   = useState<Record<string, boolean>>({});
 
   const fetchWithdrawals = useCallback(async (status: Tab) => {
     setLoading(true); setError(""); setSelected([]);
@@ -467,18 +469,33 @@ export default function WithdrawalsPage() {
                     </span>
                   </div>
 
-                  {/* Row 2: bank details — prominent for admin verification */}
-                  <div className="rounded-lg px-3 py-2 mb-2" style={{
+                  {/* Row 2: bank details — admin verification panel */}
+                  <div className="rounded-lg px-3 py-2.5 mb-2" style={{
                     backgroundColor: "var(--bg-base)", border: "1px solid var(--border-hairline)",
                   }}>
-                    <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs">
-                      <span style={{ color: "var(--text-primary)", fontWeight: 700 }}>
-                        {w.account_name ?? "—"}
+                    {/* Account name — primary verification target */}
+                    <div className="mb-1.5">
+                      <span style={{ fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                        Account holder
                       </span>
-                      <span style={{ color: "var(--text-secondary)", fontFamily: "monospace", fontWeight: 700 }}>
+                      <p style={{
+                        fontSize: 13, fontWeight: 800, color: "var(--text-primary)", margin: "2px 0 0",
+                        fontFamily: w.account_name ? "inherit" : "inherit",
+                        opacity: w.account_name ? 1 : 0.45,
+                      }}>
+                        {w.account_name ?? (
+                          <span style={{ color: "#fbbf24", fontSize: 12, fontWeight: 600 }}>
+                            ⚠ Name not on record — verify manually via OPay
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                    {/* Account number + bank */}
+                    <div className="flex flex-wrap gap-x-5 gap-y-0.5">
+                      <span style={{ fontSize: 12, fontFamily: "monospace", fontWeight: 700, color: "var(--text-secondary)" }}>
                         {w.account_number}
                       </span>
-                      <span style={{ color: "var(--text-muted)" }}>{w.bank_name}</span>
+                      <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{w.bank_name}</span>
                     </div>
                   </div>
 
@@ -505,49 +522,78 @@ export default function WithdrawalsPage() {
 
               {/* Action buttons — pending only */}
               {tab === "pending" && (
-                <div className="flex gap-2 mt-3 pt-3 border-t" style={{ borderColor: "var(--border-hairline)" }}>
-                  {/* Approve (Auto — Squad) */}
-                  <button
-                    onClick={() => handleApprove(w.id)}
-                    disabled={processing === w.id}
-                    className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold transition-all active:scale-[0.98] disabled:opacity-50"
-                    style={{ backgroundColor: "rgba(76,111,255,0.10)", border: "1px solid rgba(76,111,255,0.3)", color: "var(--accent-indigo)" }}
-                  >
-                    {processing === w.id
-                      ? <Loader2 size={13} className="animate-spin" />
-                      : <><CheckCircle size={13} /> Auto (Squad)</>
-                    }
-                  </button>
+                <div className="mt-3 pt-3 border-t" style={{ borderColor: "var(--border-hairline)" }}>
+                  {/* Primary row: 3 buttons + ⋯ */}
+                  <div className="flex gap-2">
+                    {/* Mark Paid — primary action, prominent green */}
+                    <button
+                      onClick={() => setMarkPaidTarget(w)}
+                      disabled={processing === w.id}
+                      className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-[0.98] disabled:opacity-50"
+                      style={{ backgroundColor: "rgba(34,197,94,0.12)", border: "2px solid rgba(34,197,94,0.4)", color: "#22c55e" }}
+                    >
+                      {processing === w.id
+                        ? <Loader2 size={13} className="animate-spin" />
+                        : <><Banknote size={13} /> Mark Paid</>
+                      }
+                    </button>
 
-                  {/* Mark as Paid (Manual) — green, visually distinct */}
-                  <button
-                    onClick={() => setMarkPaidTarget(w)}
-                    disabled={processing === w.id}
-                    className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-[0.98] disabled:opacity-50"
-                    style={{ backgroundColor: "rgba(34,197,94,0.10)", border: "2px solid rgba(34,197,94,0.35)", color: "#22c55e" }}
-                  >
-                    <Banknote size={13} /> Mark Paid
-                  </button>
+                    {/* Reject */}
+                    <button
+                      onClick={() => handleReject(w.id)}
+                      disabled={processing === w.id}
+                      className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold transition-all active:scale-[0.98] disabled:opacity-50"
+                      style={{ backgroundColor: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.25)", color: "#f87171" }}
+                    >
+                      <XCircle size={13} /> Reject
+                    </button>
 
-                  {/* Reject */}
-                  <button
-                    onClick={() => handleReject(w.id)}
-                    disabled={processing === w.id}
-                    className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold transition-all active:scale-[0.98] disabled:opacity-50"
-                    style={{ backgroundColor: "rgba(239,68,68,0.10)", border: "1px solid rgba(239,68,68,0.3)", color: "#f87171" }}
-                  >
-                    <XCircle size={13} /> Reject
-                  </button>
+                    {/* Deny */}
+                    <button
+                      onClick={() => setDenyTarget(w)}
+                      disabled={processing === w.id}
+                      className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-[0.98] disabled:opacity-50"
+                      style={{ backgroundColor: "rgba(249,115,22,0.08)", border: "2px solid rgba(249,115,22,0.3)", color: "#f97316" }}
+                    >
+                      <Ban size={13} /> Deny
+                    </button>
 
-                  {/* Deny — permanent, no refund */}
-                  <button
-                    onClick={() => setDenyTarget(w)}
-                    disabled={processing === w.id}
-                    className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-[0.98] disabled:opacity-50"
-                    style={{ backgroundColor: "rgba(249,115,22,0.10)", border: "2px solid rgba(249,115,22,0.35)", color: "#f97316" }}
-                  >
-                    <Ban size={13} /> Deny
-                  </button>
+                    {/* ⋯ overflow — Squad auto-transfer hidden here */}
+                    <button
+                      onClick={() => setSquadExpanded((prev) => ({ ...prev, [w.id]: !prev[w.id] }))}
+                      disabled={processing === w.id}
+                      title="More options"
+                      className="flex items-center justify-center rounded-xl text-xs font-bold transition-all active:scale-[0.98] disabled:opacity-50"
+                      style={{
+                        width: 36, flexShrink: 0,
+                        backgroundColor: squadExpanded[w.id] ? "rgba(76,111,255,0.12)" : "rgba(255,255,255,0.04)",
+                        border: squadExpanded[w.id] ? "1px solid rgba(76,111,255,0.3)" : "1px solid var(--border-hairline)",
+                        color: squadExpanded[w.id] ? "var(--accent-indigo)" : "var(--text-muted)",
+                      }}
+                    >
+                      <MoreHorizontal size={14} />
+                    </button>
+                  </div>
+
+                  {/* Squad overflow — only shown when ⋯ is tapped */}
+                  {squadExpanded[w.id] && (
+                    <div className="mt-2 rounded-xl p-2.5" style={{ backgroundColor: "rgba(76,111,255,0.05)", border: "1px solid rgba(76,111,255,0.15)" }}>
+                      <p className="text-[10px] font-semibold mb-2" style={{ color: "var(--text-muted)" }}>
+                        ⚠ Squad auto-transfer is currently blocked (EDD pending). Use Mark Paid above instead.
+                      </p>
+                      <button
+                        onClick={() => handleApprove(w.id)}
+                        disabled={processing === w.id}
+                        className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition-all active:scale-[0.98] disabled:opacity-50"
+                        style={{ backgroundColor: "rgba(76,111,255,0.10)", border: "1px solid rgba(76,111,255,0.25)", color: "var(--accent-indigo)" }}
+                      >
+                        {processing === w.id
+                          ? <Loader2 size={12} className="animate-spin" />
+                          : <><CheckCircle size={12} /> Approve via Squad (Auto-transfer)</>
+                        }
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
