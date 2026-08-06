@@ -37,6 +37,34 @@ function formatCountdown(expiresAt: string): string {
 
 function TxRow({ tx }: { tx: ApiTransaction }) {
   const isCredit = tx.amount > 0;
+
+  // withdrawal_manual = admin manually paid this out — it's a status confirmation,
+  // NOT an additional debit. No money moved; show as green completion, not red charge.
+  const isManualPaidConfirmation =
+    tx.type === "withdrawal_manual" ||
+    tx.type === "withdrawal_completed" ||
+    tx.type === "withdrawal_confirmed";
+
+  if (isManualPaidConfirmation) {
+    return (
+      <div className="flex items-center gap-3 px-5 py-3.5" style={{ backgroundColor: "var(--bg-card)" }}>
+        <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+          style={{ backgroundColor: "rgba(34,197,94,0.15)" }}>
+          <CheckCircle2 size={15} style={{ color: "#22c55e" }} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium truncate" style={{ color: "var(--text-primary)" }}>
+            {tx.description || "Withdrawal Completed"}
+          </p>
+          <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>{formatDate(tx.created_at)}</p>
+        </div>
+        <span className="text-xs font-semibold flex-shrink-0" style={{ color: "#22c55e" }}>
+          Paid ✓
+        </span>
+      </div>
+    );
+  }
+
   return (
     <div className="flex items-center gap-3 px-5 py-3.5 hover:opacity-80 transition-opacity" style={{ backgroundColor: "var(--bg-card)" }}>
       <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0`} style={{ backgroundColor: isCredit ? "rgba(232, 163, 61, 0.2)" : "rgba(239, 68, 68, 0.2)" }}>
