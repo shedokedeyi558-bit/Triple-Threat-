@@ -324,10 +324,10 @@ export const walletApi = {
       params: { account_number: accountNumber, bank_code: bankCode },
     }),
 
-  withdraw: (amount: number, accountNumber: string, bankName: string, bankCode: string) =>
+  withdraw: (amount: number, accountNumber: string, bankName: string, bankCode: string, accountName: string) =>
     request<WithdrawResponse>("/api/wallet/withdraw", {
       method: "POST",
-      body: { amount, accountNumber, bankName, bankCode },
+      body: { amount, accountNumber, bankName, bankCode, accountName },
       token: getToken(),
     }),
 };

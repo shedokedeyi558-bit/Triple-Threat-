@@ -158,6 +158,7 @@ export default function WalletPage() {
   const [withdrawAmt, setWithdrawAmt] = useState("");
   const [selectedBank, setSelectedBank] = useState<BankOption | null>(null);
   const [accNum, setAccNum] = useState("");
+  const [accountName, setAccountName] = useState("");
   const [resolvedName, setResolvedName] = useState<string | null>(null);
   const [resolving, setResolving] = useState(false);
   const [resolveError, setResolveError] = useState("");
@@ -237,11 +238,15 @@ export default function WalletPage() {
     setResolvedName(null);
     setResolveError("");
     setConfirmed(false);
+    setAccountName(""); // clear manually-typed name too — forces re-entry after number change
 
     if (accNum.length === 10 && selectedBank) {
       setResolving(true);
       walletApi.resolveAccount(accNum, selectedBank.code)
-        .then((d) => setResolvedName(d.account_name))
+        .then((d) => {
+          setResolvedName(d.account_name);
+          setAccountName(d.account_name); // pre-fill from resolved name
+        })
         .catch((err) => setResolveError(err instanceof ApiError ? err.message : "Could not verify account"))
         .finally(() => setResolving(false));
     }
@@ -269,12 +274,13 @@ export default function WalletPage() {
     if (!amt || amt < 1000) { setWithdrawError("Minimum withdrawal is ₦1,000"); return; }
     if (!selectedBank) { setWithdrawError("Select a bank"); return; }
     if (accNum.length < 10) { setWithdrawError("Enter a valid 10-digit account number"); return; }
+    if (!accountName.trim()) { setWithdrawError("Enter the full name on the account"); return; }
     if (state.player && state.player.balance < amt) { setWithdrawError("Insufficient balance"); return; }
     setWithdrawError("");
     setWithdrawLoading(true);
     try {
       const data = await withTimeout(
-        walletApi.withdraw(amt, accNum, selectedBank.name, selectedBank.code),
+        walletApi.withdraw(amt, accNum, selectedBank.name, selectedBank.code, accountName.trim()),
         18000
       );
       console.log("[withdraw] response:", data);
@@ -288,6 +294,7 @@ export default function WalletPage() {
       setWithdrawAmt("");
       setSelectedBank(null);
       setAccNum("");
+      setAccountName("");
       setResolvedName(null);
       setConfirmed(false);
       walletApi.getTransactions().then((d) => setTransactions(d.transactions)).catch(() => {});
@@ -487,6 +494,29 @@ export default function WalletPage() {
                     />
                   </div>
 
+                  {/* ── Full name on account ── */}
+                  <div>
+                    <label className="text-[11px] font-bold uppercase tracking-widest mb-2 block" style={{ color: "var(--text-muted)" }}>
+                      Full Name on Account <span style={{ color: "#f87171" }}>*</span>
+                    </label>
+                    <input
+                      type="text"
+                      placeholder={resolvedName ?? "As it appears on your bank account"}
+                      value={accountName}
+                      onChange={(e) => {
+                        setAccountName(e.target.value);
+                        setConfirmed(false); // reset confirmation if name changes
+                      }}
+                      className={inp}
+                      style={{ backgroundColor: "var(--bg-base)", borderColor: "var(--border-subtle)", color: "var(--text-primary)", border: "1px solid" }}
+                    />
+                    {resolvedName && accountName && resolvedName.toLowerCase() !== accountName.trim().toLowerCase() && (
+                      <p className="text-[11px] mt-1" style={{ color: "#fbbf24" }}>
+                        Note: name differs from bank-resolved name ({resolvedName})
+                      </p>
+                    )}
+                  </div>
+
                   {/* ── Account confirmation checkbox ── */}
                   {accNum.length === 10 && (
                     <label style={{
@@ -503,8 +533,11 @@ export default function WalletPage() {
                         style={{ marginTop: 1, width: 15, height: 15, accentColor: "var(--accent-indigo)", flexShrink: 0, cursor: "pointer" }}
                       />
                       <span style={{ fontSize: 12, color: confirmed ? "var(--accent-indigo)" : "var(--text-secondary)", lineHeight: 1.45, fontWeight: confirmed ? 700 : 400 }}>
-                        I confirm <strong style={{ fontFamily: "monospace" }}>{accNum}</strong>
-                        {selectedBank ? ` (${selectedBank.name})` : ""} is my correct account number
+                        I confirm{" "}
+                        <strong style={{ fontFamily: "monospace" }}>{accNum}</strong>
+                        {selectedBank ? ` (${selectedBank.name})` : ""}{" "}
+                        belongs to{" "}
+                        <strong>{accountName.trim() || "…"}</strong>
                       </span>
                     </label>
                   )}
@@ -590,6 +623,7 @@ export default function WalletPage() {
                       !withdrawAmt || parseInt(withdrawAmt) < 1000 ||
                       !selectedBank ||
                       accNum.length < 10 ||
+                      !accountName.trim() ||
                       !confirmed
                     }
                     className="w-full py-4 font-black rounded-xl disabled:opacity-40 flex items-center justify-center gap-2 text-sm"
