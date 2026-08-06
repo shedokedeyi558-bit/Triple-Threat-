@@ -428,10 +428,12 @@ export interface AdminWithdrawal {
   amount: number;
   method: string;
   account_number: string;
+  account_name: string | null;
   bank_name: string;
-  status: "pending" | "approved" | "rejected" | "denied";
+  status: "pending" | "approved" | "rejected" | "denied" | "paid_manual";
   reject_reason: string | null;
   denial_reason: string | null;
+  manual_reference: string | null;
   created_at: string;
   players?: { name: string | null };
 }
@@ -1370,6 +1372,12 @@ export const adminApi = {
     request<{ withdrawal: AdminWithdrawal; message: string }>(
       `/api/admin/withdrawals/${id}/deny`,
       { method: "PUT", body: { reason }, token: getAdminToken() }
+    ),
+
+  markPaidManual: (id: string, reference?: string) =>
+    request<{ withdrawal: AdminWithdrawal; message: string }>(
+      `/api/admin/withdrawals/${id}/mark-paid-manual`,
+      { method: "PUT", body: { reference: reference ?? null }, token: getAdminToken() }
     ),
 
   // Export CSV — returns raw URL to open

@@ -3,9 +3,9 @@
 import { useEffect, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { adminApi, type AdminWithdrawal, ApiError } from "@/lib/api";
-import { CheckCircle, XCircle, Loader2, AlertTriangle, Ban } from "lucide-react";
+import { CheckCircle, XCircle, Loader2, AlertTriangle, Ban, Banknote } from "lucide-react";
 
-type Tab = "pending" | "approved" | "rejected" | "denied";
+type Tab = "pending" | "approved" | "rejected" | "denied" | "paid_manual";
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-NG", {
@@ -13,12 +13,44 @@ function formatDate(iso: string) {
   });
 }
 
-// ── Deny confirm dialog ───────────────────────────────────────────────────────
+// ── Shared dialog shell ───────────────────────────────────────────────────────
+function DialogShell({
+  borderColor,
+  onBackdropClick,
+  children,
+}: {
+  borderColor: string;
+  onBackdropClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      style={{
+        position: "fixed", inset: 0, zIndex: 60,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        backgroundColor: "rgba(0,0,0,0.8)", backdropFilter: "blur(4px)", padding: 16,
+      }}
+      onClick={onBackdropClick}
+    >
+      <motion.div
+        initial={{ scale: 0.92, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.92, opacity: 0 }}
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          width: "100%", maxWidth: 440, borderRadius: 18, padding: "24px 22px",
+          backgroundColor: "var(--bg-card)", border: `1px solid ${borderColor}`,
+          display: "flex", flexDirection: "column", gap: 16,
+        }}
+      >
+        {children}
+      </motion.div>
+    </motion.div>
+  );
+}
+
+// ── Deny dialog ───────────────────────────────────────────────────────────────
 function DenyDialog({
-  withdrawal,
-  onConfirm,
-  onCancel,
-  processing,
+  withdrawal, onConfirm, onCancel, processing,
 }: {
   withdrawal: AdminWithdrawal;
   onConfirm: (reason: string) => void;
@@ -31,128 +63,204 @@ function DenyDialog({
   const invalid = touched && trimmed.length === 0;
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      style={{
-        position: "fixed", inset: 0, zIndex: 60,
-        display: "flex", alignItems: "center", justifyContent: "center",
-        backgroundColor: "rgba(0,0,0,0.8)", backdropFilter: "blur(4px)", padding: 16,
-      }}
-      onClick={onCancel}
-    >
-      <motion.div
-        initial={{ scale: 0.92, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.92, opacity: 0 }}
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          width: "100%", maxWidth: 420, borderRadius: 18, padding: "24px 22px",
-          backgroundColor: "var(--bg-card)", border: "1px solid rgba(249,115,22,0.4)",
-          display: "flex", flexDirection: "column", gap: 16,
-        }}
-      >
-        {/* Header */}
-        <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
-          <div style={{
-            width: 38, height: 38, borderRadius: "50%", flexShrink: 0,
-            backgroundColor: "rgba(249,115,22,0.12)", border: "1px solid rgba(249,115,22,0.3)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-          }}>
-            <Ban size={17} style={{ color: "#f97316" }} />
-          </div>
-          <div>
-            <p style={{ fontSize: 14, fontWeight: 800, color: "var(--text-primary)", margin: "0 0 4px" }}>
-              Deny this withdrawal?
-            </p>
-            <p style={{ fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.55, margin: 0 }}>
-              ₦{withdrawal.amount.toLocaleString()} · {withdrawal.phone}
-            </p>
-          </div>
-        </div>
-
-        {/* Warning */}
+    <DialogShell borderColor="rgba(249,115,22,0.4)" onBackdropClick={onCancel}>
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
         <div style={{
-          borderRadius: 10, padding: "11px 13px",
-          backgroundColor: "rgba(249,115,22,0.07)", border: "1px solid rgba(249,115,22,0.25)",
-          display: "flex", gap: 8,
+          width: 38, height: 38, borderRadius: "50%", flexShrink: 0,
+          backgroundColor: "rgba(249,115,22,0.12)", border: "1px solid rgba(249,115,22,0.3)",
+          display: "flex", alignItems: "center", justifyContent: "center",
         }}>
-          <AlertTriangle size={14} style={{ color: "#f97316", flexShrink: 0, marginTop: 1 }} />
-          <p style={{ fontSize: 12, color: "#f97316", fontWeight: 600, margin: 0, lineHeight: 1.5 }}>
-            The player will <strong>NOT</strong> be refunded. This cannot be undone.
+          <Ban size={17} style={{ color: "#f97316" }} />
+        </div>
+        <div>
+          <p style={{ fontSize: 14, fontWeight: 800, color: "var(--text-primary)", margin: "0 0 4px" }}>
+            Deny this withdrawal?
+          </p>
+          <p style={{ fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.55, margin: 0 }}>
+            ₦{withdrawal.amount.toLocaleString()} · {withdrawal.phone}
           </p>
         </div>
+      </div>
 
-        {/* Reason input */}
+      <div style={{
+        borderRadius: 10, padding: "11px 13px",
+        backgroundColor: "rgba(249,115,22,0.07)", border: "1px solid rgba(249,115,22,0.25)",
+        display: "flex", gap: 8,
+      }}>
+        <AlertTriangle size={14} style={{ color: "#f97316", flexShrink: 0, marginTop: 1 }} />
+        <p style={{ fontSize: 12, color: "#f97316", fontWeight: 600, margin: 0, lineHeight: 1.5 }}>
+          The player will <strong>NOT</strong> be refunded. This cannot be undone.
+        </p>
+      </div>
+
+      <div>
+        <label style={{
+          fontSize: 11, fontWeight: 700, color: "var(--text-secondary)",
+          textTransform: "uppercase", letterSpacing: "0.06em", display: "block", marginBottom: 6,
+        }}>
+          Reason <span style={{ color: "#f87171" }}>*</span>
+        </label>
+        <input
+          type="text"
+          placeholder="e.g. Suspicious activity, duplicate request…"
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+          onBlur={() => setTouched(true)}
+          autoFocus
+          style={{
+            width: "100%", borderRadius: 10, padding: "10px 14px", fontSize: 13,
+            backgroundColor: "var(--bg-base)",
+            border: `1px solid ${invalid ? "rgba(248,113,113,0.5)" : "var(--border-subtle)"}`,
+            color: "var(--text-primary)", outline: "none", boxSizing: "border-box",
+          }}
+        />
+        {invalid && <p style={{ fontSize: 11, color: "#f87171", margin: "4px 0 0" }}>Reason is required before denying.</p>}
+      </div>
+
+      <div style={{ display: "flex", gap: 8 }}>
+        <button onClick={onCancel} style={{
+          flex: 1, padding: "10px 0", borderRadius: 10, fontSize: 13, fontWeight: 700,
+          backgroundColor: "transparent", border: "1px solid var(--border-subtle)",
+          color: "var(--text-secondary)", cursor: "pointer",
+        }}>Cancel</button>
+        <button
+          onClick={() => { setTouched(true); if (trimmed) onConfirm(trimmed); }}
+          disabled={processing}
+          style={{
+            flex: 1, padding: "10px 0", borderRadius: 10, fontSize: 13, fontWeight: 800,
+            backgroundColor: trimmed ? "#f97316" : "rgba(249,115,22,0.3)",
+            border: "none", color: "#fff",
+            cursor: processing || !trimmed ? "not-allowed" : "pointer",
+            opacity: processing ? 0.6 : 1,
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+          }}>
+          {processing && <Loader2 size={13} className="animate-spin" />}
+          {processing ? "Denying…" : "Deny withdrawal"}
+        </button>
+      </div>
+    </DialogShell>
+  );
+}
+
+// ── Mark as Paid (Manual) dialog ──────────────────────────────────────────────
+function MarkPaidDialog({
+  withdrawal, onConfirm, onCancel, processing,
+}: {
+  withdrawal: AdminWithdrawal;
+  onConfirm: (reference: string) => void;
+  onCancel: () => void;
+  processing: boolean;
+}) {
+  const [reference, setReference] = useState("");
+
+  const accountName   = withdrawal.account_name ?? "—";
+  const accountNumber = withdrawal.account_number;
+  const bankName      = withdrawal.bank_name;
+
+  return (
+    <DialogShell borderColor="rgba(34,197,94,0.35)" onBackdropClick={onCancel}>
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+        <div style={{
+          width: 38, height: 38, borderRadius: "50%", flexShrink: 0,
+          backgroundColor: "rgba(34,197,94,0.12)", border: "1px solid rgba(34,197,94,0.3)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+        }}>
+          <Banknote size={17} style={{ color: "#22c55e" }} />
+        </div>
         <div>
-          <label style={{ fontSize: 11, fontWeight: 700, color: "var(--text-secondary)",
-            textTransform: "uppercase", letterSpacing: "0.06em", display: "block", marginBottom: 6 }}>
-            Reason <span style={{ color: "#f87171" }}>*</span>
-          </label>
-          <input
-            type="text"
-            placeholder="e.g. Suspicious activity, duplicate request…"
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            onBlur={() => setTouched(true)}
-            autoFocus
-            style={{
-              width: "100%", borderRadius: 10, padding: "10px 14px", fontSize: 13,
-              backgroundColor: "var(--bg-base)",
-              border: `1px solid ${invalid ? "rgba(248,113,113,0.5)" : "var(--border-subtle)"}`,
-              color: "var(--text-primary)", outline: "none", boxSizing: "border-box",
-            }}
-          />
-          {invalid && (
-            <p style={{ fontSize: 11, color: "#f87171", margin: "4px 0 0" }}>Reason is required before denying.</p>
-          )}
+          <p style={{ fontSize: 14, fontWeight: 800, color: "var(--text-primary)", margin: "0 0 4px" }}>
+            Mark as Paid (Manual)
+          </p>
+          <p style={{ fontSize: 18, fontWeight: 900, color: "#22c55e", margin: 0, fontFamily: "monospace" }}>
+            ₦{withdrawal.amount.toLocaleString()}
+          </p>
         </div>
+      </div>
 
-        {/* Buttons */}
-        <div style={{ display: "flex", gap: 8 }}>
-          <button onClick={onCancel}
-            style={{
-              flex: 1, padding: "10px 0", borderRadius: 10, fontSize: 13, fontWeight: 700,
-              backgroundColor: "transparent", border: "1px solid var(--border-subtle)",
-              color: "var(--text-secondary)", cursor: "pointer",
-            }}>
-            Cancel
-          </button>
-          <button
-            onClick={() => { setTouched(true); if (trimmed) onConfirm(trimmed); }}
-            disabled={processing}
-            style={{
-              flex: 1, padding: "10px 0", borderRadius: 10, fontSize: 13, fontWeight: 800,
-              backgroundColor: trimmed ? "#f97316" : "rgba(249,115,22,0.3)",
-              border: "none", color: "#fff",
-              cursor: processing || !trimmed ? "not-allowed" : "pointer",
-              opacity: processing ? 0.6 : 1,
-              display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-            }}>
-            {processing && <Loader2 size={13} className="animate-spin" />}
-            {processing ? "Denying…" : "Deny withdrawal"}
-          </button>
-        </div>
-      </motion.div>
-    </motion.div>
+      {/* Confirmation question */}
+      <div style={{
+        borderRadius: 10, padding: "13px 14px",
+        backgroundColor: "rgba(34,197,94,0.06)", border: "1px solid rgba(34,197,94,0.2)",
+        display: "flex", flexDirection: "column", gap: 6,
+      }}>
+        <p style={{ fontSize: 12, fontWeight: 700, color: "#22c55e", margin: 0 }}>
+          Have you already sent this payment?
+        </p>
+        <p style={{ fontSize: 12, color: "var(--text-secondary)", margin: 0, lineHeight: 1.6 }}>
+          Confirm you have transferred{" "}
+          <strong style={{ color: "var(--text-primary)" }}>₦{withdrawal.amount.toLocaleString()}</strong>{" "}
+          to{" "}
+          <strong style={{ color: "var(--text-primary)" }}>{accountName}</strong>{" "}
+          at{" "}
+          <strong style={{ color: "var(--text-primary)" }}>{bankName}</strong>{" "}
+          (account <strong style={{ color: "var(--text-primary)", fontFamily: "monospace" }}>{accountNumber}</strong>).
+        </p>
+        <p style={{ fontSize: 11, color: "var(--text-muted)", margin: 0 }}>
+          This marks the withdrawal as paid without processing a Squad transfer.
+        </p>
+      </div>
+
+      {/* Reference / note (optional) */}
+      <div>
+        <label style={{
+          fontSize: 11, fontWeight: 700, color: "var(--text-secondary)",
+          textTransform: "uppercase", letterSpacing: "0.06em", display: "block", marginBottom: 6,
+        }}>
+          Reference / Note <span style={{ color: "var(--text-muted)", fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>(optional)</span>
+        </label>
+        <input
+          type="text"
+          placeholder="e.g. OPay ref #XYZ123, Opay app screenshot sent…"
+          value={reference}
+          onChange={(e) => setReference(e.target.value)}
+          style={{
+            width: "100%", borderRadius: 10, padding: "10px 14px", fontSize: 13,
+            backgroundColor: "var(--bg-base)", border: "1px solid var(--border-subtle)",
+            color: "var(--text-primary)", outline: "none", boxSizing: "border-box",
+          }}
+        />
+      </div>
+
+      <div style={{ display: "flex", gap: 8 }}>
+        <button onClick={onCancel} style={{
+          flex: 1, padding: "10px 0", borderRadius: 10, fontSize: 13, fontWeight: 700,
+          backgroundColor: "transparent", border: "1px solid var(--border-subtle)",
+          color: "var(--text-secondary)", cursor: "pointer",
+        }}>Cancel</button>
+        <button
+          onClick={() => onConfirm(reference.trim())}
+          disabled={processing}
+          style={{
+            flex: 1, padding: "10px 0", borderRadius: 10, fontSize: 13, fontWeight: 800,
+            backgroundColor: "#22c55e", border: "none", color: "#fff",
+            cursor: processing ? "not-allowed" : "pointer", opacity: processing ? 0.6 : 1,
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+          }}>
+          {processing && <Loader2 size={13} className="animate-spin" />}
+          {processing ? "Marking…" : "Yes, mark as paid"}
+        </button>
+      </div>
+    </DialogShell>
   );
 }
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function WithdrawalsPage() {
-  const [tab, setTab] = useState<Tab>("pending");
+  const [tab, setTab]               = useState<Tab>("pending");
   const [withdrawals, setWithdrawals] = useState<AdminWithdrawal[]>([]);
-  const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [selected, setSelected] = useState<string[]>([]);
+  const [total, setTotal]           = useState(0);
+  const [loading, setLoading]       = useState(true);
+  const [error, setError]           = useState("");
+  const [selected, setSelected]     = useState<string[]>([]);
   const [processing, setProcessing] = useState<string | null>(null);
   const [transferWarnings, setTransferWarnings] = useState<Record<string, string>>({});
 
-  // Deny dialog state
-  const [denyTarget, setDenyTarget] = useState<AdminWithdrawal | null>(null);
+  const [denyTarget, setDenyTarget]         = useState<AdminWithdrawal | null>(null);
+  const [markPaidTarget, setMarkPaidTarget] = useState<AdminWithdrawal | null>(null);
 
   const fetchWithdrawals = useCallback(async (status: Tab) => {
-    setLoading(true);
-    setError("");
-    setSelected([]);
+    setLoading(true); setError(""); setSelected([]);
     try {
       const data = await adminApi.getWithdrawals(status);
       setWithdrawals(data.withdrawals);
@@ -170,15 +278,11 @@ export default function WithdrawalsPage() {
     setProcessing(id);
     try {
       const res = await adminApi.approveWithdrawal(id);
-      if (res.transferError) {
-        setTransferWarnings((prev) => ({ ...prev, [id]: res.transferError! }));
-      }
+      if (res.transferError) setTransferWarnings((prev) => ({ ...prev, [id]: res.transferError! }));
       setWithdrawals((prev) => prev.filter((w) => w.id !== id));
     } catch (err) {
       alert(err instanceof ApiError ? err.message : "Approval failed");
-    } finally {
-      setProcessing(null);
-    }
+    } finally { setProcessing(null); }
   };
 
   const handleReject = async (id: string) => {
@@ -189,9 +293,7 @@ export default function WithdrawalsPage() {
       setWithdrawals((prev) => prev.filter((w) => w.id !== id));
     } catch (err) {
       alert(err instanceof ApiError ? err.message : "Rejection failed");
-    } finally {
-      setProcessing(null);
-    }
+    } finally { setProcessing(null); }
   };
 
   const handleDenyConfirm = async (reason: string) => {
@@ -204,26 +306,41 @@ export default function WithdrawalsPage() {
       setDenyTarget(null);
     } catch (err) {
       alert(err instanceof ApiError ? err.message : "Deny failed");
-    } finally {
-      setProcessing(null);
-    }
+    } finally { setProcessing(null); }
+  };
+
+  const handleMarkPaidConfirm = async (reference: string) => {
+    if (!markPaidTarget) return;
+    const id = markPaidTarget.id;
+    setProcessing(id);
+    try {
+      await adminApi.markPaidManual(id, reference || undefined);
+      setWithdrawals((prev) => prev.filter((w) => w.id !== id));
+      setMarkPaidTarget(null);
+    } catch (err) {
+      alert(err instanceof ApiError ? err.message : "Mark as paid failed");
+    } finally { setProcessing(null); }
   };
 
   const handleBulkApprove = async () => {
-    for (const id of selected) {
-      await handleApprove(id);
-    }
+    for (const id of selected) await handleApprove(id);
     setSelected([]);
   };
 
   const toggleSelect = (id: string) =>
     setSelected((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
 
-  const TABS: Tab[] = ["pending", "approved", "rejected", "denied"];
+  const TAB_CONFIG: { key: Tab; label: string; activeColor: string }[] = [
+    { key: "pending",     label: "Pending",      activeColor: "var(--accent-indigo)" },
+    { key: "approved",    label: "Approved",     activeColor: "var(--accent-indigo)" },
+    { key: "paid_manual", label: "Paid (Manual)", activeColor: "#22c55e" },
+    { key: "rejected",    label: "Rejected",     activeColor: "var(--accent-indigo)" },
+    { key: "denied",      label: "Denied",       activeColor: "#f97316" },
+  ];
 
   return (
     <div className="space-y-5">
-      {/* Deny dialog */}
+      {/* Dialogs */}
       <AnimatePresence>
         {denyTarget && (
           <DenyDialog
@@ -233,42 +350,49 @@ export default function WithdrawalsPage() {
             processing={processing === denyTarget.id}
           />
         )}
+        {markPaidTarget && (
+          <MarkPaidDialog
+            withdrawal={markPaidTarget}
+            onConfirm={handleMarkPaidConfirm}
+            onCancel={() => setMarkPaidTarget(null)}
+            processing={processing === markPaidTarget.id}
+          />
+        )}
       </AnimatePresence>
 
       <div>
         <h1 className="text-2xl font-black text-white">Withdrawal Requests</h1>
-        <p className="text-gray-400 text-sm mt-0.5">Approve, reject, or deny player withdrawals</p>
+        <p className="text-gray-400 text-sm mt-0.5">
+          Approve via Squad, mark as manually paid, reject, or deny player withdrawals
+        </p>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 p-1 rounded-xl border" style={{ backgroundColor: "var(--bg-card)", borderColor: "var(--border-subtle)" }}>
-        {TABS.map((t) => {
-          const isDenied = t === "denied";
-          return (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              className="flex-1 py-2.5 rounded-lg text-xs font-semibold capitalize transition-all active:scale-[0.97]"
-              style={{
-                backgroundColor: tab === t
-                  ? isDenied ? "#f97316" : "var(--accent-indigo)"
-                  : "transparent",
-                color: tab === t ? "white" : "var(--text-secondary)",
-                border: "1px solid transparent",
-              }}
-            >
-              {t}
-              {tab === t && total > 0 && (
-                <span className="ml-1.5 text-[10px] px-1.5 py-0.5 rounded-full bg-white/20">
-                  {total}
-                </span>
-              )}
-            </button>
-          );
-        })}
+      {/* Tabs — 5 tabs, scroll on small screens */}
+      <div className="flex gap-1 p-1 rounded-xl border overflow-x-auto"
+        style={{ backgroundColor: "var(--bg-card)", borderColor: "var(--border-subtle)" }}>
+        {TAB_CONFIG.map(({ key, label, activeColor }) => (
+          <button
+            key={key}
+            onClick={() => setTab(key)}
+            className="flex-1 py-2.5 rounded-lg text-xs font-semibold transition-all active:scale-[0.97] whitespace-nowrap px-2"
+            style={{
+              backgroundColor: tab === key ? activeColor : "transparent",
+              color: tab === key ? "white" : "var(--text-secondary)",
+              border: "1px solid transparent",
+              minWidth: 80,
+            }}
+          >
+            {label}
+            {tab === key && total > 0 && (
+              <span className="ml-1.5 text-[10px] px-1.5 py-0.5 rounded-full bg-white/20">
+                {total}
+              </span>
+            )}
+          </button>
+        ))}
       </div>
 
-      {/* Bulk approve bar */}
+      {/* Bulk approve (pending only) */}
       {tab === "pending" && selected.length > 0 && (
         <div className="border rounded-xl px-4 py-3 flex items-center justify-between"
           style={{ backgroundColor: "var(--bg-card)", borderColor: "rgba(76,111,255,0.2)" }}>
@@ -278,7 +402,7 @@ export default function WithdrawalsPage() {
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all active:scale-95"
             style={{ backgroundColor: "rgba(76,111,255,0.15)", color: "var(--accent-indigo)", border: "1px solid rgba(76,111,255,0.3)" }}
           >
-            <CheckCircle size={13} /> Approve Selected
+            <CheckCircle size={13} /> Approve (Auto — Squad)
           </button>
         </div>
       )}
@@ -288,10 +412,7 @@ export default function WithdrawalsPage() {
           <Loader2 size={28} className="animate-spin" style={{ color: "var(--accent-indigo)" }} />
         </div>
       )}
-
-      {error && !loading && (
-        <div className="text-center py-8 text-red-400 text-sm">{error}</div>
-      )}
+      {error && !loading && <div className="text-center py-8 text-red-400 text-sm">{error}</div>}
 
       {!loading && !error && (
         <div className="space-y-2">
@@ -301,16 +422,17 @@ export default function WithdrawalsPage() {
               className="border rounded-xl p-4 transition-colors"
               style={{
                 backgroundColor: "var(--bg-card)",
-                borderColor: selected.includes(w.id)
-                  ? "var(--accent-indigo)"
-                  : w.status === "denied" ? "rgba(249,115,22,0.2)" : "var(--border-subtle)",
+                borderColor: selected.includes(w.id) ? "var(--accent-indigo)"
+                  : w.status === "denied"      ? "rgba(249,115,22,0.2)"
+                  : w.status === "paid_manual" ? "rgba(34,197,94,0.2)"
+                  : "var(--border-subtle)",
               }}
             >
-              {/* Paystack transfer warning */}
+              {/* Transfer warning */}
               {transferWarnings[w.id] && (
                 <div className="flex items-start gap-2 bg-yellow-900/20 border border-yellow-700/40 rounded-xl p-3 mb-3 text-yellow-400 text-xs">
                   <AlertTriangle size={14} className="flex-shrink-0 mt-0.5" />
-                  <span>Transfer failed: {transferWarnings[w.id]}. Process manually.</span>
+                  <span>Squad transfer failed: {transferWarnings[w.id]}. Use &quot;Mark as Paid&quot; if you processed this manually.</span>
                 </div>
               )}
 
@@ -323,9 +445,9 @@ export default function WithdrawalsPage() {
                     className="mt-1 w-4 h-4 flex-shrink-0"
                   />
                 )}
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
+                  {/* Row 1: phone + amount */}
                   <div className="flex items-center justify-between mb-2">
-                    {/* Unmasked phone number */}
                     <p className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
                       {w.phone}
                       {w.players?.name && (
@@ -335,27 +457,48 @@ export default function WithdrawalsPage() {
                       )}
                     </p>
                     <span className="text-base font-black font-mono" style={{
-                      color: w.status === "approved" ? "var(--accent-amber)"
-                           : w.status === "rejected" ? "#f87171"
-                           : w.status === "denied"   ? "#f97316"
+                      color: w.status === "approved"    ? "var(--accent-amber)"
+                           : w.status === "rejected"    ? "#f87171"
+                           : w.status === "denied"      ? "#f97316"
+                           : w.status === "paid_manual" ? "#22c55e"
                            : "var(--text-primary)",
                     }}>
                       ₦{w.amount.toLocaleString()}
                     </span>
                   </div>
 
+                  {/* Row 2: bank details — prominent for admin verification */}
+                  <div className="rounded-lg px-3 py-2 mb-2" style={{
+                    backgroundColor: "var(--bg-base)", border: "1px solid var(--border-hairline)",
+                  }}>
+                    <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs">
+                      <span style={{ color: "var(--text-primary)", fontWeight: 700 }}>
+                        {w.account_name ?? "—"}
+                      </span>
+                      <span style={{ color: "var(--text-secondary)", fontFamily: "monospace", fontWeight: 700 }}>
+                        {w.account_number}
+                      </span>
+                      <span style={{ color: "var(--text-muted)" }}>{w.bank_name}</span>
+                    </div>
+                  </div>
+
+                  {/* Row 3: metadata */}
                   <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-400">
-                    <span>🏦 {w.bank_name}</span>
-                    <span>📋 {w.account_number}</span>
                     <span>💳 {w.method}</span>
                     <span>⏰ {formatDate(w.created_at)}</span>
                   </div>
 
+                  {/* Status-specific reasons/references */}
                   {w.reject_reason && (
                     <p className="text-xs text-red-400 mt-1.5">Reject reason: {w.reject_reason}</p>
                   )}
                   {w.denial_reason && (
                     <p className="text-xs mt-1.5" style={{ color: "#f97316" }}>Denial reason: {w.denial_reason}</p>
+                  )}
+                  {w.manual_reference && (
+                    <p className="text-xs mt-1.5" style={{ color: "#22c55e" }}>
+                      Manual ref: {w.manual_reference}
+                    </p>
                   )}
                 </div>
               </div>
@@ -363,37 +506,47 @@ export default function WithdrawalsPage() {
               {/* Action buttons — pending only */}
               {tab === "pending" && (
                 <div className="flex gap-2 mt-3 pt-3 border-t" style={{ borderColor: "var(--border-hairline)" }}>
-                  {/* Approve */}
+                  {/* Approve (Auto — Squad) */}
                   <button
                     onClick={() => handleApprove(w.id)}
                     disabled={processing === w.id}
-                    className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-[0.98] disabled:opacity-50"
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold transition-all active:scale-[0.98] disabled:opacity-50"
                     style={{ backgroundColor: "rgba(76,111,255,0.10)", border: "1px solid rgba(76,111,255,0.3)", color: "var(--accent-indigo)" }}
                   >
                     {processing === w.id
-                      ? <Loader2 size={14} className="animate-spin" />
-                      : <><CheckCircle size={15} /> Approve</>
+                      ? <Loader2 size={13} className="animate-spin" />
+                      : <><CheckCircle size={13} /> Auto (Squad)</>
                     }
+                  </button>
+
+                  {/* Mark as Paid (Manual) — green, visually distinct */}
+                  <button
+                    onClick={() => setMarkPaidTarget(w)}
+                    disabled={processing === w.id}
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-[0.98] disabled:opacity-50"
+                    style={{ backgroundColor: "rgba(34,197,94,0.10)", border: "2px solid rgba(34,197,94,0.35)", color: "#22c55e" }}
+                  >
+                    <Banknote size={13} /> Mark Paid
                   </button>
 
                   {/* Reject */}
                   <button
                     onClick={() => handleReject(w.id)}
                     disabled={processing === w.id}
-                    className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-[0.98] disabled:opacity-50"
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold transition-all active:scale-[0.98] disabled:opacity-50"
                     style={{ backgroundColor: "rgba(239,68,68,0.10)", border: "1px solid rgba(239,68,68,0.3)", color: "#f87171" }}
                   >
-                    <XCircle size={15} /> Reject
+                    <XCircle size={13} /> Reject
                   </button>
 
-                  {/* Deny — visually distinct: orange, Ban icon, permanent */}
+                  {/* Deny — permanent, no refund */}
                   <button
                     onClick={() => setDenyTarget(w)}
                     disabled={processing === w.id}
-                    className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-bold transition-all active:scale-[0.98] disabled:opacity-50"
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-[0.98] disabled:opacity-50"
                     style={{ backgroundColor: "rgba(249,115,22,0.10)", border: "2px solid rgba(249,115,22,0.35)", color: "#f97316" }}
                   >
-                    <Ban size={15} /> Deny
+                    <Ban size={13} /> Deny
                   </button>
                 </div>
               )}
@@ -401,7 +554,9 @@ export default function WithdrawalsPage() {
           ))}
 
           {withdrawals.length === 0 && (
-            <div className="text-center py-12 text-gray-500">No {tab} withdrawals</div>
+            <div className="text-center py-12 text-gray-500">
+              No {TAB_CONFIG.find((t) => t.key === tab)?.label.toLowerCase()} withdrawals
+            </div>
           )}
         </div>
       )}
