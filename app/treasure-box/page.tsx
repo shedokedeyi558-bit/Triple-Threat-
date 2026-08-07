@@ -194,8 +194,11 @@ function BoxCard({
         <p style={{
           fontSize: 22, fontWeight: 900, fontFamily: "'JetBrains Mono', monospace",
           color: GOLD,
-          margin: 0, lineHeight: 1,
+          margin: "0 0 2px", lineHeight: 1,
         }}>{box.payout_multiplier}×</p>
+        <p style={{ fontSize: 12, color: "var(--text-muted)", margin: 0 }}>
+          {box.total_slots} slots · {box.pop_limit} pops
+        </p>
       </div>
 
       <motion.button
