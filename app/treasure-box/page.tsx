@@ -112,62 +112,40 @@ function BoxConfigCard({
   count: number;
   onClick: () => void;
 }) {
-  // Approximate P(win) for display — simplified for single-treasure preview
-  // Uses same combinatorics as settings page: P = 1 - C(N-1,P)/C(N,P) = pop_limit/total_slots
-  const pwin = box.total_slots > 0 ? box.pop_limit / box.total_slots : 0;
-  const band = rtpBand(pwin, box.payout_multiplier);
-
   return (
     <motion.button
       onClick={onClick}
-      whileTap={{ scale: 0.96 }}
+      whileTap={{ scale: 0.93 }}
       style={{
-        padding: `${S12}px ${S16}px`,
-        borderRadius: 16,
+        padding: "8px 14px",
+        borderRadius: 100,
         border: isActive
           ? `2px solid ${GOLD}`
-          : "2px solid rgba(255,255,255,0.07)",
+          : "1.5px solid rgba(255,255,255,0.1)",
         background: isActive
-          ? `linear-gradient(160deg, rgba(255,184,77,0.12) 0%, rgba(255,184,77,0.04) 100%)`
-          : "rgba(255,255,255,0.03)",
-        boxShadow: isActive
-          ? `0 0 0 3px rgba(255,184,77,0.12), 0 8px 24px -8px rgba(0,0,0,0.6)`
-          : "0 2px 8px rgba(0,0,0,0.3)",
+          ? `rgba(255,184,77,0.12)`
+          : "rgba(255,255,255,0.04)",
         cursor: "pointer",
-        textAlign: "left",
-        transition: "all 0.18s ease",
-        minWidth: 120, flexShrink: 0,
-        display: "flex", flexDirection: "column", gap: 6,
+        transition: "all 0.15s ease",
+        flexShrink: 0,
+        display: "inline-flex", alignItems: "center", gap: 6,
+        whiteSpace: "nowrap",
       }}
     >
-      {/* Multiplier */}
-      <p style={{
-        fontSize: 22, fontWeight: 900, fontFamily: "'JetBrains Mono', monospace",
-        color: isActive ? GOLD : "rgba(255,255,255,0.5)",
-        margin: 0, lineHeight: 1,
+      <span style={{
+        fontSize: 14, fontWeight: 900, fontFamily: "'JetBrains Mono', monospace",
+        color: isActive ? GOLD : "rgba(255,255,255,0.55)",
       }}>
         {box.payout_multiplier}×
-      </p>
-      {/* Config summary */}
-      <p style={{ fontSize: 10, color: "var(--text-muted)", margin: 0, lineHeight: 1.4 }}>
-        {box.total_slots} slots · {box.pop_limit} pops
-      </p>
+      </span>
       {count > 1 && (
-        <p style={{ fontSize: 10, color: isActive ? GOLD : "var(--text-muted)", margin: 0 }}>
-          {count} available
-        </p>
-      )}
-      {/* RTP risk bar */}
-      <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-        <div style={{
-          width: 24, height: 4, borderRadius: 2,
-          backgroundColor: band.color,
-          boxShadow: `0 0 6px ${band.color}88`,
-        }} />
-        <span style={{ fontSize: 9, fontWeight: 700, color: band.color, letterSpacing: "0.04em" }}>
-          {band.label}
+        <span style={{
+          fontSize: 10, fontWeight: 600,
+          color: isActive ? GOLD : "rgba(255,255,255,0.3)",
+        }}>
+          {count}
         </span>
-      </div>
+      )}
     </motion.button>
   );
 }
@@ -216,11 +194,8 @@ function BoxCard({
         <p style={{
           fontSize: 22, fontWeight: 900, fontFamily: "'JetBrains Mono', monospace",
           color: GOLD,
-          margin: "0 0 2px", lineHeight: 1,
+          margin: 0, lineHeight: 1,
         }}>{box.payout_multiplier}×</p>
-        <p style={{ fontSize: 12, color: "var(--text-muted)", margin: 0 }}>
-          {box.total_slots} slots · {box.pop_limit} pops
-        </p>
       </div>
 
       <motion.button
@@ -550,12 +525,11 @@ function FilteredBoxList({
 
   return (
     <>
-      {/* Config cards */}
+      {/* Config cards — pill tabs, wrap naturally, no overflow */}
       {hasMultipleConfigs && (
         <div style={{
-          display: "flex", gap: S12, overflowX: "auto",
-          paddingBottom: S8, marginBottom: S16,
-          scrollbarWidth: "none",
+          display: "flex", gap: 8, flexWrap: "wrap",
+          marginBottom: S16,
         }}>
           {configCards.map((box) => {
             const count = boxes.filter((b) => b.payout_multiplier === box.payout_multiplier).length;
