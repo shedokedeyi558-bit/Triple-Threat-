@@ -261,8 +261,17 @@ function BlitzCard() {
         ))}
       </div>
 
+      {/* Prize pool callout — same structural weight as Treasure Box fairness block */}
+      <div className="mt-5 flex items-start gap-2.5 rounded-xl p-3"
+        style={{ backgroundColor: "rgba(76,111,255,0.05)", border: "1px solid rgba(76,111,255,0.14)" }}>
+        <Trophy className="h-4 w-4 shrink-0 mt-0.5" style={{ color: "rgba(76,111,255,0.6)" }} />
+        <p className="text-[11px] leading-relaxed" style={{ color: "var(--muted-foreground)" }}>
+          Top finishers share the prize pool — the faster and more accurate your answers, the larger your cut.
+        </p>
+      </div>
+
       <Link href="/auth"
-        className="group mt-6 inline-flex items-center gap-1.5 text-sm font-bold"
+        className="group mt-5 inline-flex items-center gap-1.5 text-sm font-bold"
         style={{ color: "var(--brand-indigo)" }}>
         Enter a Blitz
         <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
@@ -316,20 +325,22 @@ function BeatAdminCard() {
         ))}
       </div>
 
-      {/* Multiplier callout */}
-      <div className="mt-5 inline-flex items-baseline gap-1.5">
-        <span className="font-display text-4xl font-black" style={{ color: "var(--brand-violet)" }}>2×</span>
-        <span className="text-sm font-semibold" style={{ color: "var(--muted-foreground)" }}>your stake, instantly</span>
+      {/* 2× callout — contained block matching Treasure Box fairness block weight */}
+      <div className="mt-5 flex items-center gap-3 rounded-xl p-3"
+        style={{ backgroundColor: "rgba(124,111,232,0.06)", border: "1px solid rgba(124,111,232,0.16)" }}>
+        <span className="font-display text-3xl font-black leading-none shrink-0"
+          style={{ color: "var(--brand-violet)" }}>2×</span>
+        <p className="text-[11px] leading-relaxed" style={{ color: "var(--muted-foreground)" }}>
+          Answer correctly and double your stake — instantly. No split, no waiting.
+        </p>
       </div>
 
-      <div className="mt-2">
-        <Link href="/auth"
-          className="group inline-flex items-center gap-1.5 text-sm font-bold"
-          style={{ color: "var(--brand-violet)" }}>
-          Challenge the admin
-          <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-        </Link>
-      </div>
+      <Link href="/auth"
+        className="group mt-5 inline-flex items-center gap-1.5 text-sm font-bold"
+        style={{ color: "var(--brand-violet)" }}>
+        Challenge the admin
+        <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+      </Link>
     </motion.article>
   );
 }
