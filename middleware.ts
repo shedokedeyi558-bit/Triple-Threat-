@@ -5,7 +5,7 @@ import type { NextRequest } from "next/server";
 // Set to true to redirect all player-facing routes to /maintenance.
 // Admin routes (/admin, /api/admin) remain fully accessible.
 // To lift maintenance: set to false and redeploy.
-const MAINTENANCE_MODE = true;
+const MAINTENANCE_MODE = false;
 
 // Routes that are always accessible regardless of maintenance mode
 const ALWAYS_ALLOW = [
