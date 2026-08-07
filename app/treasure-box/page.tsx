@@ -143,8 +143,7 @@ function BoxConfigCard({
       {/* Multiplier */}
       <p style={{
         fontSize: 22, fontWeight: 900, fontFamily: "'JetBrains Mono', monospace",
-        background: isActive ? `linear-gradient(135deg, #FFD08A, ${GOLD})` : "rgba(255,255,255,0.55)",
-        WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent",
+        color: isActive ? GOLD : "rgba(255,255,255,0.5)",
         margin: 0, lineHeight: 1,
       }}>
         {box.payout_multiplier}×
@@ -216,8 +215,7 @@ function BoxCard({
       <div style={{ flex: 1, minWidth: 0 }}>
         <p style={{
           fontSize: 22, fontWeight: 900, fontFamily: "'JetBrains Mono', monospace",
-          background: `linear-gradient(135deg, #FFD08A, ${GOLD})`,
-          WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent",
+          color: GOLD,
           margin: "0 0 2px", lineHeight: 1,
         }}>{box.payout_multiplier}×</p>
         <p style={{ fontSize: 12, color: "var(--text-muted)", margin: 0 }}>
@@ -367,8 +365,7 @@ function StakePanel({
               </span>
               <span style={{
                 fontSize: 16, fontWeight: 900, fontFamily: "'JetBrains Mono', monospace",
-                background: `linear-gradient(135deg, #FFD08A, ${GOLD})`,
-                WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent",
+                color: GOLD,
               }}>
                 ₦{fmt(payout)}
               </span>
@@ -757,8 +754,7 @@ export default function TreasureBoxPage() {
           <h1 style={{
             fontFamily: "Georgia, 'Times New Roman', serif",
             fontSize: 28, fontWeight: 900, letterSpacing: "-0.02em",
-            background: `linear-gradient(135deg, #FFD08A 30%, ${GOLD})`,
-            WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent",
+            color: GOLD,
             margin: "0 0 6px",
           }}>
             Treasure Box
@@ -947,8 +943,7 @@ export default function TreasureBoxPage() {
                   </p>
                   <p style={{
                     fontSize: 40, fontWeight: 900, fontFamily: "'JetBrains Mono', monospace",
-                    background: `linear-gradient(135deg, #FFD08A, ${GOLD})`,
-                    WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent",
+                    color: GOLD,
                     margin: "0 0 10px", lineHeight: 1,
                     filter: `drop-shadow(0 2px 12px rgba(255,184,77,0.3))`,
                   }}>
