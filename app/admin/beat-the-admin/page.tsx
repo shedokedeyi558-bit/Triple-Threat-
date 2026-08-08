@@ -76,7 +76,14 @@ function AvailabilityToggle({ status, onToggled }: { status: BtaStatus | null; o
     setToggling(true);
     setToggleErr("");
     try {
-      const res = await adminBtaApi.updateSettings({ is_available: next });
+      // Always send all three fields — backend requires min_stake and max_stake
+      // even when only toggling availability. Sending partial body causes the
+      // server to ignore or reject the update silently.
+      const res = await adminBtaApi.updateSettings({
+        is_available: next,
+        min_stake: status.min_stake,
+        max_stake: status.max_stake,
+      });
       setLocalAvail(res.is_available);
       onToggled(res.is_available);
     } catch (e) {
