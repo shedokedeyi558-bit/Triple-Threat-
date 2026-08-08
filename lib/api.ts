@@ -1694,10 +1694,11 @@ export const referralApi = {
 
 // ─── BEAT THE ADMIN ───────────────────────────────────────────────────────────
 // Player-facing: /api/admin-challenge/*
-// Admin-facing:  /api/admin/beat-the-admin/*  (separate, not built here yet)
+// Admin-facing:  /api/admin/beat-the-admin/*
 
 export type BtaMove = "rock" | "paper" | "scissors";
 export type BtaWinner = "player" | "admin" | "draw";
+export type BtaRoundResult = "player" | "admin" | "draw" | null;
 export type BtaRequestStatus = "pending" | "approved" | "expired" | "rejected";
 
 export interface BtaStatus {
@@ -1714,6 +1715,11 @@ export interface BtaRequest {
   status: BtaRequestStatus;
   expires_at: string;
   time_remaining_seconds?: number;
+  // best-of-N round fields (present once match is approved)
+  num_rounds?: number;
+  current_round?: number;
+  player_round_wins?: number;
+  admin_round_wins?: number;
 }
 
 export interface BtaMatch {
@@ -1729,14 +1735,24 @@ export interface BtaMyRequestResponse {
   match: BtaMatch | null;
 }
 
+/** Shape returned by POST /api/admin-challenge/move (best-of-N contract) */
 export interface BtaMoveResponse {
   move_recorded: boolean;
+  // Round info
+  round_number: number;
+  round_result: BtaRoundResult;          // null = still waiting for other side
+  player_round_wins: number;
+  admin_round_wins: number;
+  current_round: number;
+  num_rounds: number;
+  // Match resolution
   match_resolved: boolean;
-  message?: string;
-  // populated only when match_resolved: true
-  winner?: BtaWinner;
+  match_winner: BtaWinner | null;        // null until match_resolved: true
+  // Legacy / extra fields (may be present on resolved match)
+  winner?: BtaWinner;                    // alias for match_winner, kept for compat
   admin_move?: BtaMove;
   player_move?: BtaMove;
+  message?: string;
 }
 
 export interface BtaHistoryEntry {
@@ -1751,6 +1767,25 @@ export interface BtaHistoryEntry {
     admin_move: BtaMove | null;
     payout: number;
   } | null;
+}
+
+/** Full match state returned by GET /api/admin/beat-the-admin/match/:matchId (admin only) */
+export interface BtaAdminMatchDetail {
+  match_id: string;
+  num_rounds: number;
+  current_round: number;
+  player_round_wins: number;
+  admin_round_wins: number;
+  match_resolved: boolean;
+  match_winner: BtaWinner | null;
+  rounds: {
+    round_number: number;
+    player_move: BtaMove | null;
+    admin_move: BtaMove | null;
+    round_result: BtaRoundResult;
+  }[];
+  stake: number;
+  payout: number;
 }
 
 export const beatTheAdminApi = {
@@ -1805,7 +1840,28 @@ export interface BtaQueueEntry {
   expires_at: string;
   time_remaining_seconds: number;
   created_at: string;
+  // round scoreboard fields — present on approved/in-progress entries
+  num_rounds?: number;
+  current_round?: number;
+  player_round_wins?: number;
+  admin_round_wins?: number;
   match?: BtaMatch | null;
+}
+
+/** Shape returned by admin move endpoint (best-of-N contract) */
+export interface BtaAdminMoveResponse {
+  round_number: number;
+  round_result: BtaRoundResult;
+  player_round_wins: number;
+  admin_round_wins: number;
+  current_round: number;
+  num_rounds: number;
+  match_resolved: boolean;
+  match_winner: BtaWinner | null;
+  // populated when round is not a draw
+  admin_move?: BtaMove;
+  player_move?: BtaMove;
+  payout?: number;
 }
 
 export const adminBtaApi = {
@@ -1840,9 +1896,15 @@ export const adminBtaApi = {
     ),
 
   submitMove: (matchId: string, move: BtaMove) =>
-    request<{ winner: BtaWinner; admin_move: BtaMove; player_move: BtaMove; payout: number }>(
+    request<BtaAdminMoveResponse>(
       `/api/admin/beat-the-admin/match/${matchId}/move`,
       { method: "POST", body: { move }, token: getAdminToken() }
+    ),
+
+  getMatchDetail: (matchId: string) =>
+    request<BtaAdminMatchDetail>(
+      `/api/admin/beat-the-admin/match/${matchId}`,
+      { token: getAdminToken() }
     ),
 };
 
