@@ -1872,10 +1872,15 @@ export const adminBtaApi = {
     ).then((res) => ({ ...res, match_in_progress: res.match_in_progress ?? false }) as BtaStatus),
 
   updateSettings: (settings: { is_available: boolean; min_stake?: number; max_stake?: number }) =>
-    request<{ is_available: boolean; min_stake: number; max_stake: number }>(
+    request<{ is_available: boolean; min_stake: number; max_stake: number } | { settings: { is_available: boolean; min_stake: number; max_stake: number } }>(
       "/api/admin/beat-the-admin/settings",
       { method: "PUT", body: settings, token: getAdminToken() }
-    ),
+    ).then((res) => {
+      // Backend may return flat { is_available, ... } or nested { settings: { is_available, ... } }
+      // Unwrap either shape so callers always get a flat object
+      const flat = (res as any)?.settings ?? res;
+      return flat as { is_available: boolean; min_stake: number; max_stake: number };
+    }),
 
   getQueue: () =>
     request<{ requests: BtaQueueEntry[] }>(

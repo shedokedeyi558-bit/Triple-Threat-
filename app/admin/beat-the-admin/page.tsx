@@ -54,47 +54,67 @@ function Scoreboard({ playerWins, adminWins, currentRound, numRounds }: {
 // ── Availability toggle ────────────────────────────────────────────────────────
 function AvailabilityToggle({ status, onToggled }: { status: BtaStatus | null; onToggled: (next: boolean) => void }) {
   const [toggling, setToggling] = useState(false);
-  const [localAvail, setLocalAvail] = useState<boolean | null>(null);
+  // committedAvail: the value WE last successfully saved — null means "use server value"
+  // Using a ref (not state) so setInterval/poll callbacks never see a stale closure snapshot
+  const committedRef = useRef<boolean | null>(null);
+  const [displayAvail, setDisplayAvail] = useState<boolean | null>(null);
   const [toggleErr, setToggleErr] = useState("");
 
-  // Only clear localAvail if we're not mid-toggle AND the server value has
-  // caught up to what we set (i.e. localAvail matches status.is_available).
-  // This prevents the background poll from reverting the knob before the server
-  // has persisted the change.
+  // When the server poll updates status, only accept the server value if we
+  // haven't committed a different value ourselves (i.e. committedRef is null or matches)
   useEffect(() => {
-    if (!toggling && localAvail !== null && localAvail === status?.is_available) {
-      setLocalAvail(null);
+    if (status === null) return;
+    if (committedRef.current === null) {
+      // No pending committed value — mirror server state
+      setDisplayAvail(null);
     }
-  }, [status?.is_available, toggling, localAvail]);
+    // If committedRef.current !== null, we have a local committed value.
+    // Don't let the poll overwrite it — it will clear once server confirms the new value.
+    if (committedRef.current !== null && committedRef.current === status.is_available) {
+      // Server has caught up — release our local override
+      committedRef.current = null;
+      setDisplayAvail(null);
+    }
+  }, [status?.is_available]); // eslint-disable-line
 
-  const available = localAvail ?? status?.is_available ?? false;
+  const available = displayAvail ?? status?.is_available ?? false;
 
   const handleToggle = async () => {
     if (toggling || status === null) return;
+    // Capture the intended new value synchronously from current display state
     const next = !available;
-    setLocalAvail(next);
+    console.log(`[BTA toggle] clicking: current available=${available}, sending next=${next}`);
+
+    committedRef.current = next;
+    setDisplayAvail(next);
     setToggling(true);
     setToggleErr("");
+
     try {
-      // Always send all three fields — backend requires min_stake and max_stake
-      // even when only toggling availability. Sending partial body causes the
-      // server to ignore or reject the update silently.
+      // Send all three fields — backend needs them all
       const res = await adminBtaApi.updateSettings({
         is_available: next,
         min_stake: status.min_stake,
         max_stake: status.max_stake,
       });
-      // Log the exact server response so we can confirm what the backend persisted
-      console.log("[BTA toggle] PUT response:", JSON.stringify(res));
-      if (res.is_available !== next) {
-        console.warn(`[BTA toggle] Server returned is_available=${res.is_available} but we sent ${next} — backend not persisting`);
-        setToggleErr(`Server returned is_available=${res.is_available} — backend may not have saved the change`);
+      console.log("[BTA toggle] PUT response raw:", JSON.stringify(res));
+
+      // Defensive: read is_available from response — if undefined (envelope mismatch),
+      // trust what we sent rather than an undefined response value
+      const confirmedValue = typeof res?.is_available === "boolean" ? res.is_available : next;
+
+      if (confirmedValue !== next) {
+        console.warn(`[BTA toggle] Server confirmed ${confirmedValue} but we sent ${next}`);
+        setToggleErr(`Saved as ${confirmedValue} — check if backend accepted the change`);
       }
-      setLocalAvail(res.is_available);
-      onToggled(res.is_available);
+
+      committedRef.current = confirmedValue;
+      setDisplayAvail(confirmedValue);
+      onToggled(confirmedValue);
     } catch (e) {
       console.error("[BTA toggle] PUT failed:", e);
-      setLocalAvail(null); // revert to server value
+      committedRef.current = null;
+      setDisplayAvail(null);
       setToggleErr(e instanceof ApiError ? e.message : "Failed to update — try again");
     } finally {
       setToggling(false);
