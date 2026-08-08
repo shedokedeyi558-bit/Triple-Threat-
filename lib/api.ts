@@ -66,6 +66,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
     method,
     headers,
     body: body ? JSON.stringify(body) : undefined,
+    cache: "no-store", // never cache — all API calls are dynamic authenticated data
   });
 
   const json = await res.json().catch(() => ({
