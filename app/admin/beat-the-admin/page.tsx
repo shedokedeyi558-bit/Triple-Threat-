@@ -55,29 +55,59 @@ function Scoreboard({ playerWins, adminWins, currentRound, numRounds }: {
 function AvailabilityToggle({ status, onToggled }: { status: BtaStatus | null; onToggled: (next: boolean) => void }) {
   const [toggling, setToggling] = useState(false);
   const [localAvail, setLocalAvail] = useState<boolean | null>(null);
-  useEffect(() => { if (!toggling) setLocalAvail(null); }, [status?.is_available]); // eslint-disable-line
+  const [toggleErr, setToggleErr] = useState("");
+
+  // Only clear localAvail if we're not mid-toggle AND the server value has
+  // caught up to what we set (i.e. localAvail matches status.is_available).
+  // This prevents the background poll from reverting the knob before the server
+  // has persisted the change.
+  useEffect(() => {
+    if (!toggling && localAvail !== null && localAvail === status?.is_available) {
+      setLocalAvail(null);
+    }
+  }, [status?.is_available, toggling, localAvail]);
+
   const available = localAvail ?? status?.is_available ?? false;
+
   const handleToggle = async () => {
     if (toggling || status === null) return;
-    const next = !available; setLocalAvail(next); setToggling(true);
-    try { const res = await adminBtaApi.updateSettings({ is_available: next }); setLocalAvail(res.is_available); onToggled(res.is_available); }
-    catch { setLocalAvail(!next); }
-    finally { setToggling(false); }
+    const next = !available;
+    setLocalAvail(next);
+    setToggling(true);
+    setToggleErr("");
+    try {
+      const res = await adminBtaApi.updateSettings({ is_available: next });
+      setLocalAvail(res.is_available);
+      onToggled(res.is_available);
+    } catch (e) {
+      setLocalAvail(null); // revert to server value
+      setToggleErr(e instanceof ApiError ? e.message : "Failed to update — try again");
+    } finally {
+      setToggling(false);
+    }
   };
+
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-      <div>
-        <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Feature available</p>
-        <p style={{ fontSize: 11, color: "var(--text-muted)", margin: "1px 0 0" }}>{available ? "Players can send challenges" : "Hidden from players"}</p>
+    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div>
+          <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Feature available</p>
+          <p style={{ fontSize: 11, color: "var(--text-muted)", margin: "1px 0 0" }}>{available ? "Players can send challenges" : "Hidden from players"}</p>
+        </div>
+        <button onClick={handleToggle} disabled={toggling || status === null}
+          style={{ width: 44, height: 24, borderRadius: 12, border: "none", cursor: toggling ? "not-allowed" : "pointer",
+            backgroundColor: available ? "var(--accent-indigo)" : "var(--border-subtle)",
+            position: "relative", flexShrink: 0, opacity: toggling ? 0.6 : 1, transition: "background-color 0.2s" }}>
+          {toggling
+            ? <Loader2 size={10} className="animate-spin" style={{ position: "absolute", top: 7, left: 17, color: "#fff" }} />
+            : <span style={{ position: "absolute", top: 4, width: 16, height: 16, borderRadius: "50%",
+                backgroundColor: "#fff", boxShadow: "0 1px 3px rgba(0,0,0,0.3)",
+                left: available ? 24 : 4, transition: "left 0.2s" }} />}
+        </button>
       </div>
-      <button onClick={handleToggle} disabled={toggling || status === null}
-        style={{ width: 44, height: 24, borderRadius: 12, border: "none", cursor: toggling ? "not-allowed" : "pointer",
-          backgroundColor: available ? "var(--accent-indigo)" : "var(--border-subtle)",
-          position: "relative", flexShrink: 0, opacity: toggling ? 0.6 : 1, transition: "background-color 0.2s" }}>
-        <span style={{ position: "absolute", top: 4, width: 16, height: 16, borderRadius: "50%",
-          backgroundColor: "#fff", boxShadow: "0 1px 3px rgba(0,0,0,0.3)",
-          left: available ? 24 : 4, transition: "left 0.2s" }} />
-      </button>
+      {toggleErr && (
+        <p style={{ fontSize: 11, color: "#f87171", margin: 0 }}>{toggleErr}</p>
+      )}
     </div>
   );
 }
