@@ -9,7 +9,7 @@ import {
 } from "@/lib/api";
 import { Loader2, Swords, CheckCircle2, XCircle, Clock, RefreshCw, Trophy, Minus, RotateCcw, List } from "lucide-react";
 
-const POLL_MS = 5000;
+const POLL_MS = 3000;
 const MOVES: { value: BtaMove; emoji: string; label: string }[] = [
   { value: "rock",     emoji: "✊", label: "Rock"     },
   { value: "paper",    emoji: "✋", label: "Paper"    },
@@ -83,7 +83,13 @@ function AvailabilityToggle({ status, onToggled }: { status: BtaStatus | null; o
 }
 
 // ── Stake range editor ─────────────────────────────────────────────────────────
-function StakeRangeEditor({ status }: { status: BtaStatus | null }) {
+// isAvailableRef: a ref so handleSave always reads the LIVE toggle state, not a
+// stale prop snapshot. Without this, saving stake range after toggling would
+// silently revert the toggle because status.is_available hadn't propagated yet.
+function StakeRangeEditor({ status, isAvailableRef }: {
+  status: BtaStatus | null;
+  isAvailableRef: React.MutableRefObject<boolean>;
+}) {
   const [min, setMin] = useState<number | "">(status?.min_stake ?? "");
   const [max, setMax] = useState<number | "">(status?.max_stake ?? "");
   const [saving, setSaving] = useState(false);
@@ -94,7 +100,8 @@ function StakeRangeEditor({ status }: { status: BtaStatus | null }) {
     if (!min || !max || Number(min) >= Number(max)) { setErr("Min must be less than max"); return; }
     setSaving(true); setErr("");
     try {
-      await adminBtaApi.updateSettings({ is_available: status?.is_available ?? false, min_stake: Number(min), max_stake: Number(max) });
+      // Read live is_available from ref — never from stale status prop
+      await adminBtaApi.updateSettings({ is_available: isAvailableRef.current, min_stake: Number(min), max_stake: Number(max) });
       setSaved(true); setTimeout(() => setSaved(false), 2000);
     } catch (e) { setErr(e instanceof ApiError ? e.message : "Save failed"); }
     finally { setSaving(false); }
@@ -410,6 +417,9 @@ export default function AdminBeatTheAdminPage() {
   const [error, setError]       = useState("");
   const [acting, setActing]     = useState<string | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Live ref for is_available — kept in sync with every settings response and toggle.
+  // StakeRangeEditor reads this ref so it never uses a stale prop snapshot when saving.
+  const isAvailableRef = useRef<boolean>(false);
 
   const fetchAll = useCallback(async (isManual = false) => {
     if (isManual) setRefreshing(true);
@@ -419,12 +429,21 @@ export default function AdminBeatTheAdminPage() {
         adminBtaApi.getStatus(),
         adminBtaApi.getQueue(),
       ]);
-      if (statusRes.status === "fulfilled") setStatus(statusRes.value);
-      else setError("Could not load settings — " + (statusRes.reason instanceof ApiError ? statusRes.reason.message : "check admin session"));
-      if (queueRes.status === "fulfilled") setQueue(queueRes.value?.requests ?? []);
+      if (statusRes.status === "fulfilled") {
+        setStatus(statusRes.value);
+        isAvailableRef.current = statusRes.value.is_available; // keep ref in sync
+      } else {
+        setError("Could not load settings — " + (statusRes.reason instanceof ApiError ? statusRes.reason.message : "check admin session"));
+      }
+      if (queueRes.status === "fulfilled") {
+        setQueue(queueRes.value?.requests ?? []);
+      } else if (isManual) {
+        // Surface queue errors on manual refresh — silent on background polls
+        setError((prev) => prev || "Could not load queue — " + (queueRes.reason instanceof ApiError ? queueRes.reason.message : "check admin session"));
+      }
     } catch { /* silent on background poll */ }
     finally { setLoading(false); if (isManual) setRefreshing(false); }
-  }, []);
+  }, []); // eslint-disable-line
 
   useEffect(() => {
     fetchAll();
@@ -488,9 +507,12 @@ export default function AdminBeatTheAdminPage() {
           </div>
         ) : (
           <>
-            <AvailabilityToggle status={status} onToggled={(v) => setStatus((s) => s ? { ...s, is_available: v } : s)} />
+            <AvailabilityToggle status={status} onToggled={(v) => {
+                isAvailableRef.current = v; // keep ref in sync immediately on toggle
+                setStatus((s) => s ? { ...s, is_available: v } : s);
+              }} />
             <div style={{ borderTop: "1px solid var(--border-hairline)", paddingTop: 14 }}>
-              <StakeRangeEditor status={status} />
+              <StakeRangeEditor status={status} isAvailableRef={isAvailableRef} />
             </div>
           </>
         )}
