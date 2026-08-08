@@ -1866,20 +1866,35 @@ export interface BtaAdminMoveResponse {
 
 export const adminBtaApi = {
   getStatus: () =>
-    request<{ is_available: boolean; min_stake: number; max_stake: number; match_in_progress?: boolean }>(
+    request<{ settings: { id: string; is_available: boolean; min_stake: number; max_stake: number; request_expiry_seconds?: number; num_rounds?: number; match_in_progress?: boolean } }>(
       "/api/admin/beat-the-admin/settings",
       { token: getAdminToken() }
-    ).then((res) => ({ ...res, match_in_progress: res.match_in_progress ?? false }) as BtaStatus),
+    ).then((res) => {
+      const s = res.settings;
+      const parsed: BtaStatus = {
+        is_available: s.is_available,
+        min_stake: s.min_stake,
+        max_stake: s.max_stake,
+        match_in_progress: s.match_in_progress ?? false,
+      };
+      console.log("[BTA state] ref updated to:", parsed.is_available, "— source: poll");
+      return parsed;
+    }),
 
   updateSettings: (settings: { is_available: boolean; min_stake?: number; max_stake?: number }) =>
-    request<{ is_available: boolean; min_stake: number; max_stake: number } | { settings: { is_available: boolean; min_stake: number; max_stake: number } }>(
+    request<{ settings: { id: string; is_available: boolean; min_stake: number; max_stake: number; request_expiry_seconds?: number; num_rounds?: number } }>(
       "/api/admin/beat-the-admin/settings",
       { method: "PUT", body: settings, token: getAdminToken() }
     ).then((res) => {
-      // Backend may return flat { is_available, ... } or nested { settings: { is_available, ... } }
-      // Unwrap either shape so callers always get a flat object
-      const flat = (res as any)?.settings ?? res;
-      return flat as { is_available: boolean; min_stake: number; max_stake: number };
+      // Same parsing as getStatus — always nested under .settings, no fallback
+      const s = res.settings;
+      const parsed = {
+        is_available: s.is_available,
+        min_stake: s.min_stake,
+        max_stake: s.max_stake,
+      };
+      console.log("[BTA state] ref updated to:", parsed.is_available, "— source: put");
+      return parsed;
     }),
 
   getQueue: () =>
