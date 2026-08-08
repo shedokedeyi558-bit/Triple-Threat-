@@ -84,9 +84,16 @@ function AvailabilityToggle({ status, onToggled }: { status: BtaStatus | null; o
         min_stake: status.min_stake,
         max_stake: status.max_stake,
       });
+      // Log the exact server response so we can confirm what the backend persisted
+      console.log("[BTA toggle] PUT response:", JSON.stringify(res));
+      if (res.is_available !== next) {
+        console.warn(`[BTA toggle] Server returned is_available=${res.is_available} but we sent ${next} — backend not persisting`);
+        setToggleErr(`Server returned is_available=${res.is_available} — backend may not have saved the change`);
+      }
       setLocalAvail(res.is_available);
       onToggled(res.is_available);
     } catch (e) {
+      console.error("[BTA toggle] PUT failed:", e);
       setLocalAvail(null); // revert to server value
       setToggleErr(e instanceof ApiError ? e.message : "Failed to update — try again");
     } finally {
@@ -467,6 +474,7 @@ export default function AdminBeatTheAdminPage() {
         adminBtaApi.getQueue(),
       ]);
       if (statusRes.status === "fulfilled") {
+        console.log("[BTA poll] GET settings response:", JSON.stringify(statusRes.value));
         setStatus(statusRes.value);
         isAvailableRef.current = statusRes.value.is_available; // keep ref in sync
       } else {
