@@ -28,6 +28,14 @@ function AvailabilityToggle({ status, onToggled }: {
 }) {
   const [toggling, setToggling] = useState(false);
   const [localAvail, setLocalAvail] = useState<boolean | null>(null);
+
+  // When the polled status prop changes (e.g. after a fresh fetch), clear localAvail
+  // so the component reflects the server value rather than the last interaction.
+  // We only clear it if we're not currently mid-toggle to avoid a race condition.
+  useEffect(() => {
+    if (!toggling) setLocalAvail(null);
+  }, [status?.is_available]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const available = localAvail ?? status?.is_available ?? false;
 
   const handleToggle = async () => {
@@ -266,31 +274,39 @@ function ActiveMatchPanel({ req, onMoveSubmitted }: {
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function AdminBeatTheAdminPage() {
-  const [status, setStatus]   = useState<BtaStatus | null>(null);
-  const [queue, setQueue]     = useState<BtaQueueEntry[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError]     = useState("");
-  const [acting, setActing]   = useState<string | null>(null);
+  const [status, setStatus]     = useState<BtaStatus | null>(null);
+  const [queue, setQueue]       = useState<BtaQueueEntry[]>([]);
+  const [loading, setLoading]   = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError]       = useState("");
+  const [acting, setActing]     = useState<string | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const fetchAll = useCallback(async () => {
+  const fetchAll = useCallback(async (isManual = false) => {
+    if (isManual) setRefreshing(true);
+    setError("");
     try {
       const [statusRes, queueRes] = await Promise.allSettled([
         adminBtaApi.getStatus(),
         adminBtaApi.getQueue(),
       ]);
-      if (statusRes.status === "fulfilled") setStatus(statusRes.value);
-      if (queueRes.status === "fulfilled")  setQueue(queueRes.value?.requests ?? []);
-      if (statusRes.status === "rejected" && queueRes.status === "rejected") {
-        setError("Failed to load — check admin session");
+      if (statusRes.status === "fulfilled") {
+        setStatus(statusRes.value);
+      } else {
+        // Surface the error so admin knows fetch failed, not just silently show wrong state
+        setError("Could not load settings — " + (statusRes.reason instanceof ApiError ? statusRes.reason.message : "check admin session"));
       }
-    } catch { /* silent on poll */ }
-    finally { setLoading(false); }
+      if (queueRes.status === "fulfilled")  setQueue(queueRes.value?.requests ?? []);
+    } catch { /* silent on background poll */ }
+    finally {
+      setLoading(false);
+      if (isManual) setRefreshing(false);
+    }
   }, []);
 
   useEffect(() => {
     fetchAll();
-    pollRef.current = setInterval(fetchAll, POLL_MS);
+    pollRef.current = setInterval(() => fetchAll(), POLL_MS);
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, [fetchAll]);
 
@@ -330,10 +346,13 @@ export default function AdminBeatTheAdminPage() {
             Rock · Paper · Scissors — manage requests and play matches
           </p>
         </div>
-        <button onClick={fetchAll} title="Refresh"
+        <button onClick={() => fetchAll(true)} title="Refresh" disabled={refreshing}
           style={{ padding: "6px 8px", borderRadius: 8, border: "1px solid var(--border-subtle)",
-            backgroundColor: "transparent", cursor: "pointer", color: "var(--text-muted)", display: "flex", alignItems: "center" }}>
-          <RefreshCw size={14} />
+            backgroundColor: "transparent", cursor: refreshing ? "not-allowed" : "pointer",
+            color: "var(--text-muted)", display: "flex", alignItems: "center", opacity: refreshing ? 0.6 : 1 }}>
+          {refreshing
+            ? <Loader2 size={14} className="animate-spin" />
+            : <RefreshCw size={14} />}
         </button>
       </div>
 
