@@ -1743,7 +1743,7 @@ export interface BtaHistoryEntry {
   game_type: string;
   stake: number;
   request_status: BtaRequestStatus;
-  created_at: string;
+  created_at: string | null;
   match?: {
     winner: BtaWinner | null;
     player_move: BtaMove | null;

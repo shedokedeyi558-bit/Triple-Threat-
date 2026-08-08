@@ -192,7 +192,15 @@ function HistoryList({ entries }: { entries: BtaHistoryEntry[] }) {
                   )}
                 </div>
                 <p style={{ fontSize: 10, color: "var(--text-muted)", margin: "2px 0 0" }}>
-                  {new Date(e.created_at).toLocaleDateString("en-NG", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                  {(() => {
+                    // expired entries may have null/undefined created_at at runtime
+                    if (!e.created_at) return "—";
+                    try {
+                      const d = new Date(e.created_at);
+                      if (isNaN(d.getTime())) return "—";
+                      return d.toLocaleDateString("en-NG", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+                    } catch { return "—"; }
+                  })()}
                 </p>
               </div>
               <div style={{ textAlign: "right", flexShrink: 0 }}>
