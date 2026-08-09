@@ -310,6 +310,9 @@ export default function ChallengePage() {
   const statusIntervalRef  = useRef<ReturnType<typeof setInterval> | null>(null);
   const requestIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const countdownRef       = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Stores the active request's expires_at so the 1-second tick can always
+  // compute remaining time from the real deadline, not just decrement blindly.
+  const expiresAtRef       = useRef<string | null>(null);
 
   const clearRequestPolling = () => {
     if (requestIntervalRef.current) { clearInterval(requestIntervalRef.current); requestIntervalRef.current = null; }
@@ -349,7 +352,16 @@ export default function ChallengePage() {
       }
 
       setActiveRequest(request);
-      setCountdown(request.time_remaining_seconds ?? 0);
+
+      // Always derive countdown from expires_at — never trust a decremented local counter.
+      // This means reloads, missed ticks, and tab wakeups all show the correct remaining time.
+      if (request.expires_at) {
+        expiresAtRef.current = request.expires_at;
+        const remaining = Math.max(0, Math.floor((new Date(request.expires_at).getTime() - Date.now()) / 1000));
+        setCountdown(remaining);
+      } else {
+        setCountdown(request.time_remaining_seconds ?? 0);
+      }
 
       // Update scoreboard from polled round fields
       if (request.num_rounds != null) {
@@ -368,9 +380,10 @@ export default function ChallengePage() {
           setPhase("result");
           fetchHistory();
         } else {
-          // Only switch to move if we're still in waiting_admin phase (don't override round_flash)
           setPhase((prev) => prev === "waiting_admin" ? "move" : prev === "pending" ? "move" : prev);
         }
+      } else if (request.status === "pending") {
+        setPhase("pending");
       }
     } catch { /* silent */ }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -380,9 +393,50 @@ export default function ChallengePage() {
   useEffect(() => {
     if (!state.isAuthenticated) { router.push("/auth"); return; }
     const boot = async () => {
-      await fetchStatus();
-      setPhase("lobby");
-      fetchHistory();
+      // Check for an existing pending/approved request BEFORE showing the lobby.
+      // Without this, a reload always shows the challenge form even if the player
+      // already has a live request — the pending phase is lost.
+      let restoredPhase = false;
+      try {
+        const myReq = await beatTheAdminApi.getMyRequest();
+        if (myReq.request) {
+          const { request, match } = myReq;
+          setActiveRequest(request);
+
+          // Derive countdown from expires_at so it's accurate after a reload
+          if (request.expires_at) {
+            expiresAtRef.current = request.expires_at;
+            const remaining = Math.max(0, Math.floor((new Date(request.expires_at).getTime() - Date.now()) / 1000));
+            setCountdown(remaining);
+          }
+
+          if (request.status === "pending") {
+            setPhase("pending");
+            restoredPhase = true;
+          } else if (request.status === "approved" && match) {
+            if (match.status === "completed" && match.winner) {
+              setFinalResult({ winner: match.winner, adminMove: match.admin_move, playerMove: match.player_move, payout: match.payout });
+              setPhase("result");
+            } else {
+              setPhase("move");
+            }
+            restoredPhase = true;
+          } else if (request.status === "approved") {
+            setPhase("move");
+            restoredPhase = true;
+          }
+        }
+      } catch { /* if my-request fails, fall through to lobby */ }
+
+      if (!restoredPhase) {
+        await fetchStatus();
+        setPhase("lobby");
+        fetchHistory();
+      } else {
+        // Still fetch status in background so settings are available if needed
+        fetchStatus();
+        fetchHistory();
+      }
     };
     boot();
     statusIntervalRef.current = setInterval(fetchStatus, STATUS_POLL_MS);
@@ -399,7 +453,16 @@ export default function ChallengePage() {
         requestIntervalRef.current = setInterval(pollMyRequest, REQUEST_POLL_MS);
       }
       if (!countdownRef.current) {
-        countdownRef.current = setInterval(() => setCountdown((c) => Math.max(0, c - 1)), 1000);
+        countdownRef.current = setInterval(() => {
+          // Always compute from the real deadline — never just decrement.
+          // Tab wake-ups, missed ticks, and reloads all get the correct value.
+          if (expiresAtRef.current) {
+            const remaining = Math.max(0, Math.floor((new Date(expiresAtRef.current).getTime() - Date.now()) / 1000));
+            setCountdown(remaining);
+          } else {
+            setCountdown((c) => Math.max(0, c - 1));
+          }
+        }, 1000);
       }
     }
     if (phase === "lobby" || phase === "result") {
@@ -417,16 +480,18 @@ export default function ChallengePage() {
     setRequesting(true); setError("");
     try {
       const res = await beatTheAdminApi.requestChallenge(Number(stake), GAME_TYPE);
+      const remaining = Math.max(0, Math.floor((new Date(res.expires_at).getTime() - Date.now()) / 1000));
       dispatch({ type: "UPDATE_BALANCE", balance: res.new_balance, bonus_balance: res.new_bonus_balance });
+      expiresAtRef.current = res.expires_at;
       setActiveRequest({
         request_id: res.request_id,
         game_type: res.game_type,
         stake: res.stake,
         status: "pending",
         expires_at: res.expires_at,
-        time_remaining_seconds: Math.max(0, Math.floor((new Date(res.expires_at).getTime() - Date.now()) / 1000)),
+        time_remaining_seconds: remaining,
       });
-      setCountdown(Math.max(0, Math.floor((new Date(res.expires_at).getTime() - Date.now()) / 1000)));
+      setCountdown(remaining);
       setPhase("pending");
     } catch (err) { setError(codeToMessage(err)); }
     finally { setRequesting(false); }
@@ -493,6 +558,7 @@ export default function ChallengePage() {
   const resetToLobby = () => {
     setFinalResult(null); setActiveRequest(null); setSelectedMove(null);
     setError(""); setStake(""); setRoundFlash(null);
+    expiresAtRef.current = null;
     setScore({ numRounds: 1, currentRound: 1, playerWins: 0, adminWins: 0 });
     fetchStatus(); fetchHistory();
     setPhase("lobby");
