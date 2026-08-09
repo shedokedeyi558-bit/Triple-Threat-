@@ -1866,7 +1866,7 @@ export interface BtaAdminMoveResponse {
 
 export const adminBtaApi = {
   getStatus: () =>
-    request<{ settings: { id: string; is_available: boolean; min_stake: number; max_stake: number; request_expiry_seconds?: number; num_rounds?: number; match_in_progress?: boolean } }>(
+    request<{ settings: { id: number; is_available: boolean; min_stake: number; max_stake: number; request_expiry_seconds: number; num_rounds: number; match_in_progress?: boolean } }>(
       "/api/admin/beat-the-admin/settings",
       { token: getAdminToken() }
     ).then((res) => {
@@ -1882,11 +1882,10 @@ export const adminBtaApi = {
     }),
 
   updateSettings: (settings: { is_available: boolean; min_stake?: number; max_stake?: number }) =>
-    request<{ settings: { id: string; is_available: boolean; min_stake: number; max_stake: number; request_expiry_seconds?: number; num_rounds?: number } }>(
+    request<{ settings: { id: number; is_available: boolean; min_stake: number; max_stake: number; request_expiry_seconds: number; num_rounds: number } }>(
       "/api/admin/beat-the-admin/settings",
       { method: "PUT", body: settings, token: getAdminToken() }
     ).then((res) => {
-      // Same parsing as getStatus — always nested under .settings, no fallback
       const s = res.settings;
       const parsed = {
         is_available: s.is_available,
@@ -1898,14 +1897,14 @@ export const adminBtaApi = {
     }),
 
   getQueue: () =>
-    request<{ queue?: BtaQueueEntry[]; requests?: BtaQueueEntry[] }>(
+    request<{ queue: any[]; total: number }>(
       "/api/admin/beat-the-admin/queue",
       { token: getAdminToken() }
     ).then((res) => {
-      const raw = (res as any)?.queue ?? (res as any)?.requests ?? [];
-      // Normalise seconds_remaining → time_remaining_seconds
-      const entries: BtaQueueEntry[] = raw.map((e: any) => ({
+      // Exact shape: { queue: [...], total: N } — key is always "queue"
+      const entries: BtaQueueEntry[] = (res.queue ?? []).map((e: any) => ({
         ...e,
+        // Backend sends seconds_remaining, interface uses time_remaining_seconds
         time_remaining_seconds: e.time_remaining_seconds ?? e.seconds_remaining ?? 0,
       }));
       return { requests: entries };
