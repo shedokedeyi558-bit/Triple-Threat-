@@ -1953,6 +1953,27 @@ export const adminBtaApi = {
       { method: "POST", token: getAdminToken() }
     ),
 
+  getActiveMatch: () =>
+    request<{
+      active_match: {
+        match_id: string;
+        request_id: string;
+        game_type: string;
+        stake: number;
+        payout: number;
+        player_phone: string;
+        player_name: string | null;
+        started_at: string;
+        ludo: {
+          current_turn: "player" | "admin";
+          dice_value: number | null;
+          dice_rolled: boolean;
+          player_pieces_home: number;
+          admin_pieces_home: number;
+        };
+      } | null;
+    }>("/api/admin/beat-the-admin/active-match", { token: getAdminToken() }),
+
   getMatchState: (matchId: string) =>
     request<LudoMatchState>(
       `/api/admin/beat-the-admin/match/${matchId}`,

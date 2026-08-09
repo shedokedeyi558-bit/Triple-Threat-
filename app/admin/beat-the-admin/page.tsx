@@ -195,10 +195,33 @@ export default function AdminBeatTheAdminPage() {
   }, []); // eslint-disable-line
 
   useEffect(() => {
-    fetchAll();
+    // On mount: check for an active match first.
+    // If one exists, go straight to the match view without loading the queue.
+    // If not, proceed with the normal settings + queue load.
+    const boot = async () => {
+      try {
+        const res = await adminBtaApi.getActiveMatch();
+        if (res.active_match) {
+          setActiveMatch({
+            matchId: res.active_match.match_id,
+            stake: res.active_match.stake,
+            playerPhone: res.active_match.player_phone,
+          });
+          setLoading(false);
+          // Still load settings in background so toggle/stake range work if admin navigates away
+          adminBtaApi.getStatus().then((s) => {
+            setStatus(s);
+            isAvailableRef.current = s.is_available;
+          }).catch(() => { /* silent */ });
+          return; // skip fetchAll — match view takes over
+        }
+      } catch { /* no active match endpoint or failed — fall through to normal load */ }
+      fetchAll();
+    };
+    boot();
     pollRef.current = setInterval(() => fetchAll(), POLL_MS);
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
-  }, [fetchAll]);
+  }, [fetchAll]); // eslint-disable-line
 
   const handleApprove = async (id: string) => {
     setActing(id);
