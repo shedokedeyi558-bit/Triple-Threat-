@@ -442,6 +442,197 @@ function ActiveMatchPanel({ req, onMoveSubmitted }: { req: BtaQueueEntry; onMove
   );
 }
 
+// ── Active match panel (driven by match_id from approve response) ──────────────
+// This replaces the old queue-based ActiveMatchPanel. After approving, the
+// request disappears from the queue, so we track state from the approve
+// response's match_id and poll GET /match/:matchId directly.
+const MATCH_POLL_MS = 2500;
+
+function ActiveMatchByIdPanel({
+  matchId, stake, playerPhone,
+  initialNumRounds, initialCurrentRound, initialPlayerWins, initialAdminWins,
+  onMatchComplete,
+}: {
+  matchId: string; stake: number; playerPhone: string;
+  initialNumRounds: number; initialCurrentRound: number;
+  initialPlayerWins: number; initialAdminWins: number;
+  onMatchComplete: () => void;
+}) {
+  const [selectedMove, setSelectedMove] = useState<BtaMove | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [roundResult, setRoundResult] = useState<BtaAdminMoveResponse | null>(null);
+  const [showHistory, setShowHistory] = useState(false);
+  const [err, setErr] = useState("");
+  const [playerHasMoved, setPlayerHasMoved] = useState(false);
+  const [adminHasMoved, setAdminHasMoved] = useState(false);
+  const [score, setScore] = useState({
+    numRounds: initialNumRounds,
+    currentRound: initialCurrentRound,
+    playerWins: initialPlayerWins,
+    adminWins: initialAdminWins,
+  });
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Poll match detail to detect player move and round updates
+  useEffect(() => {
+    const poll = async () => {
+      try {
+        const detail = await adminBtaApi.getMatchDetail(matchId);
+        setScore({
+          numRounds: detail.num_rounds,
+          currentRound: detail.current_round,
+          playerWins: detail.player_round_wins,
+          adminWins: detail.admin_round_wins,
+        });
+        if (detail.match_resolved) {
+          clearInterval(pollRef.current!);
+          setTimeout(onMatchComplete, 3000);
+          return;
+        }
+        // Check current round's moves from the rounds array
+        const currentRoundData = detail.rounds?.find((r: any) => r.round_number === detail.current_round);
+        setPlayerHasMoved(!!currentRoundData?.player_move);
+        setAdminHasMoved(!!currentRoundData?.admin_move);
+      } catch { /* silent */ }
+    };
+    poll();
+    pollRef.current = setInterval(poll, MATCH_POLL_MS);
+    return () => { if (pollRef.current) clearInterval(pollRef.current); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [matchId]);
+
+  const handleSubmit = async () => {
+    if (!selectedMove) return;
+    setSubmitting(true); setErr("");
+    try {
+      const res = await adminBtaApi.submitMove(matchId, selectedMove);
+      setRoundResult(res);
+      setAdminHasMoved(true);
+      setScore({
+        numRounds: res.num_rounds,
+        currentRound: res.current_round,
+        playerWins: res.player_round_wins,
+        adminWins: res.admin_round_wins,
+      });
+      if (res.match_resolved) {
+        clearInterval(pollRef.current!);
+        setTimeout(onMatchComplete, 2800);
+      } else if (res.round_result !== null && res.round_result !== "draw") {
+        setTimeout(() => { setRoundResult(null); setSelectedMove(null); setAdminHasMoved(false); }, 2000);
+      } else if (res.round_result === "draw") {
+        setTimeout(() => { setRoundResult(null); setSelectedMove(null); setAdminHasMoved(false); }, 2000);
+      }
+    } catch (e) { setErr(e instanceof ApiError ? e.message : "Failed to submit move"); }
+    finally { setSubmitting(false); }
+  };
+
+  const isDraw = roundResult?.round_result === "draw";
+  const adminWonRound = roundResult?.round_result === "admin";
+  const matchResolved = roundResult?.match_resolved ?? false;
+
+  return (
+    <div style={{ borderRadius: 14, padding: "16px", border: "2px solid rgba(76,111,255,0.3)",
+      backgroundColor: "rgba(76,111,255,0.04)", display: "flex", flexDirection: "column", gap: 14 }}>
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
+        <div>
+          <p style={{ fontSize: 13, fontWeight: 800, color: "var(--accent-indigo)", margin: "0 0 3px" }}>Match in progress</p>
+          <p style={{ fontSize: 11, color: "var(--text-muted)", margin: 0 }}>
+            {maskPhone(playerPhone)} · stake {fmtNaira(stake)}
+            {playerHasMoved ? " · player has moved" : " · waiting for player"}
+          </p>
+        </div>
+        <button onClick={() => setShowHistory(h => !h)}
+          style={{ background: "none", border: "1px solid var(--border-hairline)", borderRadius: 6, cursor: "pointer",
+            color: "var(--text-muted)", padding: "4px 6px", display: "flex", alignItems: "center", gap: 4, fontSize: 10 }}>
+          <List size={12} /> History
+        </button>
+      </div>
+
+      {/* Scoreboard */}
+      {score.numRounds > 1 && (
+        <Scoreboard playerWins={score.playerWins} adminWins={score.adminWins}
+          currentRound={score.currentRound} numRounds={score.numRounds} />
+      )}
+
+      {showHistory && <RoundHistoryPanel matchId={matchId} onClose={() => setShowHistory(false)} />}
+
+      {/* Round result feedback */}
+      {roundResult && (
+        <div style={{ textAlign: "center", padding: "8px 0" }}>
+          {matchResolved ? (
+            <>
+              {roundResult.match_winner === "player"
+                ? <XCircle size={28} style={{ color: "#f87171", margin: "0 auto 6px" }} />
+                : roundResult.match_winner === "draw"
+                ? <Minus size={28} style={{ color: "var(--accent-indigo)", margin: "0 auto 6px" }} />
+                : <Trophy size={28} style={{ color: "var(--accent-amber)", margin: "0 auto 6px" }} />}
+              <p style={{ fontSize: 15, fontWeight: 800, color: "var(--text-primary)", margin: "0 0 4px" }}>
+                {roundResult.match_winner === "player" ? "Player wins!" : roundResult.match_winner === "draw" ? "Draw" : "Admin wins!"}
+              </p>
+              {score.numRounds > 1 && (
+                <p style={{ fontSize: 11, color: "var(--text-muted)", margin: 0 }}>
+                  Final: Player {score.playerWins} — Admin {score.adminWins}
+                </p>
+              )}
+            </>
+          ) : isDraw ? (
+            <>
+              <RotateCcw size={22} style={{ color: "var(--accent-indigo)", margin: "0 auto 6px" }} />
+              <p style={{ fontSize: 13, fontWeight: 700, color: "var(--accent-indigo)", margin: "0 0 2px" }}>Round {roundResult.round_number} — Draw, replay</p>
+            </>
+          ) : (
+            <>
+              {adminWonRound ? <Trophy size={22} style={{ color: "var(--accent-amber)", margin: "0 auto 6px" }} /> : <XCircle size={22} style={{ color: "#f87171", margin: "0 auto 6px" }} />}
+              <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", margin: "0 0 2px" }}>
+                Round {roundResult.round_number}: {adminWonRound ? "Admin won" : "Player won"}
+              </p>
+              <p style={{ fontSize: 11, color: "var(--text-muted)", margin: 0 }}>
+                {MOVES.find(m => m.value === roundResult.admin_move)?.emoji} vs {MOVES.find(m => m.value === roundResult.player_move)?.emoji}
+              </p>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Move picker */}
+      {!roundResult && !adminHasMoved && (
+        <>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+            {MOVES.map(({ value, emoji, label }) => (
+              <button key={value} onClick={() => setSelectedMove(value)} disabled={submitting}
+                style={{ padding: "14px 6px", borderRadius: 12, border: "2px solid", cursor: "pointer",
+                  borderColor: selectedMove === value ? "var(--accent-indigo)" : "var(--border-hairline)",
+                  backgroundColor: selectedMove === value ? "rgba(76,111,255,0.12)" : "var(--bg-base)",
+                  display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+                <span style={{ fontSize: 28 }}>{emoji}</span>
+                <span style={{ fontSize: 10, fontWeight: 700, color: selectedMove === value ? "var(--accent-indigo)" : "var(--text-muted)" }}>{label}</span>
+              </button>
+            ))}
+          </div>
+          {err && <p style={{ fontSize: 11, color: "#f87171", margin: 0 }}>{err}</p>}
+          <button onClick={handleSubmit} disabled={!selectedMove || submitting}
+            style={{ width: "100%", padding: "12px 0", borderRadius: 10, border: "none", fontWeight: 800,
+              fontSize: 13, backgroundColor: "var(--accent-indigo)", color: "#fff",
+              cursor: !selectedMove || submitting ? "not-allowed" : "pointer",
+              opacity: !selectedMove || submitting ? 0.45 : 1,
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+            {submitting && <Loader2 size={14} className="animate-spin" />}
+            {submitting ? "Submitting…" : `Play Move${score.numRounds > 1 ? ` (Round ${score.currentRound})` : ""}`}
+          </button>
+        </>
+      )}
+
+      {/* Waiting for player */}
+      {!roundResult && adminHasMoved && !playerHasMoved && (
+        <p style={{ fontSize: 12, color: "var(--text-muted)", textAlign: "center" }}>
+          Move submitted — waiting for player…
+        </p>
+      )}
+    </div>
+  );
+}
+
 // ── Main page ──────────────────────────────────────────────────────────────────
 export default function AdminBeatTheAdminPage() {
   const [status, setStatus]     = useState<BtaStatus | null>(null);
@@ -450,9 +641,19 @@ export default function AdminBeatTheAdminPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError]       = useState("");
   const [acting, setActing]     = useState<string | null>(null);
+  // When a request is approved, we get match_id from the response.
+  // Store it here so ActiveMatchPanel can display even after the request
+  // disappears from the pending queue.
+  const [activeMatch, setActiveMatch] = useState<{
+    matchId: string;
+    stake: number;
+    playerPhone: string;
+    numRounds: number;
+    currentRound: number;
+    playerWins: number;
+    adminWins: number;
+  } | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  // Live ref for is_available — kept in sync with every settings response and toggle.
-  // StakeRangeEditor reads this ref so it never uses a stale prop snapshot when saving.
   const isAvailableRef = useRef<boolean>(false);
 
   const fetchAll = useCallback(async (isManual = false) => {
@@ -495,7 +696,22 @@ export default function AdminBeatTheAdminPage() {
 
   const handleApprove = async (id: string) => {
     setActing(id);
-    try { await adminBtaApi.approveRequest(id); await fetchAll(); }
+    try {
+      const approvedReq = queue.find(r => r.id === id);
+      const res = await adminBtaApi.approveRequest(id);
+      // Approve response contains match_id — use it to drive the in-match panel
+      // directly, since the request will now disappear from the pending queue
+      setActiveMatch({
+        matchId: res.match_id,
+        stake: approvedReq?.stake ?? 0,
+        playerPhone: approvedReq?.player_phone ?? "",
+        numRounds: res.num_rounds ?? 1,
+        currentRound: res.current_round ?? 1,
+        playerWins: res.player_round_wins ?? 0,
+        adminWins: res.admin_round_wins ?? 0,
+      });
+      await fetchAll();
+    }
     catch (e) { setError(e instanceof ApiError ? e.message : "Approve failed"); }
     finally { setActing(null); }
   };
@@ -508,7 +724,6 @@ export default function AdminBeatTheAdminPage() {
   };
 
   const pending  = queue.filter((r) => r.status === "pending");
-  const approved = queue.filter((r) => r.status === "approved");
 
   return (
     <div className="space-y-6 max-w-2xl pb-16">
@@ -590,16 +805,21 @@ export default function AdminBeatTheAdminPage() {
         )}
       </div>
 
-      {/* Active matches */}
-      {approved.length > 0 && (
+      {/* Active match — shown after admin approves, driven by match_id from approve response */}
+      {activeMatch && (
         <div>
           <p style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.09em",
             color: "var(--text-muted)", marginBottom: 10 }}>Active Match</p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {approved.map((req) => (
-              <ActiveMatchPanel key={req.id} req={req} onMoveSubmitted={fetchAll} />
-            ))}
-          </div>
+          <ActiveMatchByIdPanel
+            matchId={activeMatch.matchId}
+            stake={activeMatch.stake}
+            playerPhone={activeMatch.playerPhone}
+            initialNumRounds={activeMatch.numRounds}
+            initialCurrentRound={activeMatch.currentRound}
+            initialPlayerWins={activeMatch.playerWins}
+            initialAdminWins={activeMatch.adminWins}
+            onMatchComplete={() => { setActiveMatch(null); fetchAll(); }}
+          />
         </div>
       )}
     </div>

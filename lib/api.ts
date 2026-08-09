@@ -1810,8 +1810,17 @@ export const beatTheAdminApi = {
     }),
 
   getMyRequest: () =>
-    request<BtaMyRequestResponse>("/api/admin-challenge/my-request", {
+    request<{ request: any | null; match: BtaMatch | null }>("/api/admin-challenge/my-request", {
       token: getToken(),
+    }).then((res): BtaMyRequestResponse => {
+      if (!res.request) return { request: null, match: res.match };
+      const r = res.request;
+      // Backend sends `id`, interface uses `request_id` — normalise here
+      const request = {
+        ...r,
+        request_id: r.request_id ?? r.id,
+      } as BtaRequest & { time_remaining_seconds: number };
+      return { request, match: res.match };
     }),
 
   submitMove: (requestId: string, move: BtaMove) =>
@@ -1911,7 +1920,7 @@ export const adminBtaApi = {
     }),
 
   approveRequest: (requestId: string) =>
-    request<{ request_id: string; status: string }>(
+    request<{ match_id: string; status: string; current_round: number; num_rounds: number; player_round_wins?: number; admin_round_wins?: number }>(
       `/api/admin/beat-the-admin/${requestId}/approve`,
       { method: "POST", token: getAdminToken() }
     ),
