@@ -1838,7 +1838,7 @@ export interface BtaQueueEntry {
   stake: number;
   status: BtaRequestStatus;
   expires_at: string;
-  time_remaining_seconds: number;
+  time_remaining_seconds: number;  // normalised from seconds_remaining on arrival
   created_at: string;
   // round scoreboard fields — present on approved/in-progress entries
   num_rounds?: number;
@@ -1898,12 +1898,17 @@ export const adminBtaApi = {
     }),
 
   getQueue: () =>
-    request<{ requests?: BtaQueueEntry[]; queue?: BtaQueueEntry[] } | BtaQueueEntry[]>(
+    request<{ queue?: BtaQueueEntry[]; requests?: BtaQueueEntry[] }>(
       "/api/admin/beat-the-admin/queue",
       { token: getAdminToken() }
     ).then((res) => {
-      console.log("[BTA queue] API raw:", JSON.stringify(res));
-      return res as { requests?: BtaQueueEntry[]; queue?: BtaQueueEntry[] };
+      const raw = (res as any)?.queue ?? (res as any)?.requests ?? [];
+      // Normalise seconds_remaining → time_remaining_seconds
+      const entries: BtaQueueEntry[] = raw.map((e: any) => ({
+        ...e,
+        time_remaining_seconds: e.time_remaining_seconds ?? e.seconds_remaining ?? 0,
+      }));
+      return { requests: entries };
     }),
 
   approveRequest: (requestId: string) =>
