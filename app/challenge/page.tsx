@@ -120,7 +120,9 @@ function HistoryList({ entries }: { entries: BtaHistoryEntry[] }) {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                   <span style={{ fontSize: 11, fontWeight: 700, color: outcomeColor }}>{outcomeLabel}</span>
-                  <span style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase" }}>{e.game_type}</span>
+                  <span style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase" }}>
+                    {e.game_type === "ludo" ? "Ludo" : e.game_type === "rps" ? "RPS" : e.game_type}
+                  </span>
                 </div>
                 <p style={{ fontSize: 10, color: "var(--text-muted)", margin: "2px 0 0" }}>
                   {!e.created_at ? "—" : (() => { try { const d = new Date(e.created_at); return isNaN(d.getTime()) ? "—" : d.toLocaleDateString("en-NG", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }); } catch { return "—"; } })()}
@@ -385,7 +387,26 @@ export default function ChallengePage() {
       });
       setCountdown(remaining);
       setPhase("pending");
-    } catch (err) { setError(codeToMessage(err)); }
+    } catch (err) {
+      // If ALREADY_REQUESTED, there's a live pending request — fetch and restore it
+      if (err instanceof ApiError && err.code === "ALREADY_REQUESTED") {
+        try {
+          const myReq = await beatTheAdminApi.getMyRequest();
+          if (myReq.request && myReq.request.status === "pending") {
+            setActiveRequest(myReq.request);
+            prevRequestStatusRef.current = "pending";
+            if (myReq.request.expires_at) {
+              expiresAtRef.current = myReq.request.expires_at;
+              const remaining = Math.max(0, Math.floor((new Date(myReq.request.expires_at).getTime() - Date.now()) / 1000));
+              setCountdown(remaining);
+            }
+            setPhase("pending");
+            return; // don't show an error — just restore the correct state
+          }
+        } catch { /* fall through to show error */ }
+      }
+      setError(codeToMessage(err));
+    }
     finally { setRequesting(false); }
   };
 
@@ -501,7 +522,7 @@ export default function ChallengePage() {
                   {error}
                 </div>
               )}
-              {canChallenge && (
+              {canChallenge && !error && (
                 <div style={{ borderRadius: 14, padding: "18px 16px", backgroundColor: "var(--bg-card)", border: "1px solid var(--border-hairline)", display: "flex", flexDirection: "column", gap: 14 }}>
                   <div>
                     <label style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-muted)", display: "block", marginBottom: 8 }}>
