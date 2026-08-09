@@ -324,6 +324,11 @@ export default function ChallengePage() {
       } catch { /* if my-request fails, fall through to lobby */ }
 
       if (!restoredPhase) {
+        // my-request confirmed null — clear any stale error state and show lobby
+        setError("");
+        setActiveRequest(null);
+        prevRequestStatusRef.current = null;
+        expiresAtRef.current = null;
         await fetchStatus();
         setPhase("lobby");
         fetchHistory();
@@ -388,11 +393,14 @@ export default function ChallengePage() {
       setCountdown(remaining);
       setPhase("pending");
     } catch (err) {
-      // If ALREADY_REQUESTED, there's a live pending request — fetch and restore it
+      // If ALREADY_REQUESTED, do a fresh server check — the DB may not have a live request
+      // (backend race condition or stale cache). If my-request confirms null, clear the error
+      // and let the player try again.
       if (err instanceof ApiError && err.code === "ALREADY_REQUESTED") {
         try {
           const myReq = await beatTheAdminApi.getMyRequest();
           if (myReq.request && myReq.request.status === "pending") {
+            // There IS a live request — restore the pending screen
             setActiveRequest(myReq.request);
             prevRequestStatusRef.current = "pending";
             if (myReq.request.expires_at) {
@@ -401,9 +409,13 @@ export default function ChallengePage() {
               setCountdown(remaining);
             }
             setPhase("pending");
-            return; // don't show an error — just restore the correct state
+            return;
+          } else {
+            // my-request confirms null — server gave a false positive, let player retry
+            setError("Server reported a conflict but no live request was found — please try again.");
+            return;
           }
-        } catch { /* fall through to show error */ }
+        } catch { /* fall through to generic error */ }
       }
       setError(codeToMessage(err));
     }
