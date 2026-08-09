@@ -6,30 +6,22 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useApp } from "@/context/AppContext";
 import {
   beatTheAdminApi, walletApi, ApiError,
-  type BtaMove, type BtaWinner, type BtaRoundResult, type BtaStatus,
-  type BtaRequest, type BtaMatch, type BtaMoveResponse,
-  type BtaHistoryEntry,
+  type BtaWinner, type BtaStatus,
+  type BtaRequest, type BtaHistoryEntry,
 } from "@/lib/api";
-import { Loader2, Swords, Clock, Trophy, XCircle, Minus, RefreshCw, RotateCcw } from "lucide-react";
+import { LudoMatch } from "@/components/ludo/LudoMatch";
+import { Loader2, Swords, Clock, Trophy, XCircle, Minus } from "lucide-react";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
-const GAME_TYPE = "rps" as const;
+const GAME_TYPE = "ludo" as const;
 const STATUS_POLL_MS  = 7000;
 const REQUEST_POLL_MS = 4000;
-const ROUND_FLASH_MS  = 2200; // how long round result banner is shown before next move
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
 function fmtCountdown(secs: number): string {
   if (secs <= 0) return "0:00";
   return `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, "0")}`;
 }
 function fmtNaira(n: number) { return `₦${n.toLocaleString()}`; }
-
-const MOVES: { value: BtaMove; emoji: string; label: string }[] = [
-  { value: "rock",     emoji: "✊", label: "Rock"     },
-  { value: "paper",    emoji: "✋", label: "Paper"    },
-  { value: "scissors", emoji: "✌️", label: "Scissors" },
-];
 
 function codeToMessage(err: unknown): string {
   if (err instanceof ApiError) {
@@ -43,65 +35,6 @@ function codeToMessage(err: unknown): string {
     return err.message || "Something went wrong. Try again.";
   }
   return "Something went wrong. Try again.";
-}
-
-// ── Scoreboard strip ──────────────────────────────────────────────────────────
-function Scoreboard({ playerWins, adminWins, currentRound, numRounds }: {
-  playerWins: number; adminWins: number; currentRound: number; numRounds: number;
-}) {
-  return (
-    <div style={{
-      display: "flex", alignItems: "center", justifyContent: "center", gap: 0,
-      borderRadius: 12, overflow: "hidden", border: "1px solid var(--border-hairline)",
-      backgroundColor: "var(--bg-card)",
-    }}>
-      <div style={{ flex: 1, textAlign: "center", padding: "10px 8px", borderRight: "1px solid var(--border-hairline)" }}>
-        <p style={{ fontSize: 22, fontWeight: 900, color: "var(--accent-indigo)", margin: 0, lineHeight: 1 }}>{playerWins}</p>
-        <p style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", color: "var(--text-muted)", margin: "3px 0 0" }}>You</p>
-      </div>
-      <div style={{ flex: 1, textAlign: "center", padding: "10px 8px", borderRight: "1px solid var(--border-hairline)" }}>
-        <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text-secondary)", margin: 0, lineHeight: 1 }}>
-          Round {currentRound}<span style={{ color: "var(--text-muted)", fontWeight: 500 }}> / {numRounds}</span>
-        </p>
-        <p style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", color: "var(--text-muted)", margin: "3px 0 0" }}>Best of {numRounds}</p>
-      </div>
-      <div style={{ flex: 1, textAlign: "center", padding: "10px 8px" }}>
-        <p style={{ fontSize: 22, fontWeight: 900, color: "#f87171", margin: 0, lineHeight: 1 }}>{adminWins}</p>
-        <p style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", color: "var(--text-muted)", margin: "3px 0 0" }}>Admin</p>
-      </div>
-    </div>
-  );
-}
-
-// ── Round flash banner ────────────────────────────────────────────────────────
-function RoundFlash({ result, playerMove, adminMove, roundNumber, isDraw }: {
-  result: BtaRoundResult; playerMove: BtaMove | null; adminMove: BtaMove | null;
-  roundNumber: number; isDraw: boolean;
-}) {
-  const playerEmoji = MOVES.find(m => m.value === playerMove)?.emoji ?? "?";
-  const adminEmoji  = MOVES.find(m => m.value === adminMove)?.emoji ?? "?";
-  const won = result === "player";
-  const color = isDraw ? "var(--accent-indigo)" : won ? "#4ADE80" : "#f87171";
-  const label = isDraw ? `Draw — Round ${roundNumber} replays` : won ? `Round ${roundNumber}: You won!` : `Round ${roundNumber}: Admin won`;
-
-  return (
-    <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
-      style={{ borderRadius: 12, padding: "12px 16px", border: `1px solid ${color}22`,
-        backgroundColor: `${color}11`, display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
-      {isDraw
-        ? <RotateCcw size={18} style={{ color }} />
-        : won ? <Trophy size={18} style={{ color }} /> : <XCircle size={18} style={{ color }} />}
-      <p style={{ fontSize: 14, fontWeight: 800, color, margin: 0 }}>{label}</p>
-      {!isDraw && (
-        <p style={{ fontSize: 13, color: "var(--text-muted)", margin: 0 }}>
-          {playerEmoji} vs {adminEmoji}
-        </p>
-      )}
-      {isDraw && (
-        <p style={{ fontSize: 12, color: "var(--text-muted)", margin: 0 }}>Both played the same — submit again</p>
-      )}
-    </motion.div>
-  );
 }
 
 // ── Status banner ─────────────────────────────────────────────────────────────
@@ -138,57 +71,25 @@ function StatusBanner({ status, onRetry }: { status: BtaStatus | null; onRetry?:
   );
 }
 
-// ── Final result screen ───────────────────────────────────────────────────────
-function ResultScreen({ winner, adminMove, playerMove, stake, payout, numRounds, playerRoundWins, adminRoundWins, onPlayAgain }: {
-  winner: BtaWinner; adminMove: BtaMove | null; playerMove: BtaMove | null;
-  stake: number; payout: number; numRounds: number; playerRoundWins: number; adminRoundWins: number;
-  onPlayAgain: () => void;
+// ── Result screen ─────────────────────────────────────────────────────────────
+function ResultScreen({ winner, stake, payout, onPlayAgain }: {
+  winner: BtaWinner; stake: number; payout: number; onPlayAgain: () => void;
 }) {
-  const isWin  = winner === "player";
-  const isDraw = winner === "draw";
-  const playerEmoji = MOVES.find(m => m.value === playerMove)?.emoji ?? "?";
-  const adminEmoji  = MOVES.find(m => m.value === adminMove)?.emoji ?? "?";
-
+  const isWin = winner === "player";
   return (
     <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
       style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <div style={{ textAlign: "center", paddingTop: 8 }}>
-        {isWin ? <Trophy size={52} style={{ color: "var(--accent-amber)", margin: "0 auto 10px" }} />
-          : isDraw ? <Minus size={52} style={{ color: "var(--accent-indigo)", margin: "0 auto 10px" }} />
+        {isWin
+          ? <Trophy size={52} style={{ color: "var(--accent-amber)", margin: "0 auto 10px" }} />
           : <XCircle size={52} style={{ color: "#f87171", margin: "0 auto 10px" }} />}
         <h2 style={{ fontSize: 26, fontWeight: 900, color: "var(--text-primary)", margin: "0 0 4px" }}>
-          {isWin ? "You Won!" : isDraw ? "Draw!" : "You Lost"}
+          {isWin ? "You Won!" : "You Lost"}
         </h2>
-        {isWin && <p style={{ fontSize: 28, fontWeight: 900, fontFamily: "monospace", color: "var(--accent-amber)", margin: 0 }}>+{fmtNaira(payout)}</p>}
-        {isDraw && <p style={{ fontSize: 14, color: "var(--text-secondary)", margin: 0 }}>Stake refunded · {fmtNaira(payout)}</p>}
+        {isWin
+          ? <p style={{ fontSize: 28, fontWeight: 900, fontFamily: "monospace", color: "var(--accent-amber)", margin: 0 }}>+{fmtNaira(payout)}</p>
+          : <p style={{ fontSize: 14, color: "var(--text-secondary)", margin: 0 }}>Better luck next time · stake {fmtNaira(stake)}</p>}
       </div>
-      {/* Final series score */}
-      {numRounds > 1 && (
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 16, borderRadius: 10,
-          padding: "10px 14px", backgroundColor: "var(--bg-card)", border: "1px solid var(--border-hairline)" }}>
-          <span style={{ fontSize: 12, fontWeight: 700, color: isWin ? "#4ADE80" : "var(--text-muted)" }}>You {playerRoundWins}</span>
-          <span style={{ fontSize: 11, color: "var(--text-muted)" }}>—</span>
-          <span style={{ fontSize: 12, fontWeight: 700, color: !isWin && !isDraw ? "#f87171" : "var(--text-muted)" }}>Admin {adminRoundWins}</span>
-          <span style={{ fontSize: 10, color: "var(--text-muted)" }}>(best of {numRounds})</span>
-        </div>
-      )}
-      {/* Deciding move comparison */}
-      {(playerMove || adminMove) && (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", gap: 10,
-          borderRadius: 12, padding: "14px 16px", backgroundColor: "var(--bg-card)", border: "1px solid var(--border-hairline)" }}>
-          <div style={{ textAlign: "center" }}>
-            <p style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-muted)", margin: "0 0 6px" }}>You</p>
-            <span style={{ fontSize: 36 }}>{playerEmoji}</span>
-            <p style={{ fontSize: 12, fontWeight: 700, color: "var(--text-primary)", margin: "4px 0 0", textTransform: "capitalize" }}>{playerMove}</p>
-          </div>
-          <span style={{ fontSize: 12, fontWeight: 800, color: "var(--text-muted)" }}>VS</span>
-          <div style={{ textAlign: "center" }}>
-            <p style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-muted)", margin: "0 0 6px" }}>Admin</p>
-            <span style={{ fontSize: 36 }}>{adminEmoji}</span>
-            <p style={{ fontSize: 12, fontWeight: 700, color: "var(--text-primary)", margin: "4px 0 0", textTransform: "capitalize" }}>{adminMove}</p>
-          </div>
-        </div>
-      )}
       <button onClick={onPlayAgain}
         style={{ width: "100%", padding: "14px 0", borderRadius: 14, border: "none",
           background: "var(--accent-indigo)", color: "#fff", fontSize: 15, fontWeight: 800, cursor: "pointer" }}>
@@ -207,25 +108,19 @@ function HistoryList({ entries }: { entries: BtaHistoryEntry[] }) {
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         {entries.map((e) => {
           const won = e.match?.winner === "player";
-          const draw = e.match?.winner === "draw";
           const lost = e.match?.winner === "admin";
           const pending = e.request_status === "pending";
           const expired = e.request_status === "expired";
           const rejected = e.request_status === "rejected";
-          const hasResult = !!e.match;
-          const outcomeColor = won ? "var(--accent-amber)" : draw ? "var(--accent-indigo)" : lost ? "#f87171" : "var(--text-muted)";
-          const outcomeLabel = won ? "Won" : draw ? "Draw" : lost ? "Lost" : pending ? "Pending" : expired ? "Expired" : rejected ? "Rejected" : "—";
-          const playerEmoji = e.match?.player_move ? MOVES.find(m => m.value === e.match!.player_move)?.emoji : null;
-          const adminEmoji  = e.match?.admin_move  ? MOVES.find(m => m.value === e.match!.admin_move)?.emoji  : null;
+          const outcomeColor = won ? "var(--accent-amber)" : lost ? "#f87171" : "var(--text-muted)";
+          const outcomeLabel = won ? "Won" : lost ? "Lost" : pending ? "Pending" : expired ? "Expired" : rejected ? "Rejected" : "—";
           return (
             <div key={e.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px",
               borderRadius: 10, backgroundColor: "var(--bg-card)", border: "1px solid var(--border-hairline)" }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                   <span style={{ fontSize: 11, fontWeight: 700, color: outcomeColor }}>{outcomeLabel}</span>
-                  {hasResult && playerEmoji && adminEmoji && (
-                    <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{playerEmoji} vs {adminEmoji}</span>
-                  )}
+                  <span style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase" }}>{e.game_type}</span>
                 </div>
                 <p style={{ fontSize: 10, color: "var(--text-muted)", margin: "2px 0 0" }}>
                   {!e.created_at ? "—" : (() => { try { const d = new Date(e.created_at); return isNaN(d.getTime()) ? "—" : d.toLocaleDateString("en-NG", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }); } catch { return "—"; } })()}
@@ -233,8 +128,8 @@ function HistoryList({ entries }: { entries: BtaHistoryEntry[] }) {
               </div>
               <div style={{ textAlign: "right", flexShrink: 0 }}>
                 <p style={{ fontSize: 12, fontWeight: 700, fontFamily: "monospace",
-                  color: won ? "var(--accent-amber)" : draw ? "var(--accent-indigo)" : "var(--text-secondary)", margin: 0 }}>
-                  {won ? `+${fmtNaira(e.match!.payout)}` : draw ? fmtNaira(e.match!.payout) : fmtNaira(e.stake)}
+                  color: won ? "var(--accent-amber)" : "var(--text-secondary)", margin: 0 }}>
+                  {won ? `+${fmtNaira(e.match!.payout)}` : fmtNaira(e.stake)}
                 </p>
                 <p style={{ fontSize: 9, color: "var(--text-muted)", margin: "1px 0 0" }}>stake {fmtNaira(e.stake)}</p>
               </div>
@@ -251,26 +146,8 @@ type PagePhase =
   | "loading"        // initial status fetch
   | "lobby"          // status loaded
   | "pending"        // request sent — polling my-request
-  | "move"           // approved — show RPS buttons
-  | "round_flash"    // brief post-round result before next round move
-  | "waiting_admin"  // player moved, waiting for admin
-  | "result";        // match_resolved: true
-
-// Live scoreboard state
-interface ScoreState {
-  numRounds: number;
-  currentRound: number;
-  playerWins: number;
-  adminWins: number;
-}
-
-// Last round result for flash
-interface RoundFlashState {
-  roundNumber: number;
-  result: BtaRoundResult;
-  playerMove: BtaMove | null;
-  adminMove: BtaMove | null;
-}
+  | "match"          // approved — Ludo game in progress
+  | "result";        // match complete
 
 export default function ChallengePage() {
   const router = useRouter();
@@ -285,21 +162,12 @@ export default function ChallengePage() {
 
   // Request / match
   const [activeRequest, setActiveRequest] = useState<BtaRequest & { time_remaining_seconds: number } | null>(null);
+  const [activeMatchId, setActiveMatchId] = useState<string | null>(null);
   const [countdown, setCountdown] = useState(0);
-
-  // Round scoreboard (updated from poll + move responses)
-  const [score, setScore]         = useState<ScoreState>({ numRounds: 1, currentRound: 1, playerWins: 0, adminWins: 0 });
-
-  // Move
-  const [selectedMove, setSelectedMove]   = useState<BtaMove | null>(null);
-  const [submittingMove, setSubmittingMove] = useState(false);
-
-  // Round flash
-  const [roundFlash, setRoundFlash] = useState<RoundFlashState | null>(null);
 
   // Final result
   const [finalResult, setFinalResult] = useState<{
-    winner: BtaWinner; adminMove: BtaMove | null; playerMove: BtaMove | null; payout: number;
+    winner: BtaWinner; payout: number;
   } | null>(null);
 
   // History
@@ -383,7 +251,6 @@ export default function ChallengePage() {
       setActiveRequest(request);
 
       // Always derive countdown from expires_at — never trust a decremented local counter.
-      // This means reloads, missed ticks, and tab wakeups all show the correct remaining time.
       if (request.expires_at) {
         expiresAtRef.current = request.expires_at;
         const remaining = Math.max(0, Math.floor((new Date(request.expires_at).getTime() - Date.now()) / 1000));
@@ -392,24 +259,17 @@ export default function ChallengePage() {
         setCountdown(request.time_remaining_seconds ?? 0);
       }
 
-      // Update scoreboard from polled round fields
-      if (request.num_rounds != null) {
-        setScore({
-          numRounds: request.num_rounds,
-          currentRound: request.current_round ?? 1,
-          playerWins: request.player_round_wins ?? 0,
-          adminWins: request.admin_round_wins ?? 0,
-        });
-      }
-
       if (request.status === "approved") {
         if (match?.status === "completed" && match.winner) {
           clearRequestPolling();
-          setFinalResult({ winner: match.winner, adminMove: match.admin_move, playerMove: match.player_move, payout: match.payout });
+          setFinalResult({ winner: match.winner, payout: match.payout });
           setPhase("result");
           fetchHistory();
         } else {
-          setPhase((prev) => prev === "waiting_admin" ? "move" : prev === "pending" ? "move" : prev);
+          // Extract match_id — backend may include it in request or match object
+          const mid = (request as any).match_id ?? (match as any)?.match_id;
+          if (mid) setActiveMatchId(mid);
+          setPhase((prev) => prev === "pending" ? "match" : prev);
         }
       } else if (request.status === "pending") {
         setPhase("pending");
@@ -445,14 +305,17 @@ export default function ChallengePage() {
             restoredPhase = true;
           } else if (request.status === "approved" && match) {
             if (match.status === "completed" && match.winner) {
-              setFinalResult({ winner: match.winner, adminMove: match.admin_move, playerMove: match.player_move, payout: match.payout });
+              setFinalResult({ winner: match.winner, payout: match.payout });
               setPhase("result");
             } else {
-              setPhase("move");
+              // Match in progress — need matchId. The my-request response may carry it.
+              const mid = (myReq as any).match_id ?? (match as any).match_id ?? (myReq.request as any)?.match_id;
+              if (mid) setActiveMatchId(mid);
+              setPhase("match");
             }
             restoredPhase = true;
           } else if (request.status === "approved") {
-            setPhase("move");
+            setPhase("match");
             restoredPhase = true;
           }
         }
@@ -476,7 +339,7 @@ export default function ChallengePage() {
 
   // ── Manage intervals when phase changes ────────────────────────────────────
   useEffect(() => {
-    if (phase === "pending" || phase === "waiting_admin") {
+    if (phase === "pending") {
       clearStatusPolling();
       if (!requestIntervalRef.current) {
         pollMyRequest();
@@ -484,8 +347,6 @@ export default function ChallengePage() {
       }
       if (!countdownRef.current) {
         countdownRef.current = setInterval(() => {
-          // Always compute from the real deadline — never just decrement.
-          // Tab wake-ups, missed ticks, and reloads all get the correct value.
           if (expiresAtRef.current) {
             const remaining = Math.max(0, Math.floor((new Date(expiresAtRef.current).getTime() - Date.now()) / 1000));
             setCountdown(remaining);
@@ -501,6 +362,7 @@ export default function ChallengePage() {
         statusIntervalRef.current = setInterval(fetchStatus, STATUS_POLL_MS);
       }
     }
+    // match phase: LudoMatch component handles its own polling
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase]);
 
@@ -527,71 +389,11 @@ export default function ChallengePage() {
     finally { setRequesting(false); }
   };
 
-  // ── Submit move ────────────────────────────────────────────────────────────
-  const handleMove = async () => {
-    if (!selectedMove || !activeRequest) return;
-    setSubmittingMove(true); setError("");
-    try {
-      const res = await beatTheAdminApi.submitMove(activeRequest.request_id, selectedMove);
-
-      // Update scoreboard from response
-      setScore({
-        numRounds: res.num_rounds,
-        currentRound: res.current_round,
-        playerWins: res.player_round_wins,
-        adminWins: res.admin_round_wins,
-      });
-
-      if (res.match_resolved) {
-        // Match is over — go straight to final result
-        clearRequestPolling();
-        const resolvedWinner = res.match_winner ?? res.winner ?? null;
-        setFinalResult({
-          winner: resolvedWinner!,
-          adminMove: res.admin_move ?? null,
-          playerMove: res.player_move ?? null,
-          payout: resolvedWinner === "player" ? (activeRequest.stake ?? 0) * 2
-                : resolvedWinner === "draw"   ? (activeRequest.stake ?? 0) : 0,
-        });
-        // Refresh balance so payout/loss is reflected immediately
-        refreshBalance();
-        setPhase("result");
-        fetchHistory();
-        return;
-      }
-
-      // Not resolved — check round result
-      if (res.round_result !== null) {
-        const isDraw = res.round_result === "draw";
-        setRoundFlash({
-          roundNumber: res.round_number,
-          result: res.round_result,
-          playerMove: res.player_move ?? selectedMove,
-          adminMove: res.admin_move ?? null,
-        });
-        setSelectedMove(null);
-        setPhase("round_flash");
-
-        // After flash, move back to move phase for the next round
-        setTimeout(() => {
-          setRoundFlash(null);
-          setPhase("move");
-        }, ROUND_FLASH_MS);
-      } else {
-        // round_result is null: still waiting for admin to move
-        setSelectedMove(null);
-        setPhase("waiting_admin");
-      }
-    } catch (err) { setError(codeToMessage(err)); }
-    finally { setSubmittingMove(false); }
-  };
-
   // ── Reset to lobby ─────────────────────────────────────────────────────────
   const resetToLobby = () => {
-    setFinalResult(null); setActiveRequest(null); setSelectedMove(null);
-    setError(""); setStake(""); setRoundFlash(null);
+    setFinalResult(null); setActiveRequest(null); setActiveMatchId(null); setStake("");
+    setError("");
     expiresAtRef.current = null;
-    setScore({ numRounds: 1, currentRound: 1, playerWins: 0, adminWins: 0 });
     fetchStatus(); fetchHistory();
     setPhase("lobby");
   };
@@ -603,7 +405,6 @@ export default function ChallengePage() {
   const maxStake = status?.max_stake ?? 10000;
   const stakeNum = Number(stake);
   const stakeValid = stakeNum >= minStake && stakeNum <= maxStake;
-  const showScoreboard = score.numRounds > 1 && (phase === "move" || phase === "round_flash" || phase === "waiting_admin");
 
   return (
     <>
@@ -620,7 +421,7 @@ export default function ChallengePage() {
           <Swords size={22} style={{ color: "var(--accent-indigo)", flexShrink: 0 }} />
           <div>
             <h1 style={{ fontSize: 24, fontWeight: 900, letterSpacing: "-0.02em", color: "var(--text-primary)", margin: 0 }}>Beat the Admin</h1>
-            <p style={{ fontSize: 12, color: "var(--text-muted)", margin: 0 }}>Rock · Paper · Scissors · Double or nothing</p>
+            <p style={{ fontSize: 12, color: "var(--text-muted)", margin: 0 }}>Ludo · Double or nothing</p>
           </div>
         </div>
 
@@ -631,14 +432,6 @@ export default function ChallengePage() {
           </div>
         )}
 
-        {/* Live scoreboard strip (best-of-N matches only) */}
-        {showScoreboard && (
-          <Scoreboard
-            playerWins={score.playerWins} adminWins={score.adminWins}
-            currentRound={score.currentRound} numRounds={score.numRounds}
-          />
-        )}
-
         <AnimatePresence mode="wait">
 
           {/* ── RESULT ── */}
@@ -646,76 +439,37 @@ export default function ChallengePage() {
             <motion.div key="result" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               <ResultScreen
                 winner={finalResult.winner}
-                adminMove={finalResult.adminMove} playerMove={finalResult.playerMove}
                 stake={activeRequest?.stake ?? stakeNum}
                 payout={finalResult.payout}
-                numRounds={score.numRounds} playerRoundWins={score.playerWins} adminRoundWins={score.adminWins}
                 onPlayAgain={resetToLobby}
               />
             </motion.div>
           )}
 
-          {/* ── ROUND FLASH ── */}
-          {phase === "round_flash" && roundFlash && (
-            <motion.div key="round_flash" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              <RoundFlash
-                result={roundFlash.result} roundNumber={roundFlash.roundNumber}
-                playerMove={roundFlash.playerMove} adminMove={roundFlash.adminMove}
-                isDraw={roundFlash.result === "draw"}
-              />
-              <p style={{ fontSize: 12, color: "var(--text-muted)", textAlign: "center", margin: 0 }}>
-                {roundFlash.result === "draw" ? "Preparing next attempt…" : "Preparing next round…"}
-              </p>
-            </motion.div>
-          )}
-
-          {/* ── MOVE UI ── */}
-          {phase === "move" && (
-            <motion.div key="move" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-              style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              <div style={{ borderRadius: 12, padding: "14px 16px", backgroundColor: "rgba(76,111,255,0.06)", border: "1px solid rgba(76,111,255,0.2)" }}>
-                <p style={{ fontSize: 13, fontWeight: 700, color: "var(--accent-indigo)", margin: "0 0 2px" }}>
-                  {score.numRounds > 1 ? `Round ${score.currentRound} of ${score.numRounds}` : "Challenge approved!"}
-                </p>
+          {/* ── LUDO MATCH ── */}
+          {phase === "match" && activeMatchId && (
+            <motion.div key="match" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+              <div style={{ borderRadius: 12, padding: "10px 14px", marginBottom: 12,
+                backgroundColor: "rgba(76,111,255,0.06)", border: "1px solid rgba(76,111,255,0.2)" }}>
+                <p style={{ fontSize: 13, fontWeight: 700, color: "var(--accent-indigo)", margin: "0 0 2px" }}>Match in progress!</p>
                 <p style={{ fontSize: 12, color: "var(--text-secondary)", margin: 0 }}>
                   Stake: {fmtNaira(activeRequest?.stake ?? stakeNum)} → Win: {fmtNaira((activeRequest?.stake ?? stakeNum) * 2)}
                 </p>
               </div>
-              <p style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-muted)", marginBottom: 0 }}>Choose your move</p>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
-                {MOVES.map(({ value, emoji, label }) => (
-                  <button key={value} onClick={() => setSelectedMove(value)} disabled={submittingMove}
-                    style={{ padding: "18px 8px", borderRadius: 14, border: "2px solid",
-                      borderColor: selectedMove === value ? "var(--accent-indigo)" : "var(--border-hairline)",
-                      backgroundColor: selectedMove === value ? "rgba(76,111,255,0.12)" : "var(--bg-card)",
-                      cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 6,
-                      transition: "all 0.15s", transform: selectedMove === value ? "scale(1.04)" : "scale(1)" }}>
-                    <span style={{ fontSize: 32 }}>{emoji}</span>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: selectedMove === value ? "var(--accent-indigo)" : "var(--text-secondary)" }}>{label}</span>
-                  </button>
-                ))}
-              </div>
-              {error && <p style={{ fontSize: 12, color: "#f87171", margin: 0 }}>{error}</p>}
-              <button onClick={handleMove} disabled={!selectedMove || submittingMove}
-                style={{ width: "100%", padding: "14px 0", borderRadius: 14, border: "none",
-                  backgroundColor: "var(--accent-indigo)", color: "#fff", fontSize: 15, fontWeight: 800,
-                  cursor: !selectedMove || submittingMove ? "not-allowed" : "pointer",
-                  opacity: !selectedMove || submittingMove ? 0.45 : 1,
-                  display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-                {submittingMove && <Loader2 size={16} className="animate-spin" />}
-                {submittingMove ? "Submitting…" : "Lock In Move"}
-              </button>
-            </motion.div>
-          )}
-
-          {/* ── WAITING FOR ADMIN ── */}
-          {phase === "waiting_admin" && (
-            <motion.div key="waiting_admin" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-              style={{ textAlign: "center", padding: "24px 0", display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
-              <Loader2 size={28} className="animate-spin" style={{ color: "var(--accent-indigo)" }} />
-              <p style={{ fontSize: 14, color: "var(--text-secondary)", margin: 0 }}>Waiting for admin to play…</p>
-              <p style={{ fontSize: 11, color: "var(--text-muted)", margin: 0 }}>Round {score.currentRound}</p>
+              <LudoMatch
+                matchId={activeMatchId}
+                myRole="player"
+                stake={activeRequest?.stake ?? stakeNum}
+                rollDice={beatTheAdminApi.rollDice}
+                movePiece={beatTheAdminApi.movePiece}
+                getMatchState={beatTheAdminApi.getMatchState}
+                onMatchComplete={(winner, payout) => {
+                  refreshBalance();
+                  setFinalResult({ winner, payout });
+                  setPhase("result");
+                  fetchHistory();
+                }}
+              />
             </motion.div>
           )}
 

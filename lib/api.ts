@@ -1692,13 +1692,11 @@ export const referralApi = {
     ),
 };
 
-// ─── BEAT THE ADMIN ───────────────────────────────────────────────────────────
+// ─── BEAT THE ADMIN — LUDO ────────────────────────────────────────────────────
 // Player-facing: /api/admin-challenge/*
 // Admin-facing:  /api/admin/beat-the-admin/*
 
-export type BtaMove = "rock" | "paper" | "scissors";
 export type BtaWinner = "player" | "admin" | "draw";
-export type BtaRoundResult = "player" | "admin" | "draw" | null;
 export type BtaRequestStatus = "pending" | "approved" | "expired" | "rejected";
 
 export interface BtaStatus {
@@ -1715,17 +1713,82 @@ export interface BtaRequest {
   status: BtaRequestStatus;
   expires_at: string;
   time_remaining_seconds?: number;
-  // best-of-N round fields (present once match is approved)
-  num_rounds?: number;
-  current_round?: number;
-  player_round_wins?: number;
-  admin_round_wins?: number;
 }
+
+// ── Ludo-specific types ───────────────────────────────────────────────────────
+
+export interface LudoPiece {
+  id: string;      // "p0"–"p3" for player, "a0"–"a3" for admin
+  position: number; // -1=yard, 0–51=track, 52–56=home column, 57=finished
+}
+
+export interface LudoMatchState {
+  match_id: string;
+  status: "in_progress" | "completed";
+  winner: BtaWinner | null;
+  current_turn: "player" | "admin";
+  dice_value: number | null;
+  dice_rolled: boolean;
+  movable_pieces: string[];           // piece ids that can legally move
+  must_pass: boolean;
+  consecutive_sixes: number;
+  stake: number;
+  payout: number;
+  pieces_home_count: { player: number; admin: number };
+  player_pieces: LudoPiece[];
+  admin_pieces: LudoPiece[];
+  move_history?: {
+    turn: number;
+    side: "player" | "admin";
+    dice: number;
+    piece_id: string;
+    from: number;
+    to: number;
+    captured: string | null;
+    reached_home: boolean;
+  }[];
+}
+
+export interface LudoRollResponse {
+  dice_value: number;
+  current_turn: "player" | "admin";
+  can_move: boolean;
+  movable_pieces: string[];
+  must_pass: boolean;
+  extra_turn: boolean;
+  consecutive_sixes: number;
+}
+
+export interface LudoMoveResponse {
+  piece_id: string;
+  from: number;
+  to: number;
+  captured: boolean;
+  captured_side: "player" | "admin" | null;
+  captured_piece_id: string | null;
+  reached_home: boolean;
+  extra_turn: boolean;
+  current_turn: "player" | "admin";
+  match_resolved: boolean;
+  match_winner: BtaWinner | null;
+  pieces_home_count: { player: number; admin: number };
+  board: {
+    player_pieces: LudoPiece[];
+    admin_pieces: LudoPiece[];
+    dice_value: number | null;
+    dice_rolled: boolean;
+    movable_pieces: string[];
+    must_pass: boolean;
+    consecutive_sixes: number;
+  };
+}
+
+// ── Legacy types kept for history list ───────────────────────────────────────
 
 export interface BtaMatch {
   status: "in_progress" | "completed";
-  player_move: BtaMove | null;
-  admin_move: BtaMove | null;   // null until result is known (anti-cheat)
+  player_move: null;
+  admin_move: null;
   winner: BtaWinner | null;
   payout: number;
 }
@@ -1733,26 +1796,6 @@ export interface BtaMatch {
 export interface BtaMyRequestResponse {
   request: (BtaRequest & { time_remaining_seconds: number }) | null;
   match: BtaMatch | null;
-}
-
-/** Shape returned by POST /api/admin-challenge/move (best-of-N contract) */
-export interface BtaMoveResponse {
-  move_recorded: boolean;
-  // Round info
-  round_number: number;
-  round_result: BtaRoundResult;          // null = still waiting for other side
-  player_round_wins: number;
-  admin_round_wins: number;
-  current_round: number;
-  num_rounds: number;
-  // Match resolution
-  match_resolved: boolean;
-  match_winner: BtaWinner | null;        // null until match_resolved: true
-  // Legacy / extra fields (may be present on resolved match)
-  winner?: BtaWinner;                    // alias for match_winner, kept for compat
-  admin_move?: BtaMove;
-  player_move?: BtaMove;
-  message?: string;
 }
 
 export interface BtaHistoryEntry {
@@ -1763,29 +1806,10 @@ export interface BtaHistoryEntry {
   created_at: string | null;
   match?: {
     winner: BtaWinner | null;
-    player_move: BtaMove | null;
-    admin_move: BtaMove | null;
+    player_move: null;
+    admin_move: null;
     payout: number;
   } | null;
-}
-
-/** Full match state returned by GET /api/admin/beat-the-admin/match/:matchId (admin only) */
-export interface BtaAdminMatchDetail {
-  match_id: string;
-  num_rounds: number;
-  current_round: number;
-  player_round_wins: number;
-  admin_round_wins: number;
-  match_resolved: boolean;
-  match_winner: BtaWinner | null;
-  rounds: {
-    round_number: number;
-    player_move: BtaMove | null;
-    admin_move: BtaMove | null;
-    round_result: BtaRoundResult;
-  }[];
-  stake: number;
-  payout: number;
 }
 
 export const beatTheAdminApi = {
@@ -1794,7 +1818,7 @@ export const beatTheAdminApi = {
       token: getToken(),
     }),
 
-  requestChallenge: (stake: number, game_type = "rps") =>
+  requestChallenge: (stake: number, game_type = "ludo") =>
     request<{
       request_id: string;
       game_type: string;
@@ -1815,7 +1839,6 @@ export const beatTheAdminApi = {
     }).then((res): BtaMyRequestResponse => {
       if (!res.request) return { request: null, match: res.match };
       const r = res.request;
-      // Backend sends `id`, interface uses `request_id` — normalise here
       const request = {
         ...r,
         request_id: r.request_id ?? r.id,
@@ -1823,10 +1846,21 @@ export const beatTheAdminApi = {
       return { request, match: res.match };
     }),
 
-  submitMove: (requestId: string, move: BtaMove) =>
-    request<BtaMoveResponse>("/api/admin-challenge/move", {
+  getMatchState: (matchId: string) =>
+    request<LudoMatchState>(`/api/admin-challenge/match/${matchId}`, {
+      token: getToken(),
+    }),
+
+  rollDice: (matchId: string) =>
+    request<LudoRollResponse>(`/api/admin-challenge/match/${matchId}/roll`, {
       method: "POST",
-      body: { requestId, move },
+      token: getToken(),
+    }),
+
+  movePiece: (matchId: string, pieceId: string) =>
+    request<LudoMoveResponse>(`/api/admin-challenge/match/${matchId}/move`, {
+      method: "POST",
+      body: { piece_id: pieceId },
       token: getToken(),
     }),
 
@@ -1849,29 +1883,14 @@ export interface BtaQueueEntry {
   expires_at: string;
   time_remaining_seconds: number;  // normalised from seconds_remaining on arrival
   created_at: string;
-  // round scoreboard fields — present on approved/in-progress entries
-  num_rounds?: number;
-  current_round?: number;
-  player_round_wins?: number;
-  admin_round_wins?: number;
   match?: BtaMatch | null;
 }
 
-/** Shape returned by admin move endpoint (best-of-N contract) */
-export interface BtaAdminMoveResponse {
-  round_number: number;
-  round_result: BtaRoundResult;
-  player_round_wins: number;
-  admin_round_wins: number;
-  current_round: number;
-  num_rounds: number;
-  match_resolved: boolean;
-  match_winner: BtaWinner | null;
-  // populated when round is not a draw
-  admin_move?: BtaMove;
-  player_move?: BtaMove;
-  payout?: number;
-}
+/** Shape returned by admin move endpoint (Ludo contract) */
+export interface BtaAdminMoveResponse extends LudoMoveResponse {}
+
+/** Full match state for admin — same shape as LudoMatchState */
+export interface BtaAdminMatchDetail extends LudoMatchState {}
 
 export const adminBtaApi = {
   getStatus: () =>
@@ -1920,7 +1939,7 @@ export const adminBtaApi = {
     }),
 
   approveRequest: (requestId: string) =>
-    request<{ match_id: string; status: string; current_round: number; num_rounds: number; player_round_wins?: number; admin_round_wins?: number }>(
+    request<{ match_id: string; status: string; current_turn: "player" | "admin" }>(
       `/api/admin/beat-the-admin/${requestId}/approve`,
       { method: "POST", token: getAdminToken() }
     ),
@@ -1931,16 +1950,22 @@ export const adminBtaApi = {
       { method: "POST", token: getAdminToken() }
     ),
 
-  submitMove: (matchId: string, move: BtaMove) =>
-    request<BtaAdminMoveResponse>(
-      `/api/admin/beat-the-admin/match/${matchId}/move`,
-      { method: "POST", body: { move }, token: getAdminToken() }
-    ),
-
-  getMatchDetail: (matchId: string) =>
-    request<BtaAdminMatchDetail>(
+  getMatchState: (matchId: string) =>
+    request<LudoMatchState>(
       `/api/admin/beat-the-admin/match/${matchId}`,
       { token: getAdminToken() }
+    ),
+
+  rollDice: (matchId: string) =>
+    request<LudoRollResponse>(
+      `/api/admin/beat-the-admin/match/${matchId}/roll`,
+      { method: "POST", token: getAdminToken() }
+    ),
+
+  movePiece: (matchId: string, pieceId: string) =>
+    request<LudoMoveResponse>(
+      `/api/admin/beat-the-admin/match/${matchId}/move`,
+      { method: "POST", body: { piece_id: pieceId }, token: getAdminToken() }
     ),
 };
 
