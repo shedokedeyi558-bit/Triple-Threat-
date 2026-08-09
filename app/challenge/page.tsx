@@ -25,7 +25,7 @@ function fmtNaira(n: number) { return `₦${n.toLocaleString()}`; }
 
 function codeToMessage(err: unknown): string {
   if (err instanceof ApiError) {
-    switch ((err as any).code) {
+    switch (err.code) {
       case "MATCH_IN_PROGRESS":   return "A match is in progress — wait for it to finish.";
       case "FEATURE_UNAVAILABLE": return "Beat the Admin is currently unavailable. Check back soon.";
       case "STAKE_OUT_OF_RANGE":  return "Stake is outside the allowed range. Adjust and try again.";
@@ -267,7 +267,7 @@ export default function ChallengePage() {
           fetchHistory();
         } else {
           // Extract match_id — backend may include it in request or match object
-          const mid = (request as any).match_id ?? (match as any)?.match_id;
+          const mid = request.match_id ?? match?.match_id;
           if (mid) setActiveMatchId(mid);
           setPhase((prev) => prev === "pending" ? "match" : prev);
         }
@@ -308,8 +308,8 @@ export default function ChallengePage() {
               setFinalResult({ winner: match.winner, payout: match.payout });
               setPhase("result");
             } else {
-              // Match in progress — need matchId. The my-request response may carry it.
-              const mid = (myReq as any).match_id ?? (match as any).match_id ?? (myReq.request as any)?.match_id;
+              // Match in progress — need matchId from request or match
+              const mid = myReq.request?.match_id ?? match?.match_id;
               if (mid) setActiveMatchId(mid);
               setPhase("match");
             }

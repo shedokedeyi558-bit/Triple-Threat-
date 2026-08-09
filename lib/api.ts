@@ -1713,6 +1713,7 @@ export interface BtaRequest {
   status: BtaRequestStatus;
   expires_at: string;
   time_remaining_seconds?: number;
+  match_id?: string;  // present once approved — links to ludo_matches row
 }
 
 // ── Ludo-specific types ───────────────────────────────────────────────────────
@@ -1791,6 +1792,7 @@ export interface BtaMatch {
   admin_move: null;
   winner: BtaWinner | null;
   payout: number;
+  match_id?: string;  // may be present on in-progress match
 }
 
 export interface BtaMyRequestResponse {
@@ -1834,15 +1836,18 @@ export const beatTheAdminApi = {
     }),
 
   getMyRequest: () =>
-    request<{ request: any | null; match: BtaMatch | null }>("/api/admin-challenge/my-request", {
+    request<{
+      request: (Omit<BtaRequest, "request_id"> & { id?: string; request_id?: string; time_remaining_seconds: number }) | null;
+      match: BtaMatch | null;
+    }>("/api/admin-challenge/my-request", {
       token: getToken(),
     }).then((res): BtaMyRequestResponse => {
       if (!res.request) return { request: null, match: res.match };
       const r = res.request;
-      const request = {
+      const request: BtaRequest & { time_remaining_seconds: number } = {
         ...r,
-        request_id: r.request_id ?? r.id,
-      } as BtaRequest & { time_remaining_seconds: number };
+        request_id: r.request_id ?? r.id ?? "",
+      };
       return { request, match: res.match };
     }),
 
@@ -1887,10 +1892,10 @@ export interface BtaQueueEntry {
 }
 
 /** Shape returned by admin move endpoint (Ludo contract) */
-export interface BtaAdminMoveResponse extends LudoMoveResponse {}
+export type BtaAdminMoveResponse = LudoMoveResponse;
 
 /** Full match state for admin — same shape as LudoMatchState */
-export interface BtaAdminMatchDetail extends LudoMatchState {}
+export type BtaAdminMatchDetail = LudoMatchState;
 
 export const adminBtaApi = {
   getStatus: () =>
@@ -1925,14 +1930,12 @@ export const adminBtaApi = {
     }),
 
   getQueue: () =>
-    request<{ queue: any[]; total: number }>(
+    request<{ queue: (Omit<BtaQueueEntry, "time_remaining_seconds"> & { time_remaining_seconds?: number; seconds_remaining?: number })[]; total: number }>(
       "/api/admin/beat-the-admin/queue",
       { token: getAdminToken() }
     ).then((res) => {
-      // Exact shape: { queue: [...], total: N } — key is always "queue"
-      const entries: BtaQueueEntry[] = (res.queue ?? []).map((e: any) => ({
+      const entries: BtaQueueEntry[] = (res.queue ?? []).map((e) => ({
         ...e,
-        // Backend sends seconds_remaining, interface uses time_remaining_seconds
         time_remaining_seconds: e.time_remaining_seconds ?? e.seconds_remaining ?? 0,
       }));
       return { requests: entries };
