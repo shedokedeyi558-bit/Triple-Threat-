@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useApp } from "@/context/AppContext";
 import {
-  beatTheAdminApi, ApiError,
+  beatTheAdminApi, walletApi, ApiError,
   type BtaMove, type BtaWinner, type BtaRoundResult, type BtaStatus,
   type BtaRequest, type BtaMatch, type BtaMoveResponse,
   type BtaHistoryEntry,
@@ -313,6 +313,8 @@ export default function ChallengePage() {
   // Stores the active request's expires_at so the 1-second tick can always
   // compute remaining time from the real deadline, not just decrement blindly.
   const expiresAtRef       = useRef<string | null>(null);
+  // Tracks the last seen request status so we can detect transitions (e.g. pending → null/expired)
+  const prevRequestStatusRef = useRef<string | null>(null);
 
   const clearRequestPolling = () => {
     if (requestIntervalRef.current) { clearInterval(requestIntervalRef.current); requestIntervalRef.current = null; }
@@ -329,6 +331,16 @@ export default function ChallengePage() {
     finally { setHistoryLoading(false); }
   }, []);
 
+  // Fetches the latest balance from the server and updates the global context.
+  // Called immediately when a refund event is detected (expiry/rejection) so
+  // the player sees their stake returned without reloading.
+  const refreshBalance = useCallback(async () => {
+    try {
+      const res = await walletApi.getBalance();
+      dispatch({ type: "UPDATE_BALANCE", balance: res.balance, bonus_balance: res.bonus_balance });
+    } catch { /* silent — balance will sync on next scheduled fetch */ }
+  }, [dispatch]);
+
   const fetchStatus = useCallback(async () => {
     try {
       const res = await beatTheAdminApi.getStatus();
@@ -344,12 +356,29 @@ export default function ChallengePage() {
       const { request, match } = res;
 
       if (!request) {
+        // Request disappeared — it expired or was rejected.
+        // If we were previously tracking a pending request, the stake was refunded.
+        // Refresh balance immediately so the player sees it restored.
+        if (prevRequestStatusRef.current === "pending" || prevRequestStatusRef.current === "approved") {
+          refreshBalance();
+        }
+        prevRequestStatusRef.current = null;
         clearRequestPolling();
         setActiveRequest(null);
         setPhase("lobby");
         fetchHistory();
         return;
       }
+
+      // Detect transition to expired/rejected status (backend may briefly return
+      // the entry with status="expired" before dropping it entirely)
+      if (
+        (request.status === "expired" || request.status === "rejected") &&
+        prevRequestStatusRef.current === "pending"
+      ) {
+        refreshBalance();
+      }
+      prevRequestStatusRef.current = request.status;
 
       setActiveRequest(request);
 
@@ -387,7 +416,7 @@ export default function ChallengePage() {
       }
     } catch { /* silent */ }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fetchHistory]);
+  }, [fetchHistory, refreshBalance]);
 
   // ── Boot ───────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -402,6 +431,7 @@ export default function ChallengePage() {
         if (myReq.request) {
           const { request, match } = myReq;
           setActiveRequest(request);
+          prevRequestStatusRef.current = request.status;
 
           // Derive countdown from expires_at so it's accurate after a reload
           if (request.expires_at) {
@@ -523,6 +553,8 @@ export default function ChallengePage() {
           payout: resolvedWinner === "player" ? (activeRequest.stake ?? 0) * 2
                 : resolvedWinner === "draw"   ? (activeRequest.stake ?? 0) : 0,
         });
+        // Refresh balance so payout/loss is reflected immediately
+        refreshBalance();
         setPhase("result");
         fetchHistory();
         return;
