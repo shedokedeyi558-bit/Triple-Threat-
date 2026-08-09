@@ -1898,10 +1898,13 @@ export const adminBtaApi = {
     }),
 
   getQueue: () =>
-    request<{ requests: BtaQueueEntry[] }>(
+    request<{ requests?: BtaQueueEntry[]; queue?: BtaQueueEntry[] } | BtaQueueEntry[]>(
       "/api/admin/beat-the-admin/queue",
       { token: getAdminToken() }
-    ),
+    ).then((res) => {
+      console.log("[BTA queue] API raw:", JSON.stringify(res));
+      return res as { requests?: BtaQueueEntry[]; queue?: BtaQueueEntry[] };
+    }),
 
   approveRequest: (requestId: string) =>
     request<{ request_id: string; status: string }>(

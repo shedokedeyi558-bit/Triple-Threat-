@@ -471,7 +471,11 @@ export default function AdminBeatTheAdminPage() {
         setError("Could not load settings — " + (statusRes.reason instanceof ApiError ? statusRes.reason.message : "check admin session"));
       }
       if (queueRes.status === "fulfilled") {
-        setQueue(queueRes.value?.requests ?? []);
+        console.log("[BTA queue] raw response:", JSON.stringify(queueRes.value));
+        // Backend returns { requests: [...] } or { queue: [...] } — try both keys
+        const raw = queueRes.value as any;
+        const entries = raw?.requests ?? raw?.queue ?? (Array.isArray(raw) ? raw : []);
+        setQueue(entries);
       } else if (isManual) {
         // Surface queue errors on manual refresh — silent on background polls
         setError((prev) => prev || "Could not load queue — " + (queueRes.reason instanceof ApiError ? queueRes.reason.message : "check admin session"));
