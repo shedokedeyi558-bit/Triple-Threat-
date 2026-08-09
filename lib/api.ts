@@ -1912,13 +1912,13 @@ export const adminBtaApi = {
 
   approveRequest: (requestId: string) =>
     request<{ request_id: string; status: string }>(
-      `/api/admin/beat-the-admin/requests/${requestId}/approve`,
+      `/api/admin/beat-the-admin/${requestId}/approve`,
       { method: "POST", token: getAdminToken() }
     ),
 
   rejectRequest: (requestId: string) =>
     request<{ request_id: string; status: string }>(
-      `/api/admin/beat-the-admin/requests/${requestId}/reject`,
+      `/api/admin/beat-the-admin/${requestId}/reject`,
       { method: "POST", token: getAdminToken() }
     ),
 
