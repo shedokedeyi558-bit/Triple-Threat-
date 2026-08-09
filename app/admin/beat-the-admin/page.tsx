@@ -468,13 +468,20 @@ export default function AdminBeatTheAdminPage() {
         setStatus(statusRes.value);
         isAvailableRef.current = statusRes.value.is_available; // keep ref in sync
       } else {
-        setError("Could not load settings — " + (statusRes.reason instanceof ApiError ? statusRes.reason.message : "check admin session"));
+        const reason = statusRes.reason;
+        const msg = reason instanceof ApiError ? `${reason.message} (status ${reason.status})` : String(reason);
+        console.error("[BTA poll] GET settings failed:", msg);
+        // Only show banner on first load (loading=true) or manual refresh — not every background poll
+        if (loading || isManual) {
+          setError("Could not load settings — " + (reason instanceof ApiError ? reason.message : "check admin session"));
+        }
       }
       if (queueRes.status === "fulfilled") {
         setQueue(queueRes.value?.requests ?? []);
       } else if (isManual) {
-        // Surface queue errors on manual refresh — silent on background polls
-        setError((prev) => prev || "Could not load queue — " + (queueRes.reason instanceof ApiError ? queueRes.reason.message : "check admin session"));
+        const reason = queueRes.reason;
+        console.error("[BTA poll] GET queue failed:", reason instanceof ApiError ? `${reason.message} (status ${reason.status})` : String(reason));
+        setError((prev) => prev || "Could not load queue — " + (reason instanceof ApiError ? reason.message : "check admin session"));
       }
     } catch { /* silent on background poll */ }
     finally { setLoading(false); if (isManual) setRefreshing(false); }
